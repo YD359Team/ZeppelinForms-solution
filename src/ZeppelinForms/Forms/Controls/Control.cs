@@ -44,6 +44,20 @@ public abstract class PanelControl : UIElement
 }
 
 /// <summary>
+/// Simple panel
+/// </summary>
+public class Panel : PanelControl
+{
+    public Color Background { get; set; } = Colors.Transparent;
+
+    public override void Draw(Graphics g)
+    {
+        if (Background.A > 0)
+            g.FillRectangle(new Rectangle(0, 0, Size.Width, Size.Height), Background);
+    }
+}
+
+/// <summary>
 /// Control with caption
 /// </summary>
 public class Label : UnitControl
@@ -52,6 +66,7 @@ public class Label : UnitControl
 
     public override void Draw(Graphics g)
     {
-        // e.g. g.DrawString(this.Text);
+        if (Text is not null)
+            g.DrawText(Text, Point.Empty, Colors.Black);
     }
 }

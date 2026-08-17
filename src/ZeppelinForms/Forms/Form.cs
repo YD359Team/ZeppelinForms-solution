@@ -13,7 +13,7 @@ public class Form
     public Point Position { get; set; }
     public Size Size { get; set; }
 
-    public SingleControl? Content { get; set; }
+    public UIElement? Content { get; set; }
 
     public void Show()
     {

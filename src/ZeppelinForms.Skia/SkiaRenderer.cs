@@ -11,38 +11,25 @@ public static class SkiaRenderer
     {
         canvas.Clear(SKColors.White);
 
-        var content = form.Content;
-
-        if (content is not null)
-        {
-            var rect = new SKRect(
-                content.Position.X,
-                content.Position.Y,
-                content.Position.X + content.Size.Width,
-                content.Position.Y + content.Size.Height);
-
-            using var paint = new SKPaint
-            {
-                Color = SKColors.LightGray,
-                IsAntialias = true,
-            };
-
-            canvas.DrawRect(rect, paint);
-        }
+        if (form.Content is not null)
+            Draw(form.Content, new SkiaGraphics(canvas));
     }
 
-    static void Draw(UIElement element, Graphics g)
+    private static void Draw(UIElement element, Graphics g)
     {
+        g.Save();
+        g.Translate(element.Position.X, element.Position.Y);
+
         switch (element)
         {
             case UnitControl unit:
                 unit.Draw(g);
                 break;
 
-            case SingleControl content:
-                content.Draw(g); // фон/рамка самого контрола
-                if (content.Child is not null)
-                    Draw(content.Child, g);
+            case SingleControl single:
+                single.Draw(g);
+                if (single.Child is not null)
+                    Draw(single.Child, g);
                 break;
 
             case PanelControl panel:
@@ -51,5 +38,7 @@ public static class SkiaRenderer
                     Draw(child, g);
                 break;
         }
+
+        g.Restore();
     }
 }
