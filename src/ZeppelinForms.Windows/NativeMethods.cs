@@ -255,4 +255,121 @@ internal static class NativeMethods
     uint message,
     nint wParam,
     nint lParam);
+
+    public const uint WM_PAINT = 0x000F;
+    public const uint WM_SIZE = 0x0005;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT { public int Left, Top, Right, Bottom; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PAINTSTRUCT
+    {
+        public nint hdc;
+        public bool fErase;
+        public RECT rcPaint;
+        public bool fRestore;
+        public bool fIncUpdate;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
+        public byte[] rgbReserved;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern nint BeginPaint(nint hWnd, out PAINTSTRUCT lpPaint);
+
+    [DllImport("user32.dll")]
+    public static extern bool EndPaint(nint hWnd, ref PAINTSTRUCT lpPaint);
+
+    [DllImport("user32.dll")]
+    public static extern nint GetDC(nint hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern int ReleaseDC(nint hWnd, nint hDC);
+
+    // --- GDI (software путь) ---
+
+    public const uint BI_RGB = 0;
+    public const uint DIB_RGB_COLORS = 0;
+    public const uint SRCCOPY = 0x00CC0020;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BITMAPINFOHEADER
+    {
+        public uint biSize;
+        public int biWidth;
+        public int biHeight;
+        public ushort biPlanes;
+        public ushort biBitCount;
+        public uint biCompression;
+        public uint biSizeImage;
+        public int biXPelsPerMeter;
+        public int biYPelsPerMeter;
+        public uint biClrUsed;
+        public uint biClrImportant;
+    }
+
+    [DllImport("gdi32.dll")]
+    public static extern nint CreateCompatibleDC(nint hdc);
+
+    [DllImport("gdi32.dll")]
+    public static extern nint CreateDIBSection(
+        nint hdc, ref BITMAPINFOHEADER pbmi, uint usage,
+        out nint ppvBits, nint hSection, uint offset);
+
+    [DllImport("gdi32.dll")]
+    public static extern nint SelectObject(nint hdc, nint hObject);
+
+    [DllImport("gdi32.dll")]
+    public static extern bool DeleteObject(nint hObject);
+
+    [DllImport("gdi32.dll")]
+    public static extern bool DeleteDC(nint hdc);
+
+    [DllImport("gdi32.dll")]
+    public static extern bool BitBlt(
+        nint hdcDest, int xDest, int yDest, int width, int height,
+        nint hdcSrc, int xSrc, int ySrc, uint rop);
+
+    // --- WGL (hardware путь) ---
+
+    public const uint PFD_DRAW_TO_WINDOW = 0x4;
+    public const uint PFD_SUPPORT_OPENGL = 0x20;
+    public const uint PFD_DOUBLEBUFFER = 0x1;
+    public const byte PFD_TYPE_RGBA = 0;
+    public const byte PFD_MAIN_PLANE = 0;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PIXELFORMATDESCRIPTOR
+    {
+        public ushort nSize;
+        public ushort nVersion;
+        public uint dwFlags;
+        public byte iPixelType;
+        public byte cColorBits;
+        public byte cRedBits, cRedShift, cGreenBits, cGreenShift;
+        public byte cBlueBits, cBlueShift, cAlphaBits, cAlphaShift;
+        public byte cAccumBits, cAccumRedBits, cAccumGreenBits, cAccumBlueBits, cAccumAlphaBits;
+        public byte cDepthBits, cStencilBits, cAuxBuffers;
+        public byte iLayerType;
+        public byte bReserved;
+        public uint dwLayerMask, dwVisibleMask, dwDamageMask;
+    }
+
+    [DllImport("gdi32.dll")]
+    public static extern int ChoosePixelFormat(nint hdc, ref PIXELFORMATDESCRIPTOR pfd);
+
+    [DllImport("gdi32.dll")]
+    public static extern bool SetPixelFormat(nint hdc, int format, ref PIXELFORMATDESCRIPTOR pfd);
+
+    [DllImport("gdi32.dll")]
+    public static extern bool SwapBuffers(nint hdc);
+
+    [DllImport("opengl32.dll")]
+    public static extern nint wglCreateContext(nint hdc);
+
+    [DllImport("opengl32.dll")]
+    public static extern bool wglMakeCurrent(nint hdc, nint hglrc);
+
+    [DllImport("opengl32.dll")]
+    public static extern bool wglDeleteContext(nint hglrc);
 }

@@ -1,7 +1,9 @@
-﻿using System.ComponentModel;
+﻿using SkiaSharp;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
+using ZeppelinForms.Windows.Rendering;
 
 namespace ZeppelinForms.Windows;
 
@@ -19,6 +21,8 @@ internal sealed class Win32Window : IPlatformWindow
 
     private nint _largeIcon;
     private nint _smallIcon;
+
+    private IWin32SkiaSurface? _skiaSurface;
 
     public Win32Window(WindowsPlatform platform, Form form)
     {
@@ -70,6 +74,8 @@ internal sealed class Win32Window : IPlatformWindow
             throw new Win32Exception(
                 Marshal.GetLastWin32Error());
         }
+
+        _skiaSurface = Win32SkiaSurfaceFactory.Create(_handle);
 
         if (_form.Icon is not null)
         {
@@ -169,6 +175,8 @@ internal sealed class Win32Window : IPlatformWindow
             case NativeMethods.WM_NCDESTROY:
                 {
                     DestroyIcons();
+                    _skiaSurface?.Dispose();
+                    _skiaSurface = null;
 
                     nint result = NativeMethods.DefWindowProc(
                         hWnd, message, wParam, lParam);
@@ -176,6 +184,29 @@ internal sealed class Win32Window : IPlatformWindow
                     ReleaseHandle();
 
                     return result;
+                }
+
+            case NativeMethods.WM_SIZE:
+                {
+                    int width = (int)(lParam.ToInt64() & 0xFFFF);
+                    int height = (int)((lParam.ToInt64() >> 16) & 0xFFFF);
+
+                    _skiaSurface?.Resize(width, height);
+                    return 0;
+                }
+
+            case NativeMethods.WM_PAINT:
+                {
+                    if (_skiaSurface is not null)
+                    {
+                        SKSurface surface = _skiaSurface.BeginFrame();
+                        Skia.SkiaRenderer.Render(_form, surface.Canvas);
+                        _skiaSurface.EndFrame();
+                    }
+
+                    NativeMethods.BeginPaint(hWnd, out var ps);
+                    NativeMethods.EndPaint(hWnd, ref ps);
+                    return 0;
                 }
 
             case NativeMethods.WM_DESTROY:

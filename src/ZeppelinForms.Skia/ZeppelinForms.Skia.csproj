@@ -6,4 +6,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="SkiaSharp" Version="4.151.1" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\ZeppelinForms\ZeppelinForms.csproj" />
+	</ItemGroup>
+
 </Project>
