@@ -1,5 +1,7 @@
 ﻿using SkiaSharp;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Forms;
+using ZeppelinForms.Forms.Controls;
 
 namespace ZeppelinForms.Skia;
 
@@ -9,8 +11,6 @@ public static class SkiaRenderer
     {
         canvas.Clear(SKColors.White);
 
-        // TODO: полноценный обход дерева контролов —
-        // пока у Control нет ни детей, ни фона, ни виртуального OnRender.
         var content = form.Content;
 
         if (content is not null)
@@ -28,6 +28,28 @@ public static class SkiaRenderer
             };
 
             canvas.DrawRect(rect, paint);
+        }
+    }
+
+    static void Draw(UIElement element, Graphics g)
+    {
+        switch (element)
+        {
+            case UnitControl unit:
+                unit.Draw(g);
+                break;
+
+            case SingleControl content:
+                content.Draw(g); // фон/рамка самого контрола
+                if (content.Child is not null)
+                    Draw(content.Child, g);
+                break;
+
+            case PanelControl panel:
+                panel.Draw(g);
+                foreach (var child in panel.Children)
+                    Draw(child, g);
+                break;
         }
     }
 }

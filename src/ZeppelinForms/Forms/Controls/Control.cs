@@ -1,26 +1,52 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.ObjectModel;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Forms.Controls;
 
+/// <summary>
+/// Base element of any UI tree node
+/// </summary>
 public abstract class UIElement
 {
-    public abstract void Draw(Graphics g);
+    public UIElement? Parent { get; set; }
+
     public Point Position { get; set; }
     public Size Size { get; set; }
+
+    public string Name { get; set; }
+
+    public abstract void Draw(Graphics g);
 }
 
-public abstract class Control : UIElement
+/// <summary>
+/// Control without children
+/// </summary>
+public abstract class UnitControl : UIElement
 {
 
 }
 
-public abstract class Panel : UIElement
+/// <summary>
+/// Control with single child (or nothing)
+/// </summary>
+public abstract class SingleControl : UIElement
 {
-
+    public UIElement? Child { get; set; }
 }
 
-public class Label : Control
+/// <summary>
+/// Control with any count of children
+/// </summary>
+public abstract class PanelControl : UIElement
+{
+    public ObservableCollection<UIElement> Children { get; set; } = [];
+}
+
+/// <summary>
+/// Control with caption
+/// </summary>
+public class Label : UnitControl
 {
     public string? Text { get; set; }
 
