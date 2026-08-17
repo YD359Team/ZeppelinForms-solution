@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/ZF Win/ZF Win.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <File Path="src/ZeppelinForms.Skia/ZeppelinForms.Skia.csproj" />
+    <Project Path="src/ZeppelinForms.Windows/ZeppelinForms.Windows.csproj" />
+    <Project Path="src/ZeppelinForms/ZeppelinForms.csproj" />
+  </Folder>
+</Solution>
