@@ -12,7 +12,7 @@ public class Form
     public Icon? Icon { get; set; }
     public Point Position { get; set; }
     public Size Size { get; set; }
-    public Control? Content { get; set; }
+    public ContentControl? Content { get; set; }
 
     public void Show()
     {
