@@ -155,9 +155,10 @@ internal sealed class Win32Window : IPlatformWindow
     }
 
     private nint ProcessMessage(
-    uint message,
-    nint wParam,
-    nint lParam)
+        nint hWnd,
+        uint message,
+        nint wParam,
+        nint lParam)
     {
         switch (message)
         {
@@ -167,15 +168,10 @@ internal sealed class Win32Window : IPlatformWindow
 
             case NativeMethods.WM_NCDESTROY:
                 {
-                    nint handle = _handle;
-
                     DestroyIcons();
 
                     nint result = NativeMethods.DefWindowProc(
-                        handle,
-                        message,
-                        wParam,
-                        lParam);
+                        hWnd, message, wParam, lParam);
 
                     ReleaseHandle();
 
@@ -188,10 +184,7 @@ internal sealed class Win32Window : IPlatformWindow
 
             default:
                 return NativeMethods.DefWindowProc(
-                    _handle,
-                    message,
-                    wParam,
-                    lParam);
+                    hWnd, message, wParam, lParam);
         }
     }
 
@@ -256,22 +249,10 @@ internal sealed class Win32Window : IPlatformWindow
 
         if (window is not null)
         {
-            return window.ProcessMessage(
-                message,
-                wParam,
-                lParam);
+            return window.ProcessMessage(hWnd, message, wParam, lParam);
         }
 
-        return NativeMethods.DefWindowProc(
-            hWnd,
-            message,
-            wParam,
-            lParam);
-    }
-
-    private static nint GetCreateParam(nint lParam)
-    {
-        return Marshal.ReadIntPtr(lParam);
+        return NativeMethods.DefWindowProc(hWnd, message, wParam, lParam);
     }
 
     private static Win32Window? GetWindow(nint hWnd)
