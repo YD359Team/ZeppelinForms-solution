@@ -17,7 +17,19 @@ public abstract class UIElement
 
     public string Name { get; set; }
 
+    internal Form? Owner { get; set; }
+
     public abstract void Draw(Graphics g);
+
+
+    protected void Invalidate()
+    {
+        UIElement root = this;
+        while (root.Parent is not null)
+            root = root.Parent;
+
+        root.Owner?.Invalidate();
+    }
 }
 
 /// <summary>
