@@ -10,10 +10,10 @@ public class Program
 {
     static void Main()
     {
-        WindowsPlatform windowsPlatform = new WindowsPlatform();
-        App myApp = new App(windowsPlatform)
+        WindowsPlatform windowsPlatform = new();
+        App myApp = new(windowsPlatform)
         {
-            MainForm = new Form
+            MainForm = new()
             {
                 Title = "Form 1 - Hello World",
                 Size = new(1024, 768),
@@ -29,7 +29,13 @@ public class Program
                             Position = new(20, 20),
                             Size = new(300, 24),
                             Text = "Hello, ZeppelinForms!",
-                        },
+                        }, 
+                        new Button
+                        {
+                            Position = new(120, 120),
+                            Size = new(300, 24),
+                            Text = "Click me!",
+                        }
                     },
                 },
             }

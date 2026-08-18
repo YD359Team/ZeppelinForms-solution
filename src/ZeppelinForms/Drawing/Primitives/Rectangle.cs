@@ -17,6 +17,14 @@ public record struct Rectangle
         this.Height = height;
     }
 
+    public Rectangle(Point position, Size size)
+    {
+        this.X = position.X;
+        this.Y = position.Y;
+        this.Width = size.Width;
+        this.Height = size.Height;
+    }
+
     public readonly Point AsPosition() => new Point(this.X, this.Y);
 
     public readonly Size AsSize() => new Size(this.Width, this.Height);

@@ -24,6 +24,22 @@ public sealed class SkiaGraphics : Graphics
             paint);
     }
 
+    public override void DrawRectangle(Rectangle rect, Color color, float width)
+    {
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(color.R, color.G, color.B, color.A),
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = width,
+            IsStroke = true,
+        };
+
+        _canvas.DrawRect(
+            new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height),
+            paint);
+    }
+
     public override void DrawText(string text, Point position, Color color)
     {
         using var paint = new SKPaint
