@@ -9,7 +9,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// </summary>
 public abstract class UIElement
 {
-    public UIElement? Parent { get; set; }
+    public UIElement? Parent { get; internal set; }
 
     public Point Position { get; set; }
     public Size Size { get; set; }
@@ -32,7 +32,13 @@ public abstract class UnitControl : UIElement
 /// </summary>
 public abstract class SingleControl : UIElement
 {
-    public UIElement? Child { get; set; }
+    public UIElement? Child { get; 
+        set 
+        {
+            field = value;
+            value.Parent = this;
+        } 
+    }
 }
 
 /// <summary>
@@ -41,6 +47,22 @@ public abstract class SingleControl : UIElement
 public abstract class PanelControl : UIElement
 {
     public ObservableCollection<UIElement> Children { get; set; } = [];
+
+    public PanelControl()
+    {
+        this.Children.CollectionChanged += Children_CollectionChanged;
+    }
+
+    private void Children_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add)
+        {
+            foreach (UIElement item in e.NewItems!)
+            {
+                item.Parent = this;
+            }
+        }
+    }
 }
 
 /// <summary>
