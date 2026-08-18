@@ -14,7 +14,8 @@ public abstract class UIElement
 
     public Point Position { get; set; }
     public Size Size { get; set; }
-    public Rectangle Rectangle => new Rectangle(Position, Size);
+    public Rectangle Rectangle => new(Position, Size);
+    public Rectangle LocalBounds => new(Point.Empty, Size);
     public string Name { get; set; }
 
     internal Form? Owner { get; set; }
@@ -116,7 +117,7 @@ public class Label : UnitControl
     public override void Draw(Graphics g)
     {
         if (Text is not null)
-            g.DrawText(this.Text, this.Position, Colors.Black);
+            g.DrawText(this.Text, Point.Empty, Colors.Black);
     }
 }
 
@@ -128,8 +129,8 @@ public class Button : UnitControl, IInputElement
 
     public override void Draw(Graphics g)
     {
-        g.DrawRectangle(this.Rectangle, Colors.Black, 2);
+        g.DrawRectangle(this.LocalBounds, Colors.Black, 2);
         if (Text is not null)
-            g.DrawText(Text, this.Position, Colors.Black);
+            g.DrawText(Text, Point.Empty, Colors.Black);
     }
 }
