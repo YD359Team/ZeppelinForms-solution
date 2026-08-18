@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 
@@ -32,12 +33,22 @@ public abstract class UnitControl : UIElement
 /// </summary>
 public abstract class SingleControl : UIElement
 {
-    public UIElement? Child { get; 
-        set 
+    public UIElement? Child
+    {
+        get;
+        set
         {
+            if (field == value)
+                return;
+
+            if (field is not null)
+                field.Parent = null;
+
             field = value;
-            value.Parent = this;
-        } 
+
+            if (value is not null)
+                value.Parent = this;
+        }
     }
 }
 
@@ -53,15 +64,15 @@ public abstract class PanelControl : UIElement
         this.Children.CollectionChanged += Children_CollectionChanged;
     }
 
-    private void Children_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    private void Children_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add)
-        {
-            foreach (UIElement item in e.NewItems!)
-            {
+        if (e.OldItems is not null)
+            foreach (UIElement item in e.OldItems)
+                item.Parent = null;
+
+        if (e.NewItems is not null)
+            foreach (UIElement item in e.NewItems)
                 item.Parent = this;
-            }
-        }
     }
 }
 
