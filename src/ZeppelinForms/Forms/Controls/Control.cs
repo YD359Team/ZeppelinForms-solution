@@ -17,6 +17,7 @@ public abstract class UIElement
     public Rectangle Rectangle => new(Position, Size);
     public Rectangle LocalBounds => new(Point.Empty, Size);
     public string Name { get; set; }
+    public Color Background { get; set; } = Colors.Transparent;
 
     internal Form? Owner { get; set; }
 
@@ -30,6 +31,12 @@ public abstract class UIElement
 
         root.Owner?.Invalidate();
     }
+}
+
+public interface IBorderedElement
+{
+    Color BorderColor { get; set; }
+    float BorderWidth { get; set; }
 }
 
 public interface IInputElement
@@ -96,12 +103,18 @@ public abstract class PanelControl : UIElement
 /// <summary>
 /// Simple panel
 /// </summary>
-public class Panel : PanelControl
+public class Panel : PanelControl, IBorderedElement
 {
-    public Color Background { get; set; } = Colors.Transparent;
+    // IBorderedElement
+    public Color BorderColor { get; set; } = Colors.Black;
+    public float BorderWidth { get; set; } = 0f;
 
     public override void Draw(Graphics g)
     {
+        if (this.BorderWidth > 0)
+        {
+            g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
+        }
         if (Background.A > 0)
             g.FillRectangle(new Rectangle(0, 0, Size.Width, Size.Height), Background);
     }
@@ -110,27 +123,40 @@ public class Panel : PanelControl
 /// <summary>
 /// Control with caption
 /// </summary>
-public class Label : UnitControl
+public class Label : UnitControl, IBorderedElement
 {
     public string? Text { get; set; }
+    // IBorderedElement
+    public Color BorderColor { get; set; } = Colors.Black;
+    public float BorderWidth { get; set; } = 0f;
 
     public override void Draw(Graphics g)
     {
+        if (this.BorderWidth > 0)
+        {
+            g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
+        }
         if (Text is not null)
-            g.DrawText(this.Text, Point.Empty, Colors.Black);
+            g.DrawText(this.Text, this.LocalBounds, Colors.Black);
     }
 }
 
-public class Button : UnitControl, IInputElement
+public class Button : UnitControl, IInputElement, IBorderedElement
 {
     public string? Text { get; set; }
+    // IBorderedElement
+    public Color BorderColor { get; set; } = Colors.Black;
+    public float BorderWidth { get; set; } = 1f;
     // IInputElement
     public bool IsFocused { get; set; }
 
     public override void Draw(Graphics g)
     {
-        g.DrawRectangle(this.LocalBounds, Colors.Black, 2);
+        if (this.BorderWidth > 0)
+        {
+            g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
+        }
         if (Text is not null)
-            g.DrawText(Text, Point.Empty, Colors.Black);
+            g.DrawText(Text, this.LocalBounds, Colors.Black);
     }
 }

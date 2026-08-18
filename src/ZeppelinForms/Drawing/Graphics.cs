@@ -10,6 +10,7 @@ public abstract class Graphics
     public abstract void DrawRectangle(Rectangle rect, Color color, float width);
     public abstract void FillRectangle(Rectangle rect, Color color);
     public abstract void DrawText(string text, Point position, Color color);
+    public abstract void DrawText(string text, Rectangle rect, Color color);
 
     public abstract void Save();
     public abstract void Restore();
