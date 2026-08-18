@@ -18,25 +18,15 @@ public class Program
                 Title = "Form 1 - Hello World",
                 Size = new(1024, 768),
                 Position = new(0, 0),
-                Content = new Panel
+                Content = new StackPanel
                 {
-                    Size = new(1024, 768),
-                    Background = new Color(240, 240, 240),
-                    Children =
-                    {
-                        new Label
-                        {
-                            Position = new(20, 20),
-                            Size = new(300, 24),
-                            Text = "Hello, ZeppelinForms!",
-                        }, 
-                        new Button
-                        {
-                            Position = new(120, 120),
-                            Size = new(300, 24),
-                            Text = "Click me!",
-                        }
-                    },
+                    Docking = ZeppelinForms.Forms.Enums.Dock.Fill,
+                    Children = 
+                    [
+                        new Label { Text = "Label 1" },    
+                        new Label { Text = "Label 2" },    
+                        new Label { Text = "Label 3" },
+                    ]
                 },
             }
         };
