@@ -31,6 +31,6 @@ public class Form
 
     internal void Invalidate()
     {
-        throw new NotImplementedException();
+        PlatformWindow?.Invalidate();
     }
 }

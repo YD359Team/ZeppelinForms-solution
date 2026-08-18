@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using ZeppelinForms.Drawing.Imaging;
-using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 
 namespace ZeppelinForms;
@@ -30,19 +29,4 @@ public class App
 
         _platform.Run();
     }
-}
-
-public interface IPlatform
-{
-    IPlatformWindow CreateWindow(Form form);
-    void Run();
-    void Exit();
-}
-
-public interface IPlatformWindow
-{
-    void Show();
-    void Close();
-    void SetTitle(string? title);
-    void SetBounds(Rectangle bounds);
 }

@@ -160,6 +160,12 @@ internal sealed class Win32Window : IPlatformWindow
             0);
     }
 
+    public void Invalidate()
+    {
+        if (_handle != 0)
+            NativeMethods.InvalidateRect(_handle, 0, false);
+    }
+
     private nint ProcessMessage(
         nint hWnd,
         uint message,
@@ -193,6 +199,7 @@ internal sealed class Win32Window : IPlatformWindow
                     int height = (int)((lParam.ToInt64() >> 16) & 0xFFFF);
                     _skiaSurface?.Resize(width, height);
                     NativeMethods.InvalidateRect(hWnd, 0, false);
+                    NativeMethods.UpdateWindow(hWnd);
                     return 0;
                 }
 
