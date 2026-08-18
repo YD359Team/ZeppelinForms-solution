@@ -12,6 +12,7 @@ public abstract class UIElement
 {
     public UIElement? Parent { get; internal set; }
 
+    public Dock Docking { get; set; }
     public Point Position { get; set; }
     private Size _size;
     public Size Size
@@ -176,4 +177,14 @@ public class Button : UnitControl, IInputElement, IBorderedElement
         if (Text is not null)
             g.DrawText(Text, this.LocalBounds, Colors.Black);
     }
+}
+
+public enum Dock : byte
+{
+    None = 0,
+    Left, 
+    Top, 
+    Right, 
+    Bottom,
+    Fill
 }
