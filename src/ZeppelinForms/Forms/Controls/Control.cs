@@ -14,13 +14,11 @@ public abstract class UIElement
 
     public Point Position { get; set; }
     public Size Size { get; set; }
-
     public string Name { get; set; }
 
     internal Form? Owner { get; set; }
 
     public abstract void Draw(Graphics g);
-
 
     protected void Invalidate()
     {
@@ -30,6 +28,11 @@ public abstract class UIElement
 
         root.Owner?.Invalidate();
     }
+}
+
+public interface IInputElement
+{
+    bool IsFocused { get; set; }
 }
 
 /// <summary>
@@ -108,6 +111,19 @@ public class Panel : PanelControl
 public class Label : UnitControl
 {
     public string? Text { get; set; }
+
+    public override void Draw(Graphics g)
+    {
+        if (Text is not null)
+            g.DrawText(Text, Point.Empty, Colors.Black);
+    }
+}
+
+public class Button : UnitControl, IInputElement
+{
+    public string? Text { get; set; }
+    // IInputElement
+    public bool IsFocused { get; set; }
 
     public override void Draw(Graphics g)
     {
