@@ -86,6 +86,8 @@ public abstract class PanelControl : UIElement
 {
     public ObservableCollection<UIElement> Children { get; set; } = [];
 
+    protected sealed override void OnArrange() => ArrangeChildren();
+
     public PanelControl()
     {
         this.Children.CollectionChanged += Children_CollectionChanged;
@@ -100,6 +102,8 @@ public abstract class PanelControl : UIElement
         if (e.NewItems is not null)
             foreach (UIElement item in e.NewItems)
                 item.Parent = this;
+
+        ArrangeChildren();
     }
 
     protected abstract void ArrangeChildren();
