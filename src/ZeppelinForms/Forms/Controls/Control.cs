@@ -13,7 +13,17 @@ public abstract class UIElement
     public UIElement? Parent { get; internal set; }
 
     public Point Position { get; set; }
-    public Size Size { get; set; }
+    private Size _size;
+    public Size Size
+    {
+        get => _size;
+        set
+        {
+            if (_size == value) return;
+            _size = value;
+            OnArrange();
+        }
+    }
     public Rectangle Rectangle => new(Position, Size);
     public Rectangle LocalBounds => new(Point.Empty, Size);
     public string Name { get; set; }
@@ -22,6 +32,7 @@ public abstract class UIElement
     internal Form? Owner { get; set; }
 
     public abstract void Draw(Graphics g);
+    protected virtual void OnArrange() { }
 
     protected void Invalidate()
     {
@@ -33,12 +44,18 @@ public abstract class UIElement
     }
 }
 
+/// <summary>
+/// Elements with border
+/// </summary>
 public interface IBorderedElement
 {
     Color BorderColor { get; set; }
     float BorderWidth { get; set; }
 }
 
+/// <summary>
+/// Elements with focus and input
+/// </summary>
 public interface IInputElement
 {
     bool IsFocused { get; set; }
