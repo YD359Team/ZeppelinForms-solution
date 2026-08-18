@@ -33,7 +33,7 @@ public sealed class SkiaGraphics : Graphics
 
         using var font = new SKFont(SKTypeface.Default, 16);
 
-        _canvas.DrawText(text, position.X, position.Y, font, paint);
+        _canvas.DrawText(text, position.X, position.Y, SKTextAlign.Left, font, paint);
     }
 
     public override void Save() => _canvas.Save();
