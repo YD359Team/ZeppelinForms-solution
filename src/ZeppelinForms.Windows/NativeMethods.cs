@@ -258,6 +258,7 @@ internal static class NativeMethods
 
     public const uint WM_PAINT = 0x000F;
     public const uint WM_SIZE = 0x0005;
+    public const uint WM_ERASEBKGND = 0x0014;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct RECT { public int Left, Top, Right, Bottom; }
@@ -372,4 +373,7 @@ internal static class NativeMethods
 
     [DllImport("opengl32.dll")]
     public static extern bool wglDeleteContext(nint hglrc);
+
+    [DllImport("user32.dll")]
+    public static extern bool InvalidateRect(nint hWnd, nint lpRect, bool bErase);
 }

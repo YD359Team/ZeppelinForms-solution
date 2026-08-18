@@ -7,6 +7,7 @@ namespace ZeppelinForms.Skia;
 public sealed class SkiaGraphics : Graphics
 {
     private readonly SKCanvas _canvas;
+    private static readonly SKFont DefaultFont = new(SKTypeface.Default, 16);
 
     public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
 
@@ -31,9 +32,7 @@ public sealed class SkiaGraphics : Graphics
             IsAntialias = true,
         };
 
-        using var font = new SKFont(SKTypeface.Default, 16);
-
-        _canvas.DrawText(text, position.X, position.Y, SKTextAlign.Left, font, paint);
+        _canvas.DrawText(text, position.X, position.Y, SKTextAlign.Left, DefaultFont, paint);
     }
 
     public override void Save() => _canvas.Save();

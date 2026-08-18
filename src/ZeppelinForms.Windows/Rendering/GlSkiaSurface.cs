@@ -70,6 +70,7 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
 
         GRContext grContext = GRContext.CreateGl(glInterface)
             ?? throw new InvalidOperationException("Не удалось создать GRContext.");
+        grContext.SetResourceCacheLimit(32 * 1024 * 1024);
 
         return new GlSkiaSurface(hWnd, hdc, glContext, grContext);
     }

@@ -186,14 +186,21 @@ internal sealed class Win32Window : IPlatformWindow
                     return result;
                 }
 
+            // Win32Window.ProcessMessage
             case NativeMethods.WM_SIZE:
                 {
                     int width = (int)(lParam.ToInt64() & 0xFFFF);
                     int height = (int)((lParam.ToInt64() >> 16) & 0xFFFF);
-
                     _skiaSurface?.Resize(width, height);
+                    NativeMethods.InvalidateRect(hWnd, 0, false);
                     return 0;
                 }
+
+            case NativeMethods.WM_ERASEBKGND:
+                // Skia сам чистит канвас в Render() — не даём Windows
+                // затирать фон системной кистью между resize и нашим WM_PAINT
+                // (иначе будет мерцание, вы это уже проходили на WinForms-стороне).
+                return 1;
 
             case NativeMethods.WM_PAINT:
                 {
