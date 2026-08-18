@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using ZeppelinForms.Forms.Controls;
+using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Dispatchers;
 

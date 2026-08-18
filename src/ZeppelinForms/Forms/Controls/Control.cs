@@ -2,6 +2,8 @@
 using System.Collections.Specialized;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -43,23 +45,6 @@ public abstract class UIElement
 
         root.Owner?.Invalidate();
     }
-}
-
-/// <summary>
-/// Elements with border
-/// </summary>
-public interface IBorderedElement
-{
-    Color BorderColor { get; set; }
-    float BorderWidth { get; set; }
-}
-
-/// <summary>
-/// Elements with focus and input
-/// </summary>
-public interface IInputElement
-{
-    bool IsFocused { get; set; }
 }
 
 /// <summary>
@@ -116,6 +101,8 @@ public abstract class PanelControl : UIElement
             foreach (UIElement item in e.NewItems)
                 item.Parent = this;
     }
+
+    protected abstract void ArrangeChildren();
 }
 
 /// <summary>
@@ -135,6 +122,11 @@ public class Panel : PanelControl, IBorderedElement
         }
         if (Background.A > 0)
             g.FillRectangle(new Rectangle(0, 0, Size.Width, Size.Height), Background);
+    }
+
+    protected override void ArrangeChildren()
+    {
+        return;
     }
 }
 
@@ -179,12 +171,76 @@ public class Button : UnitControl, IInputElement, IBorderedElement
     }
 }
 
-public enum Dock : byte
+public class StackPanel : PanelControl
 {
-    None = 0,
-    Left, 
-    Top, 
-    Right, 
-    Bottom,
-    Fill
+    public Orientation Orientation { get; set; } = Orientation.Vertical;
+    public float Spacing { get; set; }
+
+    public override void Draw(Graphics g)
+    {
+        return;
+    }
+
+    protected override void ArrangeChildren()
+    {
+        float offset = 0;
+
+        foreach (var child in Children)
+        {
+            if (Orientation == Orientation.Vertical)
+            {
+                child.Position = new Point(0, offset);
+                child.Size = new Size(Size.Width, child.Size.Height); // растянуть по ширине
+                offset += child.Size.Height + Spacing;
+            }
+            else
+            {
+                child.Position = new Point(offset, 0);
+                child.Size = new Size(child.Size.Width, Size.Height);
+                offset += child.Size.Width + Spacing;
+            }
+        }
+    }
+}
+
+public readonly record struct GridLength(float Value, bool IsStar)
+{
+    public static GridLength Fixed(float px) => new(px, false);
+    public static GridLength Star(float weight = 1) => new(weight, true);
+}
+
+public class Grid : PanelControl
+{
+    public List<GridLength> RowDefinitions { get; } = [];
+    public List<GridLength> ColumnDefinitions { get; } = [];
+
+    protected override void ArrangeChildren()
+    {
+        float[] rowHeights = ResolveSizes(RowDefinitions, Size.Height);
+        float[] colWidths = ResolveSizes(ColumnDefinitions, Size.Width);
+
+        foreach (var child in Children)
+        {
+            var (row, col) = child is IGridPlaceable p ? (p.Row, p.Column) : (0, 0);
+
+            child.Position = new Point(colWidths.Take(col).Sum(), rowHeights.Take(row).Sum());
+            child.Size = new Size(colWidths[col], rowHeights[row]);
+        }
+    }
+
+    private static float[] ResolveSizes(List<GridLength> defs, float total)
+    {
+        float fixedSum = defs.Where(d => !d.IsStar).Sum(d => d.Value);
+        float starSum = defs.Where(d => d.IsStar).Sum(d => d.Value);
+        float remaining = Math.Max(0, total - fixedSum);
+
+        return defs.Select(d => d.IsStar
+            ? (starSum > 0 ? remaining * (d.Value / starSum) : 0)
+            : d.Value).ToArray();
+    }
+
+    public override void Draw(Graphics g)
+    {
+        return;
+    }
 }
