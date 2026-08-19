@@ -6,12 +6,13 @@ internal static class Win32SkiaSurfaceFactory
     {
         try
         {
-            return GlSkiaSurface.Create(hWnd);
+            var gl = GlSkiaSurface.Create(hWnd);
+            System.Diagnostics.Debug.WriteLine("Skia: GPU (WGL) surface");
+            return gl;
         }
-        catch
+        catch (Exception ex)
         {
-            // Как в Avalonia: если GPU-контекст не поднялся
-            // (нет драйвера, RDP-сессия и т.п.) — программный путь.
+            System.Diagnostics.Debug.WriteLine($"Skia: GL недоступен ({ex.Message}), software fallback");
             return new SoftwareSkiaSurface(hWnd);
         }
     }
