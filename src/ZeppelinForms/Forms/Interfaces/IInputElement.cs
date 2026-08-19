@@ -6,4 +6,6 @@
 public interface IInputElement
 {
     bool IsFocused { get; set; }
+    bool TabStop { get; set; }
+    uint TabIndex { get; set; }
 }

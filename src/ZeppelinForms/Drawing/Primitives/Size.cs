@@ -12,4 +12,10 @@ public readonly record struct Size
         this.Width = width;
         this.Height = height;
     }
+
+    // easy way to zoom
+    public static Size operator *(Size a, float multiplier)
+    {
+        return new Size(a.Width * multiplier, a.Height * multiplier);
+    }
 }

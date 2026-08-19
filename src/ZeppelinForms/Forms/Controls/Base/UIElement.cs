@@ -12,14 +12,13 @@ public abstract class UIElement
     public UIElement? Parent { get; internal set; }
     public Dock Docking { get; set; }
     public Point Position { get; set; }
-    private Size _size;
     public Size Size
     {
-        get => _size;
+        get;
         set
         {
-            if (_size == value) return;
-            _size = value;
+            if (field == value) return;
+            field = value;
             OnArrange();
         }
     }
@@ -39,7 +38,6 @@ public abstract class UIElement
     internal Form? Owner { get; set; }
 
     public abstract void Draw(Graphics g);
-    protected virtual void OnArrange() { }
 
     protected void Invalidate()
     {
@@ -48,5 +46,20 @@ public abstract class UIElement
             root = root.Parent;
 
         root.Owner?.Invalidate();
+    }
+
+    protected virtual void OnAttached()
+    {
+        // called when element added to form (and\or parent?)
+    }
+
+    protected virtual void OnArrange()
+    {
+        // called when parent panel moved\resized this element
+    }
+
+    protected virtual void OnSizeChanged()
+    {
+        // called when size changed. TODO: Dont call this before size assigned first time
     }
 }

@@ -15,6 +15,8 @@ public class Button : UnitControl, IInputElement, IBorderedElement
     public float BorderWidth { get; set; } = 1f;
     // IInputElement
     public bool IsFocused { get; set; }
+    public bool TabStop { get; set; }
+    public uint TabIndex { get; set; }
 
     public override void Draw(Graphics g)
     {
