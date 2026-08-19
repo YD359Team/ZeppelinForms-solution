@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
+using ZeppelinForms.Forms.Controls.Base;
 
 namespace ZeppelinForms.Skia;
 
