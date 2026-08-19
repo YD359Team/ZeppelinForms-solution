@@ -1,4 +1,5 @@
 ﻿using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Helpers;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Interfaces;
