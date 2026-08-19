@@ -24,7 +24,13 @@ public readonly record struct Color
 
 public static class Colors
 {
-    public static readonly Color Transparent = new Color(0, 0, 0, 0);
-    public static readonly Color Black = new Color(255, 0, 0, 0);
-    public static readonly Color White = new Color(255, 255, 255, 255);
+    public static readonly Color Transparent = new(0, 0, 0, 0);
+    public static readonly Color Black = new(255, 0, 0, 0);
+    public static readonly Color White = new(255, 255, 255, 255);
+}
+
+public static class LightThemeColors
+{
+    public static readonly Color Background = new(0xFF, 0xFF, 0xFF);
+    public static readonly Color ButtonFill = new(0x0D, 0x6E, 0xFD);
 }

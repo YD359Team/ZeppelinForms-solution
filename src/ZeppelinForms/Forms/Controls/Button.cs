@@ -8,19 +8,30 @@ namespace ZeppelinForms.Forms.Controls;
 public class Button : UnitControl, IInputElement, IBorderedElement
 {
     public string? Text { get; set; }
+    public Color FillColor { get; set; } = LightThemeColors.ButtonFill;
+    public ButtonStyle ButtonStyle { get; set; } = ButtonStyle.Secondary;
     // IBorderedElement
-    public Color BorderColor { get; set; } = Colors.Black;
+    public Color BorderColor { get; set; } = LightThemeColors.ButtonFill;
     public float BorderWidth { get; set; } = 1f;
     // IInputElement
     public bool IsFocused { get; set; }
 
     public override void Draw(Graphics g)
     {
+        Color fore = (ButtonStyle == ButtonStyle.Secondary ? this.FillColor : this.Background);
+        Color bg = (ButtonStyle == ButtonStyle.Secondary ? this.Background : this.FillColor);
+        g.FillRectangle(this.Rectangle, bg);
         if (this.BorderWidth > 0)
         {
-            g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
+            g.DrawRectangle(this.LocalBounds, fore, this.BorderWidth);
         }
         if (Text is not null)
-            g.DrawText(Text, this.ContentBounds, Colors.Black);
+            g.DrawText(Text, this.ContentBounds, this.FillColor);
     }
+}
+
+public enum ButtonStyle : byte
+{
+    Primary = 0,
+    Secondary = 1
 }

@@ -7,6 +7,6 @@ public readonly record struct Thickness(float Left, float Top, float Right, floa
 
     public static readonly Thickness Zero = new(0);
 
-    public float Horizontal => Left + Right;
-    public float Vertical => Top + Bottom;
+    public readonly float Horizontal => Left + Right;
+    public readonly float Vertical => Top + Bottom;
 }
