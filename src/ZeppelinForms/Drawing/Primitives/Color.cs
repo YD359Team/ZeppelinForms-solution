@@ -20,6 +20,11 @@ public readonly record struct Color
     {
         A = 255; R = r; G = g; B = b;
     }
+
+    public readonly uint AsU32()
+    {
+        return (uint)((A << 24) | (R << 16) | (G << 8) | B);
+    }
 }
 
 public static class Colors
