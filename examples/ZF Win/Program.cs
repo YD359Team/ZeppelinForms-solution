@@ -20,12 +20,14 @@ public class Program
                 Position = new(0, 0),
                 Content = new StackPanel
                 {
+                    Padding = new(2),
                     Docking = ZeppelinForms.Forms.Enums.Dock.Fill,
                     Children = 
                     [
-                        new Label { Text = "Label 1", Size = new(100, 200) },    
-                        new Label { Text = "Label 2", Size = new(100, 200) },    
-                        new Label { Text = "Label 3", Size = new(100, 200) },
+                        new Label { Text = "Label 1", Size = new(50, 200) },    
+                        new Label { Text = "Label 2", Size = new(50, 200) },    
+                        new Label { Text = "Label 3", Size = new(50, 200) },
+                        new Button { Text = "Button 1", Size = new(50, 200) },
                     ]
                 },
             }

@@ -1,6 +1,6 @@
 ﻿namespace ZeppelinForms.Drawing.Primitives;
 
-public record struct Size
+public readonly record struct Size
 {
     public static readonly Size Empty;
 

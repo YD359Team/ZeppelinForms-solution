@@ -27,8 +27,15 @@ public abstract class UIElement
             OnArrange();
         }
     }
+    public Thickness Margin { get; set; } = Thickness.Zero;
+    public Thickness Padding { get; set; } = Thickness.Zero;
     public Rectangle Rectangle => new(Position, Size);
     public Rectangle LocalBounds => new(Point.Empty, Size);
+    public Rectangle ContentBounds => new(
+        new Point(Padding.Left, Padding.Top),
+        new Size(
+            Math.Max(0, Size.Width - Padding.Horizontal),
+            Math.Max(0, Size.Height - Padding.Vertical)));
     public string Name { get; set; }
     public Color Background { get; set; } = Colors.Transparent;
 
@@ -130,6 +137,8 @@ public class Panel : PanelControl, IBorderedElement
 
     protected override void ArrangeChildren()
     {
+        // Panel — canvas-style контейнер, авто-расстановки нет,
+        // поэтому Margin/Padding детей здесь намеренно не применяются.
         return;
     }
 }
@@ -151,7 +160,7 @@ public class Label : UnitControl, IBorderedElement
             g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
         }
         if (Text is not null)
-            g.DrawText(this.Text, this.LocalBounds, Colors.Black);
+            g.DrawText(this.Text, this.ContentBounds, Colors.Black);
     }
 }
 
@@ -171,7 +180,7 @@ public class Button : UnitControl, IInputElement, IBorderedElement
             g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
         }
         if (Text is not null)
-            g.DrawText(Text, this.LocalBounds, Colors.Black);
+            g.DrawText(Text, this.ContentBounds, Colors.Black);
     }
 }
 
@@ -187,21 +196,26 @@ public class StackPanel : PanelControl
 
     protected override void ArrangeChildren()
     {
-        float offset = 0;
+        var content = ContentBounds;
+        float offset = Orientation == Orientation.Vertical ? content.Y : content.X;
 
         foreach (var child in Children)
         {
+            var m = child.Margin;
+
             if (Orientation == Orientation.Vertical)
             {
-                child.Position = new Point(0, offset);
-                child.Size = new Size(Size.Width, child.Size.Height); // растянуть по ширине
-                offset += child.Size.Height + Spacing;
+                offset += m.Top;
+                child.Position = new Point(content.X + m.Left, offset);
+                child.Size = new Size(Math.Max(0, content.Width - m.Horizontal), child.Size.Height);
+                offset += child.Size.Height + m.Bottom + Spacing;
             }
             else
             {
-                child.Position = new Point(offset, 0);
-                child.Size = new Size(child.Size.Width, Size.Height);
-                offset += child.Size.Width + Spacing;
+                offset += m.Left;
+                child.Position = new Point(offset, content.Y + m.Top);
+                child.Size = new Size(child.Size.Width, Math.Max(0, content.Height - m.Vertical));
+                offset += child.Size.Width + m.Right + Spacing;
             }
         }
     }
@@ -220,15 +234,22 @@ public class Grid : PanelControl
 
     protected override void ArrangeChildren()
     {
-        float[] rowHeights = ResolveSizes(RowDefinitions, Size.Height);
-        float[] colWidths = ResolveSizes(ColumnDefinitions, Size.Width);
+        var content = ContentBounds;
+        float[] rowHeights = ResolveSizes(RowDefinitions, content.Height);
+        float[] colWidths = ResolveSizes(ColumnDefinitions, content.Width);
 
         foreach (var child in Children)
         {
             var (row, col) = child is IGridPlaceable p ? (p.Row, p.Column) : (0, 0);
+            var m = child.Margin;
 
-            child.Position = new Point(colWidths.Take(col).Sum(), rowHeights.Take(row).Sum());
-            child.Size = new Size(colWidths[col], rowHeights[row]);
+            float cellX = content.X + colWidths.Take(col).Sum();
+            float cellY = content.Y + rowHeights.Take(row).Sum();
+
+            child.Position = new Point(cellX + m.Left, cellY + m.Top);
+            child.Size = new Size(
+                Math.Max(0, colWidths[col] - m.Horizontal),
+                Math.Max(0, rowHeights[row] - m.Vertical));
         }
     }
 

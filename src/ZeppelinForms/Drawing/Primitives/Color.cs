@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ZeppelinForms.Drawing.Primitives;
 
-public record struct Color
+public readonly record struct Color
 {
     public readonly byte A { get; }
     public readonly byte R { get; }

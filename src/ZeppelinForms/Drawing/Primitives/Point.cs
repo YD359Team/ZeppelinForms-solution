@@ -1,6 +1,6 @@
 ﻿namespace ZeppelinForms.Drawing.Primitives;
 
-public record struct Point
+public readonly record struct Point
 {
     public static readonly Point Empty;
 

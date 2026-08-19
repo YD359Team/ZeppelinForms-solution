@@ -1,6 +1,6 @@
 ﻿namespace ZeppelinForms.Drawing.Primitives;
 
-public record struct Rectangle
+public readonly record struct Rectangle
 {
     public static readonly Rectangle Empty;
 
