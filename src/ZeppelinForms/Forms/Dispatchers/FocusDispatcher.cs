@@ -13,4 +13,14 @@ public class FocusDispatcher
         element.IsFocused = true;
         return true;
     }
+
+    public void MoveBack()
+    {
+
+    }
+
+    public void MoveNext()
+    {
+
+    }
 }
