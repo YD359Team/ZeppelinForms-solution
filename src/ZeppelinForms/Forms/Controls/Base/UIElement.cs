@@ -1,13 +1,14 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Controls.Base;
 
 /// <summary>
 /// Base element of any UI tree node
 /// </summary>
-public abstract class UIElement
+public abstract class UIElement : IGridPlaceable
 {
     public UIElement? Parent { get; internal set; }
     public Dock Docking { get; set; }
@@ -36,6 +37,8 @@ public abstract class UIElement
     public Color Background { get; set; } = Colors.Transparent;
 
     internal Form? Owner { get; set; }
+    public int Row { get; set; }
+    public int Column { get; set; }
 
     public abstract void Draw(Graphics g);
 

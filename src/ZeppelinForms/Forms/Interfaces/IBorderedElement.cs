@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Forms.Interfaces;
 

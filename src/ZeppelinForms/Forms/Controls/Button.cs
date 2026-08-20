@@ -1,5 +1,6 @@
 ﻿using System.Xml.Linq;
 using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Helpers;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Interfaces;
@@ -35,17 +36,11 @@ public class Button : UnitControl, IInputElement, IBorderedElement
 
     public override void Draw(Graphics g)
     {
-        Color fore = (ButtonStyle == ButtonStyle.Secondary ? this.FillColor : this.Background);
-        Color bg = (ButtonStyle == ButtonStyle.Secondary 
-            ? (_isHovered ? LightThemeColors.AccentBackground : this.Background) 
-            : (_isHovered ? LightThemeColors.AccentFill : this.FillColor));
-        g.FillRectangle(this.LocalBounds, bg);
+        ControlDrawing.DrawButton(g, this.LocalBounds, this.ButtonStyle, _isHovered, this.FillColor, this.Background, this.Text);
         if (this.BorderWidth > 0)
         {
-            g.DrawRectangle(this.LocalBounds, fore, this.BorderWidth);
+            ControlDrawing.DrawBorder(g, this.LocalBounds, this.BorderColor, this.BorderWidth);
         }
-        if (Text is not null)
-            g.DrawText(Text, this.ContentBounds, fore);
     }
 }
 

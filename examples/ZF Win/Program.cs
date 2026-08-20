@@ -35,7 +35,7 @@ public class Program
                                 new Label { Text = "Label 1", Size = new(50, 200) },
                                 new Label { Text = "Label 2", Size = new(50, 200) },
                                 new Label { Text = "Label 3", Size = new(50, 200) },
-                                new Button { Text = "Button 1", Size = new(50, 200) },
+                                new Button { Text = "Button 1", Size = new(50, 200), ButtonStyle = ButtonStyle.Primary },
                             ]
                         },
                     ]

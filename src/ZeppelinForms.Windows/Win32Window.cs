@@ -166,8 +166,11 @@ internal sealed class Win32Window : IPlatformWindow
 
     public void Invalidate()
     {
-        if (_handle != 0)
-            NativeMethods.InvalidateRect(_handle, 0, false);
+        if (_handle == 0)
+            return;
+
+        NativeMethods.InvalidateRect(_handle, 0, false);
+        NativeMethods.UpdateWindow(_handle);
     }
 
     private nint ProcessMessage(
