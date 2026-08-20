@@ -5,7 +5,7 @@ using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class Border : UnitControl, IBorderedElement
+public class Border : SingleControl, IBorderedElement
 {
     // IBorderedElement
     public Color BorderColor { get; set; } = Colors.Black;

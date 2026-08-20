@@ -8,7 +8,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// <summary>
 /// Control can collapse\expand child content
 /// </summary>
-public class Spoiler : UnitControl, IBorderedElement
+public class Spoiler : SingleControl, IBorderedElement
 {
     public bool IsCollapsed { get; set; }
     // IBorderedElement

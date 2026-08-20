@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Xml.Linq;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Interfaces;
@@ -22,13 +23,13 @@ public class Button : UnitControl, IInputElement, IBorderedElement
     {
         Color fore = (ButtonStyle == ButtonStyle.Secondary ? this.FillColor : this.Background);
         Color bg = (ButtonStyle == ButtonStyle.Secondary ? this.Background : this.FillColor);
-        g.FillRectangle(this.Rectangle, bg);
+        g.FillRectangle(this.LocalBounds, bg);
         if (this.BorderWidth > 0)
         {
             g.DrawRectangle(this.LocalBounds, fore, this.BorderWidth);
         }
         if (Text is not null)
-            g.DrawText(Text, this.ContentBounds, this.FillColor);
+            g.DrawText(Text, this.ContentBounds, fore);
     }
 }
 

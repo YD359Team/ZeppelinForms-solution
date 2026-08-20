@@ -18,6 +18,9 @@ public static class SkiaRenderer
 
     private static void Draw(UIElement element, Graphics g)
     {
+        if (!element.IsVisible)
+            return;
+
         g.Save();
         g.Translate(element.Position.X, element.Position.Y);
 
