@@ -5,6 +5,9 @@ using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Controls;
 
+/// <summary>
+/// Control can collapse\expand child content
+/// </summary>
 public class Spoiler : UnitControl, IBorderedElement
 {
     public bool IsCollapsed { get; set; }
@@ -18,5 +21,10 @@ public class Spoiler : UnitControl, IBorderedElement
         {
             g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
         }
+    }
+
+    protected virtual void OnCollapsedStateChanged(bool isCollapsed)
+    {
+        // called when IsCollapsed changed
     }
 }

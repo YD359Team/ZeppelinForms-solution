@@ -50,7 +50,7 @@ public abstract class UIElement
 
     protected virtual void OnAttached()
     {
-        // called when element added to form (and\or parent?)
+        // called when element (first time?) added to form (and\or parent?)
     }
 
     protected virtual void OnArrange()
@@ -61,5 +61,30 @@ public abstract class UIElement
     protected virtual void OnSizeChanged()
     {
         // called when size changed. TODO: Dont call this before size assigned first time
+    }
+
+    protected virtual void OnMouseOver()
+    {
+
+    }
+
+    protected virtual void OnMouseLeave()
+    {
+
+    }
+
+    protected virtual void OnMouseDown()
+    {
+
+    }
+
+    protected virtual void OnMouseUp()
+    {
+
+    }
+
+    protected virtual void OnMousePressed()
+    {
+
     }
 }
