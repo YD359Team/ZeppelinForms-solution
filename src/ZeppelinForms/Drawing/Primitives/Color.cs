@@ -37,5 +37,6 @@ public static class Colors
 public static class LightThemeColors
 {
     public static readonly Color Background = new(0xFF, 0xFF, 0xFF);
+    public static readonly Color Text = new(0x00, 0x00, 0x00);
     public static readonly Color ButtonFill = new(0x0D, 0x6E, 0xFD);
 }

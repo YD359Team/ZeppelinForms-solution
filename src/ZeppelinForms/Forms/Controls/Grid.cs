@@ -7,8 +7,8 @@ namespace ZeppelinForms.Forms.Controls;
 
 public class Grid : PanelControl
 {
-    public List<GridLength> RowDefinitions { get; } = [];
-    public List<GridLength> ColumnDefinitions { get; } = [];
+    public List<GridLength> RowDefinitions { get; init; } = [];
+    public List<GridLength> ColumnDefinitions { get; init; } = [];
 
     protected override void ArrangeChildren()
     {

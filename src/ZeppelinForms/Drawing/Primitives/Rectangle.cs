@@ -33,7 +33,7 @@ public readonly record struct Rectangle
                p.Y >= Y && p.Y <= Y + Height;
     }
 
-    public readonly Point AsPosition() => new Point(this.X, this.Y);
+    public readonly Point AsPosition() => new(this.X, this.Y);
 
-    public readonly Size AsSize() => new Size(this.Width, this.Height);
+    public readonly Size AsSize() => new(this.Width, this.Height);
 }  
