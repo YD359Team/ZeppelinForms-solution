@@ -7,24 +7,21 @@ namespace ZeppelinForms.Forms.Dispatchers;
 
 public class FocusDispatcher
 {
-    // add collection with form children (IInputElement)
+    private IInputElement? _focused;
 
     public bool FocusElement(IInputElement element)
     {
-        if (!element.TabStop) return false;
+        if (!element.TabStop)
+            return false;
 
-        // add focus state?
+        if (ReferenceEquals(_focused, element))
+            return true;
+
+        if (_focused is not null)
+            _focused.IsFocused = false;
+
         element.IsFocused = true;
+        _focused = element;
         return true;
-    }
-
-    public void MoveBack()
-    {
-
-    }
-
-    public void MoveNext()
-    {
-
     }
 }

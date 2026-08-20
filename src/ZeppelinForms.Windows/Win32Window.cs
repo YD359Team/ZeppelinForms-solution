@@ -26,6 +26,8 @@ internal sealed class Win32Window : IPlatformWindow
 
     private long _lastResizeTicks;
 
+    private bool _trackingMouse;
+
     public Win32Window(WindowsPlatform platform, Form form)
     {
         _platform = platform;
@@ -238,6 +240,52 @@ internal sealed class Win32Window : IPlatformWindow
             case NativeMethods.WM_DESTROY:
                 _platform.WindowDestroyed();
                 return 0;
+
+            case NativeMethods.WM_MOUSEMOVE:
+                {
+                    // (short), не просто маска — координаты могут быть отрицательными
+                    // на мультимониторных конфигурациях с монитором левее/выше основного
+                    int x = (short)(lParam.ToInt64() & 0xFFFF);
+                    int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+
+                    if (!_trackingMouse)
+                    {
+                        var tme = new NativeMethods.TRACKMOUSEEVENT
+                        {
+                            cbSize = (uint)Marshal.SizeOf<NativeMethods.TRACKMOUSEEVENT>(),
+                            dwFlags = NativeMethods.TME_LEAVE,
+                            hwndTrack = hWnd,
+                        };
+                        NativeMethods.TrackMouseEvent(ref tme);
+                        _trackingMouse = true;
+                    }
+
+                    _form.OnPointerMove(new Point(x, y));
+                    return 0;
+                }
+
+            case NativeMethods.WM_MOUSELEAVE:
+                {
+                    _trackingMouse = false;
+                    _form.OnPointerLeaveWindow();
+                    return 0;
+                }
+
+            case NativeMethods.WM_LBUTTONDOWN:
+                {
+                    int x = (short)(lParam.ToInt64() & 0xFFFF);
+                    int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+                    _form.OnPointerDown(new Point(x, y));
+                    return 0;
+                }
+
+            case NativeMethods.WM_LBUTTONUP:
+                {
+                    int x = (short)(lParam.ToInt64() & 0xFFFF);
+                    int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+                    _form.OnPointerUp(new Point(x, y));
+                    return 0;
+                }
 
             default:
                 return NativeMethods.DefWindowProc(

@@ -10,9 +10,8 @@ public class WindowsPlatform : IPlatform
     {
         var window = new Win32Window(this, form);
         window.Create();
-
+        form.PlatformWindow = window;
         _windowCount++;
-
         return window;
     }
 

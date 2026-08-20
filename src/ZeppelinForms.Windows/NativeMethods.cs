@@ -376,4 +376,22 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern bool InvalidateRect(nint hWnd, nint lpRect, bool bErase);
+
+    public const uint WM_MOUSEMOVE = 0x0200;
+    public const uint WM_LBUTTONDOWN = 0x0201;
+    public const uint WM_LBUTTONUP = 0x0202;
+    public const uint WM_MOUSELEAVE = 0x02A3;
+    public const uint TME_LEAVE = 0x00000002;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct TRACKMOUSEEVENT
+    {
+        public uint cbSize;
+        public uint dwFlags;
+        public nint hwndTrack;
+        public uint dwHoverTime;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern bool TrackMouseEvent(ref TRACKMOUSEEVENT lpEventTrack);
 }

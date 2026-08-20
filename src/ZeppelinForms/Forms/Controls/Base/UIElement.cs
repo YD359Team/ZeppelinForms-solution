@@ -2,7 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 
-namespace ZeppelinForms.Forms.Controls;
+namespace ZeppelinForms.Forms.Controls.Base;
 
 /// <summary>
 /// Base element of any UI tree node
@@ -83,8 +83,8 @@ public abstract class UIElement
 
     }
 
-    protected virtual void OnMousePressed()
-    {
-
-    }
+    internal void RaiseMouseOver() => OnMouseOver();
+    internal void RaiseMouseLeave() => OnMouseLeave();
+    internal void RaiseMouseDown() => OnMouseDown();
+    internal void RaiseMouseUp() => OnMouseUp();
 }

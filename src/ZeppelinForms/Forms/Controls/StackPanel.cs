@@ -22,6 +22,9 @@ public class StackPanel : PanelControl
 
         foreach (var child in Children)
         {
+            if (!child.IsVisible)
+                continue;
+
             var m = child.Margin;
 
             if (Orientation == Orientation.Vertical)

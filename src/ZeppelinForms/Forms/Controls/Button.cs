@@ -19,10 +19,26 @@ public class Button : UnitControl, IInputElement, IBorderedElement
     public bool TabStop { get; set; }
     public uint TabIndex { get; set; }
 
+    private bool _isHovered;
+
+    protected override void OnMouseOver()
+    {
+        _isHovered = true;
+        Invalidate();
+    }
+
+    protected override void OnMouseLeave()
+    {
+        _isHovered = false;
+        Invalidate();
+    }
+
     public override void Draw(Graphics g)
     {
         Color fore = (ButtonStyle == ButtonStyle.Secondary ? this.FillColor : this.Background);
-        Color bg = (ButtonStyle == ButtonStyle.Secondary ? this.Background : this.FillColor);
+        Color bg = (ButtonStyle == ButtonStyle.Secondary 
+            ? (_isHovered ? LightThemeColors.AccentBackground : this.Background) 
+            : (_isHovered ? LightThemeColors.AccentFill : this.FillColor));
         g.FillRectangle(this.LocalBounds, bg);
         if (this.BorderWidth > 0)
         {
