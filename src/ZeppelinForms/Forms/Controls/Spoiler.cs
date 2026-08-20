@@ -5,8 +5,9 @@ using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class Border : UnitControl, IBorderedElement
+public class Spoiler : UnitControl, IBorderedElement
 {
+    public bool IsCollapsed { get; set; }
     // IBorderedElement
     public Color BorderColor { get; set; } = Colors.Black;
     public float BorderWidth { get; set; } = 0f;
