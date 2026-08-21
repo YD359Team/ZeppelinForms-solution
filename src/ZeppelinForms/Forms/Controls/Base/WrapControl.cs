@@ -3,7 +3,7 @@
 /// <summary>
 /// Control with single child (or nothing)
 /// </summary>
-public abstract class SingleControl : UIElement
+public abstract class WrapControl : UIElement
 {
     public UIElement? Child
     {

@@ -1,4 +1,5 @@
 ﻿using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
@@ -41,6 +42,12 @@ public abstract class UIElement : IGridPlaceable
     public int Column { get; set; }
 
     internal Form? Owner { get; set; }
+
+    public Image RenderToImage()
+    {
+        throw new NotImplementedException();
+        // TODO: add rendering to image
+    }
 
     public abstract void Draw(Graphics g);
 

@@ -8,6 +8,7 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// </summary>
 public class ZoomBox : UIElement, IInputElement
 {
+    // IInputElement
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; }
     public uint TabIndex { get; set; }

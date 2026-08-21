@@ -30,7 +30,7 @@ public static class SkiaRenderer
                 unit.Draw(g);
                 break;
 
-            case SingleControl single:
+            case WrapControl single:
                 single.Draw(g);
                 if (single.Child is not null)
                     Draw(single.Child, g);

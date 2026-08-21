@@ -22,7 +22,7 @@ internal static class HitTester
 
         switch (root)
         {
-            case SingleControl single when single.Child is not null:
+            case WrapControl single when single.Child is not null:
                 return HitTest(single.Child, local) ?? root;
 
             case PanelControl panel:
