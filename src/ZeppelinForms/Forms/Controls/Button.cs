@@ -26,6 +26,8 @@ public class Button : UnitControl, IInputElement, IBorderedElement
 
     private bool _isHovered;
 
+    public Button() => Size = new Size(75, 23);
+
     protected override void OnMouseOver() { _isHovered = true; Invalidate(); }
     protected override void OnMouseLeave() { _isHovered = false; Invalidate(); }
 

@@ -15,6 +15,8 @@ public class Spoiler : SingleControl, IBorderedElement
     public Color BorderColor { get; set; } = Colors.Black;
     public float BorderWidth { get; set; } = 0f;
 
+    public Spoiler() => Size = new Size(200, 100);
+
     public override void Draw(Graphics g)
     {
         if (this.BorderWidth > 0)

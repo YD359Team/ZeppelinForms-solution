@@ -10,6 +10,8 @@ public class StackPanel : PanelControl
     public Orientation Orientation { get; set; } = Orientation.Vertical;
     public float Spacing { get; set; }
 
+    public StackPanel() => Size = new Size(200, 100);
+
     public override void Draw(Graphics g)
     {
         return;

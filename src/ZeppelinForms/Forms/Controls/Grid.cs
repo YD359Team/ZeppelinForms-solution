@@ -10,6 +10,8 @@ public class Grid : PanelControl
     public List<GridLength> RowDefinitions { get; init; } = [];
     public List<GridLength> ColumnDefinitions { get; init; } = [];
 
+    public Grid() => Size = new Size(200, 100);
+
     protected override void ArrangeChildren()
     {
         var content = ContentBounds;
