@@ -10,6 +10,8 @@ public readonly record struct Rectangle
     public readonly float Height { get; }
 
     public readonly Point Center => new(X + (Width / 2), Y + (Height / 2));
+    public readonly float Right => X + Width;
+    public readonly float Bottom => Y + Height;
 
     public Rectangle(float x, float y, float width, float height)
     {

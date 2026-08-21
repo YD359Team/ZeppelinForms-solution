@@ -1,5 +1,6 @@
 ﻿using SkiaSharp;
 using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Skia;
@@ -10,6 +11,13 @@ public sealed class SkiaGraphics : Graphics
     private static readonly SKFont DefaultFont = new(SKTypeface.Default, 16);
 
     public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
+
+    public override void DrawImage(Rectangle rect, Image image)
+    {
+        // need image to skimage
+        // TODO: replace obsolete 
+        _canvas.DrawImage(image, new SKRect(rect.X, rect.Y, rect.Right, rect.Bottom));
+    } 
 
     public override void FillRectangle(Rectangle rect, Color color)
     {
