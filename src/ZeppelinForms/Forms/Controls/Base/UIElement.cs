@@ -32,6 +32,7 @@ public abstract class UIElement : IGridPlaceable
         new Size(
             Math.Max(0, Size.Width - Padding.Horizontal),
             Math.Max(0, Size.Height - Padding.Vertical)));
+    public bool IsEnabled { get; set; } = true;
     public bool IsVisible { get; set; } = true;
     public string Name { get; set; }
     public Color Background { get; set; } = Colors.Transparent;

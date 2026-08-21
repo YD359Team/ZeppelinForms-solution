@@ -56,7 +56,7 @@ internal sealed class Win32Window : IPlatformWindow
                 0,
                 ClassName,
                 _form.Title ?? string.Empty,
-                NativeMethods.WS_OVERLAPPEDWINDOW,
+                NativeConstants.WS_OVERLAPPEDWINDOW,
                 x,
                 y,
                 width,
@@ -95,14 +95,14 @@ internal sealed class Win32Window : IPlatformWindow
 
             NativeMethods.SendMessage(
                 _handle,
-                NativeMethods.WM_SETICON,
-                NativeMethods.ICON_BIG,
+                NativeConstants.WM_SETICON,
+                NativeConstants.ICON_BIG,
                 _largeIcon);
 
             NativeMethods.SendMessage(
                 _handle,
-                NativeMethods.WM_SETICON,
-                NativeMethods.ICON_SMALL,
+                NativeConstants.WM_SETICON,
+                NativeConstants.ICON_SMALL,
                 _smallIcon);
         }
     }
@@ -128,7 +128,7 @@ internal sealed class Win32Window : IPlatformWindow
 
         NativeMethods.ShowWindow(
             _handle,
-            (int)NativeMethods.SW_SHOW);
+            (int)NativeConstants.SW_SHOW);
 
         NativeMethods.UpdateWindow(_handle);
     }
@@ -181,11 +181,11 @@ internal sealed class Win32Window : IPlatformWindow
     {
         switch (message)
         {
-            case NativeMethods.WM_CLOSE:
+            case NativeConstants.WM_CLOSE:
                 Close();
                 return 0;
 
-            case NativeMethods.WM_NCDESTROY:
+            case NativeConstants.WM_NCDESTROY:
                 {
                     DestroyIcons();
                     _skiaSurface?.Dispose();
@@ -200,7 +200,7 @@ internal sealed class Win32Window : IPlatformWindow
                 }
 
             // Win32Window.ProcessMessage
-            case NativeMethods.WM_SIZE:
+            case NativeConstants.WM_SIZE:
                 {
                     int width = (int)(lParam.ToInt64() & 0xFFFF);
                     int height = (int)((lParam.ToInt64() >> 16) & 0xFFFF);
@@ -220,13 +220,13 @@ internal sealed class Win32Window : IPlatformWindow
                     return 0;
                 }
 
-            case NativeMethods.WM_ERASEBKGND:
+            case NativeConstants.WM_ERASEBKGND:
                 // Skia сам чистит канвас в Render() — не даём Windows
                 // затирать фон системной кистью между resize и нашим WM_PAINT
                 // (иначе будет мерцание, вы это уже проходили на WinForms-стороне).
                 return 1;
 
-            case NativeMethods.WM_PAINT:
+            case NativeConstants.WM_PAINT:
                 {
                     if (_skiaSurface is not null)
                     {
@@ -240,11 +240,11 @@ internal sealed class Win32Window : IPlatformWindow
                     return 0;
                 }
 
-            case NativeMethods.WM_DESTROY:
+            case NativeConstants.WM_DESTROY:
                 _platform.WindowDestroyed();
                 return 0;
 
-            case NativeMethods.WM_MOUSEMOVE:
+            case NativeConstants.WM_MOUSEMOVE:
                 {
                     // (short), не просто маска — координаты могут быть отрицательными
                     // на мультимониторных конфигурациях с монитором левее/выше основного
@@ -256,7 +256,7 @@ internal sealed class Win32Window : IPlatformWindow
                         var tme = new NativeMethods.TRACKMOUSEEVENT
                         {
                             cbSize = (uint)Marshal.SizeOf<NativeMethods.TRACKMOUSEEVENT>(),
-                            dwFlags = NativeMethods.TME_LEAVE,
+                            dwFlags = NativeConstants.TME_LEAVE,
                             hwndTrack = hWnd,
                         };
                         NativeMethods.TrackMouseEvent(ref tme);
@@ -267,14 +267,14 @@ internal sealed class Win32Window : IPlatformWindow
                     return 0;
                 }
 
-            case NativeMethods.WM_MOUSELEAVE:
+            case NativeConstants.WM_MOUSELEAVE:
                 {
                     _trackingMouse = false;
                     _form.OnPointerLeaveWindow();
                     return 0;
                 }
 
-            case NativeMethods.WM_LBUTTONDOWN:
+            case NativeConstants.WM_LBUTTONDOWN:
                 {
                     int x = (short)(lParam.ToInt64() & 0xFFFF);
                     int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
@@ -282,7 +282,7 @@ internal sealed class Win32Window : IPlatformWindow
                     return 0;
                 }
 
-            case NativeMethods.WM_LBUTTONUP:
+            case NativeConstants.WM_LBUTTONUP:
                 {
                     int x = (short)(lParam.ToInt64() & 0xFFFF);
                     int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
@@ -319,7 +319,7 @@ internal sealed class Win32Window : IPlatformWindow
 
             hCursor = NativeMethods.LoadCursor(
                 0,
-                NativeMethods.IDC_ARROW),
+                NativeConstants.IDC_ARROW),
 
             lpszClassName = ClassName
         };
@@ -343,13 +343,13 @@ internal sealed class Win32Window : IPlatformWindow
         nint wParam,
         nint lParam)
     {
-        if (message == NativeMethods.WM_NCCREATE)
+        if (message == NativeConstants.WM_NCCREATE)
         {
             nint createParam = Marshal.ReadIntPtr(lParam);
 
             NativeMethods.SetWindowLongPtr(
                 hWnd,
-                NativeMethods.GWLP_USERDATA,
+                NativeConstants.GWLP_USERDATA,
                 createParam);
         }
 
@@ -367,7 +367,7 @@ internal sealed class Win32Window : IPlatformWindow
     {
         nint ptr = NativeMethods.GetWindowLongPtr(
             hWnd,
-            NativeMethods.GWLP_USERDATA);
+            NativeConstants.GWLP_USERDATA);
 
         if (ptr == 0)
             return null;

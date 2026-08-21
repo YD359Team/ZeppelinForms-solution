@@ -16,7 +16,7 @@ public sealed class SkiaGraphics : Graphics
     {
         // need image to skimage
         // TODO: replace obsolete 
-        _canvas.DrawImage(image, new SKRect(rect.X, rect.Y, rect.Right, rect.Bottom));
+        //_canvas.DrawImage(image, new SKRect(rect.X, rect.Y, rect.Right, rect.Bottom));
     } 
 
     public override void FillRectangle(Rectangle rect, Color color)
