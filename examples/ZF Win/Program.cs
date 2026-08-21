@@ -12,6 +12,8 @@ public class Program
     static void Main()
     {
         WindowsPlatform windowsPlatform = new();
+        var btn = Buttons.Primary("Button 1");
+        btn.BackgroundColor = Colors.Black;
         App myApp = new(windowsPlatform)
         {
             MainForm = new()
@@ -26,16 +28,17 @@ public class Program
                     RowDefinitions = [new(1f, true)],
                     Children =
                     [
-                       new Label { Text = "Label 1", Size = new(50, 200) },
+                       new Label { Text = "Label left", Size = new(50, 200) },
                        new StackPanel
                         {
+                            Column = 1,
                             Padding = new(2),
                             Children =
                             [
                                 new Label { Text = "Label 1", Size = new(50, 200) },
                                 new Label { Text = "Label 2", Size = new(50, 200) },
                                 new Label { Text = "Label 3", Size = new(50, 200) },
-                                Buttons.Primary("Button 1"),
+                                btn,
                             ]
                         },
                     ]
