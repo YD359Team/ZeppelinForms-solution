@@ -35,10 +35,11 @@ public abstract class UIElement : IGridPlaceable
     public bool IsVisible { get; set; } = true;
     public string Name { get; set; }
     public Color Background { get; set; } = Colors.Transparent;
-
-    internal Form? Owner { get; set; }
+    // IGridPlaceable
     public int Row { get; set; }
     public int Column { get; set; }
+
+    internal Form? Owner { get; set; }
 
     public abstract void Draw(Graphics g);
 

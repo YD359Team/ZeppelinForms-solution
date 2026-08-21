@@ -10,42 +10,54 @@ namespace ZeppelinForms.Forms.Controls;
 public class Button : UnitControl, IInputElement, IBorderedElement
 {
     public string? Text { get; set; }
-    public Color FillColor { get; set; } = LightThemeColors.ButtonFill;
-    public ButtonStyle ButtonStyle { get; set; } = ButtonStyle.Secondary;
+
+    public Color BackgroundColor { get; set; } = LightThemeColors.ButtonFill;
+    public Color HoverBackgroundColor { get; set; } = LightThemeColors.ButtonFill.Darken();
+    public Color TextColor { get; set; } = Colors.White;
+
     // IBorderedElement
     public Color BorderColor { get; set; } = LightThemeColors.ButtonFill;
     public float BorderWidth { get; set; } = 1f;
+
     // IInputElement
     public bool IsFocused { get; set; }
-    public bool TabStop { get; set; }
+    public bool TabStop { get; set; } = true;   // было false — кликом не фокусировалось
     public uint TabIndex { get; set; }
 
     private bool _isHovered;
 
-    protected override void OnMouseOver()
-    {
-        _isHovered = true;
-        Invalidate();
-    }
-
-    protected override void OnMouseLeave()
-    {
-        _isHovered = false;
-        Invalidate();
-    }
+    protected override void OnMouseOver() { _isHovered = true; Invalidate(); }
+    protected override void OnMouseLeave() { _isHovered = false; Invalidate(); }
 
     public override void Draw(Graphics g)
     {
-        ControlDrawing.DrawButton(g, this.LocalBounds, this.ButtonStyle, _isHovered, this.FillColor, this.Background, this.Text);
-        if (this.BorderWidth > 0)
-        {
-            ControlDrawing.DrawBorder(g, this.LocalBounds, this.BorderColor, this.BorderWidth);
-        }
+        g.FillRectangle(this.LocalBounds, _isHovered ? HoverBackgroundColor : BackgroundColor);
+
+        if (BorderWidth > 0)
+            g.DrawRectangle(this.LocalBounds, BorderColor, BorderWidth);
+
+        if (Text is not null)
+            g.DrawText(Text, this.ContentBounds, TextColor);
     }
 }
 
-public enum ButtonStyle : byte
+public static class Buttons
 {
-    Primary = 0,
-    Secondary = 1
+    public static Button Primary(string text) => new()
+    {
+        Text = text,
+        BackgroundColor = LightThemeColors.ButtonFill,
+        HoverBackgroundColor = LightThemeColors.ButtonFill.Darken(),
+        TextColor = Colors.White,
+        BorderColor = LightThemeColors.ButtonFill,
+    };
+
+    public static Button Secondary(string text) => new()
+    {
+        Text = text,
+        BackgroundColor = Colors.White,
+        HoverBackgroundColor = LightThemeColors.AccentBackground,
+        TextColor = LightThemeColors.ButtonFill,
+        BorderColor = LightThemeColors.ButtonFill,
+    };
 }

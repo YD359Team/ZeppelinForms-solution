@@ -13,24 +13,4 @@ public static class ControlDrawing
     {
         g.DrawRectangle(rect, borderColor, borderWidth);
     }
-
-    public static void DrawButton(Graphics g, Rectangle rect, ButtonStyle buttonStyle, bool isHovered, Color foreColor, Color bgColor, string? text)
-    {
-        if (buttonStyle == ButtonStyle.Primary)
-        {
-            g.FillRectangle(rect, isHovered ? LightThemeColors.AccentFill : foreColor);
-            if (text is not null)
-                g.DrawText(text, rect, bgColor);
-        }
-        else if (buttonStyle == ButtonStyle.Secondary)
-        {
-            g.FillRectangle(rect, isHovered ? LightThemeColors.AccentBackground : bgColor);
-            if (text is not null)
-                g.DrawText(text, rect, foreColor);
-        }
-        else
-        {
-            throw new NotImplementedException();
-        }
-    }
 }
