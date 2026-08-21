@@ -1,4 +1,5 @@
 ﻿using SkiaSharp;
+using System.Diagnostics;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
@@ -10,6 +11,8 @@ public static class SkiaRenderer
 {
     public static void Render(Form form, SKCanvas canvas)
     {
+        Debug.WriteLine($"SkiaRender.Render");
+
         canvas.Clear(SKColors.White);
 
         if (form.Content is not null)
@@ -18,6 +21,8 @@ public static class SkiaRenderer
 
     private static void Draw(UIElement element, Graphics g)
     {
+        Debug.WriteLine($"SkiaRender.Draw {element.GetType().Name}");
+
         if (!element.IsVisible)
             return;
 
@@ -30,10 +35,10 @@ public static class SkiaRenderer
                 unit.Draw(g);
                 break;
 
-            case WrapControl single:
-                single.Draw(g);
-                if (single.Child is not null)
-                    Draw(single.Child, g);
+            case WrapControl wrap:
+                wrap.Draw(g);
+                if (wrap.Child is not null)
+                    Draw(wrap.Child, g);
                 break;
 
             case PanelControl panel:

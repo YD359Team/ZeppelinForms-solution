@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using System.Diagnostics;
+using System.Xml.Linq;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Helpers;
 using ZeppelinForms.Drawing.Primitives;
@@ -28,11 +29,24 @@ public class Button : UnitControl, IInputElement, IBorderedElement
 
     public Button() => Size = new Size(75, 23);
 
-    protected override void OnMouseOver() { _isHovered = true; Invalidate(); }
-    protected override void OnMouseLeave() { _isHovered = false; Invalidate(); }
+    protected override void OnMouseOver() 
+    { 
+        Debug.WriteLine($"Button.OnMouseOver");
+        _isHovered = true;
+        Invalidate(); 
+    
+    }
+    protected override void OnMouseLeave() 
+    { 
+        Debug.WriteLine($"Button.OnMouseLeave");
+        _isHovered = false;
+        Invalidate(); 
+    }
 
     public override void Draw(Graphics g)
     {
+        Debug.WriteLine($"Button.Draw pos:{Position} size:{Size}");
+
         g.FillRectangle(this.LocalBounds, _isHovered ? HoverBackgroundColor : BackgroundColor);
 
         if (BorderWidth > 0)

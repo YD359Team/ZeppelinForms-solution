@@ -36,14 +36,14 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
         {
             nSize = (ushort)Marshal.SizeOf<NativeMethods.PIXELFORMATDESCRIPTOR>(),
             nVersion = 1,
-            dwFlags = NativeMethods.PFD_DRAW_TO_WINDOW
-                | NativeMethods.PFD_SUPPORT_OPENGL
-                | NativeMethods.PFD_DOUBLEBUFFER,
-            iPixelType = NativeMethods.PFD_TYPE_RGBA,
+            dwFlags = NativeConstants.PFD_DRAW_TO_WINDOW
+                | NativeConstants.PFD_SUPPORT_OPENGL
+                | NativeConstants.PFD_DOUBLEBUFFER,
+            iPixelType = NativeConstants.PFD_TYPE_RGBA,
             cColorBits = 32,
             cDepthBits = 24,
             cStencilBits = 8,
-            iLayerType = NativeMethods.PFD_MAIN_PLANE,
+            iLayerType = NativeConstants.PFD_MAIN_PLANE,
         };
 
         int format = NativeMethods.ChoosePixelFormat(hdc, ref pfd);

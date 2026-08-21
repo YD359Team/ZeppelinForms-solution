@@ -44,11 +44,11 @@ internal sealed class SoftwareSkiaSurface : IWin32SkiaSurface
                 biHeight = -height,
                 biPlanes = 1,
                 biBitCount = 32,
-                biCompression = NativeMethods.BI_RGB,
+                biCompression = NativeConstants.BI_RGB,
             };
 
             _dib = NativeMethods.CreateDIBSection(
-                screenDc, ref header, NativeMethods.DIB_RGB_COLORS,
+                screenDc, ref header, NativeConstants.DIB_RGB_COLORS,
                 out _pixels, 0, 0);
 
             _oldBitmap = NativeMethods.SelectObject(_memDc, _dib);
@@ -78,7 +78,7 @@ internal sealed class SoftwareSkiaSurface : IWin32SkiaSurface
         {
             NativeMethods.BitBlt(
                 windowDc, 0, 0, _width, _height,
-                _memDc, 0, 0, NativeMethods.SRCCOPY);
+                _memDc, 0, 0, NativeConstants.SRCCOPY);
         }
         finally
         {

@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing.Imaging;
+﻿using System.Diagnostics;
+using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
@@ -39,6 +41,7 @@ public class Form
 
     internal void Invalidate()
     {
+        Debug.WriteLine("Form.Invalidate");
         PlatformWindow?.Invalidate();
     }
 

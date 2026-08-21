@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Diagnostics;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
@@ -53,6 +54,7 @@ public abstract class UIElement : IGridPlaceable
 
     protected void Invalidate()
     {
+        Debug.WriteLine($"UIElement.Invalidate {this.GetType().Name}");
         UIElement root = this;
         while (root.Parent is not null)
             root = root.Parent;

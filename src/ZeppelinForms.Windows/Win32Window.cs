@@ -1,5 +1,6 @@
 ﻿using SkiaSharp;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
@@ -166,6 +167,8 @@ internal sealed class Win32Window : IPlatformWindow
 
     public void Invalidate()
     {
+        Debug.WriteLine("Win32Window.Invalidate");
+
         if (_handle == 0)
             return;
 
