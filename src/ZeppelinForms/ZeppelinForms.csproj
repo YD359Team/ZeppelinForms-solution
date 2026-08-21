@@ -14,8 +14,4 @@
     <EmbeddedResource Include="Resources\ZF.ico" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Core\Collections\" />
-  </ItemGroup>
-
 </Project>
