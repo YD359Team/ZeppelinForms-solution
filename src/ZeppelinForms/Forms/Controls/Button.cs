@@ -22,24 +22,22 @@ public class Button : UnitControl, IInputElement, IBorderedElement
 
     // IInputElement
     public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;   // было false — кликом не фокусировалось
+    public bool TabStop { get; set; } = true;
     public uint TabIndex { get; set; }
-
-    private bool _isHovered;
 
     public Button() => Size = new Size(75, 23);
 
     protected override void OnMouseOver() 
     { 
         Debug.WriteLine($"Button.OnMouseOver");
-        _isHovered = true;
+        IsHovered = true;
         Invalidate(); 
     
     }
     protected override void OnMouseLeave() 
     { 
         Debug.WriteLine($"Button.OnMouseLeave");
-        _isHovered = false;
+        IsHovered = false;
         Invalidate(); 
     }
 
@@ -47,7 +45,7 @@ public class Button : UnitControl, IInputElement, IBorderedElement
     {
         Debug.WriteLine($"Button.Draw pos:{Position} size:{Size}");
 
-        g.FillRectangle(this.LocalBounds, _isHovered ? HoverBackgroundColor : BackgroundColor);
+        g.FillRectangle(this.LocalBounds, IsHovered ? HoverBackgroundColor : BackgroundColor);
 
         if (BorderWidth > 0)
             g.DrawRectangle(this.LocalBounds, BorderColor, BorderWidth);

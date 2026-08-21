@@ -42,6 +42,8 @@ public abstract class UIElement : IGridPlaceable
     public int Row { get; set; }
     public int Column { get; set; }
 
+    protected bool IsHovered { get; set; }
+
     internal Form? Owner { get; set; }
 
     public Image RenderToImage()
