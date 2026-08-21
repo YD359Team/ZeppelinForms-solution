@@ -69,7 +69,7 @@ public abstract class UIElement : IGridPlaceable
 
     protected virtual void OnMouseOver()
     {
-
+        // this.Draw(new Graphics()); нужно прокинуть сюда graphics
     }
 
     protected virtual void OnMouseLeave()
