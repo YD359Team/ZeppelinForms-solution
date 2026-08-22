@@ -11,8 +11,6 @@ public static class SkiaRenderer
 {
     public static void Render(Form form, SKCanvas canvas)
     {
-        Debug.WriteLine($"SkiaRender.Render");
-
         canvas.Clear(SKColors.White);
 
         if (form.Content is not null)
@@ -21,13 +19,10 @@ public static class SkiaRenderer
 
     private static void Draw(UIElement element, Graphics g)
     {
-        Debug.WriteLine($"SkiaRender.Draw {element.GetType().Name}");
-
         if (!element.IsVisible)
             return;
 
         g.Save();
-        g.ClipRect(element.ContentBounds);
         g.Translate(element.Position.X, element.Position.Y);
 
         switch (element)
@@ -39,13 +34,21 @@ public static class SkiaRenderer
             case WrapControl wrap:
                 wrap.Draw(g);
                 if (wrap.Child is not null)
+                {
+                    g.Save();
+                    g.ClipRect(wrap.ContentBounds);
                     Draw(wrap.Child, g);
+                    g.Restore();
+                }
                 break;
 
             case PanelControl panel:
                 panel.Draw(g);
+                g.Save();
+                g.ClipRect(panel.ContentBounds);
                 foreach (var child in panel.Children)
                     Draw(child, g);
+                g.Restore();
                 break;
         }
 

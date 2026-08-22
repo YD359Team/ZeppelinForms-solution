@@ -22,5 +22,4 @@ public abstract class Graphics
     public abstract void ClipRect(Rectangle bounds);
     public abstract void Restore();
     public abstract void Translate(float dx, float dy);
-
 }
