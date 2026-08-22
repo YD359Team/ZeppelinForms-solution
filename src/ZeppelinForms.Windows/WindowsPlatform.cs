@@ -6,6 +6,11 @@ public class WindowsPlatform : IPlatform
 {
     private int _windowCount = 0;
 
+    public WindowsPlatform()
+    {
+        ZeppelinForms.Skia.SkiaImageDecoder.Register();
+    }
+
     public IPlatformWindow CreateWindow(Form form)
     {
         var window = new Win32Window(this, form);

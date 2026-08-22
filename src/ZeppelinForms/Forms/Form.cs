@@ -72,8 +72,8 @@ public class Form
         _pressedElement = hit;
         hit?.RaiseMouseDown();
 
-        if (hit is IInputElement input)
-            _focusDispatcher.FocusElement(input);
+        if (hit is not null)
+            _focusDispatcher.FocusElement(hit);
     }
 
     internal void OnPointerUp(Point point)

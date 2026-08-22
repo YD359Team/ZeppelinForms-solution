@@ -46,6 +46,7 @@ public abstract class UIElement : IGridPlaceable
     public int Column { get; set; }
 
     protected bool IsHovered { get; set; }
+    protected bool IsPressed { get; set; }
 
     internal Form? Owner { get; set; }
 
@@ -73,7 +74,10 @@ public abstract class UIElement : IGridPlaceable
         Invalidate();
     }
 
-    protected void Invalidate()
+    // protected internal — доступен и наследникам (как раньше), и коду
+    // внутри сборки вроде FocusDispatcher, которому нужно попросить
+    // перерисовку не будучи подклассом UIElement.
+    protected internal void Invalidate()
     {
         Debug.WriteLine($"UIElement.Invalidate {this.GetType().Name}");
         UIElement root = this;
@@ -98,31 +102,31 @@ public abstract class UIElement : IGridPlaceable
         // called when size changed. TODO: Dont call this before size assigned first time
     }
 
-    protected virtual void OnMouseOver()
+    protected virtual void OnMouseOver() { }
+    protected virtual void OnMouseLeave() { }
+    protected virtual void OnMouseDown() { }
+    protected virtual void OnMouseUp() { }
+    protected virtual void OnClick(MouseClickEventArgs e) { }
+
+    internal void RaiseMouseDown()
     {
-        // this.Draw(new Graphics()); нужно прокинуть сюда graphics
+        IsPressed = true;
+        OnMouseDown();
+        Invalidate();
     }
 
-    protected virtual void OnMouseLeave()
+    internal void RaiseMouseUp()
     {
-
+        if (!IsPressed) return;
+        IsPressed = false;
+        OnMouseUp();
+        Invalidate();
     }
-
-    protected virtual void OnMouseDown()
-    {
-
-    }
-
-    protected virtual void OnMouseUp()
-    {
-
-    }
-
-    internal void RaiseMouseDown() => OnMouseDown();
-    internal void RaiseMouseUp() => OnMouseUp();
 
     internal void RaiseClick(MouseButton button, Point location)
     {
-        Click?.Invoke(this, new MouseClickEventArgs(button, MouseButtonState.Up, location));
+        var args = new MouseClickEventArgs(button, MouseButtonState.Up, location);
+        OnClick(args);
+        Click?.Invoke(this, args);
     }
 }
