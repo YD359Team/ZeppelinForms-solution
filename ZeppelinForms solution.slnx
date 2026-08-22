@@ -8,4 +8,7 @@
     <Project Path="src/ZeppelinForms.Windows/ZeppelinForms.Windows.csproj" />
     <Project Path="src/ZeppelinForms/ZeppelinForms.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ZeppelinForms.UnitTests/ZeppelinForms.UnitTests.csproj" />
+  </Folder>
 </Solution>
