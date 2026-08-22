@@ -27,6 +27,7 @@ public static class SkiaRenderer
             return;
 
         g.Save();
+        g.ClipRect(element.ContentBounds);
         g.Translate(element.Position.X, element.Position.Y);
 
         switch (element)

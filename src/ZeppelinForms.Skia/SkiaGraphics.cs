@@ -84,6 +84,7 @@ public sealed class SkiaGraphics : Graphics
     }
 
     public override void Save() => _canvas.Save();
+    public override void ClipRect(Rectangle rect) => _canvas.ClipRect(new SKRect(rect.X, rect.Y, rect.Right, rect.Bottom));
     public override void Restore() => _canvas.Restore();
     public override void Translate(float dx, float dy) => _canvas.Translate(dx, dy);
 }
