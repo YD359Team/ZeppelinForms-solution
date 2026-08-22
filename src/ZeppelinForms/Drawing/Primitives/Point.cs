@@ -17,6 +17,13 @@ public readonly record struct Point
     {
         float dx = pt1.X - pt2.X;
         float dy = pt1.Y - pt2.Y;
+        return MathF.Sqrt(dx * dx + dy * dy);
+    }
+
+    public static float DistanceBetweenM(Point pt1, Point pt2)
+    {
+        float dx = pt1.X - pt2.X;
+        float dy = pt1.Y - pt2.Y;
         return MathF.Sqrt(dx * dx) + MathF.Sqrt(dy * dy);
     }
 }
