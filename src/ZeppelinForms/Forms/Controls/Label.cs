@@ -29,6 +29,6 @@ public class Label : UnitControl, ITextElement, IBorderedElement
             g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
         }
         if (Text is not null)
-            g.DrawText(this.Text, this.ContentBounds, Colors.Black, this.HorizontalAlign, this.VerticalAlign);
+            g.DrawText(this.Text, this.ContentBounds, this.TextColor, this.HorizontalAlign, this.VerticalAlign);
     }
 }
