@@ -60,17 +60,6 @@ public sealed class SkiaGraphics : Graphics
         _canvas.DrawText(text, position.X, position.Y, SKTextAlign.Left, DefaultFont, paint);
     }
 
-    public override void DrawText(string text, Rectangle rect, Color color)
-    {
-        using var paint = new SKPaint
-        {
-            Color = new SKColor(color.R, color.G, color.B, color.A),
-            IsAntialias = true,
-        };
-
-        _canvas.DrawText(text, rect.X, rect.Y + rect.Height / 2f, SKTextAlign.Left, DefaultFont, paint);
-    }
-
     public override void DrawText(
     string text, Rectangle rect, Color color,
     HorizontalAlign hAlign = HorizontalAlign.Center,

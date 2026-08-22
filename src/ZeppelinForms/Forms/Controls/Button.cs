@@ -3,19 +3,21 @@ using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Helpers;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class Button : UnitControl, IInputElement, IBorderedElement
+public class Button : UnitControl, ITextElement, IInputElement, IBorderedElement
 {
-    public string? Text { get; set; }
-
     public Color BackgroundColor { get; set; } = LightThemeColors.ButtonFill;
     public Color HoverBackgroundColor { get; set; } = LightThemeColors.ButtonFill.Darken();
+    // ITextElement
+    public string? Text { get; set; }
+    public HorizontalAlign HorizontalAlign { get; set; }
+    public VerticalAlign VerticalAlign { get; set; }
     public Color TextColor { get; set; } = Colors.White;
-
     // IBorderedElement
     public Color BorderColor { get; set; } = LightThemeColors.ButtonFill;
     public float BorderWidth { get; set; } = 1f;
@@ -37,7 +39,7 @@ public class Button : UnitControl, IInputElement, IBorderedElement
             g.DrawRectangle(this.LocalBounds, BorderColor, BorderWidth);
 
         if (Text is not null)
-            g.DrawText(Text, this.ContentBounds, TextColor);
+            g.DrawText(this.Text, this.ContentBounds, this.TextColor, this.HorizontalAlign, this.VerticalAlign);
     }
 }
 

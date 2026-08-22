@@ -34,7 +34,6 @@ public class Form
     private UIElement? _pressedElement;
     private readonly FocusDispatcher _focusDispatcher = new();
 
-
     public void Show()
     {
         PlatformWindow?.Show();
