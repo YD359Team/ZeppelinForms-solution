@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ZeppelinForms.Core.Collections;
 
-internal static class ObservableCollectionEx
+public static class ObservableCollectionEx
 {
     extension<T> (ObservableCollection<T> oc)
     {
