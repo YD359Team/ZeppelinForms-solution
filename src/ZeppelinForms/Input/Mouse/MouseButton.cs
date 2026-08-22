@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using ZeppelinForms.Core;
 using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Input.Mouse;
@@ -16,12 +17,6 @@ public enum MouseButtonState : byte
 {
     Down = 0,
     Up
-}
-
-
-public record class ZfEventArgs
-{
-    public static readonly ZfEventArgs Empty = new();
 }
 
 public sealed record class MouseMoveEventArgs(
