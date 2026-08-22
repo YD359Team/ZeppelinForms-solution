@@ -19,12 +19,12 @@ public class Panel : PanelControl, IBorderedElement
 
     public override void Draw(Graphics g)
     {
+        if (Background.A > 0)
+            g.FillRectangle(new Rectangle(0, 0, Size.Width, Size.Height), Background);
         if (this.BorderWidth > 0)
         {
             g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
         }
-        if (Background.A > 0)
-            g.FillRectangle(new Rectangle(0, 0, Size.Width, Size.Height), Background);
     }
 
     protected override void ArrangeChildren()

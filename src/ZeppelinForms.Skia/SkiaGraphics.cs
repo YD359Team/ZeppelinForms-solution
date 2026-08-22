@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Skia;
 
@@ -68,6 +69,32 @@ public sealed class SkiaGraphics : Graphics
         };
 
         _canvas.DrawText(text, rect.X, rect.Y + rect.Height / 2f, SKTextAlign.Left, DefaultFont, paint);
+    }
+
+    public override void DrawText(
+    string text, Rectangle rect, Color color,
+    HorizontalAlign hAlign = HorizontalAlign.Center,
+    VerticalAlign vAlign = VerticalAlign.Center)
+    {
+        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
+
+        float textWidth = DefaultFont.MeasureText(text, out SKRect bounds, paint);
+
+        float x = hAlign switch
+        {
+            HorizontalAlign.Left => rect.X,
+            HorizontalAlign.Right => rect.X + rect.Width - textWidth,
+            _ => rect.X + (rect.Width - textWidth) / 2f,
+        };
+
+        float baselineY = vAlign switch
+        {
+            VerticalAlign.Top => rect.Y - bounds.Top,
+            VerticalAlign.Bottom => rect.Y + rect.Height - bounds.Bottom,
+            _ => rect.Y + rect.Height / 2f - bounds.MidY,
+        };
+
+        _canvas.DrawText(text, x, baselineY, SKTextAlign.Left, DefaultFont, paint);
     }
 
     public override void Save() => _canvas.Save();

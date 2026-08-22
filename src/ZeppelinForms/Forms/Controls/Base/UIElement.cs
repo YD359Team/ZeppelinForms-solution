@@ -54,6 +54,22 @@ public abstract class UIElement : IGridPlaceable
 
     public abstract void Draw(Graphics g);
 
+    internal void RaiseMouseOver()
+    {
+        if (IsHovered) return;
+        IsHovered = true;
+        OnMouseOver();
+        Invalidate();
+    }
+
+    internal void RaiseMouseLeave()
+    {
+        if (!IsHovered) return;
+        IsHovered = false;
+        OnMouseLeave();
+        Invalidate();
+    }
+
     protected void Invalidate()
     {
         Debug.WriteLine($"UIElement.Invalidate {this.GetType().Name}");
@@ -99,8 +115,12 @@ public abstract class UIElement : IGridPlaceable
 
     }
 
-    internal void RaiseMouseOver() => OnMouseOver();
-    internal void RaiseMouseLeave() => OnMouseLeave();
     internal void RaiseMouseDown() => OnMouseDown();
     internal void RaiseMouseUp() => OnMouseUp();
+
+    internal void RaiseClick()
+    {
+        // ?
+        throw new NotImplementedException();
+    }
 }

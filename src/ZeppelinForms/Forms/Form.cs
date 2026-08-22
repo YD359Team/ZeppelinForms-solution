@@ -67,6 +67,8 @@ public class Form
     {
         UIElement? hit = Content is not null ? HitTester.HitTest(Content, point) : null;
 
+        if (hit is { IsEnabled: false }) return;
+
         _pressedElement = hit;
         hit?.RaiseMouseDown();
 
@@ -76,7 +78,10 @@ public class Form
 
     internal void OnPointerUp(Point point)
     {
+        UIElement? hit = Content is not null ? HitTester.HitTest(Content, point) : null;
         _pressedElement?.RaiseMouseUp();
+        if (hit is not null && hit == _pressedElement)
+            hit.RaiseClick();
         _pressedElement = null;
     }
 }

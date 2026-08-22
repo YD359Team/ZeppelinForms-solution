@@ -1,10 +1,10 @@
 ﻿using System.Diagnostics;
-using System.Xml.Linq;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Helpers;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -21,25 +21,12 @@ public class Button : UnitControl, IInputElement, IBorderedElement
     public float BorderWidth { get; set; } = 1f;
 
     // IInputElement
+    public event EventHandler<MouseClickEventArgs>? Click;
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; } = true;
     public uint TabIndex { get; set; }
 
     public Button() => Size = new Size(75, 23);
-
-    protected override void OnMouseOver() 
-    { 
-        Debug.WriteLine($"Button.OnMouseOver");
-        IsHovered = true;
-        Invalidate(); 
-    
-    }
-    protected override void OnMouseLeave() 
-    { 
-        Debug.WriteLine($"Button.OnMouseLeave");
-        IsHovered = false;
-        Invalidate(); 
-    }
 
     public override void Draw(Graphics g)
     {

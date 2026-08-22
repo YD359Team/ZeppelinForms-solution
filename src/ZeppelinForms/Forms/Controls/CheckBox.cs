@@ -1,6 +1,7 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -10,6 +11,7 @@ public class CheckBox : UnitControl, IInputElement
     public string? Text { get; set; }
 
     // IInputElement
+    public event EventHandler<MouseClickEventArgs>? Click;
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; } = true;
     public uint TabIndex { get; set; }

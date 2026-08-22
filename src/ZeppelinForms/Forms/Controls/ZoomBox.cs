@@ -1,14 +1,17 @@
 ﻿using ZeppelinForms.Drawing;
+using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Input.Mouse;
 
-namespace ZeppelinForms.Forms.Controls.Base;
+namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
 /// Allow zoom in\out for child
 /// </summary>
-public class ZoomBox : UIElement, IInputElement
+public class ZoomBox : WrapControl, IInputElement
 {
     // IInputElement
+    public event EventHandler<MouseClickEventArgs>? Click;
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; }
     public uint TabIndex { get; set; }

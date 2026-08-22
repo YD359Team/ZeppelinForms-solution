@@ -18,10 +18,16 @@ public enum MouseButtonState : byte
     Up
 }
 
-public sealed class MouseMoveEventArgs(
-    Point Location) : EventArgs;
 
-public sealed class MouseClickEventArgs(
+public record class ZfEventArgs
+{
+    public static readonly ZfEventArgs Empty = new();
+}
+
+public sealed record class MouseMoveEventArgs(
+    Point Location) : ZfEventArgs;
+
+public sealed record class MouseClickEventArgs(
     MouseButton Button, 
     MouseButtonState State, 
-    Point Location) : EventArgs;
+    Point Location) : ZfEventArgs;
