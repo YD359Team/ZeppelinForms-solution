@@ -11,7 +11,6 @@ namespace ZeppelinForms.Forms.Controls;
 public class ZoomBox : WrapControl, IInputElement
 {
     // IInputElement
-    public event EventHandler<MouseClickEventArgs>? Click;
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; }
     public uint TabIndex { get; set; }

@@ -4,6 +4,7 @@ using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Base;
 
@@ -12,6 +13,8 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// </summary>
 public abstract class UIElement : IGridPlaceable
 {
+    public event EventHandler<MouseClickEventArgs>? Click;
+
     public UIElement? Parent { get; internal set; }
     public Dock Docking { get; set; }
     public Point Position { get; set; }
@@ -36,7 +39,7 @@ public abstract class UIElement : IGridPlaceable
             Math.Max(0, Size.Height - Padding.Vertical)));
     public bool IsEnabled { get; set; } = true;
     public bool IsVisible { get; set; } = true;
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public Color Background { get; set; } = Colors.Transparent;
     // IGridPlaceable
     public int Row { get; set; }
@@ -118,9 +121,8 @@ public abstract class UIElement : IGridPlaceable
     internal void RaiseMouseDown() => OnMouseDown();
     internal void RaiseMouseUp() => OnMouseUp();
 
-    internal void RaiseClick()
+    internal void RaiseClick(MouseButton button, Point location)
     {
-        // ?
-        throw new NotImplementedException();
+        Click?.Invoke(this, new MouseClickEventArgs(button, MouseButtonState.Up, location));
     }
 }

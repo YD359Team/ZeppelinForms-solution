@@ -21,7 +21,6 @@ public class Button : UnitControl, IInputElement, IBorderedElement
     public float BorderWidth { get; set; } = 1f;
 
     // IInputElement
-    public event EventHandler<MouseClickEventArgs>? Click;
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; } = true;
     public uint TabIndex { get; set; }

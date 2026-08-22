@@ -6,6 +6,7 @@ using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Dispatchers;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms;
 
@@ -79,9 +80,14 @@ public class Form
     internal void OnPointerUp(Point point)
     {
         UIElement? hit = Content is not null ? HitTester.HitTest(Content, point) : null;
+
         _pressedElement?.RaiseMouseUp();
-        if (hit is not null && hit == _pressedElement)
-            hit.RaiseClick();
+
+        // клик = mouse down и mouse up на ОДНОМ И ТОМ ЖЕ элементе,
+        // а не просто "отпустили кнопку где-то"
+        if (hit is not null && ReferenceEquals(hit, _pressedElement))
+            hit.RaiseClick(MouseButton.Left, point);
+
         _pressedElement = null;
     }
 }
