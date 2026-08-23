@@ -10,27 +10,65 @@ public class Grid : PanelControl
     public List<GridLength> RowDefinitions { get; init; } = [];
     public List<GridLength> ColumnDefinitions { get; init; } = [];
 
-    public Grid() => Size = new Size(200, 100);
+    public override void Draw(Graphics g) { }
 
-    protected override void ArrangeChildren()
+    protected override Size MeasureOverride(Size availableSize)
     {
-        var content = ContentBounds;
+        var content = new Size(
+            Math.Max(0, availableSize.Width - Padding.Horizontal),
+            Math.Max(0, availableSize.Height - Padding.Vertical));
+
         float[] rowHeights = ResolveSizes(RowDefinitions, content.Height);
         float[] colWidths = ResolveSizes(ColumnDefinitions, content.Width);
 
         foreach (var child in Children)
         {
-            var (row, col) = child is IGridPlaceable p ? (p.Row, p.Column) : (0, 0);
+            if (!child.IsVisible) continue;
             var m = child.Margin;
 
-            float cellX = content.X + colWidths.Take(col).Sum();
-            float cellY = content.Y + rowHeights.Take(row).Sum();
+            var cellSize = new Size(
+                Math.Max(0, colWidths.ElementAtOrDefault(child.Column) - m.Horizontal),
+                Math.Max(0, rowHeights.ElementAtOrDefault(child.Row) - m.Vertical));
 
-            child.Position = new Point(cellX + m.Left, cellY + m.Top);
-            child.Size = new Size(
-                Math.Max(0, colWidths[col] - m.Horizontal),
-                Math.Max(0, rowHeights[row] - m.Vertical));
+            // Auto-строк/колонок пока нет — но Measure всё равно нужно
+            // прогнать вниз по дереву, иначе у внуков не будет DesiredSize
+            child.Measure(cellSize);
         }
+
+        return ResolveSize(
+            new Size(content.Width + Padding.Horizontal, content.Height + Padding.Vertical),
+            availableSize);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var content = new Rectangle(
+            new Point(Padding.Left, Padding.Top),
+            new Size(
+                Math.Max(0, finalSize.Width - Padding.Horizontal),
+                Math.Max(0, finalSize.Height - Padding.Vertical)));
+
+        float[] rowHeights = ResolveSizes(RowDefinitions, content.Height);
+        float[] colWidths = ResolveSizes(ColumnDefinitions, content.Width);
+
+        foreach (var child in Children)
+        {
+            if (!child.IsVisible) continue;
+            var m = child.Margin;
+
+            float cellX = content.X + colWidths.Take(child.Column).Sum();
+            float cellY = content.Y + rowHeights.Take(child.Row).Sum();
+
+            var rect = new Rectangle(
+                new Point(cellX + m.Left, cellY + m.Top),
+                new Size(
+                    Math.Max(0, colWidths.ElementAtOrDefault(child.Column) - m.Horizontal),
+                    Math.Max(0, rowHeights.ElementAtOrDefault(child.Row) - m.Vertical)));
+
+            child.Arrange(rect);
+        }
+
+        return finalSize;
     }
 
     private static float[] ResolveSizes(List<GridLength> defs, float total)
@@ -42,11 +80,6 @@ public class Grid : PanelControl
         return defs.Select(d => d.IsStar
             ? (starSum > 0 ? remaining * (d.Value / starSum) : 0)
             : d.Value).ToArray();
-    }
-
-    public override void Draw(Graphics g)
-    {
-        return;
     }
 }
 

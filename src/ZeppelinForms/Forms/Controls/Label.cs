@@ -31,4 +31,11 @@ public class Label : UnitControl, ITextElement, IBorderedElement
         if (Text is not null)
             g.DrawText(this.Text, this.ContentBounds, this.TextColor, this.HorizontalAlign, this.VerticalAlign);
     }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        Size textSize = string.IsNullOrEmpty(Text) ? Size.Empty : TextMeasurer.Current.MeasureText(Text);
+        var content = new Size(textSize.Width + Padding.Horizontal, textSize.Height + Padding.Vertical);
+        return ResolveSize(content, availableSize);
+    }
 }

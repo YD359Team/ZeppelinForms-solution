@@ -30,6 +30,8 @@ public class Form
         }
     }
 
+    public Size ClientSize { get; internal set; }
+
     private UIElement? _hoveredElement;
     private UIElement? _pressedElement;
     private readonly FocusDispatcher _focusDispatcher = new();
@@ -39,9 +41,16 @@ public class Form
         PlatformWindow?.Show();
     }
 
+    internal void PerformLayout()
+    {
+        if (Content is null) return;
+        Content.Measure(ClientSize);
+        Content.Arrange(new Rectangle(Point.Empty, ClientSize));
+    }
+
     internal void Invalidate()
     {
-        Debug.WriteLine("Form.Invalidate");
+        PerformLayout();
         PlatformWindow?.Invalidate();
     }
 

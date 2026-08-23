@@ -9,6 +9,7 @@ public class WindowsPlatform : IPlatform
     public WindowsPlatform()
     {
         ZeppelinForms.Skia.SkiaImageDecoder.Register();
+        ZeppelinForms.Skia.SkiaTextMeasurer.Register();
     }
 
     public IPlatformWindow CreateWindow(Form form)

@@ -41,6 +41,14 @@ public class Button : UnitControl, ITextElement, IInputElement, IBorderedElement
         if (Text is not null)
             g.DrawText(this.Text, this.ContentBounds, this.TextColor, this.HorizontalAlign, this.VerticalAlign);
     }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        Size textSize = string.IsNullOrEmpty(Text) ? Size.Empty : TextMeasurer.Current.MeasureText(Text);
+        // немного запаса под рамку/визуальный "воздух" кнопки сверх чистого текста
+        var content = new Size(textSize.Width + Padding.Horizontal + 16, textSize.Height + Padding.Vertical + 8);
+        return ResolveSize(content, availableSize);
+    }
 }
 
 public static class Buttons

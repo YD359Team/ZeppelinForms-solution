@@ -18,16 +18,8 @@ public abstract class UIElement : IGridPlaceable
     public UIElement? Parent { get; internal set; }
     public Dock Docking { get; set; }
     public Point Position { get; set; }
-    public Size Size
-    {
-        get;
-        set
-        {
-            if (field == value) return;
-            field = value;
-            OnArrange();
-        }
-    }
+    // Auto по умолчанию — авторазмер по контенту, пока явно не задан Size
+    public Size Size { get; set; } = Size.Auto;
     public Thickness Margin { get; set; } = Thickness.Zero;
     public Thickness Padding { get; set; } = Thickness.Zero;
     public Rectangle Rectangle => new(Position, Size);
@@ -44,6 +36,7 @@ public abstract class UIElement : IGridPlaceable
     // IGridPlaceable
     public int Row { get; set; }
     public int Column { get; set; }
+    public Size DesiredSize { get; private set; }
 
     protected bool IsHovered { get; set; }
     protected bool IsPressed { get; set; }
@@ -57,6 +50,40 @@ public abstract class UIElement : IGridPlaceable
     }
 
     public abstract void Draw(Graphics g);
+
+    // ===== Measure/Arrange =====
+
+    public void Measure(Size availableSize)
+    {
+        DesiredSize = MeasureOverride(availableSize);
+    }
+
+    public void Arrange(Rectangle finalRect)
+    {
+        Position = finalRect.AsPosition();
+        Size = ArrangeOverride(finalRect.AsSize());
+        OnSizeChanged();
+    }
+
+    // Дефолт для листовых контролов, которые не переопределили MeasureOverride:
+    // если Size задан явно — используем его, иначе (Auto) считаем, что "хочу 0".
+    protected virtual Size MeasureOverride(Size availableSize) =>
+        ResolveSize(Size.Empty, availableSize);
+
+    // Дефолт — просто заполнить всё, что дал родитель ("stretch").
+    protected virtual Size ArrangeOverride(Size finalSize) => finalSize;
+
+    // Общий помощник: явно заданная ось Size побеждает contentSize,
+    // авто-ось (NaN) берёт вычисленный по контенту размер, и то и другое
+    // не может превышать то, что реально выделил родитель.
+    protected Size ResolveSize(Size contentSize, Size availableSize)
+    {
+        float w = Size.IsWidthAuto ? contentSize.Width : Size.Width;
+        float h = Size.IsHeightAuto ? contentSize.Height : Size.Height;
+        return new Size(Math.Min(w, availableSize.Width), Math.Min(h, availableSize.Height));
+    }
+
+    // ===== события мыши/фокуса (без изменений) =====
 
     internal void RaiseMouseOver()
     {
@@ -90,11 +117,6 @@ public abstract class UIElement : IGridPlaceable
     protected virtual void OnAttached()
     {
         // called when element (first time?) added to form (and\or parent?)
-    }
-
-    protected virtual void OnArrange()
-    {
-        // called when parent panel moved\resized this element
     }
 
     protected virtual void OnSizeChanged()

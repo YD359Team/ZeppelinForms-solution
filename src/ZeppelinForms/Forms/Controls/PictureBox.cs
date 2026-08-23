@@ -14,8 +14,6 @@ public class PictureBox : UnitControl
 
     public string? Source { get; private set; }
 
-    public PictureBox() => Size = new Size(100, 100);
-
     public void Load(string path)
     {
         _image = Image.LoadFromFile(path);
@@ -27,5 +25,11 @@ public class PictureBox : UnitControl
     {
         if (_image is not null)
             g.DrawImage(this.LocalBounds, _image);
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        Size content = _image is not null ? new Size(_image.Width, _image.Height) : Size.Empty;
+        return ResolveSize(content, availableSize);
     }
 }

@@ -208,15 +208,10 @@ internal sealed class Win32Window : IPlatformWindow
                     int width = (int)(lParam.ToInt64() & 0xFFFF);
                     int height = (int)((lParam.ToInt64() >> 16) & 0xFFFF);
 
-                    long now = Environment.TickCount64;
-                    if (now - _lastResizeTicks >= 16) // не чаще ~60 раз/сек
-                    {
-                        _skiaSurface?.Resize(width, height);
-                        _lastResizeTicks = now;
-                    }
+                    _skiaSurface?.Resize(width, height);
 
-                    if (_form.Content is not null)
-                        _form.Content.Size = new Size(width, height);
+                    _form.ClientSize = new Size(width, height);
+                    _form.PerformLayout();
 
                     NativeMethods.InvalidateRect(hWnd, 0, false);
                     NativeMethods.UpdateWindow(hWnd);
