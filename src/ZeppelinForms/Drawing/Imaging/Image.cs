@@ -35,4 +35,10 @@ public sealed class Image
         throw new NotSupportedException(
             "Для сетевых URI используйте Image.LoadFromUriAsync (TODO).");
     }
+
+    public static Image LoadAsset(string relativePath)
+    {
+        string fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
+        return LoadFromFile(fullPath);
+    }
 }

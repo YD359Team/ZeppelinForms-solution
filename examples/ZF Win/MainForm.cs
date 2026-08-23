@@ -29,9 +29,9 @@ internal class MainForm : Form
         PictureBox pb1 = new PictureBox { Column = 0 };
         PictureBox pb2 = new PictureBox { Column = 1 };
         PictureBox pb3 = new PictureBox { Column = 2 };
-        pb1.LoadAsset("Cry.png");
-        pb2.LoadAsset("Happy.png");
-        pb3.LoadAsset("Laughing.pnh");
+        pb1.LoadAsset("Assets\\Cry.png");
+        pb2.LoadAsset("Assets\\Happy.png");
+        pb3.LoadAsset("Assets\\Laughing.png");
         Button btnOk = new Button { Text = "OK", 
             HorizontalAlign = HorizontalAlign.Center,
             VerticalAlign = VerticalAlign.Center,

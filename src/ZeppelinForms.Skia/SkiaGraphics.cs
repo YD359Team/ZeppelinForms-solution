@@ -14,22 +14,26 @@ public sealed class SkiaGraphics : Graphics
     // Кэш "наш Image -> уже загруженный в Skia SKImage", чтобы не
     // перезаливать пиксели на каждый WM_PAINT. ConditionalWeakTable
     // сам подчистит запись, когда Image перестанет использоваться.
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Image, SKImage> ImageCache = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Image, CachedImage> ImageCache = new();
 
     public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
 
     public override void DrawImage(Rectangle rect, Image image)
     {
-        if (!ImageCache.TryGetValue(image, out SKImage? skImage))
+        if (!ImageCache.TryGetValue(image, out CachedImage? cached))
         {
-            using var bitmap = new SKBitmap(image.Width, image.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
-            System.Runtime.InteropServices.Marshal.Copy(image.Pixels, 0, bitmap.GetPixels(), image.Pixels.Length);
+            var handle = System.Runtime.InteropServices.GCHandle.Alloc(image.Pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+            var info = new SKImageInfo(image.Width, image.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
 
-            skImage = SKImage.FromBitmap(bitmap);
-            ImageCache.Add(image, skImage);
+            using var bitmap = new SKBitmap();
+            bitmap.InstallPixels(info, handle.AddrOfPinnedObject(), info.RowBytes);
+
+            SKImage skImage = SKImage.FromBitmap(bitmap);
+            cached = new CachedImage(skImage, handle);
+            ImageCache.Add(image, cached);
         }
 
-        _canvas.DrawImage(skImage, new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height));
+        _canvas.DrawImage(cached.SkImage, new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height), SKSamplingOptions.Default);
     }
 
     public override void FillRectangle(Rectangle rect, Color color)

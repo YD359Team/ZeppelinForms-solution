@@ -21,10 +21,10 @@ public class PictureBox : UnitControl
         Invalidate();
     }
 
-    public void LoadAsset(string path)
+    public void LoadAsset(string relativePath)
     {
-        _image = Image.LoadFromFile(path);
-        Source = path;
+        _image = Image.LoadAsset(relativePath);
+        Source = relativePath;
         Invalidate();
     }
 

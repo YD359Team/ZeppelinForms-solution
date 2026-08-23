@@ -12,4 +12,8 @@
     <ProjectReference Include="..\..\src\ZeppelinForms.Windows\ZeppelinForms.Windows.csproj" />
   </ItemGroup>
 
+	<ItemGroup>
+		<None Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
 </Project>
