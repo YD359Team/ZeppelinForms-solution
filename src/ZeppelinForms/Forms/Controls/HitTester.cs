@@ -23,7 +23,7 @@ internal static class HitTester
         switch (root)
         {
             case WrapControl single when single.Child is not null:
-                return HitTest(single.Child, local) ?? root;
+                return HitTest(single.Child, single.TransformPointToChild(local)) ?? root;
 
             case PanelControl panel:
                 // с конца — последний добавленный рисуется поверх остальных

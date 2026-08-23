@@ -14,12 +14,13 @@ public abstract class Graphics
     public abstract void FillRectangle(Rectangle rect, Color color);
     public abstract void DrawText(string text, Point position, Color color);
     public abstract void DrawText(
-    string text, Rectangle rect, Color color,
-    HorizontalAlign hAlign = HorizontalAlign.Center,
-    VerticalAlign vAlign = VerticalAlign.Center);
+        string text, Rectangle rect, Color color,
+        HorizontalAlign hAlign = HorizontalAlign.Center,
+        VerticalAlign vAlign = VerticalAlign.Center);
 
     public abstract void Save();
     public abstract void ClipRect(Rectangle bounds);
     public abstract void Restore();
     public abstract void Translate(float dx, float dy);
+    public abstract void Scale(float sx, float sy);
 }

@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Forms.Controls.Base;
 
@@ -54,4 +55,14 @@ public abstract class WrapControl : UIElement
 
         return finalSize;
     }
+
+    // Хук для наследников вроде ZoomBox — применить свою трансформацию
+    // (масштаб, поворот и т.д.) к канвасу непосредственно перед отрисовкой
+    // ребёнка. По умолчанию ничего не делает.
+    protected internal virtual void ApplyChildTransform(Graphics g) { }
+
+    // Зеркало ApplyChildTransform для хит-тестинга: если ребёнок рисуется
+    // трансформированным, координаты мыши перед проверкой попадания в
+    // ребёнка нужно преобразовать так же (обратным преобразованием).
+    protected internal virtual Point TransformPointToChild(Point point) => point;
 }

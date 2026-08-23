@@ -20,6 +20,7 @@ internal class MainForm : Form
     {
         this.Title = "Form 1";
         this.Size = new Size(1024, 768);
+        ZoomBox zoom = new ZoomBox();
         Grid grid = new Grid();
         grid.ColumnDefinitions.Add(GridLength.Star(0.33f));
         grid.ColumnDefinitions.Add(GridLength.Star(0.33f));
@@ -36,12 +37,15 @@ internal class MainForm : Form
             HorizontalAlign = HorizontalAlign.Center,
             VerticalAlign = VerticalAlign.Center,
             Column = 0, Row = 1 };
+        CheckBox cb = new CheckBox { Text = "Check me",
+            Column = 1, Row = 1 };
         Button btnCancel = new Button { Text = "Cancel",
             HorizontalAlign = HorizontalAlign.Center,
             VerticalAlign = VerticalAlign.Center,
             BackgroundColor = Colors.Red,
             Column = 2, Row = 1 };
-        grid.Children.AddRange([pb1, pb2, pb3, btnOk, btnCancel]);
-        this.Content = grid;
+        grid.Children.AddRange([pb1, pb2, pb3, btnOk, cb, btnCancel]);
+        zoom.Child = grid;
+        this.Content = zoom;
     }
 }

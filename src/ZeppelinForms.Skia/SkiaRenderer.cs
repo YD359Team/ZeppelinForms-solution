@@ -37,6 +37,7 @@ public static class SkiaRenderer
                 {
                     g.Save();
                     g.ClipRect(wrap.ContentBounds);
+                    wrap.ApplyChildTransform(g);
                     Draw(wrap.Child, g);
                     g.Restore();
                 }
