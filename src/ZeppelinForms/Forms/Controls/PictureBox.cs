@@ -21,6 +21,13 @@ public class PictureBox : UnitControl
         Invalidate();
     }
 
+    public void LoadAsset(string path)
+    {
+        _image = Image.LoadFromFile(path);
+        Source = path;
+        Invalidate();
+    }
+
     public override void Draw(Graphics g)
     {
         if (_image is not null)

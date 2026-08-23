@@ -29,9 +29,9 @@ internal class MainForm : Form
         PictureBox pb1 = new PictureBox { Column = 0 };
         PictureBox pb2 = new PictureBox { Column = 1 };
         PictureBox pb3 = new PictureBox { Column = 2 };
-        pb1.Load(@"C:\Users\ydav1\OneDrive\Изображения\Для видео\vecteezy_3d-yellow-angry-emoji_70808870.png");
-        pb2.Load(@"C:\Users\ydav1\OneDrive\Изображения\Для видео\vecteezy_3d-yellow-crying-emoji_70808884.png");
-        pb3.Load(@"C:\Users\ydav1\OneDrive\Изображения\Для видео\vecteezy_3d-yellow-laughing-emoji_70808865 (1).png");
+        pb1.LoadAsset("Cry.png");
+        pb2.LoadAsset("Happy.png");
+        pb3.LoadAsset("Laughing.pnh");
         Button btnOk = new Button { Text = "OK", 
             HorizontalAlign = HorizontalAlign.Center,
             VerticalAlign = VerticalAlign.Center,
