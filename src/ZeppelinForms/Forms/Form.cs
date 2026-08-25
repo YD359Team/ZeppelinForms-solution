@@ -5,6 +5,7 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Dispatchers;
+using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Input.Mouse;
 
@@ -14,6 +15,9 @@ public class Form
 {
     internal IPlatformWindow? PlatformWindow { get; set; }
 
+    public WindowStartupLocation WindowStartupLocation { get; set; }
+
+    public string Name { get; set; } = string.Empty;
     public string? Title { get; set; }
     public Icon? Icon { get; set; }
     public Point Position { get; set; }
