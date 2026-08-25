@@ -4,6 +4,16 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	<OutputType>Exe</OutputType>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ZeppelinForms.Windows\ZeppelinForms.Windows.csproj" />
+    <ProjectReference Include="..\..\src\ZeppelinForms\ZeppelinForms.csproj" />
+  </ItemGroup>
 
 </Project>
