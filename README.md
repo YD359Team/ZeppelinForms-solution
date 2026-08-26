@@ -31,7 +31,10 @@
 | 5 | RadioButton | 💡 |
 | 6 | TextBox | 💡 |
 | 7 | ToggleSwitch | 💡 |
-| 8 | DataTimePicker | 💡 |
+| 8 | DateTimePicker | 💡 |
+| 9 | ColorPicker | 💡 |
+| 10 | TreeView | 💡 |
+| 11 | DataGrid | 💡 |
 
 #### Панели
 
@@ -44,6 +47,7 @@
 | 1 | StackPanel      | ✅ |
 | 2 | Grid     | ✅* |
 | 3 | DockPanel | 💡 |
+| 4 | TabControl | 💡 |
 
 \* - не хватает только `ColumnLength.Auto`
 
