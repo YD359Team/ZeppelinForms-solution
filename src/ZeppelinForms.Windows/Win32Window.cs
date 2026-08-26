@@ -29,6 +29,8 @@ internal sealed class Win32Window : IPlatformWindow
 
     private bool _trackingMouse;
 
+    private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _invokeQueue = new();
+
     public Win32Window(WindowsPlatform platform, Form form)
     {
         _platform = platform;
@@ -176,6 +178,13 @@ internal sealed class Win32Window : IPlatformWindow
         NativeMethods.UpdateWindow(_handle);
     }
 
+    public void Invoke(Action action)
+    {
+        _invokeQueue.Enqueue(action);
+        if (_handle != 0)
+            NativeMethods.PostMessage(_handle, NativeConstants.WM_INVOKE, 0, 0);
+    }
+
     private nint ProcessMessage(
         nint hWnd,
         uint message,
@@ -300,6 +309,13 @@ internal sealed class Win32Window : IPlatformWindow
                     NativeMethods.ScreenToClient(hWnd, ref screenPoint);
 
                     _form.OnMouseWheel(new Point(screenPoint.X, screenPoint.Y), delta);
+                    return 0;
+                }
+
+            case NativeConstants.WM_INVOKE:
+                {
+                    while (_invokeQueue.TryDequeue(out var action))
+                        action();
                     return 0;
                 }
 

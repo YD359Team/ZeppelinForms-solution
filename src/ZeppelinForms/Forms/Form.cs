@@ -13,6 +13,8 @@ namespace ZeppelinForms.Forms;
 
 public class Form
 {
+    public event EventHandler? Shown;
+
     internal IPlatformWindow? PlatformWindow { get; set; }
 
     public WindowStartupLocation WindowStartupLocation { get; set; }
@@ -43,7 +45,12 @@ public class Form
     public void Show()
     {
         PlatformWindow?.Show();
+        Shown?.Invoke(this, EventArgs.Empty);
     }
+
+    public void Close() => PlatformWindow?.Close();
+
+    public void Invoke(Action action) => PlatformWindow?.Invoke(action);
 
     internal void PerformLayout()
     {

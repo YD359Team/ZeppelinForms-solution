@@ -22,10 +22,9 @@ public class App
             typeof(App).Assembly.GetManifestResourceStream(
                 "ZeppelinForms.Resources.ZF.ico")!);
 
-        IPlatformWindow mainWnd =
-            _platform.CreateWindow(this.MainForm);
+        _platform.CreateWindow(this.MainForm);
 
-        mainWnd.Show();
+        this.MainForm.Show();
 
         _platform.Run();
     }

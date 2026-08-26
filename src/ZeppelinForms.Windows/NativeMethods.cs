@@ -4,6 +4,9 @@ namespace ZeppelinForms.Windows;
 
 internal static class NativeMethods
 {
+    [DllImport("user32.dll")]
+    public static extern bool PostMessage(nint hWnd, uint msg, nint wParam, nint lParam);
+
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     public delegate nint WndProc(
         nint hWnd,
@@ -361,6 +364,8 @@ internal static class NativeMethods
 
 internal static class NativeConstants
 {
+    public const uint WM_USER = 0x0400;
+    public const uint WM_INVOKE = WM_USER + 1;
     public const uint WM_MOUSEMOVE = 0x0200;
     public const uint WM_MOUSEWHEEL = 0x020A;
     public const uint WM_LBUTTONDOWN = 0x0201;

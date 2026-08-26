@@ -9,4 +9,5 @@ public interface IPlatformWindow
     void SetTitle(string? title);
     void SetBounds(Rectangle bounds);
     void Invalidate();
+    void Invoke(Action action);
 }
