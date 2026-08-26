@@ -102,4 +102,19 @@ public class Form
 
         _pressedElement = null;
     }
+
+    internal void OnMouseWheel(Point point, int delta)
+    {
+        UIElement? hit = Content is not null ? HitTester.HitTest(Content, point) : null;
+        if (hit is null) return;
+
+        var args = new MouseWheelEventArgs(point, delta);
+
+        for (UIElement? current = hit; current is not null; current = current.Parent)
+        {
+            current.RaiseMouseWheel(args);
+            if (args.Handled)
+                break;
+        }
+    }
 }

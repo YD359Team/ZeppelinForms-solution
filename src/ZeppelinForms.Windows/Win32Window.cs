@@ -288,6 +288,21 @@ internal sealed class Win32Window : IPlatformWindow
                     return 0;
                 }
 
+            case NativeConstants.WM_MOUSEWHEEL:
+                {
+                    int delta = (short)((wParam.ToInt64() >> 16) & 0xFFFF);
+
+                    var screenPoint = new NativeMethods.POINT
+                    {
+                        X = (short)(lParam.ToInt64() & 0xFFFF),
+                        Y = (short)((lParam.ToInt64() >> 16) & 0xFFFF),
+                    };
+                    NativeMethods.ScreenToClient(hWnd, ref screenPoint);
+
+                    _form.OnMouseWheel(new Point(screenPoint.X, screenPoint.Y), delta);
+                    return 0;
+                }
+
             default:
                 return NativeMethods.DefWindowProc(
                     hWnd, message, wParam, lParam);

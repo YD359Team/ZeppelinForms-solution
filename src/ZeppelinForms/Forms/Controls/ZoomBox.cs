@@ -11,21 +11,28 @@ namespace ZeppelinForms.Forms.Controls;
 /// </summary>
 public class ZoomBox : WrapControl, IInputElement
 {
+    public float ZoomStep { get; set; } = 0.1f;
+    public float MinZoom { get; set; } = 0.1f;
+    public float MaxZoom { get; set; } = 10f;
     public float ZoomFactor { get; private set; } = 1f;
-
     // IInputElement
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; }
     public uint TabIndex { get; set; }
 
-    public override void Draw(Graphics g)
-    {
-    }
+    public override void Draw(Graphics g) { }
 
     public void Zoom(float factor)
     {
-        ZoomFactor = Math.Max(0.01f, factor);
+        ZoomFactor = Math.Clamp(factor, MinZoom, MaxZoom);
         Invalidate();
+    }
+
+    protected override void OnMouseWheel(MouseWheelEventArgs e)
+    {
+        float steps = e.Delta / 120f;
+        Zoom(ZoomFactor * MathF.Pow(1f + ZoomStep, steps));
+        e.Handled = true;
     }
 
     protected internal override void ApplyChildTransform(Graphics g) =>
@@ -33,5 +40,4 @@ public class ZoomBox : WrapControl, IInputElement
 
     protected internal override Point TransformPointToChild(Point point) =>
         new(point.X / ZoomFactor, point.Y / ZoomFactor);
-
 }

@@ -347,11 +347,22 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern bool TrackMouseEvent(ref TRACKMOUSEEVENT lpEventTrack);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern bool ScreenToClient(nint hWnd, ref POINT lpPoint);
 }
 
 internal static class NativeConstants
 {
     public const uint WM_MOUSEMOVE = 0x0200;
+    public const uint WM_MOUSEWHEEL = 0x020A;
     public const uint WM_LBUTTONDOWN = 0x0201;
     public const uint WM_LBUTTONUP = 0x0202;
     public const uint WM_MOUSELEAVE = 0x02A3;

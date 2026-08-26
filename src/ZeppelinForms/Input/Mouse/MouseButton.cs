@@ -26,3 +26,10 @@ public sealed record class MouseClickEventArgs(
     MouseButton Button, 
     MouseButtonState State, 
     Point Location) : ZfEventArgs;
+
+public sealed record class MouseWheelEventArgs(
+    Point Location,
+    int Delta) : ZfEventArgs
+{
+    public bool Handled { get; set; }
+}

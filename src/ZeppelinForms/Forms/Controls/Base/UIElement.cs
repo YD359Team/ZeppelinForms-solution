@@ -14,6 +14,7 @@ namespace ZeppelinForms.Forms.Controls.Base;
 public abstract class UIElement : IGridPlaceable
 {
     public event EventHandler<MouseClickEventArgs>? Click;
+    public event EventHandler<MouseWheelEventArgs>? MouseWheel;
 
     public UIElement? Parent { get; internal set; }
     public Dock Docking { get; set; }
@@ -129,6 +130,7 @@ public abstract class UIElement : IGridPlaceable
     protected virtual void OnMouseDown() { }
     protected virtual void OnMouseUp() { }
     protected virtual void OnClick(MouseClickEventArgs e) { }
+    protected virtual void OnMouseWheel(MouseWheelEventArgs e) { }
 
     internal void RaiseMouseDown()
     {
@@ -150,5 +152,11 @@ public abstract class UIElement : IGridPlaceable
         var args = new MouseClickEventArgs(button, MouseButtonState.Up, location);
         OnClick(args);
         Click?.Invoke(this, args);
+    }
+
+    internal void RaiseMouseWheel(MouseWheelEventArgs e)
+    {
+        OnMouseWheel(e);
+        MouseWheel?.Invoke(this, e);
     }
 }
