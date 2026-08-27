@@ -361,4 +361,8 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern int GetSystemMetrics(int nIndex);
+
+    [DllImport("user32.dll")] public static extern short GetKeyState(int nVirtKey);
+    [DllImport("user32.dll")] public static extern nint SetCapture(nint hWnd);
+    [DllImport("user32.dll")] public static extern bool ReleaseCapture();
 }

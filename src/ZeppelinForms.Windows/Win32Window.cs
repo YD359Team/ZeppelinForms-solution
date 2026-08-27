@@ -307,6 +307,7 @@ internal sealed class Win32Window : IPlatformWindow
                 {
                     int x = (short)(lParam.ToInt64() & 0xFFFF);
                     int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+                    NativeMethods.SetCapture(hWnd);
                     _form.OnPointerDown(new Point(x, y));
                     return 0;
                 }
@@ -315,6 +316,7 @@ internal sealed class Win32Window : IPlatformWindow
                 {
                     int x = (short)(lParam.ToInt64() & 0xFFFF);
                     int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+                    NativeMethods.ReleaseCapture();
                     _form.OnPointerUp(new Point(x, y));
                     return 0;
                 }
@@ -336,7 +338,7 @@ internal sealed class Win32Window : IPlatformWindow
 
             case NativeConstants.WM_KEYDOWN:
                 {
-                    _form.OnKeyDown((Key)(int)wParam);
+                    _form.OnKeyDown((Key)(int)wParam, GetModifiers());
                     return 0;
                 }
 
@@ -358,6 +360,15 @@ internal sealed class Win32Window : IPlatformWindow
                 return NativeMethods.DefWindowProc(
                     hWnd, message, wParam, lParam);
         }
+    }
+
+    private static KeyModifiers GetModifiers()
+    {
+        var m = KeyModifiers.None;
+        if ((NativeMethods.GetKeyState(NativeConstants.VK_SHIFT) & 0x8000) != 0) m |= KeyModifiers.Shift;
+        if ((NativeMethods.GetKeyState(NativeConstants.VK_CONTROL) & 0x8000) != 0) m |= KeyModifiers.Control;
+        if ((NativeMethods.GetKeyState(NativeConstants.VK_MENU) & 0x8000) != 0) m |= KeyModifiers.Alt;
+        return m;
     }
 
     private void ReleaseHandle()

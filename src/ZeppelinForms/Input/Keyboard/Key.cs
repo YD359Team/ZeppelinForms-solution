@@ -37,7 +37,17 @@ public enum Key : int
     End = 0x23,
 }
 
-public sealed record class KeyEventArgs(Key Key) : ZfEventArgs
+
+[Flags]
+public enum KeyModifiers
+{
+    None = 0,
+    Shift = 1,
+    Control = 2,
+    Alt = 4,
+}
+
+public sealed record class KeyEventArgs(Key Key, KeyModifiers Modifiers = KeyModifiers.None) : ZfEventArgs
 {
     public bool Handled { get; set; }
 }

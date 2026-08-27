@@ -22,8 +22,6 @@ public class ItemsControl : PanelControl
     /// <summary>Как превратить элемент данных в контрол. Если null — используется ToString().</summary>
     public Func<object, UIElement>? ItemTemplate { get; set; }
 
-    protected float ScrollOffset { get; set; }
-
     public ItemsControl()
     {
         Items.CollectionChanged += Items_CollectionChanged;
@@ -93,9 +91,7 @@ public class ItemsControl : PanelControl
                 Math.Max(0, finalSize.Width - Padding.Horizontal),
                 Math.Max(0, finalSize.Height - Padding.Vertical)));
 
-        ClampScroll(content.Height);
-
-        float y = content.Y - ScrollOffset;
+        float y = content.Y;
 
         foreach (var child in Children)
         {
@@ -111,25 +107,6 @@ public class ItemsControl : PanelControl
         return finalSize;
     }
 
-    private void ClampScroll(float viewportHeight)
-    {
-        float max = Math.Max(0, _contentHeight - viewportHeight);
-        ScrollOffset = Math.Clamp(ScrollOffset, 0, max);
-    }
-
-    protected override void OnMouseWheel(MouseWheelEventArgs e)
-    {
-        float before = ScrollOffset;
-
-        ScrollOffset -= e.Delta / 120f * 40f;   // ~40px на щелчок колеса
-        ClampScroll(Math.Max(0, Size.Height - Padding.Vertical));
-
-        if (ScrollOffset != before)
-        {
-            e.Handled = true;
-            Invalidate();
-        }
-    }
 
     public override void Draw(Graphics g)
     {

@@ -307,14 +307,38 @@ public class Form
         return false;
     }
 
+    internal void OnKeyDown(Key key, KeyModifiers modifiers)
+    {
+        if (key == Key.F12)
+        {
+            IsInspectorEnabled = !IsInspectorEnabled;
+            Invalidate();
+            return;
+        }
+
+        var args = new KeyEventArgs(key, modifiers);
+
+        for (UIElement? current = _focusDispatcher.FocusedElement; current is not null; current = current.Parent)
+        {
+            current.RaiseKeyDown(args);
+            if (args.Handled) break;
+        }
+    }
+
     internal void OnPointerMove(Point point)
     {
         _lastPointerPosition = point;
 
-        UIElement? hit = HitTestAll(point);
-
-        if (hit == _hoveredElement)
+        // пока кнопка зажата — все move уходят элементу, который её поймал,
+        // даже если курсор ушёл за его границы (мышиный захват)
+        if (_pressedElement is not null)
+        {
+            _pressedElement.RaiseMouseMove(point);
             return;
+        }
+
+        UIElement? hit = HitTestAll(point);
+        if (hit == _hoveredElement) return;
 
         _hoveredElement?.RaiseMouseLeave();
         hit?.RaiseMouseOver();
@@ -322,8 +346,7 @@ public class Form
 
         ScheduleToolTip(hit);
 
-        if (IsInspectorEnabled)
-            Invalidate();
+        if (IsInspectorEnabled) Invalidate();
     }
 
     internal void OnPointerLeaveWindow()
@@ -348,7 +371,7 @@ public class Form
         if (hit is { IsEnabled: false }) return;
 
         _pressedElement = hit;
-        hit?.RaiseMouseDown();
+        hit?.RaiseMouseDown(point);
 
         if (hit is not null)
             _focusDispatcher.FocusElement(hit);
@@ -358,7 +381,7 @@ public class Form
     {
         UIElement? hit = HitTestAll(point);
 
-        _pressedElement?.RaiseMouseUp();
+        _pressedElement?.RaiseMouseUp(point);
 
         if (hit is not null && ReferenceEquals(hit, _pressedElement))
         {

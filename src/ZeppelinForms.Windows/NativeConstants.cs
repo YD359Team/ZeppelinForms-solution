@@ -2,6 +2,9 @@
 
 internal static class NativeConstants
 {
+    public const int VK_SHIFT = 0x10;
+    public const int VK_CONTROL = 0x11;
+    public const int VK_MENU = 0x12;
     public const uint WM_CHAR = 0x0102;
     public const int CW_USEDEFAULT = unchecked((int)0x80000000);
     public const int SM_CXSCREEN = 0;

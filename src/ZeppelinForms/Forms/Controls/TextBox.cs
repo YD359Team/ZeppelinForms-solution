@@ -13,6 +13,14 @@ namespace ZeppelinForms.Forms.Controls;
 
 public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElement
 {
+    public event EventHandler? Accepted;
+
+    public int SelectionStart => Math.Min(_selectionAnchor, _caretIndex);
+    public int SelectionLength => Math.Abs(_caretIndex - _selectionAnchor);
+    public string SelectedText => _text.Substring(SelectionStart, SelectionLength);
+
+    public Color SelectionColor { get; set; } = new Color(255, 173, 214, 255);
+
     // ITextElement
     public HorizontalAlign HorizontalAlign { get; set; } = HorizontalAlign.Left;
     public VerticalAlign VerticalAlign { get; set; } = VerticalAlign.Top;
@@ -25,6 +33,9 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     private int _caretIndex;
     private float _scrollOffset;
     private bool _caretVisible;
+
+    private int _selectionAnchor;
+    private bool _isDragging;
 
     private readonly System.Threading.Timer _blinkTimer;
 
@@ -64,6 +75,29 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         _blinkTimer = new System.Threading.Timer(OnBlink, null, Timeout.Infinite, Timeout.Infinite);
     }
 
+    private void ClearSelection() => _selectionAnchor = _caretIndex;
+
+    private bool DeleteSelection()
+    {
+        if (SelectionLength == 0) return false;
+
+        _text = _text.Remove(SelectionStart, SelectionLength);
+        _caretIndex = SelectionStart;
+        ClearSelection();
+        return true;
+    }
+
+    private int IndexFromX(float localX)
+    {
+        string display = DisplayText;
+
+        for (int i = 0; i <= display.Length; i++)
+            if (TextMeasurer.Current.MeasureTextWidth(display, i) >= localX)
+                return i;
+
+        return display.Length;
+    }
+
     private string DisplayText =>
         PasswordChar is char pc ? new string(pc, _text.Length) : _text;
 
@@ -97,10 +131,13 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     protected override void OnTextInput(char c)
     {
         if (IsReadOnly || char.IsControl(c)) return;
+
+        DeleteSelection();
         if (_text.Length >= MaxLength) return;
 
         _text = _text.Insert(_caretIndex, c.ToString());
         _caretIndex++;
+        ClearSelection();
 
         ShowCaretImmediately();
         TextChanged?.Invoke(this, EventArgs.Empty);
@@ -109,34 +146,54 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        bool shift = e.Modifiers.HasFlag(KeyModifiers.Shift);
         bool handled = true;
 
         switch (e.Key)
         {
-            case Key.Back when !IsReadOnly && _caretIndex > 0:
-                _text = _text.Remove(_caretIndex - 1, 1);
-                _caretIndex--;
+            case Key.Enter:
+                Accepted?.Invoke(this, EventArgs.Empty);
+                break;
+
+            case Key.Back when !IsReadOnly:
+                if (!DeleteSelection() && _caretIndex > 0)
+                {
+                    _text = _text.Remove(_caretIndex - 1, 1);
+                    _caretIndex--;
+                    ClearSelection();
+                }
                 TextChanged?.Invoke(this, EventArgs.Empty);
                 break;
 
-            case Key.Delete when !IsReadOnly && _caretIndex < _text.Length:
-                _text = _text.Remove(_caretIndex, 1);
+            case Key.Delete when !IsReadOnly:
+                if (!DeleteSelection() && _caretIndex < _text.Length)
+                    _text = _text.Remove(_caretIndex, 1);
                 TextChanged?.Invoke(this, EventArgs.Empty);
                 break;
 
             case Key.Left:
                 _caretIndex = Math.Max(0, _caretIndex - 1);
+                if (!shift) ClearSelection();
                 break;
 
             case Key.Right:
                 _caretIndex = Math.Min(_text.Length, _caretIndex + 1);
+                if (!shift) ClearSelection();
                 break;
 
             case Key.Home:
                 _caretIndex = 0;
+                if (!shift) ClearSelection();
                 break;
 
             case Key.End:
+                _caretIndex = _text.Length;
+                if (!shift) ClearSelection();
+                break;
+
+            // Ctrl+A
+            case (Key)0x41 when e.Modifiers.HasFlag(KeyModifiers.Control):
+                _selectionAnchor = 0;
                 _caretIndex = _text.Length;
                 break;
 
@@ -152,6 +209,30 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
             Invalidate();
         }
     }
+
+    protected override void OnMouseDown(Point location)
+    {
+        float localX = location.X - GetAbsolutePosition().X - Padding.Left + _scrollOffset;
+
+        _caretIndex = IndexFromX(localX);
+        ClearSelection();
+        _isDragging = true;
+
+        ShowCaretImmediately();
+        Invalidate();
+    }
+
+    protected override void OnMouseMove(Point location)
+    {
+        if (!_isDragging) return;
+
+        float localX = location.X - GetAbsolutePosition().X - Padding.Left + _scrollOffset;
+        _caretIndex = IndexFromX(localX);   // якорь не трогаем — растим выделение
+
+        Invalidate();
+    }
+
+    protected override void OnMouseUp(Point location) => _isDragging = false;
 
     protected override void OnClick(MouseClickEventArgs e)
     {
@@ -217,6 +298,18 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
             VerticalAlign.Center => content.Y + (content.Height - lineHeight) / 2f,
             _ => content.Y,   // Top
         };
+
+        if (SelectionLength > 0)
+        {
+            float x1 = TextMeasurer.Current.MeasureTextWidth(display, SelectionStart);
+            float x2 = TextMeasurer.Current.MeasureTextWidth(display, SelectionStart + SelectionLength);
+
+            var selRect = new Rectangle(
+                new Point(content.X + x1 - _scrollOffset, lineY),
+                new Size(x2 - x1, lineHeight));
+
+            g.FillRectangle(selRect, SelectionColor);
+        }
 
         if (display.Length > 0)
         {

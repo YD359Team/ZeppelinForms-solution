@@ -202,4 +202,25 @@ public abstract class UIElement : IGridPlaceable
 
     protected virtual void OnTextInput(char c) { }
     internal void RaiseTextInput(char c) => OnTextInput(c);
+
+    protected virtual void OnMouseDown(Point location) { }
+    protected virtual void OnMouseUp(Point location) { }
+    protected virtual void OnMouseMove(Point location) { }
+
+    internal void RaiseMouseDown(Point location)
+    {
+        IsPressed = true;
+        OnMouseDown(location);
+        Invalidate();
+    }
+
+    internal void RaiseMouseUp(Point location)
+    {
+        if (!IsPressed) return;
+        IsPressed = false;
+        OnMouseUp(location);
+        Invalidate();
+    }
+
+    internal void RaiseMouseMove(Point location) => OnMouseMove(location);
 }
