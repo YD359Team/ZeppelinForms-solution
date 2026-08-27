@@ -44,9 +44,8 @@
 | 7 | ToggleSwitch | 💡 |
 | 8 | DateTimePicker | 💡 |
 | 9 | ColorPicker | 💡 |
-| 10 | TreeView | 💡 |
-| 11 | DataGrid | 💡 |
-| 12 | ScrollBar | ✅ |
+| 10 | ScrollBar | ✅ |
+| 11 | SvgIcon | 💡 |
 
 \* - есть баги
 
@@ -75,6 +74,9 @@
 | № | Название | Статус |
 |---|------------|---|
 | 1 | ListBox | ✅ |
+| 2 | ComboBox | 💡 |
+| 3 | TreeView | 💡 |
+| 4 | DataGrid | 💡 |
 
 #### Контролы-обёртки
 
