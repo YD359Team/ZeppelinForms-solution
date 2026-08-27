@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 
@@ -10,7 +9,7 @@ internal static class HitTester
 {
     public static UIElement? HitTest(UIElement root, Point pointInParentSpace)
     {
-        if (!root.IsVisible)
+        if (!root.IsVisible || !root.IsHitTestVisible)
             return null;
 
         var local = new Point(

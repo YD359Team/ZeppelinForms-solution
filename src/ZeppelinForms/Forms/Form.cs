@@ -8,6 +8,7 @@ using ZeppelinForms.Forms.Dispatchers;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Layout;
+using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms;
@@ -26,27 +27,54 @@ public class Form
 
     public event EventHandler? Shown;
 
+    public NameScope NameScope { get; } = new();
+
     public UIElement? Content
     {
         get;
         set
         {
-            if (field is not null) field.Owner = null;
+            if (field is not null)
+            {
+                DetachTree(field);
+                field.Owner = null;
+            }
+
             field = value;
-            if (value is not null) value.Owner = this;
+
+            if (value is not null)
+            {
+                value.Owner = this;
+                AttachTree(value);
+            }
         }
     }
 
     public Size ClientSize { get; internal set; }
 
-    // Второй, независимый корень рендера — flyout'ы/тултипы/попапы.
-    // Рисуются поверх Content, без клипа предков, в оконных координатах.
     private readonly List<UIElement> _overlays = [];
     public IReadOnlyList<UIElement> Overlays => _overlays;
 
     private UIElement? _hoveredElement;
     private UIElement? _pressedElement;
     private readonly FocusDispatcher _focusDispatcher = new();
+
+    // ===== ToolTip =====
+    public int ToolTipDelay { get; set; } = 700;
+    private readonly System.Threading.Timer _toolTipTimer;
+    private UIElement? _toolTipOwner;
+    private UIElement? _activeToolTip;
+    private Point _lastPointerPosition;
+
+    // ===== Инспектор (F12) =====
+    public bool IsInspectorEnabled { get; private set; }
+    public UIElement? InspectedElement => IsInspectorEnabled ? _hoveredElement : null;
+
+    public Form()
+    {
+        _toolTipTimer = new System.Threading.Timer(
+            OnToolTipTimerElapsed, null, Timeout.Infinite, Timeout.Infinite);
+    }
 
     public void Show()
     {
@@ -57,6 +85,39 @@ public class Form
     public void Close() => PlatformWindow?.Close();
 
     public void Invoke(Action action) => PlatformWindow?.Invoke(action);
+
+    public UIElement? FindByName(string name) => NameScope.Find(name);
+    public T? FindByName<T>(string name) where T : UIElement => NameScope.Find<T>(name);
+
+    // ===== Присоединение поддерева к форме =====
+
+    internal void AttachTree(UIElement root)
+    {
+        Walk(root, element =>
+        {
+            NameScope.Register(element);
+            element.RaiseAttached();
+        });
+    }
+
+    internal void DetachTree(UIElement root) => Walk(root, NameScope.Unregister);
+
+    private static void Walk(UIElement root, Action<UIElement> action)
+    {
+        action(root);
+
+        switch (root)
+        {
+            case WrapControl wrap when wrap.Child is not null:
+                Walk(wrap.Child, action);
+                break;
+
+            case PanelControl panel:
+                foreach (var child in panel.Children)
+                    Walk(child, action);
+                break;
+        }
+    }
 
     internal void PerformLayout()
     {
@@ -121,14 +182,106 @@ public class Form
             overlay.Owner = null;
 
         _overlays.Clear();
+        _activeToolTip = null;
         Invalidate();
+    }
+
+    // ===== ToolTip =====
+
+    private void ScheduleToolTip(UIElement? target)
+    {
+        HideToolTip();
+
+        _toolTipOwner = target is not null && !string.IsNullOrEmpty(target.ToolTip) ? target : null;
+
+        _toolTipTimer.Change(
+            _toolTipOwner is not null ? ToolTipDelay : Timeout.Infinite,
+            Timeout.Infinite);
+    }
+
+    // Вызывается на потоке пула — обязательно маршалим на UI-поток
+    private void OnToolTipTimerElapsed(object? state) => Invoke(ShowToolTipCore);
+
+    private void ShowToolTipCore()
+    {
+        if (_toolTipOwner is null || string.IsNullOrEmpty(_toolTipOwner.ToolTip))
+            return;
+
+        var tip = new Border
+        {
+            BorderColor = Colors.Black,
+            BorderWidth = 1,
+            Background = new Color(240, 250, 250, 210),
+            Padding = new Thickness(6, 3),
+            IsHitTestVisible = false,
+            Child = new Label
+            {
+                Text = _toolTipOwner.ToolTip,
+                TextColor = Colors.Black,
+                IsHitTestVisible = false,
+            },
+        };
+
+        tip.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
+
+        // чуть ниже-правее курсора, как принято в системных подсказках
+        float x = _lastPointerPosition.X + 12;
+        float y = _lastPointerPosition.Y + 20;
+
+        // не даём вылезти за пределы клиентской области
+        if (x + tip.DesiredSize.Width > ClientSize.Width)
+            x = Math.Max(0, ClientSize.Width - tip.DesiredSize.Width);
+
+        if (y + tip.DesiredSize.Height > ClientSize.Height)
+            y = Math.Max(0, _lastPointerPosition.Y - tip.DesiredSize.Height - 4);
+
+        tip.Position = new Point(x, y);
+        tip.Owner = this;
+
+        _activeToolTip = tip;
+        _overlays.Add(tip);
+
+        Invalidate();
+    }
+
+    private void HideToolTip()
+    {
+        _toolTipTimer.Change(Timeout.Infinite, Timeout.Infinite);
+
+        if (_activeToolTip is not null)
+        {
+            _overlays.Remove(_activeToolTip);
+            _activeToolTip.Owner = null;
+            _activeToolTip = null;
+            Invalidate();
+        }
+    }
+
+    // ===== Клавиатура =====
+
+    internal void OnKeyDown(Key key)
+    {
+        if (key == Key.F12)
+        {
+            IsInspectorEnabled = !IsInspectorEnabled;
+            Invalidate();
+            return;
+        }
+
+        var args = new KeyEventArgs(key);
+
+        for (UIElement? current = _focusDispatcher.FocusedElement; current is not null; current = current.Parent)
+        {
+            current.RaiseKeyDown(args);
+            if (args.Handled)
+                break;
+        }
     }
 
     // ===== Диспетчинг ввода =====
 
     private UIElement? HitTestAll(Point point)
     {
-        // сверху вниз — последний добавленный overlay визуально выше остальных
         for (int i = _overlays.Count - 1; i >= 0; i--)
         {
             var hit = HitTester.HitTest(_overlays[i], point);
@@ -150,6 +303,8 @@ public class Form
 
     internal void OnPointerMove(Point point)
     {
+        _lastPointerPosition = point;
+
         UIElement? hit = HitTestAll(point);
 
         if (hit == _hoveredElement)
@@ -158,18 +313,24 @@ public class Form
         _hoveredElement?.RaiseMouseLeave();
         hit?.RaiseMouseOver();
         _hoveredElement = hit;
+
+        ScheduleToolTip(hit);
+
+        if (IsInspectorEnabled)
+            Invalidate();
     }
 
     internal void OnPointerLeaveWindow()
     {
+        HideToolTip();
         _hoveredElement?.RaiseMouseLeave();
         _hoveredElement = null;
     }
 
     internal void OnPointerDown(Point point)
     {
-        // клик мимо всех открытых flyout'ов — закрываем их и на этом гасим жест,
-        // не пробрасывая клик дальше на Content под ними
+        HideToolTip();
+
         if (_overlays.Count > 0 && !IsInsideAnyOverlay(point))
         {
             CloseAllFlyouts();

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
+using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Windows.Rendering;
 
 namespace ZeppelinForms.Windows;
@@ -309,6 +310,12 @@ internal sealed class Win32Window : IPlatformWindow
                     NativeMethods.ScreenToClient(hWnd, ref screenPoint);
 
                     _form.OnMouseWheel(new Point(screenPoint.X, screenPoint.Y), delta);
+                    return 0;
+                }
+
+            case NativeConstants.WM_KEYDOWN:
+                {
+                    _form.OnKeyDown((Key)(int)wParam);
                     return 0;
                 }
 

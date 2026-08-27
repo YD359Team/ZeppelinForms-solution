@@ -4,6 +4,7 @@ using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Base;
@@ -15,6 +16,7 @@ public abstract class UIElement : IGridPlaceable
 {
     public event EventHandler<MouseClickEventArgs>? Click;
     public event EventHandler<MouseWheelEventArgs>? MouseWheel;
+    public event EventHandler<KeyEventArgs>? KeyDown;
 
     public UIElement? Parent { get; internal set; }
     public Dock Docking { get; set; }
@@ -32,12 +34,14 @@ public abstract class UIElement : IGridPlaceable
             Math.Max(0, Size.Height - Padding.Vertical)));
     public bool IsEnabled { get; set; } = true;
     public bool IsVisible { get; set; } = true;
+    public string? ToolTip { get; set; }
     public string Name { get; set; } = string.Empty;
     public Color Background { get; set; } = Colors.Transparent;
     // IGridPlaceable
     public int Row { get; set; }
     public int Column { get; set; }
     public Size DesiredSize { get; private set; }
+    public bool IsHitTestVisible { get; set; } = true;
 
     protected bool IsHovered { get; set; }
     protected bool IsPressed { get; set; }
@@ -144,6 +148,7 @@ public abstract class UIElement : IGridPlaceable
     protected virtual void OnMouseUp() { }
     protected virtual void OnClick(MouseClickEventArgs e) { }
     protected virtual void OnMouseWheel(MouseWheelEventArgs e) { }
+    protected virtual void OnKeyDown(KeyEventArgs e) { }
 
     internal void RaiseMouseDown()
     {
@@ -171,5 +176,22 @@ public abstract class UIElement : IGridPlaceable
     {
         OnMouseWheel(e);
         MouseWheel?.Invoke(this, e);
+    }
+
+    internal void RaiseKeyDown(KeyEventArgs e)
+    {
+        OnKeyDown(e);
+        KeyDown?.Invoke(this, e);
+    }
+
+    internal void RaiseAttached() => OnAttached();
+
+    internal Form? FindOwner()
+    {
+        UIElement root = this;
+        while (root.Parent is not null)
+            root = root.Parent;
+
+        return root.Owner;
     }
 }

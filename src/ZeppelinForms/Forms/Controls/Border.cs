@@ -13,9 +13,10 @@ public class Border : WrapControl, IBorderedElement
 
     public override void Draw(Graphics g)
     {
+        if (Background.A > 0)
+            g.FillRectangle(this.LocalBounds, Background);
+
         if (this.BorderWidth > 0)
-        {
             g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
-        }
     }
 }

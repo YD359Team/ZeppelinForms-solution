@@ -14,9 +14,22 @@ public abstract class WrapControl : UIElement
         set
         {
             if (field == value) return;
-            if (field is not null) field.Parent = null;
+
+            Form? owner = FindOwner();
+
+            if (field is not null)
+            {
+                owner?.DetachTree(field);
+                field.Parent = null;
+            }
+
             field = value;
-            if (value is not null) value.Parent = this;
+
+            if (value is not null)
+            {
+                value.Parent = this;
+                owner?.AttachTree(value);
+            }
         }
     }
 

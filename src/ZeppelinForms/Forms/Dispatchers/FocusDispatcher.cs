@@ -8,6 +8,8 @@ namespace ZeppelinForms.Forms.Dispatchers;
 
 public class FocusDispatcher
 {
+    public UIElement? FocusedElement => _focused;
+
     private UIElement? _focused;
 
     public bool FocusElement(UIElement element)
