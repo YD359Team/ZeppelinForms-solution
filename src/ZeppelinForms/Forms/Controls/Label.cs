@@ -15,12 +15,10 @@ public class Label : UnitControl, ITextElement, IBorderedElement
     public string? Text { get; set; }
     public HorizontalAlign HorizontalAlign { get; set; }
     public VerticalAlign VerticalAlign { get; set; }
-    public Color TextColor { get; set; } = Colors.White;
+    public Color TextColor { get; set; } = Colors.Black;
     // IBorderedElement
     public Color BorderColor { get; set; } = Colors.Black;
     public float BorderWidth { get; set; } = 0f;
-
-    public Label() => Size = new Size(100, 23);
 
     public override void Draw(Graphics g)
     {
