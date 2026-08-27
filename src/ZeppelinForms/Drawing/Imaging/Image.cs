@@ -42,3 +42,20 @@ public sealed class Image
         return LoadFromFile(fullPath);
     }
 }
+
+public enum ImageFlip
+{
+    None,
+    Horizontal,   // отражение по вертикальной оси (бывший FlipX)
+    Vertical,
+    Both,
+}
+
+public enum ImageLayout
+{
+    Stretch,   // растянуть на весь контрол (текущее поведение)
+    None,      // рисовать в натуральную величину от левого верхнего угла
+    Center,
+    Tile,
+    Zoom,      // вписать целиком, сохранив пропорции
+}

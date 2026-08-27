@@ -9,7 +9,10 @@ namespace ZeppelinForms.Drawing;
 
 public abstract class Graphics
 {
-    public abstract void DrawImage(Rectangle rect, Image image);
+    public abstract void DrawImage(
+        Rectangle rect, Image image,
+        ImageFlip flip = ImageFlip.None,
+        ImageLayout layout = ImageLayout.Stretch);
     public abstract void DrawRectangle(Rectangle rect, Color color, float width);
     public abstract void FillRectangle(Rectangle rect, Color color);
     public abstract void DrawText(string text, Point position, Color color);

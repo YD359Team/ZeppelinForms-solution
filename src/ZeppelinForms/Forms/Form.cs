@@ -55,6 +55,7 @@ public class Form
 
     private readonly List<UIElement> _overlays = [];
     public IReadOnlyList<UIElement> Overlays => _overlays;
+    private readonly List<UIElement> _flyouts = [];
     private readonly List<UIElement> _toasts = [];
 
     private UIElement? _hoveredElement;
@@ -163,6 +164,7 @@ public class Form
 
         content.Owner = this;
         _overlays.Add(content);
+        _flyouts.Add(content);
 
         Invalidate();
     }
@@ -171,6 +173,7 @@ public class Form
     {
         if (_overlays.Remove(content))
         {
+            _flyouts.Remove(content);
             content.Owner = null;
             Invalidate();
         }
@@ -178,13 +181,15 @@ public class Form
 
     public void CloseAllFlyouts()
     {
-        if (_overlays.Count == 0) return;
+        if (_flyouts.Count == 0) return;
 
-        foreach (var overlay in _overlays)
-            overlay.Owner = null;
+        foreach (var flyout in _flyouts)
+        {
+            _overlays.Remove(flyout);
+            flyout.Owner = null;
+        }
 
-        _overlays.Clear();
-        _activeToolTip = null;
+        _flyouts.Clear();
         Invalidate();
     }
 
@@ -192,44 +197,24 @@ public class Form
 
     public void ShowToast(string message, int durationMs = 3000, ToastPosition position = ToastPosition.BottomRight)
     {
-        const float margin = 16f;
-
         var toast = new Border
         {
             BorderColor = new Color(255, 60, 60, 60),
             BorderWidth = 1,
             Background = new Color(235, 45, 45, 45),
             Padding = new Thickness(14, 10),
-            IsHitTestVisible = false,   // клики проходят насквозь, тост ничего не блокирует
+            IsHitTestVisible = false,
             Child = new Label { Text = message, TextColor = Colors.White },
         };
 
         toast.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
-        Size size = toast.DesiredSize;
-
-        // сдвигаем вверх на уже висящие тосты, чтобы они вставали стопкой
-        float stackShift = _overlays.OfType<Border>().Count(b => _toasts.Contains(b)) * (size.Height + 8);
-
-        float x = position switch
-        {
-            ToastPosition.BottomCenter or ToastPosition.TopCenter => (ClientSize.Width - size.Width) / 2f,
-            _ => ClientSize.Width - size.Width - margin,
-        };
-
-        float y = position switch
-        {
-            ToastPosition.TopRight or ToastPosition.TopCenter => margin + stackShift,
-            _ => ClientSize.Height - size.Height - margin - stackShift,
-        };
-
-        toast.Position = new Point(x, y);
         toast.Owner = this;
 
         _overlays.Add(toast);
         _toasts.Add(toast);
+        ArrangeToasts(position);
         Invalidate();
 
-        // таймер живёт на пуле — возврат в UI-поток через уже готовый Invoke
         System.Threading.Timer? timer = null;
         timer = new System.Threading.Timer(_ =>
         {
@@ -238,11 +223,40 @@ public class Form
                 _overlays.Remove(toast);
                 _toasts.Remove(toast);
                 toast.Owner = null;
+                ArrangeToasts(position);   // оставшиеся подтягиваются на освободившееся место
                 Invalidate();
             });
 
             timer?.Dispose();
         }, null, durationMs, Timeout.Infinite);
+    }
+
+    private void ArrangeToasts(ToastPosition position)
+    {
+        const float margin = 16f;
+        const float gap = 8f;
+
+        bool fromTop = position is ToastPosition.TopRight or ToastPosition.TopCenter;
+        bool centered = position is ToastPosition.TopCenter or ToastPosition.BottomCenter;
+
+        float offset = margin;
+
+        // снизу — новые появляются ниже, старые уезжают вверх, поэтому идём с конца
+        IEnumerable<UIElement> order = fromTop ? _toasts : Enumerable.Reverse(_toasts);
+
+        foreach (var toast in order)
+        {
+            Size size = toast.DesiredSize;
+
+            float x = centered
+                ? (ClientSize.Width - size.Width) / 2f
+                : ClientSize.Width - size.Width - margin;
+
+            float y = fromTop ? offset : ClientSize.Height - size.Height - offset;
+
+            toast.Position = new Point(x, y);
+            offset += size.Height + gap;
+        }
     }
 
     // ===== ToolTip =====
@@ -356,6 +370,15 @@ public class Form
         return Content is not null ? HitTester.HitTest(Content, point) : null;
     }
 
+    private bool IsInsideAnyFlyout(Point point)
+    {
+        foreach (var flyout in _flyouts)
+            if (HitTester.HitTest(flyout, point) is not null)
+                return true;
+
+        return false;
+    }
+
     private bool IsInsideAnyOverlay(Point point)
     {
         foreach (var overlay in _overlays)
@@ -418,14 +441,14 @@ public class Form
     {
         HideToolTip();
 
-        if (_overlays.Count > 0 && !IsInsideAnyOverlay(point))
+        // только флауты перехватывают клик мимо себя; тосты и тултипы — нет
+        if (_flyouts.Count > 0 && !IsInsideAnyFlyout(point))
         {
             CloseAllFlyouts();
             return;
         }
 
         UIElement? hit = HitTestAll(point);
-
         if (hit is { IsEnabled: false }) return;
 
         _pressedElement = hit;

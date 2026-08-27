@@ -18,11 +18,13 @@ public sealed class SkiaGraphics : Graphics
 
     public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
 
-    public override void DrawImage(Rectangle rect, Image image)
+    private static SKImage GetOrCreate(Image image)
     {
         if (!ImageCache.TryGetValue(image, out CachedImage? cached))
         {
-            var handle = System.Runtime.InteropServices.GCHandle.Alloc(image.Pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+            var handle = System.Runtime.InteropServices.GCHandle.Alloc(
+                image.Pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+
             var info = new SKImageInfo(image.Width, image.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
 
             using var bitmap = new SKBitmap();
@@ -33,7 +35,75 @@ public sealed class SkiaGraphics : Graphics
             ImageCache.Add(image, cached);
         }
 
-        _canvas.DrawImage(cached.SkImage, new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height), SKSamplingOptions.Default);
+        return cached.SkImage;
+    }
+
+    public override void DrawImage(
+        Rectangle rect, Image image,
+        ImageFlip flip = ImageFlip.None,
+        ImageLayout layout = ImageLayout.Stretch)
+    {
+        SKImage skImage = GetOrCreate(image);
+
+        _canvas.Save();
+        _canvas.ClipRect(new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height));
+
+        if (flip != ImageFlip.None)
+        {
+            float cx = rect.X + rect.Width / 2f;
+            float cy = rect.Y + rect.Height / 2f;
+
+            float sx = flip is ImageFlip.Horizontal or ImageFlip.Both ? -1f : 1f;
+            float sy = flip is ImageFlip.Vertical or ImageFlip.Both ? -1f : 1f;
+
+            // масштабируем вокруг центра области, иначе картинка уедет за пределы
+            _canvas.Translate(cx, cy);
+            _canvas.Scale(sx, sy);
+            _canvas.Translate(-cx, -cy);
+        }
+
+        if (layout == ImageLayout.Tile)
+        {
+            using var shader = SKShader.CreateImage(
+                skImage, SKShaderTileMode.Repeat, SKShaderTileMode.Repeat);
+
+            using var paint = new SKPaint { Shader = shader };
+
+            _canvas.Save();
+            _canvas.Translate(rect.X, rect.Y);   // мозаика стартует от угла области
+            _canvas.DrawRect(new SKRect(0, 0, rect.Width, rect.Height), paint);
+            _canvas.Restore();
+        }
+        else
+        {
+            SKRect target = layout switch
+            {
+                ImageLayout.None => new SKRect(rect.X, rect.Y, rect.X + image.Width, rect.Y + image.Height),
+
+                ImageLayout.Center => Centered(rect, image.Width, image.Height),
+
+                ImageLayout.Zoom => Zoomed(rect, image.Width, image.Height),
+
+                _ => new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height),
+            };
+
+            _canvas.DrawImage(skImage, target);
+        }
+
+        _canvas.Restore();
+    }
+
+    private static SKRect Centered(Rectangle rect, float w, float h)
+    {
+        float x = rect.X + (rect.Width - w) / 2f;
+        float y = rect.Y + (rect.Height - h) / 2f;
+        return new SKRect(x, y, x + w, y + h);
+    }
+
+    private static SKRect Zoomed(Rectangle rect, float w, float h)
+    {
+        float scale = Math.Min(rect.Width / w, rect.Height / h);
+        return Centered(rect, w * scale, h * scale);
     }
 
     public override void FillRectangle(Rectangle rect, Color color)

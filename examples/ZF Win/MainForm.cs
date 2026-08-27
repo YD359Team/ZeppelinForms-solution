@@ -21,12 +21,15 @@ internal class MainForm : Form
     {
         this.Title = "Form 1";
         this.Size = new Size(1024, 768);
-        StackPanel panel = new() { Orientation = Orientation.Vertical };
-        TextBox textBox = new();
-        Button btn = new() { Text = "Show toast!" };
-        panel.Children.AddRange([ textBox, btn ]);
-        this.Content = panel;
 
-        btn.Click += (_, _) => this.ShowToast(textBox.Text, 3000, ToastPosition.TopRight);
+        Grid grid = new Grid 
+        { 
+            ColumnDefinitions = [GridLength.Star(0.5f), GridLength.Star(0.5f), GridLength.Star(0.5f), GridLength.Star(0.5f)],
+            RowDefinitions = [GridLength.Star(0.5f), GridLength.Star(0.5f), GridLength.Star(0.5f), GridLength.Star(0.5f), GridLength.Star(0.5f), GridLength.Star(0.5f)],
+        };
+        DateTimePicker dtPicker = new();
+        grid.Children.Add(dtPicker);
+
+        this.Content = grid;
     }
 }

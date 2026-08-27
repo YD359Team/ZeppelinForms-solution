@@ -10,6 +10,9 @@ namespace ZeppelinForms.Forms.Controls;
 /// </summary>
 public class PictureBox : UnitControl
 {
+    public ImageFlip Flip { get; set; } = ImageFlip.None;
+    public ImageLayout Layout { get; set; } = ImageLayout.Stretch;
+
     private Image? _image;
 
     public string? Source { get; private set; }
@@ -31,7 +34,7 @@ public class PictureBox : UnitControl
     public override void Draw(Graphics g)
     {
         if (_image is not null)
-            g.DrawImage(this.LocalBounds, _image);
+            g.DrawImage(this.LocalBounds, _image, Flip, Layout);
     }
 
     protected override Size MeasureOverride(Size availableSize)
