@@ -27,8 +27,6 @@ internal sealed class Win32Window : IPlatformWindow
 
     private IWin32SkiaSurface? _skiaSurface;
 
-    private long _lastResizeTicks;
-
     private bool _trackingMouse;
 
     private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _invokeQueue = new();

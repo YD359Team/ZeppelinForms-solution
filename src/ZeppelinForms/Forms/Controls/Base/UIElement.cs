@@ -130,12 +130,11 @@ public abstract class UIElement : IGridPlaceable
     // перерисовку не будучи подклассом UIElement.
     protected internal void Invalidate()
     {
-        Debug.WriteLine($"UIElement.Invalidate {this.GetType().Name}");
         UIElement root = this;
         while (root.Parent is not null)
             root = root.Parent;
 
-        root.Owner?.Invalidate();
+        root.Owner?.InvalidateVisual();
     }
 
     protected virtual void OnAttached()
@@ -150,18 +149,10 @@ public abstract class UIElement : IGridPlaceable
 
     protected virtual void OnMouseOver() { }
     protected virtual void OnMouseLeave() { }
-    protected virtual void OnMouseDown() { }
     protected virtual void OnMouseUp() { }
     protected virtual void OnClick(MouseClickEventArgs e) { }
     protected virtual void OnMouseWheel(MouseWheelEventArgs e) { }
     protected virtual void OnKeyDown(KeyEventArgs e) { }
-
-    internal void RaiseMouseDown()
-    {
-        IsPressed = true;
-        OnMouseDown();
-        Invalidate();
-    }
 
     internal void RaiseMouseUp()
     {

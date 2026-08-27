@@ -11,7 +11,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElement
+public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElement, IDisposable
 {
     private const float CaretWidth = 1f;
     private const int BlinkIntervalMs = 530;
@@ -396,5 +396,10 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
 
         var content = new Size(120 + Padding.Horizontal, height + Padding.Vertical + 6);
         return ResolveSize(content, availableSize);
+    }
+
+    public void Dispose()
+    {
+        _blinkTimer?.Dispose();
     }
 }

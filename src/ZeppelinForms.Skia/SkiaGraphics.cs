@@ -14,7 +14,7 @@ public sealed class SkiaGraphics : Graphics
     // Кэш "наш Image -> уже загруженный в Skia SKImage", чтобы не
     // перезаливать пиксели на каждый WM_PAINT. ConditionalWeakTable
     // сам подчистит запись, когда Image перестанет использоваться.
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Image, CachedImage> ImageCache = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Image, CachedImage> ImageCache = [];
 
     public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
 
@@ -87,7 +87,7 @@ public sealed class SkiaGraphics : Graphics
                 _ => new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height),
             };
 
-            _canvas.DrawImage(skImage, target);
+            _canvas.DrawImage(skImage, target, SKSamplingOptions.Default);
         }
 
         _canvas.Restore();

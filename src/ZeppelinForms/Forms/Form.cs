@@ -14,7 +14,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms;
 
-public class Form
+public class Form : IDisposable
 {
     internal IPlatformWindow? PlatformWindow { get; set; }
 
@@ -136,6 +136,8 @@ public class Form
             overlay.Arrange(new Rectangle(overlay.Position, overlay.DesiredSize));
         }
     }
+
+    internal void InvalidateVisual() => PlatformWindow?.Invalidate();
 
     internal void Invalidate()
     {
@@ -492,5 +494,10 @@ public class Form
             if (args.Handled)
                 break;
         }
+    }
+
+    public void Dispose()
+    {
+        _toolTipTimer?.Dispose();
     }
 }
