@@ -15,6 +15,11 @@ public static class SkiaRenderer
 
         if (form.Content is not null)
             Draw(form.Content, new SkiaGraphics(canvas));
+
+        // Overlays рисуются вторым, независимым проходом — без клипа
+        // предков, поверх основного дерева
+        foreach (var overlay in form.Overlays)
+            Draw(overlay, new SkiaGraphics(canvas));
     }
 
     private static void Draw(UIElement element, Graphics g)

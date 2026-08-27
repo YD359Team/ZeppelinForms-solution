@@ -15,9 +15,7 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj"
-						   OutputItemType="Analyzer"
-						   ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 </Project>

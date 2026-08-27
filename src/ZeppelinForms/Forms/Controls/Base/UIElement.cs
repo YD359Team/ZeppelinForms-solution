@@ -66,6 +66,19 @@ public abstract class UIElement : IGridPlaceable
         OnSizeChanged();
     }
 
+    public Point GetAbsolutePosition()
+    {
+        float x = 0, y = 0;
+
+        for (UIElement? current = this; current is not null; current = current.Parent)
+        {
+            x += current.Position.X;
+            y += current.Position.Y;
+        }
+
+        return new Point(x, y);
+    }
+
     // Дефолт для листовых контролов, которые не переопределили MeasureOverride:
     // если Size задан явно — используем его, иначе (Auto) считаем, что "хочу 0".
     protected virtual Size MeasureOverride(Size availableSize) =>
