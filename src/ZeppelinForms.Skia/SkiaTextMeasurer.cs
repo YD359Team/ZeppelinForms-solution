@@ -1,29 +1,37 @@
 ﻿using SkiaSharp;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Skia;
 
 public sealed class SkiaTextMeasurer : ITextMeasurer
 {
-    // тот же шрифт, что использует SkiaGraphics — иначе Measure и реальная
-    // отрисовка разойдутся в оценке размера
-    private static readonly SKFont Font = new(SKTypeface.Default, 16);
-
     public static void Register() => TextMeasurer.Current = new SkiaTextMeasurer();
 
-    public Size MeasureText(string text)
+    public void DrawText(string text, Point position, Color color, Font font)
     {
-        float width = Font.MeasureText(text, out SKRect bounds);
+        throw new NotImplementedException();
+    }
+
+    public void DrawText(string text, Rectangle rect, Color color, Font font, HorizontalAlign hAlign = HorizontalAlign.Center, VerticalAlign vAlign = VerticalAlign.Center)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Size MeasureText(string text, Font font)
+    {
+        SKFont skFont = SkiaFontCache.Get(font);
+        float width = skFont.MeasureText(text, out SKRect bounds);
         return new Size(width, bounds.Height);
     }
 
-    public float MeasureTextWidth(string text, int length)
+    public float MeasureTextWidth(string text, int length, Font font)
     {
         if (length <= 0 || string.IsNullOrEmpty(text))
             return 0;
 
         length = Math.Min(length, text.Length);
-        return Font.MeasureText(text.AsSpan(0, length));
+        return SkiaFontCache.Get(font).MeasureText(text.AsSpan(0, length));
     }
 }

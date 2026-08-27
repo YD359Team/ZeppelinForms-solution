@@ -30,6 +30,8 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     public bool IsEnterAccepted { get; set; } = true;
     public bool IsTabAccepted { get; set; }
 
+    private float LineHeight => TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
+
     public string Text
     {
         get => _text;
@@ -73,8 +75,6 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         Padding = new Thickness(4, 2);
         _blinkTimer = new System.Threading.Timer(OnBlink, null, Timeout.Infinite, Timeout.Infinite);
     }
-
-    private float LineHeight => TextMeasurer.Current.MeasureText("Wg").Height;
 
     private string DisplayText =>
         PasswordChar is char pc && !IsMultiline ? new string(pc, _text.Length) : _text;

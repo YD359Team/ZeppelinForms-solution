@@ -125,20 +125,21 @@ public sealed class SkiaGraphics : Graphics
         _canvas.DrawRect(new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height), paint);
     }
 
-    public override void DrawText(string text, Point position, Color color)
+    public override void DrawText(string text, Point position, Color color, Font font)
     {
         using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
-        _canvas.DrawText(text, position.X, position.Y, SKTextAlign.Left, DefaultFont, paint);
+        _canvas.DrawText(text, position.X, position.Y, SKTextAlign.Left, SkiaFontCache.Get(font), paint);
     }
 
     public override void DrawText(
-        string text, Rectangle rect, Color color,
+        string text, Rectangle rect, Color color, Font font,
         HorizontalAlign hAlign = HorizontalAlign.Center,
         VerticalAlign vAlign = VerticalAlign.Center)
     {
         using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
 
-        float textWidth = DefaultFont.MeasureText(text, out SKRect bounds, paint);
+        SKFont skFont = SkiaFontCache.Get(font);
+        float textWidth = skFont.MeasureText(text, out SKRect bounds, paint);
 
         float x = hAlign switch
         {
@@ -154,7 +155,7 @@ public sealed class SkiaGraphics : Graphics
             _ => rect.Y + rect.Height / 2f - bounds.MidY,
         };
 
-        _canvas.DrawText(text, x, baselineY, SKTextAlign.Left, DefaultFont, paint);
+        _canvas.DrawText(text, x, baselineY, SKTextAlign.Left, skFont, paint);
     }
 
     public override void FillEllipse(Rectangle rect, Color color)

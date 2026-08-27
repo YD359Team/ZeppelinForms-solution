@@ -365,4 +365,8 @@ internal static class NativeMethods
     [DllImport("user32.dll")] public static extern short GetKeyState(int nVirtKey);
     [DllImport("user32.dll")] public static extern nint SetCapture(nint hWnd);
     [DllImport("user32.dll")] public static extern bool ReleaseCapture();
+    [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(nint value);
+    [DllImport("user32.dll")] public static extern uint GetDpiForWindow(nint hWnd);
+    [DllImport("user32.dll")] public static extern bool EnableWindow(nint hWnd, bool enable);
+    [DllImport("user32.dll")] public static extern nint SetActiveWindow(nint hWnd);
 }

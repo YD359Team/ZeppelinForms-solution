@@ -2,6 +2,11 @@
 
 internal static class NativeConstants
 {
+    public const uint WM_DPICHANGED = 0x02E0;
+    public const int SWP_NOZORDER = 0x0004;
+    public const int SWP_NOACTIVATE = 0x0010;
+    // PER_MONITOR_AWARE_V2
+    public static readonly nint DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4;
     public const int VK_SHIFT = 0x10;
     public const int VK_CONTROL = 0x11;
     public const int VK_MENU = 0x12;

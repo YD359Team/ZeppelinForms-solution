@@ -15,5 +15,6 @@ public static class TextMeasurer
         public float MeasureTextWidth(string text, int length) =>
             throw new InvalidOperationException(
                 "Text measurer не зарегистрирован. Вызовите SkiaTextMeasurer.Register().");
+
     }
 }

@@ -13,9 +13,12 @@ namespace ZeppelinForms.Skia;
 
 public static class SkiaRenderer
 {
-    public static void Render(Form form, SKCanvas canvas)
+    public static void Render(Form form, SKCanvas canvas, float scale = 1f)
     {
         canvas.Clear(SKColors.White);
+
+        canvas.Save();
+        canvas.Scale(scale, scale);   // дальше всё рисование — в логических координатах
 
         var g = new SkiaGraphics(canvas);
 
@@ -27,6 +30,8 @@ public static class SkiaRenderer
 
         if (form.IsInspectorEnabled)
             DrawInspector(form, g);
+
+        canvas.Restore();
     }
 
     private static void DrawInspector(Form form, Graphics g)

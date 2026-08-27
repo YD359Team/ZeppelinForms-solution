@@ -16,6 +16,8 @@ namespace ZeppelinForms.Forms;
 
 public class Form : IDisposable
 {
+    public event EventHandler? Shown;
+
     internal IPlatformWindow? PlatformWindow { get; set; }
 
     public WindowStartupLocation WindowStartupLocation { get; set; }
@@ -26,7 +28,8 @@ public class Form : IDisposable
     public Point Position { get; set; }
     public Size Size { get; set; }
 
-    public event EventHandler? Shown;
+    public Font? Font { get; set; }
+
 
     public NameScope NameScope { get; } = new();
 
@@ -72,6 +75,11 @@ public class Form : IDisposable
     // ===== Инспектор (F12) =====
     public bool IsInspectorEnabled { get; private set; }
     public UIElement? InspectedElement => IsInspectorEnabled ? _hoveredElement : null;
+
+    private bool _dialogAccepted;
+    private object? _dialogValue;
+
+    internal IPlatform? Platform { get; set; }
 
     public Form()
     {
@@ -195,7 +203,44 @@ public class Form : IDisposable
         Invalidate();
     }
 
+    // ==== Dialog ====
+
+    public DialogResult<T> ShowDialog<T>(Form owner)
+    {
+        IPlatform platform = owner.Platform
+            ?? throw new InvalidOperationException("Владелец диалога ещё не привязан к платформе.");
+
+        Platform = platform;
+        platform.CreateWindow(this);
+
+        _dialogAccepted = false;
+        _dialogValue = null;
+
+        Show();
+        platform.RunModal(PlatformWindow!, owner.PlatformWindow);
+
+        return _dialogAccepted && _dialogValue is T typed
+            ? new DialogResult<T>(true, typed)
+            : DialogResult<T>.Cancelled();
+    }
+
+    /// <summary>Закрыть диалог с результатом.</summary>
+    public void Accept(object? value = null)
+    {
+        _dialogAccepted = true;
+        _dialogValue = value;
+        Close();
+    }
+
+    public void Cancel()
+    {
+        _dialogAccepted = false;
+        _dialogValue = null;
+        Close();
+    }
+
     // ==== Toast =====
+
 
     public void ShowToast(string message, int durationMs = 3000, ToastPosition position = ToastPosition.BottomRight)
     {

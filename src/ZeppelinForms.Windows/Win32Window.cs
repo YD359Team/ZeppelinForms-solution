@@ -29,6 +29,9 @@ internal sealed class Win32Window : IPlatformWindow
 
     private bool _trackingMouse;
 
+    private float _scale = 1f;
+    public float Scale => _scale;
+
     private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _invokeQueue = new();
 
     public Win32Window(WindowsPlatform platform, Form form)
@@ -103,6 +106,16 @@ internal sealed class Win32Window : IPlatformWindow
         }
 
         _skiaSurface = Win32SkiaSurfaceFactory.Create(_handle);
+        _scale = NativeMethods.GetDpiForWindow(_handle) / 96f;
+
+        if (_scale != 1f)
+        {
+            // логический размер формы пересчитываем в физические пиксели
+            NativeMethods.SetWindowPos(
+                _handle, 0, x, y,
+                (int)(width * _scale), (int)(height * _scale),
+                NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
+        }
 
         if (_form.Icon is not null)
         {
@@ -237,13 +250,30 @@ internal sealed class Win32Window : IPlatformWindow
                     int width = (int)(lParam.ToInt64() & 0xFFFF);
                     int height = (int)((lParam.ToInt64() >> 16) & 0xFFFF);
 
-                    _skiaSurface?.Resize(width, height);
+                    _skiaSurface?.Resize(width, height);   // поверхность — в физических
 
-                    _form.ClientSize = new Size(width, height);
+                    _form.ClientSize = new Size(width / _scale, height / _scale);   // дерево — в логических
                     _form.PerformLayout();
 
                     NativeMethods.InvalidateRect(hWnd, 0, false);
                     NativeMethods.UpdateWindow(hWnd);
+                    return 0;
+                }
+
+            case NativeConstants.WM_DPICHANGED:
+                {
+                    _scale = (ushort)(wParam.ToInt64() & 0xFFFF) / 96f;
+
+                    // lParam — предложенный системой прямоугольник для нового DPI
+                    var suggested = Marshal.PtrToStructure<NativeMethods.RECT>(lParam);
+
+                    NativeMethods.SetWindowPos(
+                        hWnd, 0,
+                        suggested.Left, suggested.Top,
+                        suggested.Right - suggested.Left,
+                        suggested.Bottom - suggested.Top,
+                        NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
+
                     return 0;
                 }
 
@@ -258,7 +288,7 @@ internal sealed class Win32Window : IPlatformWindow
                     if (_skiaSurface is not null)
                     {
                         SKSurface surface = _skiaSurface.BeginFrame();
-                        Skia.SkiaRenderer.Render(_form, surface.Canvas);
+                        Skia.SkiaRenderer.Render(_form, surface.Canvas, _scale);
                         _skiaSurface.EndFrame();
                     }
 
@@ -290,7 +320,7 @@ internal sealed class Win32Window : IPlatformWindow
                         _trackingMouse = true;
                     }
 
-                    _form.OnPointerMove(new Point(x, y));
+                    _form.OnPointerMove(new Point(x / _scale, y / _scale));
                     return 0;
                 }
 
@@ -306,7 +336,7 @@ internal sealed class Win32Window : IPlatformWindow
                     int x = (short)(lParam.ToInt64() & 0xFFFF);
                     int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
                     NativeMethods.SetCapture(hWnd);
-                    _form.OnPointerDown(new Point(x, y));
+                    _form.OnPointerDown(new Point(x / _scale, y / _scale));
                     return 0;
                 }
 
@@ -315,7 +345,7 @@ internal sealed class Win32Window : IPlatformWindow
                     int x = (short)(lParam.ToInt64() & 0xFFFF);
                     int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
                     NativeMethods.ReleaseCapture();
-                    _form.OnPointerUp(new Point(x, y));
+                    _form.OnPointerUp(new Point(x / _scale, y / _scale));
                     return 0;
                 }
 
@@ -330,7 +360,7 @@ internal sealed class Win32Window : IPlatformWindow
                     };
                     NativeMethods.ScreenToClient(hWnd, ref screenPoint);
 
-                    _form.OnMouseWheel(new Point(screenPoint.X, screenPoint.Y), delta);
+                    _form.OnMouseWheel(new Point(screenPoint.X / _scale, screenPoint.Y / _scale), delta);
                     return 0;
                 }
 

@@ -43,6 +43,26 @@ public abstract class UIElement : IGridPlaceable
     public Size DesiredSize { get; private set; }
     public bool IsHitTestVisible { get; set; } = true;
 
+    public Font? Font { get; set; }
+
+    /// <summary>Свой шрифт, а если не задан — ближайший заданный у предков, иначе Font.Default.</summary>
+    public Font EffectiveFont
+    {
+        get
+        {
+            for (UIElement? current = this; current is not null; current = current.Parent)
+            {
+                if (current.Font is not null)
+                    return current.Font;
+
+                if (current.Parent is null)
+                    return current.Owner?.Font ?? Drawing.Font.Default;
+            }
+
+            return Drawing.Font.Default;
+        }
+    }
+
     protected bool IsHovered { get; set; }
     protected bool IsPressed { get; set; }
 
@@ -130,11 +150,12 @@ public abstract class UIElement : IGridPlaceable
     // перерисовку не будучи подклассом UIElement.
     protected internal void Invalidate()
     {
+        Debug.WriteLine($"UIElement.Invalidate {this.GetType().Name}");
         UIElement root = this;
         while (root.Parent is not null)
             root = root.Parent;
 
-        root.Owner?.InvalidateVisual();
+        root.Owner?.Invalidate();
     }
 
     protected virtual void OnAttached()
