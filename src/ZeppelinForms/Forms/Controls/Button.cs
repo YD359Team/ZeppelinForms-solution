@@ -27,8 +27,6 @@ public class Button : UnitControl, ITextElement, IInputElement, IBorderedElement
     public bool TabStop { get; set; } = true;
     public uint TabIndex { get; set; }
 
-    public Button() => Size = new Size(75, 23);
-
     public override void Draw(Graphics g)
     {
         Debug.WriteLine($"Button.Draw pos:{Position} size:{Size}");
