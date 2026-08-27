@@ -44,6 +44,7 @@
 | 9 | ColorPicker | 💡 |
 | 10 | TreeView | 💡 |
 | 11 | DataGrid | 💡 |
+| 12 | ScrollBar | ✅ |
 
 \* - есть баги
 
@@ -59,8 +60,19 @@
 | 2 | Grid     | ✅* |
 | 3 | DockPanel | ✅ |
 | 4 | TabControl | 💡 |
+| 5 | ScrollViewer | ✅ |
 
 \* - не хватает только `ColumnLength.Auto`
+
+##### Панели элементов
+
+`UIElement` -> `PanelControl` -> `ItemsControl`
+
+Подвид панели, способный работать с коллекциями элементов.
+
+| № | Название | Статус |
+|---|------------|---|
+| 1 | ListBox | ✅ |
 
 #### Контролы-обёртки
 
