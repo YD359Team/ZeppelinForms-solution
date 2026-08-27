@@ -87,6 +87,24 @@ public sealed class SkiaGraphics : Graphics
         _canvas.DrawText(text, x, baselineY, SKTextAlign.Left, DefaultFont, paint);
     }
 
+    public override void FillEllipse(Rectangle rect, Color color)
+    {
+        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
+        _canvas.DrawOval(new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height), paint);
+    }
+
+    public override void DrawEllipse(Rectangle rect, Color color, float width)
+    {
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(color.R, color.G, color.B, color.A),
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = width,
+        };
+        _canvas.DrawOval(new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height), paint);
+    }
+
     public override void Save() => _canvas.Save();
     public override void ClipRect(Rectangle rect) => _canvas.ClipRect(new SKRect(rect.X, rect.Y, rect.Right, rect.Bottom));
     public override void Restore() => _canvas.Restore();

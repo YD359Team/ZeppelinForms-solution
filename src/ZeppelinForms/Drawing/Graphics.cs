@@ -17,6 +17,8 @@ public abstract class Graphics
         string text, Rectangle rect, Color color,
         HorizontalAlign hAlign = HorizontalAlign.Center,
         VerticalAlign vAlign = VerticalAlign.Center);
+    public abstract void FillEllipse(Rectangle rect, Color color);
+    public abstract void DrawEllipse(Rectangle rect, Color color, float width);
 
     public abstract void Save();
     public abstract void ClipRect(Rectangle bounds);
