@@ -1,6 +1,8 @@
 ﻿using SkiaSharp;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
@@ -88,5 +90,41 @@ public static class SkiaRenderer
         }
 
         g.Restore();
+    }
+
+    public static void DrawElement(UIElement element, Graphics g) => Draw(element, g);
+}
+
+public sealed class SkiaElementRenderer : IElementRenderer
+{
+    public static void Register() => ElementRenderer.Current = new SkiaElementRenderer();
+
+    public Image Render(UIElement element, int width, int height)
+    {
+        var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
+
+        using SKSurface surface = SKSurface.Create(info)
+            ?? throw new InvalidOperationException("Не удалось создать offscreen-поверхность.");
+
+        surface.Canvas.Clear(SKColors.Transparent);
+
+        var g = new SkiaGraphics(surface.Canvas);
+
+        // Draw() сдвигает канвас на element.Position — для снимка нам нужен
+        // элемент в начале координат, поэтому компенсируем сдвиг заранее
+        g.Save();
+        g.Translate(-element.Position.X, -element.Position.Y);
+        SkiaRenderer.DrawElement(element, g);
+        g.Restore();
+
+        surface.Canvas.Flush();
+
+        using SKImage snapshot = surface.Snapshot();
+        using SKPixmap pixmap = snapshot.PeekPixels();
+
+        byte[] pixels = new byte[width * height * 4];
+        Marshal.Copy(pixmap.GetPixels(), pixels, 0, pixels.Length);
+
+        return new Image(width, height, pixels);
     }
 }

@@ -50,8 +50,14 @@ public abstract class UIElement : IGridPlaceable
 
     public Image RenderToImage()
     {
-        throw new NotImplementedException();
-        // TODO: add rendering to image
+        int width = (int)MathF.Ceiling(Size.Width);
+        int height = (int)MathF.Ceiling(Size.Height);
+
+        if (width <= 0 || height <= 0)
+            throw new InvalidOperationException(
+                "Элемент ещё не размещён (Size == 0). Снимок можно делать только после layout-прохода.");
+
+        return ElementRenderer.Current.Render(this, width, height);
     }
 
     public abstract void Draw(Graphics g);

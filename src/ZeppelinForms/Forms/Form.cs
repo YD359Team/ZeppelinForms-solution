@@ -55,6 +55,7 @@ public class Form
 
     private readonly List<UIElement> _overlays = [];
     public IReadOnlyList<UIElement> Overlays => _overlays;
+    private readonly List<UIElement> _toasts = [];
 
     private UIElement? _hoveredElement;
     private UIElement? _pressedElement;
@@ -185,6 +186,63 @@ public class Form
         _overlays.Clear();
         _activeToolTip = null;
         Invalidate();
+    }
+
+    // ==== Toast =====
+
+    public void ShowToast(string message, int durationMs = 3000, ToastPosition position = ToastPosition.BottomRight)
+    {
+        const float margin = 16f;
+
+        var toast = new Border
+        {
+            BorderColor = new Color(255, 60, 60, 60),
+            BorderWidth = 1,
+            Background = new Color(235, 45, 45, 45),
+            Padding = new Thickness(14, 10),
+            IsHitTestVisible = false,   // клики проходят насквозь, тост ничего не блокирует
+            Child = new Label { Text = message, TextColor = Colors.White },
+        };
+
+        toast.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
+        Size size = toast.DesiredSize;
+
+        // сдвигаем вверх на уже висящие тосты, чтобы они вставали стопкой
+        float stackShift = _overlays.OfType<Border>().Count(b => _toasts.Contains(b)) * (size.Height + 8);
+
+        float x = position switch
+        {
+            ToastPosition.BottomCenter or ToastPosition.TopCenter => (ClientSize.Width - size.Width) / 2f,
+            _ => ClientSize.Width - size.Width - margin,
+        };
+
+        float y = position switch
+        {
+            ToastPosition.TopRight or ToastPosition.TopCenter => margin + stackShift,
+            _ => ClientSize.Height - size.Height - margin - stackShift,
+        };
+
+        toast.Position = new Point(x, y);
+        toast.Owner = this;
+
+        _overlays.Add(toast);
+        _toasts.Add(toast);
+        Invalidate();
+
+        // таймер живёт на пуле — возврат в UI-поток через уже готовый Invoke
+        System.Threading.Timer? timer = null;
+        timer = new System.Threading.Timer(_ =>
+        {
+            Invoke(() =>
+            {
+                _overlays.Remove(toast);
+                _toasts.Remove(toast);
+                toast.Owner = null;
+                Invalidate();
+            });
+
+            timer?.Dispose();
+        }, null, durationMs, Timeout.Infinite);
     }
 
     // ===== ToolTip =====
