@@ -4,6 +4,7 @@ using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Controls.Tools;
 using ZeppelinForms.Forms.Dispatchers;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;

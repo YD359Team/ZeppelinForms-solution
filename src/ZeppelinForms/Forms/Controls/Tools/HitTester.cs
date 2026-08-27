@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 
-namespace ZeppelinForms.Forms.Controls;
+namespace ZeppelinForms.Forms.Controls.Tools;
 
 internal static class HitTester
 {

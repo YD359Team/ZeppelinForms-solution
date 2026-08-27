@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using ZeppelinForms.Forms.Controls.Base;
 
-namespace ZeppelinForms.Forms.Controls;
+namespace ZeppelinForms.Forms.Controls.Tools;
 
 public static class UIElementDebugExtensions
 {
