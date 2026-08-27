@@ -81,13 +81,17 @@ public class RadioButton : UnitControl, ITextElement, IInputElement
             var textRect = new Rectangle(
                 new Point(content.X + CircleSize + Gap, content.Y),
                 new Size(Math.Max(0, content.Width - CircleSize - Gap), content.Height));
-            g.DrawText(Text, textRect, TextColor, HorizontalAlign, VerticalAlign);
+
+            g.DrawText(Text, textRect, TextColor, EffectiveFont, HorizontalAlign, VerticalAlign);
         }
     }
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = string.IsNullOrEmpty(Text) ? Size.Empty : TextMeasurer.Current.MeasureText(Text);
+        Size textSize = string.IsNullOrEmpty(Text)
+            ? Size.Empty
+            : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
+
         float width = CircleSize + (textSize.Width > 0 ? Gap + textSize.Width : 0) + Padding.Horizontal;
         float height = Math.Max(CircleSize, textSize.Height) + Padding.Vertical;
         return ResolveSize(new Size(width, height), availableSize);

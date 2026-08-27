@@ -46,9 +46,6 @@ public class CheckBox : UnitControl, ITextElement, IInputElement
 
         if (IsChecked)
         {
-            // Пока в Graphics нет DrawLine/DrawPath — рисуем упрощённую
-            // "галочку" залитым внутренним квадратом. Настоящий чекмарк
-            // потребует line/path-примитивов в Graphics/SkiaGraphics.
             const float inset = 3f;
             var checkRect = new Rectangle(
                 new Point(boxRect.X + inset, boxRect.Y + inset),
@@ -64,15 +61,14 @@ public class CheckBox : UnitControl, ITextElement, IInputElement
                 new Size(Math.Max(0, content.Width - BoxSize - Gap), content.Height));
 
             g.DrawText(Text, textRect, TextColor, EffectiveFont, HorizontalAlign, VerticalAlign);
-
-            Size textSize = string.IsNullOrEmpty(Text)
-                ? Size.Empty : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
         }
     }
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = string.IsNullOrEmpty(Text) ? Size.Empty : TextMeasurer.Current.MeasureText(this.Text, this.Font);
+        Size textSize = string.IsNullOrEmpty(Text)
+            ? Size.Empty
+            : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
 
         float width = BoxSize + (textSize.Width > 0 ? Gap + textSize.Width : 0) + Padding.Horizontal;
         float height = Math.Max(BoxSize, textSize.Height) + Padding.Vertical;

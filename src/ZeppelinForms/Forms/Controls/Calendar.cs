@@ -50,17 +50,18 @@ public class Calendar : UnitControl
 
         var content = this.ContentBounds;
         var cell = CellSize;
+        Font font = this.EffectiveFont;
 
         // заголовок: ‹ Месяц Год ›
         g.DrawText("‹", new Rectangle(new Point(content.X, content.Y), new Size(28, HeaderHeight)),
-            TextColor, HorizontalAlign.Center, VerticalAlign.Center);
+            TextColor, font, HorizontalAlign.Center, VerticalAlign.Center);
 
         g.DrawText($"{_displayMonth:MMMM yyyy}",
             new Rectangle(new Point(content.X + 28, content.Y), new Size(content.Width - 56, HeaderHeight)),
-            TextColor, HorizontalAlign.Center, VerticalAlign.Center);
+            TextColor, font, HorizontalAlign.Center, VerticalAlign.Center);
 
         g.DrawText("›", new Rectangle(new Point(content.X + content.Width - 28, content.Y), new Size(28, HeaderHeight)),
-            TextColor, HorizontalAlign.Center, VerticalAlign.Center);
+            TextColor, font, HorizontalAlign.Center, VerticalAlign.Center);
 
         string[] dayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -70,7 +71,7 @@ public class Calendar : UnitControl
                 new Rectangle(
                     new Point(content.X + i * cell.Width, content.Y + HeaderHeight),
                     new Size(cell.Width, DayOfWeekHeight)),
-                MutedColor, HorizontalAlign.Center, VerticalAlign.Center);
+                MutedColor, font, HorizontalAlign.Center, VerticalAlign.Center);
         }
 
         DateTime date = FirstCellDate;
@@ -93,7 +94,8 @@ public class Calendar : UnitControl
                     ? (SelectedDate?.Date == date.Date ? Colors.White : TextColor)
                     : MutedColor;
 
-                g.DrawText(date.Day.ToString(), rect, color, HorizontalAlign.Center, VerticalAlign.Center);
+                g.DrawText(date.Day.ToString(), rect, color, font,
+                    HorizontalAlign.Center, VerticalAlign.Center);
 
                 date = date.AddDays(1);
             }

@@ -51,15 +51,22 @@ public class DateTimePicker : UnitControl, IInputElement, IBorderedElement
         var content = this.ContentBounds;
         var textArea = new Rectangle(content.AsPosition(), new Size(Math.Max(0, content.Width - 18), content.Height));
 
-        g.DrawText(Value.ToString(Format), textArea, TextColor, HorizontalAlign.Left, VerticalAlign.Center);
+        g.DrawText(Value.ToString(Format), textArea, TextColor, EffectiveFont,
+            HorizontalAlign.Left, VerticalAlign.Center);
 
         // стрелка-указатель справа
         var arrowArea = new Rectangle(
             new Point(content.X + content.Width - 18, content.Y), new Size(18, content.Height));
 
-        g.DrawText(Value.ToString(Format), textArea, TextColor, EffectiveFont, HorizontalAlign.Left, VerticalAlign.Center);
-        g.DrawText("▾", arrowArea, TextColor, EffectiveFont, HorizontalAlign.Center, VerticalAlign.Center);
+        g.DrawText("▾", arrowArea, TextColor, EffectiveFont,
+            HorizontalAlign.Center, VerticalAlign.Center);
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
         Size textSize = TextMeasurer.Current.MeasureText(Value.ToString(Format), EffectiveFont);
+        var content = new Size(textSize.Width + 18 + Padding.Horizontal, textSize.Height + Padding.Vertical + 6);
+        return ResolveSize(content, availableSize);
     }
 
     protected override void OnClick(MouseClickEventArgs e)
@@ -86,12 +93,5 @@ public class DateTimePicker : UnitControl, IInputElement, IBorderedElement
             _calendar.DateSelected -= OnDateSelected;
             _calendar = null;
         }
-    }
-
-    protected override Size MeasureOverride(Size availableSize)
-    {
-        Size textSize = TextMeasurer.Current.MeasureText(Value.ToString(Format));
-        var content = new Size(textSize.Width + 18 + Padding.Horizontal, textSize.Height + Padding.Vertical + 6);
-        return ResolveSize(content, availableSize);
     }
 }

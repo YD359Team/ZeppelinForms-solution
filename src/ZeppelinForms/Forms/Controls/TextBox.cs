@@ -279,7 +279,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
 
         int col = lineText.Length;
         for (int i = 0; i <= lineText.Length; i++)
-            if (TextMeasurer.Current.MeasureTextWidth(lineText, i, this.Font) >= localX) { col = i; break; }
+            if (TextMeasurer.Current.MeasureTextWidth(lineText, i, EffectiveFont) >= localX) { col = i; break; }
 
         return PositionToIndex(line, col);
     }
@@ -319,7 +319,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         string[] lines = DisplayLines;
 
         var (caretLine, caretCol) = IndexToPosition(_caretIndex);
-        float caretX = TextMeasurer.Current.MeasureTextWidth(lines[Math.Min(caretLine, lines.Length - 1)], caretCol, this.Font);
+        float caretX = TextMeasurer.Current.MeasureTextWidth(lines[Math.Min(caretLine, lines.Length - 1)], caretCol, EffectiveFont);
         float caretY = caretLine * lineHeight;
 
         // держим каретку в поле зрения
@@ -355,8 +355,8 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
 
                 if (to > from)
                 {
-                    float x1 = TextMeasurer.Current.MeasureTextWidth(lineText, from, this.Font);
-                    float x2 = TextMeasurer.Current.MeasureTextWidth(lineText, to, this.Font);
+                    float x1 = TextMeasurer.Current.MeasureTextWidth(lineText, from, EffectiveFont);
+                    float x2 = TextMeasurer.Current.MeasureTextWidth(lineText, to, EffectiveFont);
 
                     g.FillRectangle(
                         new Rectangle(new Point(content.X + x1 - _scrollOffset, y), new Size(x2 - x1, lineHeight)),
@@ -369,7 +369,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
                 g.DrawText(
                     lineText,
                     new Rectangle(new Point(content.X - _scrollOffset, y), new Size(float.MaxValue, lineHeight)),
-                    TextColor, HorizontalAlign.Left, VerticalAlign.Center);
+                    TextColor, EffectiveFont, HorizontalAlign.Left, VerticalAlign.Center);
             }
 
             lineStartIndex += lineText.Length + 1;

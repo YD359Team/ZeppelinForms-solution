@@ -33,16 +33,18 @@ public class Button : UnitControl, ITextElement, IInputElement, IBorderedElement
         if (BorderWidth > 0)
             g.DrawRectangle(this.LocalBounds, BorderColor, BorderWidth);
 
-        g.DrawText(this.Text, this.ContentBounds, this.TextColor, this.EffectiveFont,
-            this.HorizontalAlign, this.VerticalAlign);
-
-        Size textSize = string.IsNullOrEmpty(Text)
-            ? Size.Empty : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
+        if (Text is not null)
+            g.DrawText(this.Text, this.ContentBounds, this.TextColor, this.EffectiveFont,
+                this.HorizontalAlign, this.VerticalAlign);
     }
+
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = string.IsNullOrEmpty(Text) ? Size.Empty : TextMeasurer.Current.MeasureText(this.Text, this.Font);
+        Size textSize = string.IsNullOrEmpty(Text)
+            ? Size.Empty
+            : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
+
         // немного запаса под рамку/визуальный "воздух" кнопки сверх чистого текста
         var content = new Size(textSize.Width + Padding.Horizontal + 16, textSize.Height + Padding.Vertical + 8);
         return ResolveSize(content, availableSize);
