@@ -28,7 +28,7 @@
 | 2 | Button     | ✅ |
 | 3 | CheckBox   | ✅ |
 | 4 | PictureBox | ✅ |
-| 5 | RadioButton | 💡 |
+| 5 | RadioButton | ✅ |
 | 6 | TextBox | 💡 |
 | 7 | ToggleSwitch | 💡 |
 | 8 | DateTimePicker | 💡 |
@@ -46,7 +46,7 @@
 |---|------------|---|
 | 1 | StackPanel      | ✅ |
 | 2 | Grid     | ✅* |
-| 3 | DockPanel | 💡 |
+| 3 | DockPanel | ✅ |
 | 4 | TabControl | 💡 |
 
 \* - не хватает только `ColumnLength.Auto`
@@ -61,4 +61,4 @@
 |---|------------|---|
 | 1 | Border      | ✅ |
 | 2 | Spoiler     | ✅ |
-| 3 | ZoomBox     | ⚙️ |
+| 3 | ZoomBox     | ✅ |
