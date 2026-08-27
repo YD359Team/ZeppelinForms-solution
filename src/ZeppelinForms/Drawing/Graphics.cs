@@ -13,13 +13,17 @@ public abstract class Graphics
         Rectangle rect, Image image,
         ImageFlip flip = ImageFlip.None,
         ImageLayout layout = ImageLayout.Stretch);
+
     public abstract void DrawRectangle(Rectangle rect, Color color, float width);
     public abstract void FillRectangle(Rectangle rect, Color color);
-    public abstract void DrawText(string text, Point position, Color color);
+
+    public abstract void DrawText(string text, Point position, Color color, Font font);
+
     public abstract void DrawText(
-        string text, Rectangle rect, Color color,
+        string text, Rectangle rect, Color color, Font font,
         HorizontalAlign hAlign = HorizontalAlign.Center,
         VerticalAlign vAlign = VerticalAlign.Center);
+
     public abstract void FillEllipse(Rectangle rect, Color color);
     public abstract void DrawEllipse(Rectangle rect, Color color, float width);
 

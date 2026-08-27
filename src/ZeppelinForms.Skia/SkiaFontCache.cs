@@ -1,6 +1,7 @@
 ﻿using SkiaSharp;
+using ZeppelinForms.Drawing;
 
-namespace ZeppelinForms.Drawing;
+namespace ZeppelinForms.Skia;
 
 internal static class SkiaFontCache
 {
@@ -15,7 +16,7 @@ internal static class SkiaFontCache
             if (Fonts.TryGetValue(font, out SKFont? cached))
                 return cached;
 
-            var typeface = ResolveTypeface(font);
+            SKTypeface typeface = ResolveTypeface(font);
             var skFont = new SKFont(typeface, font.Size);
 
             Fonts[font] = skFont;
@@ -42,7 +43,6 @@ internal static class SkiaFontCache
             string name = raw.Trim();
             if (name.Length == 0) continue;
 
-            // обобщённые семейства отдаём менеджеру шрифтов как "любой подходящий"
             if (IsGeneric(name))
             {
                 resolved = SKFontManager.Default.MatchFamily(GenericToConcrete(name), style);

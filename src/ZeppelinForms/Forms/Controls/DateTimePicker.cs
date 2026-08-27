@@ -57,7 +57,9 @@ public class DateTimePicker : UnitControl, IInputElement, IBorderedElement
         var arrowArea = new Rectangle(
             new Point(content.X + content.Width - 18, content.Y), new Size(18, content.Height));
 
-        g.DrawText("▾", arrowArea, TextColor, HorizontalAlign.Center, VerticalAlign.Center);
+        g.DrawText(Value.ToString(Format), textArea, TextColor, EffectiveFont, HorizontalAlign.Left, VerticalAlign.Center);
+        g.DrawText("▾", arrowArea, TextColor, EffectiveFont, HorizontalAlign.Center, VerticalAlign.Center);
+        Size textSize = TextMeasurer.Current.MeasureText(Value.ToString(Format), EffectiveFont);
     }
 
     protected override void OnClick(MouseClickEventArgs e)

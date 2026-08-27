@@ -8,13 +8,12 @@ public static class TextMeasurer
 
     private sealed class NotRegisteredTextMeasurer : ITextMeasurer
     {
-        public Size MeasureText(string text) =>
+        public Size MeasureText(string text, Font font) =>
             throw new InvalidOperationException(
                 "Text measurer не зарегистрирован. Вызовите SkiaTextMeasurer.Register().");
 
-        public float MeasureTextWidth(string text, int length) =>
+        public float MeasureTextWidth(string text, int length, Font font) =>
             throw new InvalidOperationException(
                 "Text measurer не зарегистрирован. Вызовите SkiaTextMeasurer.Register().");
-
     }
 }

@@ -28,20 +28,21 @@ public class Button : UnitControl, ITextElement, IInputElement, IBorderedElement
 
     public override void Draw(Graphics g)
     {
-        Debug.WriteLine($"Button.Draw pos:{Position} size:{Size}");
-
         g.FillRectangle(this.LocalBounds, IsHovered ? HoverBackgroundColor : BackgroundColor);
 
         if (BorderWidth > 0)
             g.DrawRectangle(this.LocalBounds, BorderColor, BorderWidth);
 
-        if (Text is not null)
-            g.DrawText(this.Text, this.ContentBounds, this.TextColor, this.HorizontalAlign, this.VerticalAlign);
+        g.DrawText(this.Text, this.ContentBounds, this.TextColor, this.EffectiveFont,
+            this.HorizontalAlign, this.VerticalAlign);
+
+        Size textSize = string.IsNullOrEmpty(Text)
+            ? Size.Empty : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
     }
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = string.IsNullOrEmpty(Text) ? Size.Empty : TextMeasurer.Current.MeasureText(Text);
+        Size textSize = string.IsNullOrEmpty(Text) ? Size.Empty : TextMeasurer.Current.MeasureText(this.Text, this.Font);
         // немного запаса под рамку/визуальный "воздух" кнопки сверх чистого текста
         var content = new Size(textSize.Width + Padding.Horizontal + 16, textSize.Height + Padding.Vertical + 8);
         return ResolveSize(content, availableSize);

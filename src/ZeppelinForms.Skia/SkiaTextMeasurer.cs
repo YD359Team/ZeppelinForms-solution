@@ -9,16 +9,6 @@ public sealed class SkiaTextMeasurer : ITextMeasurer
 {
     public static void Register() => TextMeasurer.Current = new SkiaTextMeasurer();
 
-    public void DrawText(string text, Point position, Color color, Font font)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void DrawText(string text, Rectangle rect, Color color, Font font, HorizontalAlign hAlign = HorizontalAlign.Center, VerticalAlign vAlign = VerticalAlign.Center)
-    {
-        throw new NotImplementedException();
-    }
-
     public Size MeasureText(string text, Font font)
     {
         SKFont skFont = SkiaFontCache.Get(font);

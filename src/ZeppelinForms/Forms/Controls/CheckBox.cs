@@ -63,13 +63,16 @@ public class CheckBox : UnitControl, ITextElement, IInputElement
                 new Point(content.X + BoxSize + Gap, content.Y),
                 new Size(Math.Max(0, content.Width - BoxSize - Gap), content.Height));
 
-            g.DrawText(Text, textRect, TextColor, HorizontalAlign, VerticalAlign);
+            g.DrawText(Text, textRect, TextColor, EffectiveFont, HorizontalAlign, VerticalAlign);
+
+            Size textSize = string.IsNullOrEmpty(Text)
+                ? Size.Empty : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
         }
     }
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = string.IsNullOrEmpty(Text) ? Size.Empty : TextMeasurer.Current.MeasureText(Text);
+        Size textSize = string.IsNullOrEmpty(Text) ? Size.Empty : TextMeasurer.Current.MeasureText(this.Text, this.Font);
 
         float width = BoxSize + (textSize.Width > 0 ? Gap + textSize.Width : 0) + Padding.Horizontal;
         float height = Math.Max(BoxSize, textSize.Height) + Padding.Vertical;
