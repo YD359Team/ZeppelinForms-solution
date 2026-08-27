@@ -38,12 +38,14 @@
 | 3 | CheckBox   | ✅ |
 | 4 | PictureBox | ✅ |
 | 5 | RadioButton | ✅ |
-| 6 | TextBox | 💡 |
+| 6 | TextBox | ✅* |
 | 7 | ToggleSwitch | 💡 |
 | 8 | DateTimePicker | 💡 |
 | 9 | ColorPicker | 💡 |
 | 10 | TreeView | 💡 |
 | 11 | DataGrid | 💡 |
+
+\* - есть баги
 
 #### Панели
 
