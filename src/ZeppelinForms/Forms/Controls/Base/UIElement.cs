@@ -165,9 +165,8 @@ public abstract class UIElement : IGridPlaceable
         Invalidate();
     }
 
-    internal void RaiseClick(MouseButton button, Point location)
+    internal void RaiseClick(MouseClickEventArgs args)
     {
-        var args = new MouseClickEventArgs(button, MouseButtonState.Up, location);
         OnClick(args);
         Click?.Invoke(this, args);
     }

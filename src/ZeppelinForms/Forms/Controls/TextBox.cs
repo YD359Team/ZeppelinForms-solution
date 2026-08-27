@@ -11,8 +11,13 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class TextBox : UnitControl, IInputElement, IBorderedElement
+public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElement
 {
+    // ITextElement
+    public HorizontalAlign HorizontalAlign { get; set; } = HorizontalAlign.Left;
+    public VerticalAlign VerticalAlign { get; set; } = VerticalAlign.Top;
+
+    private float LineHeight => TextMeasurer.Current.MeasureText("Wg").Height;
     private const float CaretWidth = 1f;
     private const int BlinkIntervalMs = 530; // системный дефолт Windows
 
@@ -203,11 +208,21 @@ public class TextBox : UnitControl, IInputElement, IBorderedElement
         g.Save();
         g.ClipRect(content);
 
+        float lineHeight = LineHeight;
+
+        // прямоугольник в одну строку высотой — от него пляшут и текст, и каретка
+        float lineY = VerticalAlign switch
+        {
+            VerticalAlign.Bottom => content.Y + content.Height - lineHeight,
+            VerticalAlign.Center => content.Y + (content.Height - lineHeight) / 2f,
+            _ => content.Y,   // Top
+        };
+
         if (display.Length > 0)
         {
             var textRect = new Rectangle(
-                new Point(content.X - _scrollOffset, content.Y),
-                new Size(float.MaxValue, content.Height));
+                new Point(content.X - _scrollOffset, lineY),
+                new Size(float.MaxValue, lineHeight));
 
             g.DrawText(display, textRect, TextColor, HorizontalAlign.Left, VerticalAlign.Center);
         }
@@ -215,8 +230,8 @@ public class TextBox : UnitControl, IInputElement, IBorderedElement
         if (IsFocused && _caretVisible)
         {
             var caretRect = new Rectangle(
-                new Point(content.X + caretX - _scrollOffset, content.Y + 2),
-                new Size(CaretWidth, Math.Max(0, content.Height - 4)));
+                new Point(content.X + caretX - _scrollOffset, lineY),
+                new Size(CaretWidth, lineHeight));
 
             g.FillRectangle(caretRect, CaretColor);
         }

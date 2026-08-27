@@ -361,7 +361,16 @@ public class Form
         _pressedElement?.RaiseMouseUp();
 
         if (hit is not null && ReferenceEquals(hit, _pressedElement))
-            hit.RaiseClick(MouseButton.Left, point);
+        {
+            var args = new MouseClickEventArgs(MouseButton.Left, MouseButtonState.Up, point);
+
+            for (UIElement? current = hit; current is not null; current = current.Parent)
+            {
+                current.RaiseClick(args);
+                if (args.Handled)
+                    break;
+            }
+        }
 
         _pressedElement = null;
     }

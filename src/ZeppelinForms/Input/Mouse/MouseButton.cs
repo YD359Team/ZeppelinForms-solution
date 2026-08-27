@@ -23,9 +23,12 @@ public sealed record class MouseMoveEventArgs(
     Point Location) : ZfEventArgs;
 
 public sealed record class MouseClickEventArgs(
-    MouseButton Button, 
-    MouseButtonState State, 
-    Point Location) : ZfEventArgs;
+    MouseButton Button,
+    MouseButtonState State,
+    Point Location) : ZfEventArgs
+{
+    public bool Handled { get; set; }
+}
 
 public sealed record class MouseWheelEventArgs(
     Point Location,
