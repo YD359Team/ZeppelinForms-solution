@@ -1,6 +1,6 @@
 # ZeppelinForms
 
-![Logo](ZF.png)
+![Logo](ZF_medium.png)
 
 ## RUS
 
@@ -12,6 +12,8 @@
 А если проект современный, то почему бы не использовать все богатые возможности .NET 10 и C# 14? 
 
 ### Формы
+
+**Формы** - это единственный вид окон, как и в WinForms.
 
 | № | Название | Статус |
 |---|------------|---|
@@ -42,8 +44,8 @@
 | 7 | ToggleSwitch | 💡 |
 | 8 | DateTimePicker | 💡 |
 | 9 | ColorPicker | 💡 |
-| 10 | TreeView | 💡 |
-| 11 | DataGrid | 💡 |
+| 10 | ScrollBar | ✅ |
+| 11 | SvgIcon | 💡 |
 
 \* - есть баги
 
@@ -59,8 +61,22 @@
 | 2 | Grid     | ✅* |
 | 3 | DockPanel | ✅ |
 | 4 | TabControl | 💡 |
+| 5 | ScrollViewer | ✅ |
 
 \* - не хватает только `ColumnLength.Auto`
+
+##### Панели элементов
+
+`UIElement` -> `PanelControl` -> `ItemsControl`
+
+Подвид панели, способный работать с коллекциями элементов.
+
+| № | Название | Статус |
+|---|------------|---|
+| 1 | ListBox | ✅ |
+| 2 | ComboBox | 💡 |
+| 3 | TreeView | 💡 |
+| 4 | DataGrid | 💡 |
 
 #### Контролы-обёртки
 
