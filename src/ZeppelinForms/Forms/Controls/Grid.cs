@@ -9,8 +9,11 @@ namespace ZeppelinForms.Forms.Controls;
 
 public class Grid : PanelControl
 {
-    public List<GridLength> RowDefinitions { get; init; } = [];
-    public List<GridLength> ColumnDefinitions { get; init; } = [];
+    public string Columns { set => ColumnDefinitions = GridLength.Parse(value); }
+    public string Rows { set => RowDefinitions = GridLength.Parse(value); }
+
+    public List<GridLength> RowDefinitions { get; private set; } = [];
+    public List<GridLength> ColumnDefinitions { get; private set; } = [];
 
     public override void Draw(Graphics g) { }
 

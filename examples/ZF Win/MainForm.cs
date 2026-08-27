@@ -24,8 +24,8 @@ internal class MainForm : Form
 
         Grid grid = new Grid 
         { 
-            ColumnDefinitions = GridLength.Parse("*,*,*,*,*,*"),
-            RowDefinitions = GridLength.Parse("*,*,*,*,*,*,*"),
+            Columns = "*,*,*,*,*,*",
+            Rows = "*,*,*,*,*,*,*",
         };
         DateTimePicker dtPicker = new();
         grid.Children.Add(dtPicker);
