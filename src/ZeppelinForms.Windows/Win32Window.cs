@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
+using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Windows.Rendering;
 
@@ -47,11 +48,31 @@ internal sealed class Win32Window : IPlatformWindow
 
         RegisterWindowClass();
 
-        int x = (int)_form.Position.X;
-        int y = (int)_form.Position.Y;
-
         int width = (int)_form.Size.Width;
         int height = (int)_form.Size.Height;
+
+        int x, y;
+
+        switch (_form.WindowStartupLocation)
+        {
+            case WindowStartupLocation.CenterScreen:
+            // CenterOwner пока ведёт себя как CenterScreen — понятия "владелец окна"
+            // в фреймворке ещё нет (все окна создаются независимо)
+            case WindowStartupLocation.CenterOwner:
+                x = (NativeMethods.GetSystemMetrics(NativeConstants.SM_CXSCREEN) - width) / 2;
+                y = (NativeMethods.GetSystemMetrics(NativeConstants.SM_CYSCREEN) - height) / 2;
+                break;
+
+            case WindowStartupLocation.Manual:
+                x = (int)_form.Position.X;
+                y = (int)_form.Position.Y;
+                break;
+
+            default: // Default — отдаём выбор системе (каскад окон)
+                x = NativeConstants.CW_USEDEFAULT;
+                y = NativeConstants.CW_USEDEFAULT;
+                break;
+        }
 
         try
         {
@@ -316,6 +337,13 @@ internal sealed class Win32Window : IPlatformWindow
             case NativeConstants.WM_KEYDOWN:
                 {
                     _form.OnKeyDown((Key)(int)wParam);
+                    return 0;
+                }
+
+            case NativeConstants.WM_CHAR:
+                {
+                    char c = (char)wParam;
+                    _form.OnTextInput(c);
                     return 0;
                 }
 

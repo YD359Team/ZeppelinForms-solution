@@ -23,10 +23,12 @@ public class FocusDispatcher
         if (_focused is IInputElement prevInput)
         {
             prevInput.IsFocused = false;
+            _focused.RaiseLostFocus();
             _focused.Invalidate();
         }
 
         input.IsFocused = true;
+        element.RaiseGotFocus();
         element.Invalidate();
         _focused = element;
         return true;

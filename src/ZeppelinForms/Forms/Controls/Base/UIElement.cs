@@ -194,4 +194,13 @@ public abstract class UIElement : IGridPlaceable
 
         return root.Owner;
     }
+
+    protected virtual void OnGotFocus() { }
+    protected virtual void OnLostFocus() { }
+
+    internal void RaiseGotFocus() => OnGotFocus();
+    internal void RaiseLostFocus() => OnLostFocus();
+
+    protected virtual void OnTextInput(char c) { }
+    internal void RaiseTextInput(char c) => OnTextInput(c);
 }

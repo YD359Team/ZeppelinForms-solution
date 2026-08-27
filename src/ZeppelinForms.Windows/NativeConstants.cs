@@ -2,6 +2,10 @@
 
 internal static class NativeConstants
 {
+    public const uint WM_CHAR = 0x0102;
+    public const int CW_USEDEFAULT = unchecked((int)0x80000000);
+    public const int SM_CXSCREEN = 0;
+    public const int SM_CYSCREEN = 1;
     public const uint WM_KEYDOWN = 0x0100;
     public const uint WM_USER = 0x0400;
     public const uint WM_INVOKE = WM_USER + 1;

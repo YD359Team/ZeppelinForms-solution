@@ -31,6 +31,10 @@ public enum Key : int
     F10 = 0x79,
     F11 = 0x7A,
     F12 = 0x7B,
+
+    Back = 0x08,
+    Home = 0x24,
+    End = 0x23,
 }
 
 public sealed record class KeyEventArgs(Key Key) : ZfEventArgs

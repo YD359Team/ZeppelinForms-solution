@@ -358,4 +358,7 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern bool ScreenToClient(nint hWnd, ref POINT lpPoint);
+
+    [DllImport("user32.dll")]
+    public static extern int GetSystemMetrics(int nIndex);
 }

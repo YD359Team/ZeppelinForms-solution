@@ -279,6 +279,11 @@ public class Form
         }
     }
 
+    internal void OnTextInput(char c)
+    {
+        _focusDispatcher.FocusedElement?.RaiseTextInput(c);
+    }
+
     // ===== Диспетчинг ввода =====
 
     private UIElement? HitTestAll(Point point)
