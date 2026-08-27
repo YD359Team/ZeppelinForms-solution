@@ -26,8 +26,8 @@ internal class MainForm : Form
         Label label2 = new Label { Text = "Right", Docking = Dock.Right };
         Label label3 = new Label { Text = "Up", Docking = Dock.Top };
         Label label4 = new Label { Text = "Dawn", Docking = Dock.Bottom };
-        Label label5 = new Label { Text = "Fill", Docking = Dock.Fill };
-        dockPanel.Children.AddRange([label1, label2, label3, label4, label5]);
+        TextBox tb1 = new TextBox { Text = "Press text here...", Docking = Dock.Fill };
+        dockPanel.Children.AddRange([label1, label2, label3, label4, tb1]);
         this.Content = dockPanel;
     }
 }
