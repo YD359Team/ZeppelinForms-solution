@@ -191,4 +191,31 @@ public sealed class SkiaGraphics : Graphics
 
         _canvas.SaveLayer(paint);
     }
+
+    public override void DrawShadow(Rectangle rect, BoxShadow shadow)
+    {
+        var color = new SKColor(shadow.Color.R, shadow.Color.G, shadow.Color.B, shadow.Color.A);
+
+        using var paint = new SKPaint
+        {
+            Color = color,
+            IsAntialias = true,
+        };
+
+        if (shadow.Blur > 0)
+        {
+            // sigma ≈ blur/2 — так радиус размытия совпадает с интуицией CSS
+            paint.MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, shadow.Blur / 2f);
+        }
+
+        var shadowRect = new SKRect(
+            rect.X + shadow.OffsetX - shadow.Spread,
+            rect.Y + shadow.OffsetY - shadow.Spread,
+            rect.X + rect.Width + shadow.OffsetX + shadow.Spread,
+            rect.Y + rect.Height + shadow.OffsetY + shadow.Spread);
+
+        _canvas.DrawRect(shadowRect, paint);
+
+        paint.MaskFilter?.Dispose();
+    }
 }

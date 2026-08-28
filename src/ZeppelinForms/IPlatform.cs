@@ -9,5 +9,4 @@ public interface IPlatform
     void RunModal(IPlatformWindow dialog, IPlatformWindow? owner);
     void Run();
     void Exit();
-    void SetWindowState(WindowState state);
 }

@@ -577,7 +577,7 @@ public class Form : IDisposable
     // без обратного вызова в SetWindowState, иначе получим петлю
     internal void SetWindowStateFromPlatform(WindowState state)
     {
-        if (_windowState == state) return;   // см. ниже
+        if (_windowState == state) return;
         _windowState = state;
         WindowStateChanged?.Invoke(this, EventArgs.Empty);
     }

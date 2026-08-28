@@ -13,9 +13,4 @@ public static class ControlDrawing
     {
         g.DrawRectangle(rect, borderColor, borderWidth);
     }
-
-    public static void DrawBoxShadow(Graphics g, Rectangle rect, Color borderColor /*...*/)
-    {
-        //g.DrawRectangle(rect, borderColor, borderWidth);
-    }
 }

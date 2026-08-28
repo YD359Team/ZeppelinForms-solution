@@ -1,4 +1,5 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms;
 
@@ -11,4 +12,5 @@ public interface IPlatformWindow
     void Invalidate();
     void Invoke(Action action);
     void SetOpacity(float opacity);
+    void SetWindowState(WindowState state);
 }
