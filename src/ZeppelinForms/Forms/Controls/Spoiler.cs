@@ -37,7 +37,23 @@ public class Spoiler : WrapControl, IBorderedElement
     public Color BorderColor { get; set; } = new Color(255, 200, 200, 200);
     public float BorderWidth { get; set; } = 1f;
 
+    public Spoiler()
+    {
+        // свёрнутый спойлер должен схлопываться до заголовка,
+        // а не растягиваться на всю выделенную высоту
+        VerticalAlignment = VerticalAlignment.Top;
+    }
+
     private Rectangle HeaderRect => new(Point.Empty, new Size(Size.Width, HeaderHeight));
+
+    // Ребёнок прячется через IsVisible, а не через "пропустим Arrange":
+    // рендер и панели уважают этот флаг, а неразмещённый элемент
+    // сохранил бы старую геометрию и продолжил рисоваться.
+    private void SyncChildVisibility()
+    {
+        if (Child is not null)
+            Child.IsVisible = !IsCollapsed;
+    }
 
     public override void Draw(Graphics g)
     {
@@ -99,6 +115,8 @@ public class Spoiler : WrapControl, IBorderedElement
 
     protected override Size MeasureOverride(Size availableSize)
     {
+        SyncChildVisibility();
+
         if (IsCollapsed)
             return ResolveSize(new Size(Padding.Horizontal, HeaderHeight + Padding.Vertical), availableSize);
 
@@ -136,6 +154,6 @@ public class Spoiler : WrapControl, IBorderedElement
 
     protected virtual void OnCollapsedStateChanged(bool isCollapsed)
     {
-        // хук для наследников — например, чтобы анимировать раскрытие
+        SyncChildVisibility();
     }
 }

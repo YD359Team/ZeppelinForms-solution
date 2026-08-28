@@ -58,8 +58,38 @@ public class DateTimePicker : UnitControl, IInputElement, IBorderedElement
         var arrowArea = new Rectangle(
             new Point(content.X + content.Width - 18, content.Y), new Size(18, content.Height));
 
-        g.DrawText("▾", arrowArea, TextColor, EffectiveFont,
-            HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
+        var iconArea = new Rectangle(
+            new Point(content.X + content.Width - 18, content.Y), new Size(18, content.Height));
+
+        DrawCalendarIcon(g, iconArea, TextColor);
+    }
+
+    private static void DrawCalendarIcon(Graphics g, Rectangle area, Color color)
+    {
+        float size = Math.Min(area.Width, area.Height) - 4f;
+        if (size <= 0) return;
+
+        float x = area.X + (area.Width - size) / 2f;
+        float y = area.Y + (area.Height - size) / 2f;
+
+        // корпус
+        var body = new Rectangle(new Point(x, y + size * 0.15f), new Size(size, size * 0.85f));
+        g.DrawRectangle(body, color, 1.2f);
+
+        // «шапка» с датой — заливка верхней полосы
+        g.FillRectangle(
+            new Rectangle(new Point(x, y + size * 0.15f), new Size(size, size * 0.22f)), color);
+
+        // два колечка сверху
+        g.DrawLine(new Point(x + size * 0.28f, y), new Point(x + size * 0.28f, y + size * 0.2f), color, 1.4f);
+        g.DrawLine(new Point(x + size * 0.72f, y), new Point(x + size * 0.72f, y + size * 0.2f), color, 1.4f);
+
+        // сетка дней — две точки-строки
+        for (int row = 0; row < 2; row++)
+        {
+            float ly = y + size * (0.52f + row * 0.22f);
+            g.DrawLine(new Point(x + size * 0.18f, ly), new Point(x + size * 0.82f, ly), color, 1f);
+        }
     }
 
     protected override Size MeasureOverride(Size availableSize)

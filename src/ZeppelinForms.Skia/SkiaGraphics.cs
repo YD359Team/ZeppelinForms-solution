@@ -270,4 +270,34 @@ public sealed class SkiaGraphics : Graphics
         var oval = new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height);
         _canvas.DrawArc(oval, startAngle, sweepAngle, useCenter: false, paint);
     }
+
+    public override void DrawSvgPath(string pathData, Rectangle rect, Color color, float strokeWidth = 0f)
+    {
+        using SKPath? path = SKPath.ParseSvgPathData(pathData);
+        if (path is null) return;
+
+        SKRect bounds = path.Bounds;
+        if (bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        // вписываем path в rect с сохранением пропорций
+        float scale = Math.Min(rect.Width / bounds.Width, rect.Height / bounds.Height);
+        float dx = rect.X + (rect.Width - bounds.Width * scale) / 2f - bounds.Left * scale;
+        float dy = rect.Y + (rect.Height - bounds.Height * scale) / 2f - bounds.Top * scale;
+
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(color.R, color.G, color.B, color.A),
+            IsAntialias = true,
+            Style = strokeWidth > 0 ? SKPaintStyle.Stroke : SKPaintStyle.Fill,
+            StrokeWidth = strokeWidth,
+            StrokeCap = SKStrokeCap.Round,
+            StrokeJoin = SKStrokeJoin.Round,
+        };
+
+        _canvas.Save();
+        _canvas.Translate(dx, dy);
+        _canvas.Scale(scale, scale);
+        _canvas.DrawPath(path, paint);
+        _canvas.Restore();
+    }
 }
