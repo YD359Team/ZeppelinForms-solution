@@ -181,4 +181,14 @@ public sealed class SkiaGraphics : Graphics
     public override void Restore() => _canvas.Restore();
     public override void Translate(float dx, float dy) => _canvas.Translate(dx, dy);
     public override void Scale(float sx, float sy) => _canvas.Scale(sx, sy);
+
+    public override void SaveLayer(float opacity)
+    {
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(255, 255, 255, (byte)Math.Clamp(opacity * 255f, 0, 255)),
+        };
+
+        _canvas.SaveLayer(paint);
+    }
 }

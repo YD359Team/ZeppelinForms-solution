@@ -2,6 +2,18 @@
 
 internal static class NativeConstants
 {
+    public const uint WS_EX_LAYERED = 0x00080000;
+    public const uint LWA_ALPHA = 0x00000002;
+    public const int GWL_EXSTYLE = -20;
+    public const int SW_MINIMIZE = 6;
+    public const int SW_MAXIMIZE = 3;
+    public const int SW_RESTORE = 9;
+    public const uint WS_MINIMIZEBOX = 0x00020000;
+    public const uint WS_MAXIMIZEBOX = 0x00010000;
+    public const uint WS_THICKFRAME = 0x00040000;
+    public const int SIZE_RESTORED = 0;
+    public const int SIZE_MINIMIZED = 1;
+    public const int SIZE_MAXIMIZED = 2;
     public const uint WM_DPICHANGED = 0x02E0;
     public const int SWP_NOZORDER = 0x0004;
     public const int SWP_NOACTIVATE = 0x0010;

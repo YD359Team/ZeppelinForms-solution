@@ -32,4 +32,9 @@ public abstract class Graphics
     public abstract void Restore();
     public abstract void Translate(float dx, float dy);
     public abstract void Scale(float sx, float sy);
+
+    /// <summary>Начинает слой с прозрачностью: всё нарисованное до Restore() смешается как единое целое.</summary>
+    public abstract void SaveLayer(float opacity);
+
+    public abstract void DrawShadow(Rectangle rect, BoxShadow shadow);
 }

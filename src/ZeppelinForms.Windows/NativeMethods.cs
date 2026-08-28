@@ -369,4 +369,6 @@ internal static class NativeMethods
     [DllImport("user32.dll")] public static extern uint GetDpiForWindow(nint hWnd);
     [DllImport("user32.dll")] public static extern bool EnableWindow(nint hWnd, bool enable);
     [DllImport("user32.dll")] public static extern nint SetActiveWindow(nint hWnd);
+    [DllImport("user32.dll")]
+    public static extern bool SetLayeredWindowAttributes(nint hWnd, uint crKey, byte alpha, uint flags);
 }

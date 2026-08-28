@@ -80,6 +80,23 @@ public abstract class UIElement : IGridPlaceable
         return ElementRenderer.Current.Render(this, width, height);
     }
 
+    private float _opacity = 1f;
+
+    public float Opacity
+    {
+        get => _opacity;
+        set
+        {
+            float clamped = Math.Clamp(value, 0f, 1f);
+            if (Math.Abs(_opacity - clamped) < 0.001f) return;
+
+            _opacity = clamped;
+            Invalidate();
+        }
+    }
+
+    public BoxShadow? BoxShadow { get; set; }
+
     public abstract void Draw(Graphics g);
 
     // ===== Measure/Arrange =====

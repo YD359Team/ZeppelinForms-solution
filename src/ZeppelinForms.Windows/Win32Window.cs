@@ -78,17 +78,16 @@ internal sealed class Win32Window : IPlatformWindow
         try
         {
             _selfHandle = GCHandle.Alloc(this);
+            uint style = NativeConstants.WS_OVERLAPPEDWINDOW;
+
+            if (!_form.CanMinimize) style &= ~NativeConstants.WS_MINIMIZEBOX;
+            if (!_form.CanMaximize) style &= ~NativeConstants.WS_MAXIMIZEBOX;
+            if (!_form.CanResize) style &= ~NativeConstants.WS_THICKFRAME;
+
             _handle = NativeMethods.CreateWindowEx(
-                0,
-                ClassName,
-                _form.Title ?? string.Empty,
-                NativeConstants.WS_OVERLAPPEDWINDOW,
-                x,
-                y,
-                width,
-                height,
-                0,
-                0,
+                0, ClassName, _form.Title ?? string.Empty,
+                style,              // ← вместо WS_OVERLAPPEDWINDOW
+                x, y, width, height, 0, 0,
                 NativeMethods.GetModuleHandle(null),
                 GCHandle.ToIntPtr(_selfHandle));
         }
@@ -200,6 +199,18 @@ internal sealed class Win32Window : IPlatformWindow
             0);
     }
 
+    public void SetWindowState(WindowState state)
+    {
+        if (_handle == 0) return;
+
+        NativeMethods.ShowWindow(_handle, state switch
+        {
+            WindowState.Minimized => NativeConstants.SW_MINIMIZE,
+            WindowState.Maximized => NativeConstants.SW_MAXIMIZE,
+            _ => NativeConstants.SW_RESTORE,
+        });
+    }
+
     public void Invalidate()
     {
         Debug.WriteLine("Win32Window.Invalidate");
@@ -209,6 +220,20 @@ internal sealed class Win32Window : IPlatformWindow
 
         NativeMethods.InvalidateRect(_handle, 0, false);
         NativeMethods.UpdateWindow(_handle);
+    }
+
+    public void SetOpacity(float opacity)
+    {
+        if (_handle == 0) return;
+
+        nint exStyle = NativeMethods.GetWindowLongPtr(_handle, NativeConstants.GWL_EXSTYLE);
+
+        // LAYERED-стиль нужен, иначе SetLayeredWindowAttributes ничего не сделает
+        NativeMethods.SetWindowLongPtr(_handle, NativeConstants.GWL_EXSTYLE,
+            exStyle | (nint)NativeConstants.WS_EX_LAYERED);
+
+        byte alpha = (byte)Math.Clamp(opacity * 255f, 0, 255);
+        NativeMethods.SetLayeredWindowAttributes(_handle, 0, alpha, NativeConstants.LWA_ALPHA);
     }
 
     public void Invoke(Action action)
@@ -247,12 +272,26 @@ internal sealed class Win32Window : IPlatformWindow
             // Win32Window.ProcessMessage
             case NativeConstants.WM_SIZE:
                 {
+                    int flag = (int)wParam;
+
+                    _form.SetWindowStateFromPlatform(flag switch
+                    {
+                        NativeConstants.SIZE_MINIMIZED => WindowState.Minimized,
+                        NativeConstants.SIZE_MAXIMIZED => WindowState.Maximized,
+                        _ => WindowState.Normal,
+                    });
+
+                    // при сворачивании система шлёт размер 0×0 — считать layout
+                    // по нулевой области бессмысленно и вредно (всё схлопнется)
+                    if (flag == NativeConstants.SIZE_MINIMIZED)
+                        return 0;
+
                     int width = (int)(lParam.ToInt64() & 0xFFFF);
                     int height = (int)((lParam.ToInt64() >> 16) & 0xFFFF);
 
-                    _skiaSurface?.Resize(width, height);   // поверхность — в физических
+                    _skiaSurface?.Resize(width, height);
 
-                    _form.ClientSize = new Size(width / _scale, height / _scale);   // дерево — в логических
+                    _form.ClientSize = new Size(width / _scale, height / _scale);
                     _form.PerformLayout();
 
                     NativeMethods.InvalidateRect(hWnd, 0, false);
@@ -389,6 +428,7 @@ internal sealed class Win32Window : IPlatformWindow
                     hWnd, message, wParam, lParam);
         }
     }
+
 
     private static KeyModifiers GetModifiers()
     {

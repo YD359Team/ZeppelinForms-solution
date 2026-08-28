@@ -22,6 +22,18 @@ public class Form : IDisposable
 
     public WindowStartupLocation WindowStartupLocation { get; set; }
 
+    private float _opacity = 1f;
+
+    public float Opacity
+    {
+        get => _opacity;
+        set
+        {
+            _opacity = Math.Clamp(value, 0f, 1f);
+            PlatformWindow?.SetOpacity(_opacity);
+        }
+    }
+
     public string Name { get; set; } = string.Empty;
     public string? Title { get; set; }
     public Icon? Icon { get; set; }
@@ -30,6 +42,26 @@ public class Form : IDisposable
 
     public Font? Font { get; set; }
 
+    private WindowState _windowState = WindowState.Normal;
+
+    public bool CanMinimize { get; set; } = true;
+    public bool CanMaximize { get; set; } = true;
+    public bool CanResize { get; set; } = true;
+
+    public WindowState WindowState
+    {
+        get => _windowState;
+        set
+        {
+            if (_windowState == value) return;
+
+            _windowState = value;
+            PlatformWindow?.SetWindowState(value);
+            WindowStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public event EventHandler? WindowStateChanged;
 
     public NameScope NameScope { get; } = new();
 
@@ -539,6 +571,15 @@ public class Form : IDisposable
             if (args.Handled)
                 break;
         }
+    }
+
+    // вызывается платформой, когда состояние сменил сам пользователь —
+    // без обратного вызова в SetWindowState, иначе получим петлю
+    internal void SetWindowStateFromPlatform(WindowState state)
+    {
+        if (_windowState == state) return;   // см. ниже
+        _windowState = state;
+        WindowStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void Dispose()

@@ -60,11 +60,20 @@ public static class SkiaRenderer
 
     private static void Draw(UIElement element, Graphics g)
     {
-        if (!element.IsVisible)
+        if (!element.IsVisible || element.Opacity <= 0f)
             return;
 
         g.Save();
         g.Translate(element.Position.X, element.Position.Y);
+
+        // слой нужен, только если прозрачность реально задана: SaveLayer —
+        // это отдельная offscreen-поверхность, дорого делать её на каждый элемент
+        bool needsLayer = element.Opacity < 1f;
+        if (needsLayer)
+            g.SaveLayer(element.Opacity);
+
+        if (element.BoxShadow is { } shadow)
+            g.DrawShadow(element.LocalBounds, shadow);
 
         switch (element)
         {
@@ -93,6 +102,9 @@ public static class SkiaRenderer
                 g.Restore();
                 break;
         }
+
+        if (needsLayer)
+            g.Restore();
 
         g.Restore();
     }
@@ -131,5 +143,32 @@ public sealed class SkiaElementRenderer : IElementRenderer
         Marshal.Copy(pixmap.GetPixels(), pixels, 0, pixels.Length);
 
         return new Image(width, height, pixels);
+    }
+
+    public override void DrawShadow(Rectangle rect, BoxShadow shadow)
+    {
+        var color = new SKColor(shadow.Color.R, shadow.Color.G, shadow.Color.B, shadow.Color.A);
+
+        using var paint = new SKPaint
+        {
+            Color = color,
+            IsAntialias = true,
+        };
+
+        if (shadow.Blur > 0)
+        {
+            // sigma ≈ blur/2 — так радиус размытия совпадает с интуицией CSS
+            paint.MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, shadow.Blur / 2f);
+        }
+
+        var shadowRect = new SKRect(
+            rect.X + shadow.OffsetX - shadow.Spread,
+            rect.Y + shadow.OffsetY - shadow.Spread,
+            rect.X + rect.Width + shadow.OffsetX + shadow.Spread,
+            rect.Y + rect.Height + shadow.OffsetY + shadow.Spread);
+
+        _canvas.DrawRect(shadowRect, paint);
+
+        paint.MaskFilter?.Dispose();
     }
 }

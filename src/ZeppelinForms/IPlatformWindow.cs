@@ -10,4 +10,5 @@ public interface IPlatformWindow
     void SetBounds(Rectangle bounds);
     void Invalidate();
     void Invoke(Action action);
+    void SetOpacity(float opacity);
 }
