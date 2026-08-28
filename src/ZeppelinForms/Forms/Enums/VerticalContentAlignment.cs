@@ -1,6 +1,6 @@
 ﻿namespace ZeppelinForms.Forms.Enums;
 
-public enum VerticalAlign : byte
+public enum VerticalContentAlignment : byte
 {
     Top = 0,
     Center,

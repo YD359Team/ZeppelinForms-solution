@@ -39,8 +39,8 @@ public class ItemsControl : PanelControl
         {
             Text = item?.ToString() ?? string.Empty,
             TextColor = Colors.Black,
-            HorizontalAlign = HorizontalAlign.Left,
-            VerticalAlign = VerticalAlign.Center,
+            HorizontalContentAlign = HorizontalContentAlignment.Left,
+            VerticalContentAlign = VerticalContentAlignment.Center,
             Padding = new Thickness(6, 3),
         };
     }

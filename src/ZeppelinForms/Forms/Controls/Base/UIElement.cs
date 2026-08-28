@@ -20,6 +20,8 @@ public abstract class UIElement : IGridPlaceable
 
     public UIElement? Parent { get; internal set; }
     public Dock Docking { get; set; }
+    public HorizontalAlignment HorizontalAlignment { get; set; } = HorizontalAlignment.Stretch;
+    public VerticalAlignment VerticalAlignment { get; set; } = VerticalAlignment.Stretch;
     public Point Position { get; set; }
     // Auto по умолчанию — авторазмер по контенту, пока явно не задан Size
     public Size Size { get; set; } = Size.Auto;
@@ -115,8 +117,36 @@ public abstract class UIElement : IGridPlaceable
 
     public void Arrange(Rectangle finalRect)
     {
-        Position = finalRect.AsPosition();
-        Size = ArrangeOverride(finalRect.AsSize());
+        // Dock.Fill — явное требование занять всё, оно перекрывает выравнивание
+        bool fill = Docking == Dock.Fill;
+
+        bool stretchH = fill || HorizontalAlignment == HorizontalAlignment.Stretch;
+        bool stretchV = fill || VerticalAlignment == VerticalAlignment.Stretch;
+
+        float width = stretchH
+            ? finalRect.Width
+            : Math.Min(DesiredSize.Width, finalRect.Width);
+
+        float height = stretchV
+            ? finalRect.Height
+            : Math.Min(DesiredSize.Height, finalRect.Height);
+
+        float x = stretchH ? finalRect.X : HorizontalAlignment switch
+        {
+            HorizontalAlignment.Right => finalRect.X + finalRect.Width - width,
+            HorizontalAlignment.Center => finalRect.X + (finalRect.Width - width) / 2f,
+            _ => finalRect.X,
+        };
+
+        float y = stretchV ? finalRect.Y : VerticalAlignment switch
+        {
+            VerticalAlignment.Bottom => finalRect.Y + finalRect.Height - height,
+            VerticalAlignment.Center => finalRect.Y + (finalRect.Height - height) / 2f,
+            _ => finalRect.Y,
+        };
+
+        Position = new Point(x, y);
+        Size = ArrangeOverride(new Size(width, height));
         OnSizeChanged();
     }
 

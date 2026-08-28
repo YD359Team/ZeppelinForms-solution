@@ -12,8 +12,8 @@ namespace ZeppelinForms.Forms.Controls;
 public class Label : UnitControl, ITextElement, IBorderedElement
 {
     public string? Text { get; set; }
-    public HorizontalAlign HorizontalAlign { get; set; }
-    public VerticalAlign VerticalAlign { get; set; }
+    public HorizontalContentAlignment HorizontalContentAlign { get; set; }
+    public VerticalContentAlignment VerticalContentAlign { get; set; }
     public Color TextColor { get; set; } = Colors.Black;
 
     public Color BorderColor { get; set; } = Colors.Black;
@@ -44,10 +44,10 @@ public class Label : UnitControl, ITextElement, IBorderedElement
 
         // блок строк выравнивается по вертикали целиком,
         // а каждая строка внутри своей полосы — по горизонтали
-        float startY = VerticalAlign switch
+        float startY = VerticalContentAlign switch
         {
-            VerticalAlign.Top => content.Y,
-            VerticalAlign.Bottom => content.Y + content.Height - totalHeight,
+            VerticalContentAlignment.Top => content.Y,
+            VerticalContentAlignment.Bottom => content.Y + content.Height - totalHeight,
             _ => content.Y + (content.Height - totalHeight) / 2f,
         };
 
@@ -61,7 +61,7 @@ public class Label : UnitControl, ITextElement, IBorderedElement
                 new Size(content.Width, lineHeight));
 
             g.DrawText(lines[i], lineRect, TextColor, EffectiveFont,
-                HorizontalAlign, VerticalAlign.Center);
+                HorizontalContentAlign, VerticalContentAlignment.Center);
         }
     }
 

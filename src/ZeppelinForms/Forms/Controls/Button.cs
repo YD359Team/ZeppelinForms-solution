@@ -14,8 +14,8 @@ public class Button : UnitControl, ITextElement, IInputElement, IBorderedElement
     public Color HoverBackgroundColor { get; set; } = LightThemeColors.ButtonFill.Darken();
     // ITextElement
     public string? Text { get; set; }
-    public HorizontalAlign HorizontalAlign { get; set; }
-    public VerticalAlign VerticalAlign { get; set; }
+    public HorizontalContentAlignment HorizontalContentAlign { get; set; }
+    public VerticalContentAlignment VerticalContentAlign { get; set; }
     public Color TextColor { get; set; } = Colors.White;
     // IBorderedElement
     public Color BorderColor { get; set; } = LightThemeColors.ButtonFill;
@@ -39,7 +39,7 @@ public class Button : UnitControl, ITextElement, IInputElement, IBorderedElement
 
         if (Text is not null)
             g.DrawText(this.Text, this.ContentBounds, this.TextColor, this.EffectiveFont,
-                this.HorizontalAlign, this.VerticalAlign);
+                this.HorizontalContentAlign, this.VerticalContentAlign);
     }
 
 

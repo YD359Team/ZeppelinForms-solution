@@ -55,7 +55,7 @@ public static class SkiaRenderer
             new Size(Math.Max(bounds.Width, 260), 18));
 
         g.FillRectangle(labelRect, new Color(230, 20, 20, 20));
-        g.DrawText(info, labelRect, Colors.White, Font.Default, HorizontalAlign.Left, VerticalAlign.Center);
+        g.DrawText(info, labelRect, Colors.White, Font.Default, HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
     }
 
     private static void Draw(UIElement element, Graphics g)

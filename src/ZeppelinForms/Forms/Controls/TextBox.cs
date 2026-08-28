@@ -56,8 +56,8 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     public Color CaretColor { get; set; } = Colors.Black;
     public Color SelectionColor { get; set; } = new Color(255, 173, 214, 255);
 
-    public HorizontalAlign HorizontalAlign { get; set; } = HorizontalAlign.Left;
-    public VerticalAlign VerticalAlign { get; set; } = VerticalAlign.Top;
+    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
+    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Top;
 
     public Color BorderColor { get; set; } = Colors.Black;
     public float BorderWidth { get; set; } = 1f;
@@ -371,7 +371,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
                 g.DrawText(
                     lineText,
                     new Rectangle(new Point(content.X - _scrollOffset, y), new Size(float.MaxValue, lineHeight)),
-                    TextColor, EffectiveFont, HorizontalAlign.Left, VerticalAlign.Center);
+                    TextColor, EffectiveFont, HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
             }
 
             lineStartIndex += lineText.Length + 1;

@@ -19,8 +19,8 @@ public class RadioButton : UnitControl, ITextElement, IInputElement
 
     // ITextElement
     public string? Text { get; set; }
-    public HorizontalAlign HorizontalAlign { get; set; } = HorizontalAlign.Left;
-    public VerticalAlign VerticalAlign { get; set; } = VerticalAlign.Center;
+    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
+    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
     public Color TextColor { get; set; } = Colors.Black;
 
     public Color CircleBorderColor { get; set; } = Colors.Black;
@@ -84,7 +84,7 @@ public class RadioButton : UnitControl, ITextElement, IInputElement
                 new Point(content.X + CircleSize + Gap, content.Y),
                 new Size(Math.Max(0, content.Width - CircleSize - Gap), content.Height));
 
-            g.DrawText(Text, textRect, TextColor, EffectiveFont, HorizontalAlign, VerticalAlign);
+            g.DrawText(Text, textRect, TextColor, EffectiveFont, HorizontalContentAlign, VerticalContentAlign);
         }
     }
 

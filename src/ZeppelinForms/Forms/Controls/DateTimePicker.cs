@@ -52,14 +52,14 @@ public class DateTimePicker : UnitControl, IInputElement, IBorderedElement
         var textArea = new Rectangle(content.AsPosition(), new Size(Math.Max(0, content.Width - 18), content.Height));
 
         g.DrawText(Value.ToString(Format), textArea, TextColor, EffectiveFont,
-            HorizontalAlign.Left, VerticalAlign.Center);
+            HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 
         // стрелка-указатель справа
         var arrowArea = new Rectangle(
             new Point(content.X + content.Width - 18, content.Y), new Size(18, content.Height));
 
         g.DrawText("▾", arrowArea, TextColor, EffectiveFont,
-            HorizontalAlign.Center, VerticalAlign.Center);
+            HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
     }
 
     protected override Size MeasureOverride(Size availableSize)

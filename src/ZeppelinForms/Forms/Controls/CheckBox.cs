@@ -62,8 +62,8 @@ public class CheckBox : UnitControl, ITextElement, IInputElement
 
     // ITextElement
     public string? Text { get; set; }
-    public HorizontalAlign HorizontalAlign { get; set; } = HorizontalAlign.Left;
-    public VerticalAlign VerticalAlign { get; set; } = VerticalAlign.Center;
+    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
+    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
     public Color TextColor { get; set; } = Colors.Black;
 
     public Color BoxBorderColor { get; set; } = Colors.Black;
@@ -121,7 +121,7 @@ public class CheckBox : UnitControl, ITextElement, IInputElement
                 new Point(content.X + BoxSize + Gap, content.Y),
                 new Size(Math.Max(0, content.Width - BoxSize - Gap), content.Height));
 
-            g.DrawText(Text, textRect, TextColor, EffectiveFont, HorizontalAlign, VerticalAlign);
+            g.DrawText(Text, textRect, TextColor, EffectiveFont, HorizontalContentAlign, VerticalContentAlign);
         }
     }
 

@@ -133,8 +133,8 @@ public sealed class SkiaGraphics : Graphics
 
     public override void DrawText(
         string text, Rectangle rect, Color color, Font font,
-        HorizontalAlign hAlign = HorizontalAlign.Center,
-        VerticalAlign vAlign = VerticalAlign.Center)
+        HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
+        VerticalContentAlignment vAlign = VerticalContentAlignment.Center)
     {
         using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
 
@@ -143,15 +143,15 @@ public sealed class SkiaGraphics : Graphics
 
         float x = hAlign switch
         {
-            HorizontalAlign.Left => rect.X,
-            HorizontalAlign.Right => rect.X + rect.Width - textWidth,
+            HorizontalContentAlignment.Left => rect.X,
+            HorizontalContentAlignment.Right => rect.X + rect.Width - textWidth,
             _ => rect.X + (rect.Width - textWidth) / 2f,
         };
 
         float baselineY = vAlign switch
         {
-            VerticalAlign.Top => rect.Y - bounds.Top,
-            VerticalAlign.Bottom => rect.Y + rect.Height - bounds.Bottom,
+            VerticalContentAlignment.Top => rect.Y - bounds.Top,
+            VerticalContentAlignment.Bottom => rect.Y + rect.Height - bounds.Bottom,
             _ => rect.Y + rect.Height / 2f - bounds.MidY,
         };
 

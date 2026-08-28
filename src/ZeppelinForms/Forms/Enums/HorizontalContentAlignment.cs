@@ -1,6 +1,6 @@
 ﻿namespace ZeppelinForms.Forms.Enums;
 
-public enum HorizontalAlign : byte
+public enum HorizontalContentAlignment : byte
 {
     Left = 0,
     Center,
