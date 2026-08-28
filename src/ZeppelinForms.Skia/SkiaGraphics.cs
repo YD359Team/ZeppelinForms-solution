@@ -255,4 +255,19 @@ public sealed class SkiaGraphics : Graphics
 
         _canvas.DrawPath(path, paint);
     }
+
+    public override void DrawArc(Rectangle rect, float startAngle, float sweepAngle, Color color, float width)
+    {
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(color.R, color.G, color.B, color.A),
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = width,
+            StrokeCap = SKStrokeCap.Round,
+        };
+
+        var oval = new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height);
+        _canvas.DrawArc(oval, startAngle, sweepAngle, useCenter: false, paint);
+    }
 }

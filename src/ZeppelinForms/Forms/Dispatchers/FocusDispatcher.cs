@@ -33,4 +33,53 @@ public class FocusDispatcher
         _focused = element;
         return true;
     }
+
+    public bool MoveNext(UIElement root) => Move(root, forward: true);
+
+    public bool MovePrevious(UIElement root) => Move(root, forward: false);
+
+    private bool Move(UIElement root, bool forward)
+    {
+        List<UIElement> stops = CollectTabStops(root);
+        if (stops.Count == 0) return false;
+
+        int current = _focused is null ? -1 : stops.IndexOf(_focused);
+
+        int next = current < 0
+            ? (forward ? 0 : stops.Count - 1)
+            : (current + (forward ? 1 : -1) + stops.Count) % stops.Count;   // по кругу
+
+        return FocusElement(stops[next]);
+    }
+
+    private static List<UIElement> CollectTabStops(UIElement root)
+    {
+        List<UIElement> stops = [];
+        Walk(root, stops);
+
+        // TabIndex задаёт приоритет, порядок в дереве — тай-брейк.
+        // OrderBy стабилен, поэтому равные TabIndex сохранят порядок обхода.
+        return [.. stops.OrderBy(e => ((IInputElement)e).TabIndex)];
+    }
+
+    private static void Walk(UIElement element, List<UIElement> stops)
+    {
+        if (!element.IsVisible || !element.IsEnabled)
+            return;
+
+        if (element is IInputElement { TabStop: true })
+            stops.Add(element);
+
+        switch (element)
+        {
+            case WrapControl wrap when wrap.Child is not null:
+                Walk(wrap.Child, stops);
+                break;
+
+            case PanelControl panel:
+                foreach (var child in panel.Children)
+                    Walk(child, stops);
+                break;
+        }
+    }
 }

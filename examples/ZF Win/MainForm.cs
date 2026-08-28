@@ -23,7 +23,7 @@ internal class MainForm : Form
         this.Title = "Form 1";
         this.Size = new Size(1024, 768);
 
-        UniformGrid grid = new() { Padding = 2f };
+        UniformGrid grid = new() { Padding = 6f };
         UIElement[] controls = [
             new Label() { Text = "Label" },
             new Button() { Text = "Button" },
@@ -32,9 +32,12 @@ internal class MainForm : Form
             new CheckBox() { Text = "CheckBox" },
             new RadioButton() { Text = "RadioButton" },
             new TextBox() { Text = "TextBox" },
+            new TrackBar(),
             new DateTimePicker(),
+            new PictureBox(),
             new ListBox(),
-            new Spoiler(),
+            new Spoiler() { Child = new Label() { Text = "Hidden label" } },
+            new CircularProgressBar() { Maximum = 1f, Value = 0.5f },
         ];
         grid.Children.AddRange(controls);
 

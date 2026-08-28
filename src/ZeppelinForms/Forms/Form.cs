@@ -459,15 +459,6 @@ public class Form : IDisposable
         return false;
     }
 
-    private bool IsInsideAnyOverlay(Point point)
-    {
-        foreach (var overlay in _overlays)
-            if (HitTester.HitTest(overlay, point) is not null)
-                return true;
-
-        return false;
-    }
-
     internal void OnKeyDown(Key key, KeyModifiers modifiers)
     {
         if (key == Key.F12)
@@ -482,7 +473,18 @@ public class Form : IDisposable
         for (UIElement? current = _focusDispatcher.FocusedElement; current is not null; current = current.Parent)
         {
             current.RaiseKeyDown(args);
-            if (args.Handled) break;
+            if (args.Handled)
+                break;
+        }
+
+        // Tab обрабатываем последним: если сфокусированный контрол сам
+        // хочет Tab (TextBox с IsTabAccepted), он уже выставил Handled
+        if (!args.Handled && key == Key.Tab && Content is not null)
+        {
+            if (modifiers.HasFlag(KeyModifiers.Shift))
+                _focusDispatcher.MovePrevious(Content);
+            else
+                _focusDispatcher.MoveNext(Content);
         }
     }
 
