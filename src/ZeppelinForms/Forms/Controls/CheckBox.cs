@@ -75,6 +75,8 @@ public class CheckBox : UnitControl, ITextElement, IInputElement
     public bool TabStop { get; set; } = true;
     public uint TabIndex { get; set; }
 
+    protected override bool IsKeyActivatable => true;
+
     protected override void OnClick(MouseClickEventArgs e)
     {
         // как в WinForms: без третьего состояния — переключение,

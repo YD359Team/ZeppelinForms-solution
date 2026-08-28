@@ -26,6 +26,8 @@ public class Button : UnitControl, ITextElement, IInputElement, IBorderedElement
     public bool TabStop { get; set; } = true;
     public uint TabIndex { get; set; }
 
+    protected override bool IsKeyActivatable => true;
+
     public override void Draw(Graphics g)
     {
         System.Diagnostics.Debug.WriteLine($"Button.Draw bounds={LocalBounds.Width}x{LocalBounds.Height} bg=A{BackgroundColor.A} R{BackgroundColor.R} G{BackgroundColor.G} B{BackgroundColor.B}");

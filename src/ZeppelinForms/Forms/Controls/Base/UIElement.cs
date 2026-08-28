@@ -197,7 +197,6 @@ public abstract class UIElement : IGridPlaceable
     protected virtual void OnMouseUp() { }
     protected virtual void OnClick(MouseClickEventArgs e) { }
     protected virtual void OnMouseWheel(MouseWheelEventArgs e) { }
-    protected virtual void OnKeyDown(KeyEventArgs e) { }
 
     internal void RaiseMouseUp()
     {
@@ -265,4 +264,25 @@ public abstract class UIElement : IGridPlaceable
     }
 
     internal void RaiseMouseMove(Point location) => OnMouseMove(location);
+
+    /// <summary>Реагирует ли контрол на пробел/Enter как на клик (кнопки, чекбоксы).</summary>
+    protected virtual bool IsKeyActivatable => false;
+
+    protected virtual void OnKeyDown(KeyEventArgs e)
+    {
+        if (!IsKeyActivatable) return;
+
+        if (e.Key is Key.Space or Key.Enter)
+        {
+            // клик "из центра себя" — координата нужна тем, кто её читает
+            // (например, ListBox определяет по ней строку)
+            Point absolute = GetAbsolutePosition();
+            var center = new Point(
+                absolute.X + Size.Width / 2f,
+                absolute.Y + Size.Height / 2f);
+
+            RaiseClick(new MouseClickEventArgs(MouseButton.Left, MouseButtonState.Up, center));
+            e.Handled = true;
+        }
+    }
 }

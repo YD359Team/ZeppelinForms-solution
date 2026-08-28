@@ -22,14 +22,15 @@ internal class MainForm : Form
         this.Title = "Form 1";
         this.Size = new Size(1024, 768);
 
-        Grid grid = new Grid 
+        Grid grid = new() 
         { 
             Columns = "*,*",
-            Rows = "*",
+            Rows = "*,*",
         };
-        Label lbl = new Label { Text = "Label with box shadow" };
-        Button btn = new Button { Text = "Button with opacity", Column = 1 };
-        grid.Children.AddRange([lbl, btn]);
+        Label lbl = new() { Text = "Label with box shadow\nline2\nline3", Column = 0, Row = 0, BoxShadow = BoxShadow.Large };
+        Button btn = new() { Text = "Button with opacity", Column = 1, Row = 0, Opacity = 0.5f };
+        CheckBox cb = new() { Text = "Check me", Column = 1, Row = 1 };
+        grid.Children.AddRange([lbl, btn, cb]);
 
         this.Content = grid;
     }

@@ -69,6 +69,8 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     public event EventHandler? TextChanged;
     public event EventHandler? Accepted;
 
+    protected override bool IsKeyActivatable => true;
+
     public TextBox()
     {
         Background = Colors.White;
