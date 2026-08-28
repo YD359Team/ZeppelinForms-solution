@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using ZeppelinForms.Core;
 
 namespace ZeppelinForms.Input.Keyboard;
 
@@ -35,19 +34,4 @@ public enum Key : int
     Back = 0x08,
     Home = 0x24,
     End = 0x23,
-}
-
-
-[Flags]
-public enum KeyModifiers
-{
-    None = 0,
-    Shift = 1,
-    Control = 2,
-    Alt = 4,
-}
-
-public sealed record class KeyEventArgs(Key Key, KeyModifiers Modifiers = KeyModifiers.None) : ZfEventArgs
-{
-    public bool Handled { get; set; }
 }
