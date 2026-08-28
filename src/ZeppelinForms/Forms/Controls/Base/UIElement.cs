@@ -26,12 +26,19 @@ public abstract class UIElement : IGridPlaceable
     public Thickness Margin { get; set; } = Thickness.Zero;
     public Thickness Padding { get; set; } = Thickness.Zero;
     public Rectangle Rectangle => new(Position, Size);
-    public Rectangle LocalBounds => new(Point.Empty, Size);
+    public Rectangle LocalBounds => new(Point.Empty, SanitizedSize);
     public Rectangle ContentBounds => new(
         new Point(Padding.Left, Padding.Top),
         new Size(
-            Math.Max(0, Size.Width - Padding.Horizontal),
-            Math.Max(0, Size.Height - Padding.Vertical)));
+            NonNegative(SanitizedSize.Width - Padding.Horizontal),
+            NonNegative(SanitizedSize.Height - Padding.Vertical)));
+    // Size.Auto (NaN) означает "размер ещё не вычислен".
+    // Для геометрии рисования это ноль, а не NaN.
+    private Size SanitizedSize => new(
+        float.IsFinite(Size.Width) ? Size.Width : 0f,
+        float.IsFinite(Size.Height) ? Size.Height : 0f);
+    private static float NonNegative(float value) =>
+        float.IsFinite(value) && value > 0f ? value : 0f;
     public bool IsEnabled { get; set; } = true;
     public bool IsVisible { get; set; } = true;
     public string? ToolTip { get; set; }

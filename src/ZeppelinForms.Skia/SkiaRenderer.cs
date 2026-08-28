@@ -63,6 +63,14 @@ public static class SkiaRenderer
         if (!element.IsVisible || element.Opacity <= 0f)
             return;
 
+        if (!float.IsFinite(element.Size.Width) || !float.IsFinite(element.Size.Height))
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"НЕ РАЗМЕЩЁН: {element.GetType().Name} \"{element.Name}\" " +
+                $"Size={element.Size.Width}x{element.Size.Height} Parent={element.Parent?.GetType().Name ?? "null"}");
+            return;
+        }
+
         g.Save();
         g.Translate(element.Position.X, element.Position.Y);
 

@@ -359,14 +359,27 @@ internal sealed class Win32Window : IPlatformWindow
 
             case NativeConstants.WM_PAINT:
                 {
-                    if (_skiaSurface?.BeginFrame() is SKSurface surface)
+                    try
                     {
-                        Skia.SkiaRenderer.Render(_form, surface.Canvas, _scale);
-                        _skiaSurface.EndFrame();
+                        if (_skiaSurface?.BeginFrame() is SKSurface surface)
+                        {
+                            Skia.SkiaRenderer.Render(_form, surface.Canvas, _scale);
+                            _skiaSurface.EndFrame();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Исключение из WndProc никуда не долетает, а невалидированный
+                        // регион заставляет Windows слать WM_PAINT бесконечно.
+                        System.Diagnostics.Debug.WriteLine($"Ошибка рендера: {ex}");
+                        System.Diagnostics.Debugger.Break();
+                    }
+                    finally
+                    {
+                        NativeMethods.BeginPaint(hWnd, out var ps);
+                        NativeMethods.EndPaint(hWnd, ref ps);
                     }
 
-                    NativeMethods.BeginPaint(hWnd, out var ps);
-                    NativeMethods.EndPaint(hWnd, ref ps);
                     return 0;
                 }
 
