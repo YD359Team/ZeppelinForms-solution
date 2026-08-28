@@ -21,6 +21,8 @@ public class Label : UnitControl, ITextElement, IBorderedElement
 
     public override void Draw(Graphics g)
     {
+        System.Diagnostics.Debug.WriteLine($"Label.Draw text='{Text}' bounds={ContentBounds.X},{ContentBounds.Y} {ContentBounds.Width}x{ContentBounds.Height}");
+
         if (this.BorderWidth > 0)
             g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
 

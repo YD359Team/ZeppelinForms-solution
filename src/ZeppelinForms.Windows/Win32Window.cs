@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
+using ZeppelinForms.Forms.Controls.Tools;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Windows.Rendering;
@@ -278,6 +279,9 @@ internal sealed class Win32Window : IPlatformWindow
             NativeMethods.PostMessage(_handle, NativeConstants.WM_INVOKE, 0, 0);
     }
 
+    // debug
+    private bool _dumped;
+
     private nint ProcessMessage(
         nint hWnd,
         uint message,
@@ -359,6 +363,13 @@ internal sealed class Win32Window : IPlatformWindow
 
             case NativeConstants.WM_PAINT:
                 {
+                    if (!_dumped)
+                    {
+                        _dumped = true;
+                        System.Diagnostics.Debug.WriteLine($"ClientSize={_form.ClientSize.Width}x{_form.ClientSize.Height} scale={_scale}");
+                        System.Diagnostics.Debug.WriteLine(_form.Content?.DumpTree() ?? "Content == null");
+                    }
+
                     try
                     {
                         if (_skiaSurface?.BeginFrame() is SKSurface surface)

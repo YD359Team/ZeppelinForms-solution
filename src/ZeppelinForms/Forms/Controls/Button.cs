@@ -28,6 +28,8 @@ public class Button : UnitControl, ITextElement, IInputElement, IBorderedElement
 
     public override void Draw(Graphics g)
     {
+        System.Diagnostics.Debug.WriteLine($"Button.Draw bounds={LocalBounds.Width}x{LocalBounds.Height} bg=A{BackgroundColor.A} R{BackgroundColor.R} G{BackgroundColor.G} B{BackgroundColor.B}");
+
         g.FillRectangle(this.LocalBounds, IsHovered ? HoverBackgroundColor : BackgroundColor);
 
         if (BorderWidth > 0)
