@@ -5,6 +5,7 @@ using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
+using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Layout;
 
@@ -22,13 +23,20 @@ internal class MainForm : Form
         this.Title = "Form 1";
         this.Size = new Size(1024, 768);
 
-        UniformGrid grid = new();
-        grid.Columns = 25;
-        grid.Rows = 5;
-        Label lbl = new() { Text = "Label with box shadow" };
-        Button btn = new() { Text = "Button with opacity", Opacity = 0.5f };
-        CheckBox cb = new() { Text = "Check me" };
-        grid.Children.AddRange([lbl, btn, cb]);
+        UniformGrid grid = new() { Padding = 2f };
+        UIElement[] controls = [
+            new Label() { Text = "Label" },
+            new Button() { Text = "Button" },
+            new NumericUpDown(),
+            new ProgressBar() { Maximum = 1f, Value = 0.5f },
+            new CheckBox() { Text = "CheckBox" },
+            new RadioButton() { Text = "RadioButton" },
+            new TextBox() { Text = "TextBox" },
+            new DateTimePicker(),
+            new ListBox(),
+            new Spoiler(),
+        ];
+        grid.Children.AddRange(controls);
 
         this.Content = grid;
     }

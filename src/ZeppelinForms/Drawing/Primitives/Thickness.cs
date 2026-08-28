@@ -9,4 +9,6 @@ public readonly record struct Thickness(float Left, float Top, float Right, floa
 
     public readonly float Horizontal => Left + Right;
     public readonly float Vertical => Top + Bottom;
+
+    public static implicit operator Thickness(float value) => new Thickness(value);
 }
