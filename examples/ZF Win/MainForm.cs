@@ -34,6 +34,7 @@ internal class MainForm : Form
             new TextBox() { Text = "TextBox" },
             new TrackBar(),
             new DateTimePicker(),
+            new Calendar(),
             new PictureBox(),
             new ListBox(),
             new Spoiler() { Child = new Label() { Text = "Hidden label" } },
