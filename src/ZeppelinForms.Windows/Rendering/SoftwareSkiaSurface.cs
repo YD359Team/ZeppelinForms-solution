@@ -65,8 +65,7 @@ internal sealed class SoftwareSkiaSurface : IWin32SkiaSurface
         _surface = SKSurface.Create(info, _pixels, width * 4);
     }
 
-    public SKSurface BeginFrame() =>
-        _surface ?? throw new InvalidOperationException("Вызовите Resize перед BeginFrame.");
+    public SKSurface? BeginFrame() => _surface;
 
     public void EndFrame()
     {

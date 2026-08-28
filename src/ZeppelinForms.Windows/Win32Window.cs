@@ -116,6 +116,21 @@ internal sealed class Win32Window : IPlatformWindow
                 NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
         }
 
+        // WM_SIZE во время CreateWindowEx пришёл раньше, чем появилась
+        // поверхность, поэтому первый раз инициализируем её вручную
+        if (NativeMethods.GetClientRect(_handle, out NativeMethods.RECT clientRect))
+        {
+            int clientWidth = clientRect.Right - clientRect.Left;
+            int clientHeight = clientRect.Bottom - clientRect.Top;
+
+            if (clientWidth > 0 && clientHeight > 0)
+            {
+                _skiaSurface.Resize(clientWidth, clientHeight);
+                _form.ClientSize = new Size(clientWidth / _scale, clientHeight / _scale);
+                _form.PerformLayout();
+            }
+        }
+
         if (_form.Icon is not null)
         {
             _largeIcon = Win32Icon.Create(
@@ -344,9 +359,8 @@ internal sealed class Win32Window : IPlatformWindow
 
             case NativeConstants.WM_PAINT:
                 {
-                    if (_skiaSurface is not null)
+                    if (_skiaSurface?.BeginFrame() is SKSurface surface)
                     {
-                        SKSurface surface = _skiaSurface.BeginFrame();
                         Skia.SkiaRenderer.Render(_form, surface.Canvas, _scale);
                         _skiaSurface.EndFrame();
                     }

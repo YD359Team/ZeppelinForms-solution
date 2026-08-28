@@ -99,11 +99,10 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
         _height = height;
     }
 
-    public SKSurface BeginFrame()
+    public SKSurface? BeginFrame()
     {
         NativeMethods.wglMakeCurrent(_hdc, _glContext);
-
-        return _surface ?? throw new InvalidOperationException("Вызовите Resize перед BeginFrame.");
+        return _surface;
     }
 
     public void EndFrame()

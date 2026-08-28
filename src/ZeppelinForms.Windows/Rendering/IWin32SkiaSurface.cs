@@ -5,6 +5,6 @@ namespace ZeppelinForms.Windows.Rendering;
 internal interface IWin32SkiaSurface : IDisposable
 {
     void Resize(int width, int height);
-    SKSurface BeginFrame();
+    SKSurface? BeginFrame();
     void EndFrame();
 }
