@@ -61,6 +61,8 @@ internal sealed class Win32Window : IPlatformWindow
             // CenterOwner пока ведёт себя как CenterScreen — понятия "владелец окна"
             // в фреймворке ещё нет (все окна создаются независимо)
             case WindowStartupLocation.CenterOwner:
+                // GetSystemMetrics отдаёт физические пиксели, а width/height у нас
+                // логические — на 150% окно уедет левее и выше центра
                 x = (NativeMethods.GetSystemMetrics(NativeConstants.SM_CXSCREEN) - width) / 2;
                 y = (NativeMethods.GetSystemMetrics(NativeConstants.SM_CYSCREEN) - height) / 2;
                 break;
@@ -110,11 +112,29 @@ internal sealed class Win32Window : IPlatformWindow
 
         if (_scale != 1f)
         {
-            // логический размер формы пересчитываем в физические пиксели
-            NativeMethods.SetWindowPos(
-                _handle, 0, x, y,
-                (int)(width * _scale), (int)(height * _scale),
-                NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
+            int physicalWidth = (int)(width * _scale);
+            int physicalHeight = (int)(height * _scale);
+
+            bool center = _form.WindowStartupLocation
+                is WindowStartupLocation.CenterScreen or WindowStartupLocation.CenterOwner;
+
+            if (center)
+            {
+                int cx = (NativeMethods.GetSystemMetrics(NativeConstants.SM_CXSCREEN) - physicalWidth) / 2;
+                int cy = (NativeMethods.GetSystemMetrics(NativeConstants.SM_CYSCREEN) - physicalHeight) / 2;
+
+                NativeMethods.SetWindowPos(
+                    _handle, 0, cx, cy, physicalWidth, physicalHeight,
+                    NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
+            }
+            else
+            {
+                NativeMethods.SetWindowPos(
+                    _handle, 0, 0, 0, physicalWidth, physicalHeight,
+                    NativeConstants.SWP_NOZORDER
+                        | NativeConstants.SWP_NOACTIVATE
+                        | NativeConstants.SWP_NOMOVE);
+            }
         }
 
         // WM_SIZE во время CreateWindowEx пришёл раньше, чем появилась
