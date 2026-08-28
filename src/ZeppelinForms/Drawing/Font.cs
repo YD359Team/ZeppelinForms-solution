@@ -22,6 +22,8 @@ public sealed record Font(
     public Font WithSize(float size) => this with { Size = size };
     public Font Bold() => this with { Weight = FontWeight.Bold };
     public Font Italic() => this with { Style = FontStyle.Italic };
+
+    public static implicit operator Font(string fontFamiliy) => new(fontFamiliy);
 }
 
 public enum FontWeight { Normal, Bold }

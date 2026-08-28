@@ -41,6 +41,8 @@ public sealed class Image
         string fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
         return LoadFromFile(fullPath);
     }
+
+    public static implicit operator Image(string relativePath) => LoadAsset(relativePath);
 }
 
 public enum ImageFlip
