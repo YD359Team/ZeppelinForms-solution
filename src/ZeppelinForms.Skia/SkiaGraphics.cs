@@ -218,4 +218,41 @@ public sealed class SkiaGraphics : Graphics
 
         paint.MaskFilter?.Dispose();
     }
+
+    public override void DrawLine(Point from, Point to, Color color, float width)
+    {
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(color.R, color.G, color.B, color.A),
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = width,
+            StrokeCap = SKStrokeCap.Round,
+        };
+
+        _canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
+    }
+
+    public override void DrawPolyline(ReadOnlySpan<Point> points, Color color, float width)
+    {
+        if (points.Length < 2) return;
+
+        using var path = new SKPath();
+        path.MoveTo(points[0].X, points[0].Y);
+
+        for (int i = 1; i < points.Length; i++)
+            path.LineTo(points[i].X, points[i].Y);
+
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(color.R, color.G, color.B, color.A),
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = width,
+            StrokeCap = SKStrokeCap.Round,
+            StrokeJoin = SKStrokeJoin.Round,   // без этого угол галочки выглядит рубленым
+        };
+
+        _canvas.DrawPath(path, paint);
+    }
 }

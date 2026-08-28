@@ -26,6 +26,8 @@ public abstract class Graphics
 
     public abstract void FillEllipse(Rectangle rect, Color color);
     public abstract void DrawEllipse(Rectangle rect, Color color, float width);
+    public abstract void DrawLine(Point from, Point to, Color color, float width);
+    public abstract void DrawPolyline(ReadOnlySpan<Point> points, Color color, float width);
 
     public abstract void Save();
     public abstract void ClipRect(Rectangle bounds);
