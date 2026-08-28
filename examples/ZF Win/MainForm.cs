@@ -21,6 +21,7 @@ internal class MainForm : Form
     {
         this.Title = "Form 1";
         this.Size = new Size(1024, 768);
+        this.Font = "Segoe UI";
 
         Grid grid = new() 
         { 
