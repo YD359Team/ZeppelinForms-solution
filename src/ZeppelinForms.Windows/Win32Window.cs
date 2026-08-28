@@ -227,10 +227,30 @@ internal sealed class Win32Window : IPlatformWindow
         if (_handle == 0) return;
 
         nint exStyle = NativeMethods.GetWindowLongPtr(_handle, NativeConstants.GWL_EXSTYLE);
+        bool isLayered = (exStyle & (nint)NativeConstants.WS_EX_LAYERED) != 0;
 
-        // LAYERED-стиль нужен, иначе SetLayeredWindowAttributes ничего не сделает
-        NativeMethods.SetWindowLongPtr(_handle, NativeConstants.GWL_EXSTYLE,
-            exStyle | (nint)NativeConstants.WS_EX_LAYERED);
+        // Полностью непрозрачное окно НЕ должно быть layered: в этом режиме
+        // Windows композитит окно отдельно и игнорирует прямой вывод в DC,
+        // которым рисует Skia — окно окажется пустым.
+        if (opacity >= 1f)
+        {
+            if (isLayered)
+            {
+                NativeMethods.SetWindowLongPtr(_handle, NativeConstants.GWL_EXSTYLE,
+                    exStyle & ~(nint)NativeConstants.WS_EX_LAYERED);
+
+                NativeMethods.InvalidateRect(_handle, 0, true);
+                NativeMethods.UpdateWindow(_handle);
+            }
+
+            return;
+        }
+
+        if (!isLayered)
+        {
+            NativeMethods.SetWindowLongPtr(_handle, NativeConstants.GWL_EXSTYLE,
+                exStyle | (nint)NativeConstants.WS_EX_LAYERED);
+        }
 
         byte alpha = (byte)Math.Clamp(opacity * 255f, 0, 255);
         NativeMethods.SetLayeredWindowAttributes(_handle, 0, alpha, NativeConstants.LWA_ALPHA);

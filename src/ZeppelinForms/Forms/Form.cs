@@ -121,6 +121,7 @@ public class Form : IDisposable
 
     public void Show()
     {
+        PlatformWindow?.SetOpacity(_opacity);
         PlatformWindow?.Show();
         Shown?.Invoke(this, EventArgs.Empty);
     }

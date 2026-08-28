@@ -2,6 +2,7 @@
 
 internal static class NativeConstants
 {
+    public const int SWP_NOMOVE = 0x0002;
     public const uint WS_EX_LAYERED = 0x00080000;
     public const uint LWA_ALPHA = 0x00000002;
     public const int GWL_EXSTYLE = -20;
