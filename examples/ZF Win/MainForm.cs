@@ -24,11 +24,12 @@ internal class MainForm : Form
 
         Grid grid = new Grid 
         { 
-            Columns = "*,*,*,*,*,*",
-            Rows = "*,*,*,*,*,*,*",
+            Columns = "*,*",
+            Rows = "*",
         };
-        DateTimePicker dtPicker = new();
-        grid.Children.Add(dtPicker);
+        Label lbl = new Label { Text = "Label with box shadow" };
+        Button btn = new Button { Text = "Button with opacity", Column = 1 };
+        grid.Children.AddRange([lbl, btn]);
 
         this.Content = grid;
     }
