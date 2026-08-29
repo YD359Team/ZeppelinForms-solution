@@ -164,4 +164,60 @@ internal static class X11
         public nint data3;
         public nint data4;
     }
+
+    [DllImport(Lib)] public static extern int XDestroyImage(nint image);
+
+    public const int SelectionRequest = 30;
+    public const int SelectionNotify = 31;
+    public const int SelectionClear = 29;
+    public const int PropertyNotify = 28;
+
+    public const int PropModeReplace = 0;
+    public const long PropertyChangeMask = 1L << 22;
+
+    [DllImport(Lib)] public static extern nuint XGetSelectionOwner(nint display, nuint selection);
+    [DllImport(Lib)] public static extern int XSetSelectionOwner(nint display, nuint selection, nuint owner, nuint time);
+    [DllImport(Lib)] public static extern int XConvertSelection(nint display, nuint selection, nuint target, nuint property, nuint requestor, nuint time);
+
+    [DllImport(Lib)]
+    public static extern int XChangeProperty(
+        nint display, nuint window, nuint property, nuint type, int format,
+        int mode, byte[] data, int elements);
+
+    [DllImport(Lib)]
+    public static extern int XGetWindowProperty(
+        nint display, nuint window, nuint property, long offset, long length,
+        bool delete, nuint requestedType, out nuint actualType, out int actualFormat,
+        out nuint itemCount, out nuint bytesAfter, out nint data);
+
+    [DllImport(Lib)] public static extern int XFree(nint data);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct XSelectionRequestEvent
+    {
+        public int type;
+        public nuint serial;
+        public int send_event;
+        public nint display;
+        public nuint owner;
+        public nuint requestor;
+        public nuint selection;
+        public nuint target;
+        public nuint property;
+        public nuint time;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct XSelectionEvent
+    {
+        public int type;
+        public nuint serial;
+        public int send_event;
+        public nint display;
+        public nuint requestor;
+        public nuint selection;
+        public nuint target;
+        public nuint property;
+        public nuint time;
+    }
 }

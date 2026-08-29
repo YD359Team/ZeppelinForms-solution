@@ -70,7 +70,15 @@ internal sealed class X11SkiaSurface : IDisposable
         _surface?.Dispose();
         _surface = null;
 
-        _image = 0;   // структура XImage останется висеть — см. комментарий ниже
+        if (_image != 0)
+        {
+            // XDestroyImage делает free(image->data). Память буфера принадлежит
+            // нам (AllocHGlobal), поэтому обнуляем указатель на данные и
+            // отдаём X-серверу освободить только саму структуру XImage.
+            Marshal.WriteIntPtr(_image, DataFieldOffset, 0);
+            X11.XDestroyImage(_image);
+            _image = 0;
+        }
 
         if (_pixels != 0)
         {
@@ -78,6 +86,10 @@ internal sealed class X11SkiaSurface : IDisposable
             _pixels = 0;
         }
     }
+
+    // struct _XImage: int width, height, xoffset, format; char* data;
+    // четыре int по 4 байта, затем указатель с выравниванием по 8 на x64
+    private static readonly int DataFieldOffset = 16;
 
     public void Dispose() => Release();
 }

@@ -25,7 +25,20 @@ public sealed class X11Platform : IPlatform
         Skia.SkiaElementRenderer.Register();
     }
 
-    internal void Register(X11Window window) => _windows[window.Handle] = window;
+    private X11Clipboard? _clipboard;
+
+    internal void Register(X11Window window)
+    {
+        _windows[window.Handle] = window;
+
+        // буферу обмена нужно окно-владелец, поэтому создаём его
+        // не в конструкторе платформы, а вместе с первым окном
+        if (_clipboard is null)
+        {
+            _clipboard = new X11Clipboard(Display, window.Handle);
+            Clipboard.Current = _clipboard;
+        }
+    }
 
     internal void Unregister(X11Window window)
     {
@@ -218,6 +231,20 @@ public sealed class X11Platform : IPlatform
 
                     break;
                 }
+
+            case X11.SelectionRequest:
+                {
+                    var request = Marshal.PtrToStructure<X11.XSelectionRequestEvent>(eventPtr);
+                    _clipboard?.HandleSelectionRequest(request);
+                    break;
+                }
+
+            case X11.SelectionClear:
+                {
+                    _clipboard?.HandleSelectionClear();
+                    break;
+                }
         }
     }
 }
+
