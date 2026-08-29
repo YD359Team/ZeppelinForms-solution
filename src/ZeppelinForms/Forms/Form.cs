@@ -412,11 +412,26 @@ public class Form : IDisposable
 
     // ===== Клавиатура =====
 
+    private PropertyGrid? _inspectorGrid;
+
+    private void ToggleInspector()
+    {
+        IsInspectorEnabled = !IsInspectorEnabled;
+
+        if (!IsInspectorEnabled && _inspectorGrid is not null)
+        {
+            _overlays.Remove(_inspectorGrid);
+            _inspectorGrid = null;
+        }
+
+        Invalidate();
+    }
+
     internal void OnKeyDown(Key key)
     {
         if (key == Key.F12)
         {
-            IsInspectorEnabled = !IsInspectorEnabled;
+            ToggleInspector();
             Invalidate();
             return;
         }
