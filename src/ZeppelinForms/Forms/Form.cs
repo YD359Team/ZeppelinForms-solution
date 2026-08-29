@@ -106,7 +106,7 @@ public class Form : IDisposable
 
     // ===== Инспектор (F12) =====
     public bool IsInspectorEnabled { get; private set; }
-    public UIElement? InspectedElement => IsInspectorEnabled ? _hoveredElement : null;
+    public UIElement? InspectedElement { get; private set; }
 
     private bool _dialogAccepted;
     private object? _dialogValue;
@@ -513,6 +513,14 @@ public class Form : IDisposable
         hit?.RaiseMouseOver();
         _hoveredElement = hit;
 
+        if (IsInspectorEnabled)
+        {
+            // подсвечиваем только то, что принадлежит Content —
+            // иначе инспектор начинает инспектировать сам себя
+            InspectedElement = Content is not null ? HitTester.HitTest(Content, point) : null;
+            Invalidate();
+        }
+
         ScheduleToolTip(hit);
 
         if (IsInspectorEnabled) Invalidate();
@@ -547,7 +555,7 @@ public class Form : IDisposable
         {
             UIElement? picked = Content is not null ? HitTester.HitTest(Content, point) : null;
 
-            if (picked is not null)
+            if (picked is not null && picked is not PropertyGrid)
             {
                 _inspectorGrid.SelectedObject = picked;
                 Invalidate();

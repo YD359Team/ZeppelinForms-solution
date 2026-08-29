@@ -60,6 +60,9 @@ public static class SkiaRenderer
 
     private static void Draw(UIElement element, Graphics g)
     {
+        if (!float.IsFinite(element.Size.Width) || !float.IsFinite(element.Size.Height))
+            return;
+
         if (!element.IsVisible || element.Opacity <= 0f)
             return;
 

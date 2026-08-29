@@ -179,17 +179,23 @@ public class PropertyGrid : PanelControl
 
     protected override Size MeasureOverride(Size availableSize)
     {
+        // при бесконечной ширине (так меряются оверлеи) проценты и вычитания
+        // дают NaN, поэтому опираемся на собственный заданный размер
+        float usableWidth = float.IsFinite(availableSize.Width)
+            ? availableSize.Width
+            : (float.IsFinite(Size.Width) ? Size.Width : 320f);
+
         var inner = new Size(
-            Math.Max(0, availableSize.Width - Padding.Horizontal),
-            Math.Max(0, availableSize.Height - Padding.Vertical));
+            Math.Max(0, usableWidth - Padding.Horizontal),
+            float.IsFinite(availableSize.Height)
+                ? Math.Max(0, availableSize.Height - Padding.Vertical)
+                : float.PositiveInfinity);
 
         float labelWidth = inner.Width * LabelRatio;
+        float editorWidth = Math.Max(0, inner.Width - labelWidth);
 
         for (int i = 0; i < Children.Count; i++)
-        {
-            float width = i % 2 == 0 ? labelWidth : inner.Width - labelWidth;
-            Children[i].Measure(new Size(width, RowHeight));
-        }
+            Children[i].Measure(new Size(i % 2 == 0 ? labelWidth : editorWidth, RowHeight));
 
         int rows = (Children.Count + 1) / 2;
 
