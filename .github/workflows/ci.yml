@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    paths-ignore: ['**.md', 'ZF*.png']   # правка README не гоняет сборку
+  pull_request:
+    branches: [master]
+
+# при частых пушах отменяем предыдущий незавершённый прогон,
+# чтобы не копить очередь и не жечь минуты
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Установка зависимостей Skia (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1
+
+      - run: dotnet restore
+      - run: dotnet build --no-restore --configuration Release
+      - run: dotnet test --no-build --configuration Release --verbosity normal
+  
+      - name: Тесты (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: xvfb-run -a dotnet test --no-build --configuration Release
