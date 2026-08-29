@@ -11,9 +11,19 @@ public sealed class SkiaTextMeasurer : ITextMeasurer
 
     public Size MeasureText(string text, Font font)
     {
-        SKFont skFont = SkiaFontCache.Get(font);
-        float width = skFont.MeasureText(text, out SKRect bounds);
-        return new Size(width, bounds.Height);
+        if (string.IsNullOrEmpty(text))
+            return Size.Empty;
+
+        float width = 0;
+        float height = 0;
+
+        foreach ((string run, SKFont runFont) in SkiaFontCache.SplitRuns(text, font))
+        {
+            width += runFont.MeasureText(run, out SKRect bounds);
+            height = Math.Max(height, bounds.Height);
+        }
+
+        return new Size(width, height);
     }
 
     public float MeasureTextWidth(string text, int length, Font font)
@@ -22,6 +32,6 @@ public sealed class SkiaTextMeasurer : ITextMeasurer
             return 0;
 
         length = Math.Min(length, text.Length);
-        return SkiaFontCache.Get(font).MeasureText(text.AsSpan(0, length));
+        return MeasureText(text[..length], font).Width;
     }
 }

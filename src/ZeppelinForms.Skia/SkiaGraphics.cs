@@ -125,39 +125,6 @@ public sealed class SkiaGraphics : Graphics
         _canvas.DrawRect(new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height), paint);
     }
 
-    public override void DrawText(string text, Point position, Color color, Font font)
-    {
-        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
-        _canvas.DrawText(text, position.X, position.Y, SKTextAlign.Left, SkiaFontCache.Get(font), paint);
-    }
-
-    public override void DrawText(
-        string text, Rectangle rect, Color color, Font font,
-        HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
-        VerticalContentAlignment vAlign = VerticalContentAlignment.Center)
-    {
-        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
-
-        SKFont skFont = SkiaFontCache.Get(font);
-        float textWidth = skFont.MeasureText(text, out SKRect bounds, paint);
-
-        float x = hAlign switch
-        {
-            HorizontalContentAlignment.Left => rect.X,
-            HorizontalContentAlignment.Right => rect.X + rect.Width - textWidth,
-            _ => rect.X + (rect.Width - textWidth) / 2f,
-        };
-
-        float baselineY = vAlign switch
-        {
-            VerticalContentAlignment.Top => rect.Y - bounds.Top,
-            VerticalContentAlignment.Bottom => rect.Y + rect.Height - bounds.Bottom,
-            _ => rect.Y + rect.Height / 2f - bounds.MidY,
-        };
-
-        _canvas.DrawText(text, x, baselineY, SKTextAlign.Left, skFont, paint);
-    }
-
     public override void FillEllipse(Rectangle rect, Color color)
     {
         using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
@@ -353,37 +320,54 @@ public sealed class SkiaGraphics : Graphics
 
     public override void Rotate(float degrees) => _canvas.RotateDegrees(degrees);
 
-    public static void DrawTextWithFallback(SKCanvas canvas, string text, float x, float y, SKFont baseFont, SKPaint paint)
+    public override void DrawText(string text, Point position, Color color, Font font)
     {
-        int start = 0;
-        SKTypeface? currentTypeface = baseFont.Typeface;
+        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
 
-        for (int i = 0; i < text.Length;)
+        float x = position.X;
+
+        foreach ((string run, SKFont runFont) in SkiaFontCache.SplitRuns(text, font))
         {
-            int codepoint = char.ConvertToUtf32(text, i);
-            int charCount = char.IsSurrogatePair(text, i) ? 2 : 1;
-
-            // есть ли глиф в текущем шрифте; если нет — просим систему подобрать
-            SKTypeface? needed = baseFont.Typeface.ContainsGlyph(codepoint)
-                ? baseFont.Typeface
-                : SKFontManager.Default.MatchCharacter(codepoint) ?? baseFont.Typeface;
-
-            if (!ReferenceEquals(needed, currentTypeface) && i > start)
-            {
-                using var run = new SKFont(currentTypeface, baseFont.Size);
-                canvas.DrawText(text[start..i], x, y, SKTextAlign.Left, run, paint);
-                x += run.MeasureText(text[start..i]);
-                start = i;
-            }
-
-            currentTypeface = needed;
-            i += charCount;
+            _canvas.DrawText(run, x, position.Y, SKTextAlign.Left, runFont, paint);
+            x += runFont.MeasureText(run);
         }
+    }
 
-        if (start < text.Length)
+    public override void DrawText(
+        string text, Rectangle rect, Color color, Font font,
+        HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
+        VerticalContentAlignment vAlign = VerticalContentAlignment.Center)
+    {
+        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
+
+        SKFont baseFont = SkiaFontCache.Get(font);
+
+        // ширина считается по тем же участкам, что и рисование, иначе
+        // выравнивание разъедется на строках с эмодзи
+        float textWidth = 0;
+        foreach ((string run, SKFont runFont) in SkiaFontCache.SplitRuns(text, font))
+            textWidth += runFont.MeasureText(run);
+
+        baseFont.MeasureText(text, out SKRect bounds, paint);
+
+        float x = hAlign switch
         {
-            using var run = new SKFont(currentTypeface, baseFont.Size);
-            canvas.DrawText(text[start..], x, y, SKTextAlign.Left, run, paint);
+            HorizontalContentAlignment.Left => rect.X,
+            HorizontalContentAlignment.Right => rect.X + rect.Width - textWidth,
+            _ => rect.X + (rect.Width - textWidth) / 2f,
+        };
+
+        float baselineY = vAlign switch
+        {
+            VerticalContentAlignment.Top => rect.Y - bounds.Top,
+            VerticalContentAlignment.Bottom => rect.Y + rect.Height - bounds.Bottom,
+            _ => rect.Y + rect.Height / 2f - bounds.MidY,
+        };
+
+        foreach ((string run, SKFont runFont) in SkiaFontCache.SplitRuns(text, font))
+        {
+            _canvas.DrawText(run, x, baselineY, SKTextAlign.Left, runFont, paint);
+            x += runFont.MeasureText(run);
         }
     }
 }

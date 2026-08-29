@@ -38,6 +38,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         {
             _text = value ?? string.Empty;
             _caretIndex = Math.Min(_caretIndex, _text.Length);
+            _caretIndex = PreviousTextElementIndex(_text, NextTextElementIndex(_text, _caretIndex));
             _selectionAnchor = _caretIndex;
             Invalidate();
         }
@@ -180,8 +181,15 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     {
         if (IsReadOnly) return;
 
+        var info = new System.Globalization.StringInfo(_text);
+        var addition = new System.Globalization.StringInfo(value);
+
+        // считаем в символах, а не в char; проверяем ДО удаления выделения,
+        // иначе при переполнении текст просто исчезнет
+        if (info.LengthInTextElements + addition.LengthInTextElements > MaxLength)
+            return;
+
         DeleteSelection();
-        if (_text.Length + value.Length > MaxLength) return;
 
         _text = _text.Insert(_caretIndex, value);
         _caretIndex += value.Length;
@@ -192,10 +200,31 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         Invalidate();
     }
 
+    private char? _pendingHighSurrogate;
+
     protected override void OnTextInput(char c)
     {
-        // управляющие символы приходят и через WM_CHAR — их обрабатывает OnKeyDown
         if (char.IsControl(c)) return;
+
+        // эмодзи приходит двумя сообщениями WM_CHAR — сначала старший
+        // суррогат, потом младший; вставляем только собранную пару
+        if (char.IsHighSurrogate(c))
+        {
+            _pendingHighSurrogate = c;
+            return;
+        }
+
+        if (_pendingHighSurrogate is char high)
+        {
+            _pendingHighSurrogate = null;
+
+            if (char.IsLowSurrogate(c))
+            {
+                InsertText(new string([high, c]));
+                return;
+            }
+        }
+
         InsertText(c.ToString());
     }
 
@@ -340,8 +369,18 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         string lineText = lines[line];
 
         int col = lineText.Length;
-        for (int i = 0; i <= lineText.Length; i++)
-            if (TextMeasurer.Current.MeasureTextWidth(lineText, i, EffectiveFont) >= localX) { col = i; break; }
+
+        for (int i = 0; i <= lineText.Length;)
+        {
+            if (TextMeasurer.Current.MeasureTextWidth(lineText, i, EffectiveFont) >= localX)
+            {
+                col = i;
+                break;
+            }
+
+            if (i >= lineText.Length) break;
+            i = NextTextElementIndex(lineText, i);
+        }
 
         return PositionToIndex(line, col);
     }
@@ -428,10 +467,11 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
 
             if (lineText.Length > 0)
             {
-                g.DrawWithFallback(
+                g.DrawText(
                     lineText,
                     new Rectangle(new Point(content.X - _scrollOffset, y), new Size(float.MaxValue, lineHeight)),
-                    TextColor, EffectiveFont, HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
+                    TextColor, EffectiveFont,
+                    HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
             }
 
             lineStartIndex += lineText.Length + 1;
