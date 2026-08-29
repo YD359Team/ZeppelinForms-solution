@@ -1,15 +1,15 @@
-﻿using System.Diagnostics;
-using Xunit;
+﻿using Xunit;
+using ZeppelinForms.Linux;
 using ZeppelinForms.Windows;
 
 namespace ZeppelinForms.UnitTests;
 
-public class WindowsPlatformTests
+public class LinuxPlatformTests
 {
     [Fact]
     public void RunApp_ShowsWindowAndClosesGracefully()
     {
-        Assert.SkipUnless(OperatingSystem.IsWindows(), "Test for Windows only");
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Test for Linux only");
 
         Exception? backgroundException = null;
         var shown = new ManualResetEventSlim(false);
@@ -20,8 +20,8 @@ public class WindowsPlatformTests
         {
             try
             {
-                var app = new App(new WindowsPlatform()) { MainForm = form };
-                app.Run(); 
+                var app = new App(new X11Platform()) { MainForm = form };
+                app.Run();
             }
             catch (Exception ex)
             {
