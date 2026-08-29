@@ -13,20 +13,28 @@ namespace ZeppelinForms.Skia;
 
 public static class SkiaRenderer
 {
-    public static void Render(Form form, SKCanvas canvas, float scale = 1f)
+    public static void Render(Form form, SKCanvas canvas, float scale = 1f, Rectangle? clip = null)
     {
-        canvas.Clear(SKColors.White);
-
         canvas.Save();
-        canvas.Scale(scale, scale);   // дальше всё рисование — в логических координатах
+        canvas.Scale(scale, scale);
+
+        if (clip is { } dirty)
+        {
+            canvas.ClipRect(new SKRect(dirty.X, dirty.Y, dirty.X + dirty.Width, dirty.Y + dirty.Height));
+            canvas.Clear(SKColors.White);   // Clear уважает клип
+        }
+        else
+        {
+            canvas.Clear(SKColors.White);
+        }
 
         var g = new SkiaGraphics(canvas);
 
         if (form.Content is not null)
-            Draw(form.Content, g);
+            Draw(form.Content, g, clip);
 
         foreach (var overlay in form.Overlays)
-            Draw(overlay, g);
+            Draw(overlay, g, clip);
 
         if (form.IsInspectorEnabled)
             DrawInspector(form, g);
@@ -58,21 +66,14 @@ public static class SkiaRenderer
         g.DrawText(info, labelRect, Colors.White, Font.Default, HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
     }
 
-    private static void Draw(UIElement element, Graphics g)
+    private static void Draw(UIElement element, Graphics g, Rectangle? clip = null)
     {
-        if (!float.IsFinite(element.Size.Width) || !float.IsFinite(element.Size.Height))
-            return;
+        if (!element.IsVisible || element.Opacity <= 0f) return;
+        if (!float.IsFinite(element.Size.Width) || !float.IsFinite(element.Size.Height)) return;
 
-        if (!element.IsVisible || element.Opacity <= 0f)
+        // элемент целиком вне грязной области — пропускаем вместе с потомками
+        if (clip is { } dirty && !element.DirtyBounds.IntersectsWith(dirty))
             return;
-
-        if (!float.IsFinite(element.Size.Width) || !float.IsFinite(element.Size.Height))
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"НЕ РАЗМЕЩЁН: {element.GetType().Name} \"{element.Name}\" " +
-                $"Size={element.Size.Width}x{element.Size.Height} Parent={element.Parent?.GetType().Name ?? "null"}");
-            return;
-        }
 
         g.Save();
         g.Translate(element.Position.X, element.Position.Y);

@@ -105,6 +105,26 @@ public abstract class UIElement : IGridPlaceable
         }
     }
 
+    /// <summary>Прямоугольник, который надо перерисовать вместе с элементом:
+    /// сам элемент плюс запас на рамку и тень, вылезающие за границы.</summary>
+    public Rectangle DirtyBounds
+    {
+        get
+        {
+            var bounds = new Rectangle(GetAbsolutePosition(), Size);
+
+            if (BoxShadow is { } shadow)
+            {
+                float spread = shadow.Blur + shadow.Spread
+                    + Math.Max(Math.Abs(shadow.OffsetX), Math.Abs(shadow.OffsetY));
+
+                bounds = bounds.Inflate(spread);
+            }
+
+            return bounds.Inflate(2f);   // запас на сглаживание и рамку
+        }
+    }
+
     public BoxShadow? BoxShadow { get; set; }
 
     public abstract void Draw(Graphics g);
@@ -200,18 +220,20 @@ public abstract class UIElement : IGridPlaceable
         Invalidate();
     }
 
+    /// <summary>Перерисовать только этот элемент, без пересчёта раскладки.</summary>
+    protected internal void InvalidateVisual()
+    {
+        if (!float.IsFinite(Size.Width) || !float.IsFinite(Size.Height))
+            return;
+
+        FindOwner()?.InvalidateRect(DirtyBounds);
+    }
+
     // protected internal — доступен и наследникам (как раньше), и коду
     // внутри сборки вроде FocusDispatcher, которому нужно попросить
     // перерисовку не будучи подклассом UIElement.
-    protected internal void Invalidate()
-    {
-        Debug.WriteLine($"UIElement.Invalidate {this.GetType().Name}");
-        UIElement root = this;
-        while (root.Parent is not null)
-            root = root.Parent;
-
-        root.Owner?.Invalidate();
-    }
+    /// <summary>Изменилась геометрия — нужен полный пересчёт и перерисовка.</summary>
+    protected internal void Invalidate() => FindOwner()?.Invalidate();
 
     protected virtual void OnAttached()
     {

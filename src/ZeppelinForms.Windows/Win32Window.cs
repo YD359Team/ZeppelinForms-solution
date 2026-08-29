@@ -247,14 +247,38 @@ internal sealed class Win32Window : IPlatformWindow
         });
     }
 
-    public void Invalidate()
+    public void Invalidate(Rectangle? bounds = null)
     {
-        Debug.WriteLine("Win32Window.Invalidate");
+        if (_handle == 0) return;
 
-        if (_handle == 0)
-            return;
+        if (bounds is { } rect)
+        {
+            // координаты логические, окно ждёт физические
+            var native = new NativeMethods.RECT
+            {
+                Left = (int)Math.Floor(rect.X * _scale),
+                Top = (int)Math.Floor(rect.Y * _scale),
+                Right = (int)Math.Ceiling((rect.X + rect.Width) * _scale),
+                Bottom = (int)Math.Ceiling((rect.Y + rect.Height) * _scale),
+            };
 
-        NativeMethods.InvalidateRect(_handle, 0, false);
+            nint ptr = Marshal.AllocHGlobal(Marshal.SizeOf<NativeMethods.RECT>());
+
+            try
+            {
+                Marshal.StructureToPtr(native, ptr, false);
+                NativeMethods.InvalidateRect(_handle, ptr, false);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(ptr);
+            }
+        }
+        else
+        {
+            NativeMethods.InvalidateRect(_handle, 0, false);
+        }
+
         NativeMethods.UpdateWindow(_handle);
     }
 
@@ -383,31 +407,30 @@ internal sealed class Win32Window : IPlatformWindow
 
             case NativeConstants.WM_PAINT:
                 {
-                    if (!_dumped)
-                    {
-                        _dumped = true;
-                        System.Diagnostics.Debug.WriteLine($"ClientSize={_form.ClientSize.Width}x{_form.ClientSize.Height} scale={_scale}");
-                        System.Diagnostics.Debug.WriteLine(_form.Content?.DumpTree() ?? "Content == null");
-                    }
+                    NativeMethods.BeginPaint(hWnd, out var ps);
 
                     try
                     {
                         if (_skiaSurface?.BeginFrame() is SKSurface surface)
                         {
-                            Skia.SkiaRenderer.Render(_form, surface.Canvas, _scale);
+                            // GL-поверхность после SwapBuffers содержит мусор,
+                            // частичная перерисовка для неё невозможна
+                            Rectangle? clip = _skiaSurface.SupportsPartialRedraw
+                                ? new Rectangle(
+                                    new Point(ps.rcPaint.Left / _scale, ps.rcPaint.Top / _scale),
+                                    new Size(
+                                        (ps.rcPaint.Right - ps.rcPaint.Left) / _scale,
+                                        (ps.rcPaint.Bottom - ps.rcPaint.Top) / _scale))
+                                : null;
+
+                            Skia.SkiaRenderer.Render(_form, surface.Canvas, _scale, clip);
                             _skiaSurface.EndFrame();
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        // Исключение из WndProc никуда не долетает, а невалидированный
-                        // регион заставляет Windows слать WM_PAINT бесконечно.
-                        System.Diagnostics.Debug.WriteLine($"Ошибка рендера: {ex}");
-                        System.Diagnostics.Debugger.Break();
+
+                        _form.TakeDirtyRegion();
                     }
                     finally
                     {
-                        NativeMethods.BeginPaint(hWnd, out var ps);
                         NativeMethods.EndPaint(hWnd, ref ps);
                     }
 

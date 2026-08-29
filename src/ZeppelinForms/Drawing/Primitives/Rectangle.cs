@@ -35,6 +35,23 @@ public readonly record struct Rectangle
                p.Y >= Y && p.Y <= Y + Height;
     }
 
+    public bool IntersectsWith(Rectangle other) =>
+    X < other.X + other.Width && other.X < X + Width &&
+    Y < other.Y + other.Height && other.Y < Y + Height;
+
+    public Rectangle Union(Rectangle other)
+    {
+        float left = Math.Min(X, other.X);
+        float top = Math.Min(Y, other.Y);
+        float right = Math.Max(X + Width, other.X + other.Width);
+        float bottom = Math.Max(Y + Height, other.Y + other.Height);
+
+        return new Rectangle(new Point(left, top), new Size(right - left, bottom - top));
+    }
+
+    public Rectangle Inflate(float amount) =>
+        new(new Point(X - amount, Y - amount), new Size(Width + amount * 2, Height + amount * 2));
+
     public readonly Point AsPosition() => new(this.X, this.Y);
 
     public readonly Size AsSize() => new(this.Width, this.Height);

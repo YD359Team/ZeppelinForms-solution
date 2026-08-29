@@ -18,6 +18,8 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
     private int _width;
     private int _height;
 
+    public bool SupportsPartialRedraw => false;
+
     private GlSkiaSurface(nint hWnd, nint hdc, nint glContext, GRContext grContext)
     {
         _hWnd = hWnd;

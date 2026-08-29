@@ -9,7 +9,7 @@ public interface IPlatformWindow
     void Close();
     void SetTitle(string? title);
     void SetBounds(Rectangle bounds);
-    void Invalidate();
+    void Invalidate(Rectangle? bounds = null);
     void Invoke(Action action);
     void SetOpacity(float opacity);
     void SetWindowState(WindowState state);

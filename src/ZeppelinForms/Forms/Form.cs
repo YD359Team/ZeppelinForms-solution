@@ -178,12 +178,28 @@ public class Form : IDisposable
         }
     }
 
-    internal void InvalidateVisual() => PlatformWindow?.Invalidate();
+    private Rectangle? _dirtyRegion;
+
+    internal Rectangle? TakeDirtyRegion()
+    {
+        Rectangle? region = _dirtyRegion;
+        _dirtyRegion = null;
+        return region;
+    }
+
+    internal void InvalidateRect(Rectangle bounds)
+    {
+        _dirtyRegion = _dirtyRegion is { } existing ? existing.Union(bounds) : bounds;
+        PlatformWindow?.Invalidate(bounds);
+    }
 
     internal void Invalidate()
     {
         PerformLayout();
-        PlatformWindow?.Invalidate();
+
+        // полная перерисовка: копим всю клиентскую область
+        _dirtyRegion = new Rectangle(Point.Empty, ClientSize);
+        PlatformWindow?.Invalidate(null);
     }
 
     // ===== Flyout API =====

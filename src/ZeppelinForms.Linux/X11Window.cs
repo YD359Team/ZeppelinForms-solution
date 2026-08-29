@@ -97,7 +97,7 @@ internal sealed class X11Window : IPlatformWindow
             (int)bounds.X, (int)bounds.Y,
             (uint)Math.Max(1, bounds.Width), (uint)Math.Max(1, bounds.Height));
 
-    public void Invalidate()
+    public void Invalidate(Rectangle? bounds = null)
     {
         // в X11 нет InvalidateRect — рисуем сразу, синхронно
         Paint();

@@ -17,6 +17,8 @@ internal sealed class SoftwareSkiaSurface : IWin32SkiaSurface
 
     private SKSurface? _surface;
 
+    public bool SupportsPartialRedraw => true;
+
     public SoftwareSkiaSurface(nint hWnd) => _hWnd = hWnd;
 
     public void Resize(int width, int height)
