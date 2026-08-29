@@ -11,6 +11,11 @@
 Объединить простоту WinForms с некоторыми идеями WPF, кроссплатформенностью Avalonia, и выкинув тонны легаси в процессе. \
 А если проект современный, то почему бы не использовать все богатые возможности .NET 10 и C# 14? 
 
+### Рендеринг
+
+ZeppelinForms ничего не знает про Skia, потому что он существует в отдельном проекте ZeppelinForms.Skia, то есть графика полностью абстрагирована от логики. \
+Если аппаратное ускорение недоступно, то идет откат на программный рендер.
+
 ### Формы
 
 **Формы** - это единственный вид окон, как и в WinForms.
@@ -20,14 +25,14 @@
 | 1 | Отладчик | ✅* |
 | 2 | Наложения | ✅* |
 | 3 | Всплывающие сообщения | ✅* |
-| 4 | Диалоговые окна | 💡 |
-| 5 | Open\ShowFileDialog | 💡 |
+| 4 | Диалоговые окна | ✅ |
+| 5 | Open\SaveFileDialog | 💡 |
 | 6 | MessageBox | 💡 |
 
 ### Контролы
 
 Все контролы должны являться наследниками `UIElement` явно или неявно - наследуя `UnitControl`, `PanelControl` или `WrapControl`. \
-Никаких компонентов из WinForms не прдусмотрено.
+Никаких компонентов из WinForms не предусмотрено.
 
 #### Единичные контролы
 
@@ -44,12 +49,18 @@
 | 5 | RadioButton | ✅ |
 | 6 | TextBox | ✅* |
 | 7 | ToggleSwitch | 💡 |
-| 8 | DateTimePicker | 💡 |
-| 9 | ColorPicker | 💡 |
-| 10 | ScrollBar | ✅ |
-| 11 | SvgIcon | 💡 |
+| 8 | DateTimePicker | ✅ |
+| 9 | TimePicker | ✅ |
+| 10 | ColorPicker | 💡 |
+| 11 | ScrollBar | ✅ |
+| 12 | SvgIcon | ✅ |
+| 13 | NumericUpDown | ✅ |
+| 14 | ProgressBar | ✅ |
+| 15 | CircularProgressBar | ✅ |
+| 16 | TrackBar | ✅ |
+| 17 | Calendar | ✅ |
 
-\* - есть баги
+\* - есть баги и отсуствует часть API
 
 #### Панели
 
@@ -59,11 +70,13 @@
 
 | № | Название      | Статус |
 |---|------------|---|
-| 1 | StackPanel      | ✅ |
-| 2 | Grid     | ✅* |
-| 3 | DockPanel | ✅ |
-| 4 | TabControl | 💡 |
-| 5 | ScrollViewer | ✅ |
+| 1 | Panel | ✅ |
+| 2 | StackPanel | ✅ |
+| 3 | Grid | ✅* |
+| 4 | DockPanel | ✅ |
+| 5 | TabControl | 💡 |
+| 6 | ScrollViewer | ✅ |
+| 7 | UniformGrid | ✅ |
 
 \* - не хватает только `ColumnLength.Auto`
 
