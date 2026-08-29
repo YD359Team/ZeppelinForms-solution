@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
@@ -130,13 +131,8 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     {
         if (index >= text.Length) return text.Length;
 
-        var enumerator = System.Globalization.StringInfo.GetTextElementEnumerator(text);
-
-        while (enumerator.MoveNext())
-            if (enumerator.ElementIndex > index)
-                return enumerator.ElementIndex;
-
-        return text.Length;
+        int length = StringInfo.GetNextTextElementLength(text.AsSpan(index));
+        return index + length;
     }
 
     // ===== фокус и мигание =====
@@ -218,9 +214,11 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         {
             _pendingHighSurrogate = null;
 
-            if (char.IsLowSurrogate(c))
+            // Rune.TryCreate сам проверит, что пара валидна —
+            // надёжнее, чем просто IsLowSurrogate
+            if (Rune.TryCreate(high, c, out Rune rune))
             {
-                InsertText(new string([high, c]));
+                InsertText(rune.ToString());
                 return;
             }
         }

@@ -1,4 +1,5 @@
 ﻿using SkiaSharp;
+using System.Text;
 using ZeppelinForms.Drawing;
 
 namespace ZeppelinForms.Skia;
@@ -113,15 +114,12 @@ internal static class SkiaFontCache
 
         float size = font.Size;
         int start = 0;
+        int position = 0;
         SKTypeface? currentTypeface = null;
 
-        int i = 0;
-        while (i < text.Length)
+        foreach (Rune rune in text.EnumerateRunes())
         {
-            int codepoint = char.ConvertToUtf32(text, i);
-            int step = char.IsSurrogatePair(text, i) ? 2 : 1;
-
-            SKTypeface typeface = SkiaFontCache.Resolve(font, codepoint);
+            SKTypeface typeface = Resolve(font, rune.Value);
 
             if (currentTypeface is null)
             {
@@ -129,18 +127,16 @@ internal static class SkiaFontCache
             }
             else if (typeface.FamilyName != currentTypeface.FamilyName)
             {
-                // сравниваем по имени: MatchCharacter отдаёт разные объекты
-                // для одного и того же шрифта, ReferenceEquals тут не работает
-                yield return (text[start..i], SkiaFontCache.GetSized(currentTypeface, size));
-                start = i;
+                yield return (text[start..position], GetSized(currentTypeface, size));
+                start = position;
                 currentTypeface = typeface;
             }
 
-            i += step;
+            position += rune.Utf16SequenceLength;
         }
 
         if (start < text.Length && currentTypeface is not null)
-            yield return (text[start..], SkiaFontCache.GetSized(currentTypeface, size));
+            yield return (text[start..], GetSized(currentTypeface, size));
     }
 
     private static readonly Dictionary<(SKTypeface, float), SKFont> SizedFonts = [];
