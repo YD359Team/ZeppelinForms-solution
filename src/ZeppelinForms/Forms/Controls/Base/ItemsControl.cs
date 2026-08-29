@@ -35,6 +35,9 @@ public class ItemsControl : PanelControl
         if (ItemTemplate is not null)
             return ItemTemplate(item);
 
+        if (item is UIElement element)
+            return element;
+
         return new Label
         {
             Text = item?.ToString() ?? string.Empty,
