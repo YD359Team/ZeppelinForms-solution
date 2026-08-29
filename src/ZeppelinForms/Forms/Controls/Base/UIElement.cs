@@ -46,6 +46,7 @@ public abstract class UIElement : IGridPlaceable
     public string? ToolTip { get; set; }
     public string Name { get; set; } = string.Empty;
     public Color Background { get; set; } = Colors.Transparent;
+    public List<MenuItem>? ContextMenu { get; set; }
     // IGridPlaceable
     public int Row { get; set; }
     public int Column { get; set; }

@@ -38,7 +38,7 @@ public sealed class Image
 
     public static Image LoadAsset(string relativePath)
     {
-        string fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
+        string fullPath = Path.Combine(AppContext.BaseDirectory, "Assets", relativePath);
         return LoadFromFile(fullPath);
     }
 

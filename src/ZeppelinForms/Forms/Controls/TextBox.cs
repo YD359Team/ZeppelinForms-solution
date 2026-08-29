@@ -7,7 +7,6 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Input.Keyboard;
-using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -252,6 +251,31 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
             case (Key)0x41 when ctrl:   // Ctrl+A
                 _selectionAnchor = 0;
                 _caretIndex = _text.Length;
+                break;
+
+            case (Key)0x43 when ctrl:   // Ctrl+C
+                if (SelectionLength > 0)
+                    Clipboard.Current.SetText(SelectedText);
+                break;
+
+            case (Key)0x58 when ctrl:   // Ctrl+X
+                if (SelectionLength > 0 && !IsReadOnly)
+                {
+                    Clipboard.Current.SetText(SelectedText);
+                    DeleteSelection();
+                    TextChanged?.Invoke(this, EventArgs.Empty);
+                }
+                break;
+
+            case (Key)0x56 when ctrl:   // Ctrl+V
+                if (!IsReadOnly && Clipboard.Current.GetText() is string pasted)
+                {
+                    string clean = IsMultiline
+                        ? pasted.Replace("\r\n", "\n").Replace('\r', '\n')
+                        : pasted.Replace("\r", "").Replace("\n", " ");
+
+                    InsertText(clean);
+                }
                 break;
 
             default:

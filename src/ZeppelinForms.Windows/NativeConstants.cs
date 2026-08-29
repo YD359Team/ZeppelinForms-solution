@@ -2,6 +2,10 @@
 
 internal static class NativeConstants
 {
+    public const uint WM_RBUTTONDOWN = 0x0204;
+    public const uint WM_RBUTTONUP = 0x0205;
+    public const uint CF_UNICODETEXT = 13;
+    public const uint GMEM_MOVEABLE = 0x0002;
     public const int SWP_NOMOVE = 0x0002;
     public const uint WS_EX_LAYERED = 0x00080000;
     public const uint LWA_ALPHA = 0x00000002;

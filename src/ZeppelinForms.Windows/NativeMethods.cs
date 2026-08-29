@@ -373,4 +373,15 @@ internal static class NativeMethods
     public static extern bool SetLayeredWindowAttributes(nint hWnd, uint crKey, byte alpha, uint flags);
     [DllImport("user32.dll")]
     public static extern bool GetClientRect(nint hWnd, out RECT lpRect);
+    [DllImport("user32.dll")] public static extern bool OpenClipboard(nint hWndNewOwner);
+    [DllImport("user32.dll")] public static extern bool CloseClipboard();
+    [DllImport("user32.dll")] public static extern bool EmptyClipboard();
+    [DllImport("user32.dll")] public static extern nint GetClipboardData(uint uFormat);
+    [DllImport("user32.dll")] public static extern nint SetClipboardData(uint uFormat, nint hMem);
+    [DllImport("user32.dll")] public static extern bool IsClipboardFormatAvailable(uint format);
+
+    [DllImport("kernel32.dll")] public static extern nint GlobalAlloc(uint uFlags, nuint dwBytes);
+    [DllImport("kernel32.dll")] public static extern nint GlobalLock(nint hMem);
+    [DllImport("kernel32.dll")] public static extern bool GlobalUnlock(nint hMem);
+    [DllImport("kernel32.dll")] public static extern nint GlobalFree(nint hMem);
 }

@@ -47,7 +47,7 @@ internal class MainForm : Form
         btnNext.Click += BtnBack_Click;
         UniformGrid grid = new() { Padding = 6f };
         PictureBox pBox = new();
-        pBox.LoadAsset("Assets\\Laughing.png");
+        pBox.LoadAsset("Laughing.png");
         ListBox lBox = new();
         lBox.Items.AddRange([new Button() { Text = "Item1"}, new Button() { Text = "Item2" }]);
         UIElement[] controls = [

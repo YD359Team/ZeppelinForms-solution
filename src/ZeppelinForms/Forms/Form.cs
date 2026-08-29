@@ -585,6 +585,43 @@ public class Form : IDisposable
         WindowStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    internal void OnContextMenu(Point point)
+    {
+        UIElement? hit = HitTestAll(point);
+
+        // меню ищем вверх по дереву: если у самой кнопки его нет,
+        // спрашиваем панель, потом форму
+        for (UIElement? current = hit; current is not null; current = current.Parent)
+        {
+            if (current.ContextMenu is { Count: > 0 } items)
+            {
+                ShowContextMenu(items, point);
+                return;
+            }
+        }
+    }
+
+    public void ShowContextMenu(List<MenuItem> items, Point position)
+    {
+        CloseAllFlyouts();
+
+        var menu = new MenuList { Items = items };
+        menu.ItemInvoked += (_, _) => CloseAllFlyouts();
+
+        menu.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
+
+        float x = Math.Min(position.X, Math.Max(0, ClientSize.Width - menu.DesiredSize.Width));
+        float y = Math.Min(position.Y, Math.Max(0, ClientSize.Height - menu.DesiredSize.Height));
+
+        menu.Position = new Point(x, y);
+        menu.Owner = this;
+
+        _overlays.Add(menu);
+        _flyouts.Add(menu);   // закроется кликом мимо — как и положено меню
+
+        Invalidate();
+    }
+
     public void Dispose()
     {
         _toolTipTimer?.Dispose();

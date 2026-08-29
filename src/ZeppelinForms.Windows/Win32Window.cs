@@ -466,6 +466,14 @@ internal sealed class Win32Window : IPlatformWindow
                     return 0;
                 }
 
+            case NativeConstants.WM_RBUTTONUP:
+                {
+                    int x = (short)(lParam.ToInt64() & 0xFFFF);
+                    int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+                    _form.OnContextMenu(new Point(x / _scale, y / _scale));
+                    return 0;
+                }
+
             case NativeConstants.WM_MOUSEWHEEL:
                 {
                     int delta = (short)((wParam.ToInt64() >> 16) & 0xFFFF);
