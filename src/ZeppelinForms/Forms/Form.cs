@@ -418,32 +418,26 @@ public class Form : IDisposable
     {
         IsInspectorEnabled = !IsInspectorEnabled;
 
-        if (!IsInspectorEnabled && _inspectorGrid is not null)
+        if (IsInspectorEnabled)
+        {
+            _inspectorGrid = new PropertyGrid
+            {
+                Size = new Size(320, ClientSize.Height),
+                Position = new Point(Math.Max(0, ClientSize.Width - 320), 0),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+            };
+
+            _inspectorGrid.Owner = this;
+            _overlays.Add(_inspectorGrid);
+        }
+        else if (_inspectorGrid is not null)
         {
             _overlays.Remove(_inspectorGrid);
             _inspectorGrid = null;
         }
 
         Invalidate();
-    }
-
-    internal void OnKeyDown(Key key)
-    {
-        if (key == Key.F12)
-        {
-            ToggleInspector();
-            Invalidate();
-            return;
-        }
-
-        var args = new KeyEventArgs(key);
-
-        for (UIElement? current = _focusDispatcher.FocusedElement; current is not null; current = current.Parent)
-        {
-            current.RaiseKeyDown(args);
-            if (args.Handled)
-                break;
-        }
     }
 
     internal void OnTextInput(char c)
@@ -478,8 +472,7 @@ public class Form : IDisposable
     {
         if (key == Key.F12)
         {
-            IsInspectorEnabled = !IsInspectorEnabled;
-            Invalidate();
+            ToggleInspector();
             return;
         }
 
@@ -492,8 +485,6 @@ public class Form : IDisposable
                 break;
         }
 
-        // Tab обрабатываем последним: если сфокусированный контрол сам
-        // хочет Tab (TextBox с IsTabAccepted), он уже выставил Handled
         if (!args.Handled && key == Key.Tab && Content is not null)
         {
             if (modifiers.HasFlag(KeyModifiers.Shift))
@@ -550,6 +541,19 @@ public class Form : IDisposable
 
         _pressedElement = hit;
         hit?.RaiseMouseDown(point);
+
+        // в режиме инспектора клик выбирает элемент, а не активирует его
+        if (IsInspectorEnabled && _inspectorGrid is not null)
+        {
+            UIElement? picked = Content is not null ? HitTester.HitTest(Content, point) : null;
+
+            if (picked is not null)
+            {
+                _inspectorGrid.SelectedObject = picked;
+                Invalidate();
+                return;
+            }
+        }
 
         if (hit is not null)
             _focusDispatcher.FocusElement(hit);
