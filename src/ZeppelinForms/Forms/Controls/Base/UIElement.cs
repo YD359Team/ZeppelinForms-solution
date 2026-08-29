@@ -272,17 +272,8 @@ public abstract class UIElement : IGridPlaceable
 
     protected virtual void OnMouseOver() { }
     protected virtual void OnMouseLeave() { }
-    protected virtual void OnMouseUp() { }
     protected virtual void OnClick(MouseClickEventArgs e) { }
     protected virtual void OnMouseWheel(MouseWheelEventArgs e) { }
-
-    internal void RaiseMouseUp()
-    {
-        if (!IsPressed) return;
-        IsPressed = false;
-        OnMouseUp();
-        Invalidate();
-    }
 
     internal void RaiseClick(MouseClickEventArgs args)
     {
