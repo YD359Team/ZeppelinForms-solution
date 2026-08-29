@@ -39,6 +39,10 @@ public class PropertyGrid : PanelControl
         while (Children.Count > 0)
             Children.RemoveAt(Children.Count - 1);
 
+        // пустой грид не показываем: невидимый элемент выпадает
+        // и из отрисовки, и из хит-теста, так что клики пройдут насквозь
+        IsVisible = _target is not null;
+
         if (_target is null)
         {
             Invalidate();

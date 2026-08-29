@@ -107,6 +107,8 @@ public class Form : IDisposable
     // ===== Инспектор (F12) =====
     public bool IsInspectorEnabled { get; private set; }
     public UIElement? InspectedElement { get; private set; }
+    private bool IsInsideInspector(Point point) =>
+_inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not null;
 
     private bool _dialogAccepted;
     private object? _dialogValue;
@@ -531,9 +533,10 @@ public class Form : IDisposable
 
         if (IsInspectorEnabled)
         {
-            // подсвечиваем только то, что принадлежит Content —
-            // иначе инспектор начинает инспектировать сам себя
-            InspectedElement = Content is not null ? HitTester.HitTest(Content, point) : null;
+            InspectedElement = !IsInsideInspector(point) && Content is not null
+                ? HitTester.HitTest(Content, point)
+                : null;
+
             Invalidate();
         }
 
@@ -566,8 +569,9 @@ public class Form : IDisposable
         _pressedElement = hit;
         hit?.RaiseMouseDown(point);
 
-        // в режиме инспектора клик выбирает элемент, а не активирует его
-        if (IsInspectorEnabled && _inspectorGrid is not null)
+        // в режиме инспектора клик по контенту выбирает элемент, но клик
+        // по самому гриду должен работать как обычный клик по контролам
+        if (IsInspectorEnabled && _inspectorGrid is not null && !IsInsideInspector(point))
         {
             UIElement? picked = Content is not null ? HitTester.HitTest(Content, point) : null;
 
