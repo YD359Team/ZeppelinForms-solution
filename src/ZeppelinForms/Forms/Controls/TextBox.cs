@@ -47,6 +47,11 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     public bool IsReadOnly { get; set; }
     public char? PasswordChar { get; set; }
 
+    private string DisplayText =>
+    PasswordChar is char pc && !IsMultiline
+        ? new string(pc, new System.Globalization.StringInfo(_text).LengthInTextElements)
+        : _text;
+
     public int SelectionStart => Math.Min(_selectionAnchor, _caretIndex);
     public int SelectionLength => Math.Abs(_caretIndex - _selectionAnchor);
     public string SelectedText => _text.Substring(SelectionStart, SelectionLength);
@@ -77,9 +82,6 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         _blinkTimer = new System.Threading.Timer(OnBlink, null, Timeout.Infinite, Timeout.Infinite);
     }
 
-    private string DisplayText =>
-        PasswordChar is char pc && !IsMultiline ? new string(pc, _text.Length) : _text;
-
     private string[] DisplayLines => DisplayText.Split('\n');
 
     // ===== перевод между линейным индексом и (строка, колонка) =====
@@ -104,6 +106,36 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
             index += lines[i].Length + 1;   // +1 на сам '\n'
 
         return index + Math.Clamp(column, 0, lines[line].Length);
+    }
+
+    private static int PreviousTextElementIndex(string text, int index)
+    {
+        if (index <= 0) return 0;
+
+        var enumerator = System.Globalization.StringInfo.GetTextElementEnumerator(text);
+        int previous = 0;
+
+        while (enumerator.MoveNext())
+        {
+            int current = enumerator.ElementIndex;
+            if (current >= index) break;
+            previous = current;
+        }
+
+        return previous;
+    }
+
+    private static int NextTextElementIndex(string text, int index)
+    {
+        if (index >= text.Length) return text.Length;
+
+        var enumerator = System.Globalization.StringInfo.GetTextElementEnumerator(text);
+
+        while (enumerator.MoveNext())
+            if (enumerator.ElementIndex > index)
+                return enumerator.ElementIndex;
+
+        return text.Length;
     }
 
     // ===== фокус и мигание =====
@@ -205,30 +237,34 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
                 break;
 
             case Key.Left:
-                _caretIndex = Math.Max(0, _caretIndex - 1);
+                _caretIndex = PreviousTextElementIndex(_text, _caretIndex);
                 if (!shift) ClearSelection();
                 break;
 
             case Key.Right:
-                _caretIndex = Math.Min(_text.Length, _caretIndex + 1);
+                _caretIndex = NextTextElementIndex(_text, _caretIndex);
                 if (!shift) ClearSelection();
                 break;
 
-            case Key.Up when IsMultiline:
+            case Key.Back when !IsReadOnly:
+                if (!DeleteSelection() && _caretIndex > 0)
                 {
-                    var (line, col) = IndexToPosition(_caretIndex);
-                    _caretIndex = PositionToIndex(line - 1, col);
-                    if (!shift) ClearSelection();
-                    break;
+                    int start = PreviousTextElementIndex(_text, _caretIndex);
+                    _text = _text.Remove(start, _caretIndex - start);
+                    _caretIndex = start;
+                    ClearSelection();
                 }
+                TextChanged?.Invoke(this, EventArgs.Empty);
+                break;
 
-            case Key.Down when IsMultiline:
+            case Key.Delete when !IsReadOnly:
+                if (!DeleteSelection() && _caretIndex < _text.Length)
                 {
-                    var (line, col) = IndexToPosition(_caretIndex);
-                    _caretIndex = PositionToIndex(line + 1, col);
-                    if (!shift) ClearSelection();
-                    break;
+                    int end = NextTextElementIndex(_text, _caretIndex);
+                    _text = _text.Remove(_caretIndex, end - _caretIndex);
                 }
+                TextChanged?.Invoke(this, EventArgs.Empty);
+                break;
 
             case Key.Home:
                 {
@@ -392,7 +428,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
 
             if (lineText.Length > 0)
             {
-                g.DrawText(
+                g.DrawWithFallback(
                     lineText,
                     new Rectangle(new Point(content.X - _scrollOffset, y), new Size(float.MaxValue, lineHeight)),
                     TextColor, EffectiveFont, HorizontalContentAlignment.Left, VerticalContentAlignment.Center);

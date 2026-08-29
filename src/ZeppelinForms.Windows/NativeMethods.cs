@@ -389,4 +389,16 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern bool KillTimer(nint hWnd, nuint uIDEvent);
+
+    [DllImport("imm32.dll")] public static extern nint ImmGetContext(nint hWnd);
+    [DllImport("imm32.dll")] public static extern bool ImmReleaseContext(nint hWnd, nint hIMC);
+    [DllImport("imm32.dll")] public static extern bool ImmSetCompositionWindow(nint hIMC, ref COMPOSITIONFORM form);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct COMPOSITIONFORM
+    {
+        public int dwStyle;
+        public POINT ptCurrentPos;
+        public RECT rcArea;
+    }
 }

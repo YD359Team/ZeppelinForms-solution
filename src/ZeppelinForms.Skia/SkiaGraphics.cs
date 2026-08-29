@@ -352,4 +352,38 @@ public sealed class SkiaGraphics : Graphics
     }
 
     public override void Rotate(float degrees) => _canvas.RotateDegrees(degrees);
+
+    public static void DrawTextWithFallback(SKCanvas canvas, string text, float x, float y, SKFont baseFont, SKPaint paint)
+    {
+        int start = 0;
+        SKTypeface? currentTypeface = baseFont.Typeface;
+
+        for (int i = 0; i < text.Length;)
+        {
+            int codepoint = char.ConvertToUtf32(text, i);
+            int charCount = char.IsSurrogatePair(text, i) ? 2 : 1;
+
+            // есть ли глиф в текущем шрифте; если нет — просим систему подобрать
+            SKTypeface? needed = baseFont.Typeface.ContainsGlyph(codepoint)
+                ? baseFont.Typeface
+                : SKFontManager.Default.MatchCharacter(codepoint) ?? baseFont.Typeface;
+
+            if (!ReferenceEquals(needed, currentTypeface) && i > start)
+            {
+                using var run = new SKFont(currentTypeface, baseFont.Size);
+                canvas.DrawText(text[start..i], x, y, SKTextAlign.Left, run, paint);
+                x += run.MeasureText(text[start..i]);
+                start = i;
+            }
+
+            currentTypeface = needed;
+            i += charCount;
+        }
+
+        if (start < text.Length)
+        {
+            using var run = new SKFont(currentTypeface, baseFont.Size);
+            canvas.DrawText(text[start..], x, y, SKTextAlign.Left, run, paint);
+        }
+    }
 }

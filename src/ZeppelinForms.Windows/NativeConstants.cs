@@ -2,6 +2,7 @@
 
 internal static class NativeConstants
 {
+    public const int CFS_POINT = 0x0002;
     public const uint WM_TIMER = 0x0113;
     public const nuint AnimationTimerId = 1;
     public const uint WM_RBUTTONDOWN = 0x0204;

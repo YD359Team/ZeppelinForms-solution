@@ -650,4 +650,29 @@ internal sealed class Win32Window : IPlatformWindow
         NativeMethods.KillTimer(_handle, NativeConstants.AnimationTimerId);
         _ticking = false;
     }
+
+    public void SetImePosition(Point caret)
+    {
+        nint context = NativeMethods.ImmGetContext(_handle);
+        if (context == 0) return;
+
+        try
+        {
+            var form = new NativeMethods.COMPOSITIONFORM
+            {
+                dwStyle = NativeConstants.CFS_POINT,
+                ptCurrentPos = new NativeMethods.POINT
+                {
+                    X = (int)(caret.X * _scale),
+                    Y = (int)(caret.Y * _scale),
+                },
+            };
+
+            NativeMethods.ImmSetCompositionWindow(context, ref form);
+        }
+        finally
+        {
+            NativeMethods.ImmReleaseContext(_handle, context);
+        }
+    }
 }
