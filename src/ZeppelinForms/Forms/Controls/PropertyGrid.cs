@@ -32,6 +32,7 @@ public class PropertyGrid : PanelControl
     public PropertyGrid()
     {
         Background = Colors.White;
+        IsVisible = false;
     }
 
     private void Rebuild()

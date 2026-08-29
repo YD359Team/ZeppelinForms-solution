@@ -195,6 +195,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         PlatformWindow?.Invalidate(bounds);
     }
 
+    /// <summary>Перерисовать всю клиентскую область без пересчёта раскладки.</summary>
+    internal void InvalidateVisual()
+    {
+        _dirtyRegion = new Rectangle(Point.Empty, ClientSize);
+        PlatformWindow?.Invalidate(null);
+    }
+
     internal void Invalidate()
     {
         PerformLayout();
@@ -537,12 +544,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                 ? HitTester.HitTest(Content, point)
                 : null;
 
-            Invalidate();
+            InvalidateVisual();
         }
 
         ScheduleToolTip(hit);
-
-        if (IsInspectorEnabled) Invalidate();
     }
 
     internal void OnPointerLeaveWindow()
@@ -575,7 +580,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         {
             UIElement? picked = Content is not null ? HitTester.HitTest(Content, point) : null;
 
-            if (picked is not null && picked is not PropertyGrid)
+            if (picked is not null)
             {
                 _inspectorGrid.SelectedObject = picked;
                 Invalidate();
