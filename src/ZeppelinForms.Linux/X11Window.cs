@@ -23,6 +23,10 @@ internal sealed class X11Window : IPlatformWindow
     public nuint Handle => _window;
     public nuint InvokeAtom => _invokeAtom;
 
+    private float _scale = 1f;
+
+    public float Scale => _scale;
+
     public X11Window(X11Platform platform, Form form)
     {
         _platform = platform;
@@ -36,10 +40,13 @@ internal sealed class X11Window : IPlatformWindow
         _display = _platform.Display;
         int screen = X11.XDefaultScreen(_display);
 
+        _scale = X11Dpi.GetScale(_display, screen);
+
         _window = X11.XCreateSimpleWindow(
             _display, X11.XRootWindow(_display, screen),
-            (int)_form.Position.X, (int)_form.Position.Y,
-            (uint)Math.Max(1, _form.Size.Width), (uint)Math.Max(1, _form.Size.Height),
+            (int)(_form.Position.X * _scale), (int)(_form.Position.Y * _scale),
+            (uint)Math.Max(1, _form.Size.Width * _scale),
+            (uint)Math.Max(1, _form.Size.Height * _scale),
             0, 0, X11.XWhitePixel(_display, screen));
 
         X11.XSelectInput(_display, _window,
@@ -116,8 +123,8 @@ internal sealed class X11Window : IPlatformWindow
     {
         if (_surface?.BeginFrame() is SKSurface skSurface)
         {
-            Skia.SkiaRenderer.Render(_form, skSurface.Canvas, 1f, dirty);
-            _surface.EndFrame(dirty);
+            Skia.SkiaRenderer.Render(_form, skSurface.Canvas, _scale, dirty);
+            _surface.EndFrame(dirty is { } d ? ToPhysical(d) : null);
         }
 
         _pendingDirty = null;
@@ -146,19 +153,16 @@ internal sealed class X11Window : IPlatformWindow
             action();
     }
 
-    internal void Paint()
-    {
-        if (_surface?.BeginFrame() is SKSurface skSurface)
-        {
-            Skia.SkiaRenderer.Render(_form, skSurface.Canvas);
-            _surface.EndFrame();
-        }
-    }
+    // dirty-область приходит в логических координатах, а XPutImage
+    // копирует физические пиксели буфера
+    private Rectangle ToPhysical(Rectangle logical) => new(
+        new Point(logical.X * _scale, logical.Y * _scale),
+        new Size(logical.Width * _scale, logical.Height * _scale));
 
     internal void HandleConfigure(int width, int height)
     {
-        _surface?.Resize(width, height);
-        _form.ClientSize = new Size(width, height);
+        _surface?.Resize(width, height);                        // поверхность — физическая
+        _form.ClientSize = new Size(width / _scale, height / _scale);   // дерево — логическое
         _form.PerformLayout();
         Paint();
     }

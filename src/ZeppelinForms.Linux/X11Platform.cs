@@ -216,7 +216,7 @@ public sealed class X11Platform : IPlatform
                     var button = Marshal.PtrToStructure<X11.XButtonEvent>(eventPtr);
                     if (!_windows.TryGetValue(button.window, out X11Window? window)) break;
 
-                    var point = new Point(button.x, button.y);
+                    var point = new Point(button.x / window.Scale, button.y / window.Scale);
 
                     // 4 и 5 — это прокрутка колеса, а не кнопки
                     if (button.button == 4) window.Form.OnMouseWheel(point, 120);
@@ -231,9 +231,9 @@ public sealed class X11Platform : IPlatform
                     if (!_windows.TryGetValue(button.window, out X11Window? window)) break;
 
                     if (button.button == 1)
-                        window.Form.OnPointerUp(new Point(button.x, button.y));
+                        window.Form.OnPointerUp(new Point(button.x / window.Scale, button.y / window.Scale));
                     else if (button.button == 3)
-                        window.Form.OnContextMenu(new Point(button.x, button.y));
+                        window.Form.OnContextMenu(new Point(button.x / window.Scale, button.y / window.Scale));
                     break;
                 }
 
@@ -241,7 +241,7 @@ public sealed class X11Platform : IPlatform
                 {
                     var motion = Marshal.PtrToStructure<X11.XMotionEvent>(eventPtr);
                     if (_windows.TryGetValue(motion.window, out X11Window? window))
-                        window.Form.OnPointerMove(new Point(motion.x, motion.y));
+                        window.Form.OnPointerMove(new Point(motion.x / window.Scale, motion.y / window.Scale));
                     break;
                 }
 

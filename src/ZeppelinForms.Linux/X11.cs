@@ -256,4 +256,26 @@ internal static class X11
                 return (bits[fd / 64] & (1L << (fd % 64))) != 0;
         }
     }
+
+    [DllImport(Lib)] public static extern nint XResourceManagerString(nint display);
+    [DllImport(Lib)] public static extern void XrmInitialize();
+    [DllImport(Lib)] public static extern nint XrmGetStringDatabase(string data);
+    [DllImport(Lib)] public static extern void XrmDestroyDatabase(nint database);
+
+    [DllImport(Lib)]
+    public static extern bool XrmGetResource(
+    nint database, string name, string className,
+    out nint type, out XrmValue value);
+
+    [DllImport(Lib)] public static extern int XDisplayWidth(nint display, int screen);
+    [DllImport(Lib)] public static extern int XDisplayHeight(nint display, int screen);
+    [DllImport(Lib)] public static extern int XDisplayWidthMM(nint display, int screen);
+    [DllImport(Lib)] public static extern int XDisplayHeightMM(nint display, int screen);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct XrmValue
+    {
+        public uint Size;
+        public nint Address;
+    }
 }
