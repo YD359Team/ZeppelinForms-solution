@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <Version>0.1.0</Version>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <Authors>YD359Team</Authors>
     <Company>YD359Team</Company>
     <Product>ZeppelinForms</Product>
