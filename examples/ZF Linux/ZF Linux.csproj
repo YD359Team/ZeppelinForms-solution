@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>ZF_Linux</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>WinExe</OutputType>
+	<RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ZeppelinForms.Linux\ZeppelinForms.Linux.csproj" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<None Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>
