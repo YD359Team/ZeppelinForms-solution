@@ -43,6 +43,10 @@ public abstract class UIElement : IGridPlaceable
     private static float NonNegative(float value) =>
         float.IsFinite(value) && value > 0f ? value : 0f;
     public CornerRadius CornerRadius { get; set; } = CornerRadius.Zero;
+    /// <summary>Поворот в градусах вокруг центра элемента.</summary>
+    public float Rotation { get; set; }
+    protected internal bool HasTransform => Rotation != 0f;
+    internal Point Center => new(Size.Width / 2f, Size.Height / 2f);
     public bool IsEnabled { get; set; } = true;
     public bool IsVisible { get; set; } = true;
     public string? ToolTip { get; set; }
@@ -114,6 +118,25 @@ public abstract class UIElement : IGridPlaceable
         get
         {
             var bounds = new Rectangle(GetAbsolutePosition(), Size);
+
+            if (Rotation != 0f)
+            {
+                // описанный прямоугольник вокруг повёрнутого
+                float radians = Math.Abs(Rotation) * MathF.PI / 180f;
+                float cos = MathF.Abs(MathF.Cos(radians));
+                float sin = MathF.Abs(MathF.Sin(radians));
+
+                float w = Size.Width * cos + Size.Height * sin;
+                float h = Size.Width * sin + Size.Height * cos;
+
+                var center = new Point(
+                    bounds.X + Size.Width / 2f,
+                    bounds.Y + Size.Height / 2f);
+
+                bounds = new Rectangle(
+                    new Point(center.X - w / 2f, center.Y - h / 2f),
+                    new Size(w, h));
+            }
 
             if (BoxShadow is { } shadow)
             {

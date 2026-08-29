@@ -78,6 +78,15 @@ public static class SkiaRenderer
         g.Save();
         g.Translate(element.Position.X, element.Position.Y);
 
+        if (element.Rotation != 0f)
+        {
+            // поворот вокруг центра: сдвиг в центр, поворот, сдвиг обратно
+            Point center = element.Center;
+            g.Translate(center.X, center.Y);
+            g.Rotate(element.Rotation);
+            g.Translate(-center.X, -center.Y);
+        }
+
         // слой нужен, только если прозрачность реально задана: SaveLayer —
         // это отдельная offscreen-поверхность, дорого делать её на каждый элемент
         bool needsLayer = element.Opacity < 1f;
