@@ -4,7 +4,7 @@
 
 ## RUS
 
-**ZeppelinForms** (ZF) - проект-эксперимент по созданию простого UI-фреймворка без привязки к Windows, с аппаратным ускорением, простым code-behind созданием элементов. 
+**ZeppelinForms** (ZF) - проект-эксперимент по созданию простого UI-фреймворка без привязки к Windows, с аппаратным ускорением (для Windows), простым code-behind созданием элементов. 
 
 ### Текущий статус
 
@@ -13,8 +13,10 @@
 | № | Название | Статус |
 |---|------------|---|
 | 1 | Windows | ✅ |
-| 2 | Linux (X11) | ✅ |
+| 2 | Linux (X11) | ✅* |
 | 3 | MacOS | 💡 |
+
+\* - базовый функционал, но отстает от Windows версии
 
 ### Философия
 
@@ -73,6 +75,8 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 15 | CircularProgressBar | ✅ |
 | 16 | TrackBar | ✅ |
 | 17 | Calendar | ✅ |
+| 18 | MenuBar | ✅ |
+| 19 | MenuList | ✅ |
 
 \* - есть баги и отсуствует часть API
 
@@ -92,7 +96,7 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 6 | ScrollViewer | ✅ |
 | 7 | UniformGrid | ✅ |
 
-\* - не хватает только `ColumnLength.Auto`
+\* - не хватает только `GridLength.Auto`
 
 ##### Панели элементов
 
@@ -118,3 +122,41 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 1 | Border      | ✅ |
 | 2 | Spoiler     | ✅ |
 | 3 | ZoomBox     | ✅ |
+
+### Примеры кода
+
+Создание приложения в Windows
+
+```csharp
+public class Program
+{
+    static void Main()
+    {
+        WindowsPlatform windowsPlatform = new();
+        App myApp = new(windowsPlatform)
+        {
+            MainForm = new MainForm()
+        };
+        myApp.Run();
+    }
+}
+```
+
+Создание приложения в Linux (X11)
+
+```csharp
+public class Program
+{
+    static void Main()
+    {
+        X11Platform linuxPlatform = new();
+        App myApp = new(linuxPlatform)
+        {
+            MainForm = new MainForm()
+        };
+        myApp.Run();
+    }
+}
+```
+
+Смотрите проекты в папке **examples**, чтобы узнать больше.
