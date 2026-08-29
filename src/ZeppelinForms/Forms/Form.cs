@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using ZeppelinForms.Animation;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
@@ -47,6 +48,11 @@ public class Form : IDisposable
     public bool CanMinimize { get; set; } = true;
     public bool CanMaximize { get; set; } = true;
     public bool CanResize { get; set; } = true;
+
+    private readonly List<IAnimation> _animations = [];
+    private long _lastTickTicks;
+
+    public int FrameIntervalMs { get; set; } = 16;   // ~60 кадров в секунду
 
     public WindowState WindowState
     {
@@ -209,6 +215,35 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         // полная перерисовка: копим всю клиентскую область
         _dirtyRegion = new Rectangle(Point.Empty, ClientSize);
         PlatformWindow?.Invalidate(null);
+    }
+
+    internal void AddAnimation(IAnimation animation)
+    {
+        // одна анимация на связку «объект + свойство»
+        _animations.RemoveAll(a => ReferenceEquals(a.Target, animation.Target) && a.Key == animation.Key);
+        _animations.Add(animation);
+
+        if (_animations.Count == 1)
+        {
+            _lastTickTicks = Environment.TickCount64;
+            PlatformWindow?.StartTicking(FrameIntervalMs);
+        }
+    }
+
+    internal void Tick()
+    {
+        long now = Environment.TickCount64;
+        var elapsed = TimeSpan.FromMilliseconds(now - _lastTickTicks);
+        _lastTickTicks = now;
+
+        for (int i = _animations.Count - 1; i >= 0; i--)
+            if (!_animations[i].Advance(elapsed))
+                _animations.RemoveAt(i);
+
+        if (_animations.Count == 0)
+            PlatformWindow?.StopTicking();
+
+        InvalidateVisual();
     }
 
     // ===== Flyout API =====

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using ZeppelinForms.Animation;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
@@ -337,5 +338,20 @@ public abstract class UIElement : IGridPlaceable
             RaiseClick(new MouseClickEventArgs(MouseButton.Left, MouseButtonState.Up, center));
             e.Handled = true;
         }
+    }
+
+    public void Animate<T>(
+    string key, T from, T to, TimeSpan duration,
+    Func<T, T, float, T> interpolate,
+    Action<T> apply,
+    Func<float, float>? easing = null,
+    Action? completed = null)
+    {
+        Form? owner = FindOwner();
+
+        // без формы анимировать некому — просто ставим конечное значение
+        if (owner is null) { apply(to); return; }
+
+        owner.AddAnimation(new Animation<T>(this, key, from, to, duration, interpolate, apply, easing, completed));
     }
 }

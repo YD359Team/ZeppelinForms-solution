@@ -532,6 +532,10 @@ internal sealed class Win32Window : IPlatformWindow
                     return 0;
                 }
 
+            case NativeConstants.WM_TIMER when (nuint)wParam == NativeConstants.AnimationTimerId:
+                _form.Tick();
+                return 0;
+
             default:
                 return NativeMethods.DefWindowProc(
                     hWnd, message, wParam, lParam);
@@ -627,5 +631,23 @@ internal sealed class Win32Window : IPlatformWindow
         GCHandle handle = GCHandle.FromIntPtr(ptr);
 
         return handle.Target as Win32Window;
+    }
+
+    private bool _ticking;
+
+    public void StartTicking(int intervalMs)
+    {
+        if (_ticking || _handle == 0) return;
+
+        NativeMethods.SetTimer(_handle, NativeConstants.AnimationTimerId, (uint)intervalMs, 0);
+        _ticking = true;
+    }
+
+    public void StopTicking()
+    {
+        if (!_ticking || _handle == 0) return;
+
+        NativeMethods.KillTimer(_handle, NativeConstants.AnimationTimerId);
+        _ticking = false;
     }
 }

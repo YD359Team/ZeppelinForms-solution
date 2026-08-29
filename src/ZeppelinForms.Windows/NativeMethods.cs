@@ -384,4 +384,9 @@ internal static class NativeMethods
     [DllImport("kernel32.dll")] public static extern nint GlobalLock(nint hMem);
     [DllImport("kernel32.dll")] public static extern bool GlobalUnlock(nint hMem);
     [DllImport("kernel32.dll")] public static extern nint GlobalFree(nint hMem);
+    [DllImport("user32.dll")]
+    public static extern nuint SetTimer(nint hWnd, nuint nIDEvent, uint uElapse, nint lpTimerFunc);
+
+    [DllImport("user32.dll")]
+    public static extern bool KillTimer(nint hWnd, nuint uIDEvent);
 }

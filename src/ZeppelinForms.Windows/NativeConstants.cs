@@ -2,6 +2,8 @@
 
 internal static class NativeConstants
 {
+    public const uint WM_TIMER = 0x0113;
+    public const nuint AnimationTimerId = 1;
     public const uint WM_RBUTTONDOWN = 0x0204;
     public const uint WM_RBUTTONUP = 0x0205;
     public const uint CF_UNICODETEXT = 13;

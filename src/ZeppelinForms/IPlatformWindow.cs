@@ -13,4 +13,6 @@ public interface IPlatformWindow
     void Invoke(Action action);
     void SetOpacity(float opacity);
     void SetWindowState(WindowState state);
+    void StartTicking(int intervalMs);
+    void StopTicking();
 }
