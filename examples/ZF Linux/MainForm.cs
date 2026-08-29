@@ -49,7 +49,9 @@ internal class MainForm : Form
         PictureBox pBox = new();
         pBox.LoadAsset("Laughing.png");
         ListBox lBox = new();
-        lBox.Items.AddRange([new Button() { Text = "Item1"}, new Button() { Text = "Item2" }]);
+        lBox.Items.AddRange([new Button() { Text = "Item1" }, new Button() { Text = "Item2" }]);
+        ComboBox cBox = new();
+        cBox.Items.AddRange([new Button() { Text = "Item1" }, new Button() { Text = "Item2" }]);
         UIElement[] controls = [
             new Label() { Text = "Label" },
             new Button() { Text = "Button" },
@@ -65,9 +67,11 @@ internal class MainForm : Form
             new TimePicker(),
             pBox,
             lBox,
+            cBox,
             new Spoiler() { Child = new Label() { Text = "Hidden label" } },
             new CircularProgressBar() { Maximum = 1f, Value = 0.5f },
             new SvgIcon() { PathData = "M 45 45 L 345 45 L 345 345 L 45 345 Z M 195 45 L 195 345 M 45 195 L 345 195" },
+            new ColorPicker()
         ];
         grid.Children.AddRange(controls);
         dockPanel.Children.AddRange([grid, btnNext]);
