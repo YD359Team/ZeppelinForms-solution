@@ -300,4 +300,56 @@ public sealed class SkiaGraphics : Graphics
         _canvas.DrawPath(path, paint);
         _canvas.Restore();
     }
+
+    private static SKRoundRect MakeRoundRect(Rectangle rect, CornerRadius radius)
+    {
+        var skRect = new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height);
+        var rounded = new SKRoundRect();
+
+        // порядок углов в Skia: TL, TR, BR, BL — по часовой от левого верхнего
+        rounded.SetRectRadii(skRect,
+        [
+            new SKPoint(radius.TopLeft, radius.TopLeft),
+            new SKPoint(radius.TopRight, radius.TopRight),
+            new SKPoint(radius.BottomRight, radius.BottomRight),
+            new SKPoint(radius.BottomLeft, radius.BottomLeft),
+        ]);
+
+        return rounded;
+    }
+
+    public override void FillRoundRectangle(Rectangle rect, CornerRadius radius, Color color)
+    {
+        if (radius.IsZero) { FillRectangle(rect, color); return; }
+
+        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
+        using var rounded = MakeRoundRect(rect, radius);
+        _canvas.DrawRoundRect(rounded, paint);
+    }
+
+    public override void DrawRoundRectangle(Rectangle rect, CornerRadius radius, Color color, float width)
+    {
+        if (radius.IsZero) { DrawRectangle(rect, color, width); return; }
+
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(color.R, color.G, color.B, color.A),
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = width,
+        };
+
+        using var rounded = MakeRoundRect(rect, radius);
+        _canvas.DrawRoundRect(rounded, paint);
+    }
+
+    public override void ClipRoundRect(Rectangle rect, CornerRadius radius)
+    {
+        if (radius.IsZero) { ClipRect(rect); return; }
+
+        using var rounded = MakeRoundRect(rect, radius);
+        _canvas.ClipRoundRect(rounded, antialias: true);
+    }
+
+    public override void Rotate(float degrees) => _canvas.RotateDegrees(degrees);
 }

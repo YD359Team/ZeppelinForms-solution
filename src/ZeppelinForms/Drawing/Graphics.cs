@@ -30,6 +30,11 @@ public abstract class Graphics
     public abstract void DrawPolyline(ReadOnlySpan<Point> points, Color color, float width);
     public abstract void DrawArc(Rectangle rect, float startAngle, float sweepAngle, Color color, float width);
     public abstract void DrawSvgPath(string pathData, Rectangle rect, Color color, float strokeWidth = 0f);
+    public abstract void DrawShadow(Rectangle rect, BoxShadow shadow);
+    public abstract void FillRoundRectangle(Rectangle rect, CornerRadius radius, Color color);
+    public abstract void DrawRoundRectangle(Rectangle rect, CornerRadius radius, Color color, float width);
+    public abstract void ClipRoundRect(Rectangle rect, CornerRadius radius);
+    public abstract void Rotate(float degrees);
 
     public abstract void Save();
     public abstract void ClipRect(Rectangle bounds);
@@ -40,5 +45,4 @@ public abstract class Graphics
     /// <summary>Начинает слой с прозрачностью: всё нарисованное до Restore() смешается как единое целое.</summary>
     public abstract void SaveLayer(float opacity);
 
-    public abstract void DrawShadow(Rectangle rect, BoxShadow shadow);
 }

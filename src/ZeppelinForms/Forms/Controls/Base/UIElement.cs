@@ -42,6 +42,7 @@ public abstract class UIElement : IGridPlaceable
         float.IsFinite(Size.Height) ? Size.Height : 0f);
     private static float NonNegative(float value) =>
         float.IsFinite(value) && value > 0f ? value : 0f;
+    public CornerRadius CornerRadius { get; set; } = CornerRadius.Zero;
     public bool IsEnabled { get; set; } = true;
     public bool IsVisible { get; set; } = true;
     public string? ToolTip { get; set; }
