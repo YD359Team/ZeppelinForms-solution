@@ -220,4 +220,40 @@ internal static class X11
         public nuint property;
         public nuint time;
     }
+
+    [DllImport(Lib)] public static extern int XConnectionNumber(nint display);
+
+    [DllImport("libc", SetLastError = true)]
+    public static extern int select(int nfds, ref FdSet readfds, nint writefds, nint exceptfds, ref TimeVal timeout);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct TimeVal
+    {
+        public nint Seconds;
+        public nint Microseconds;
+    }
+
+    // fd_set в glibc — битовая маска на 1024 дескриптора (16 машинных слов по 64 бита)
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct FdSet
+    {
+        private fixed long _bits[16];
+
+        public void Clear()
+        {
+            for (int i = 0; i < 16; i++)
+                _bits[i] = 0;
+        }
+
+        public void Set(int fd)
+        {
+            _bits[fd / 64] |= 1L << (fd % 64);
+        }
+
+        public readonly bool IsSet(int fd)
+        {
+            fixed (long* bits = _bits)
+                return (bits[fd / 64] & (1L << (fd % 64))) != 0;
+        }
+    }
 }

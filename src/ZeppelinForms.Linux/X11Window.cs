@@ -97,10 +97,31 @@ internal sealed class X11Window : IPlatformWindow
             (int)bounds.X, (int)bounds.Y,
             (uint)Math.Max(1, bounds.Width), (uint)Math.Max(1, bounds.Height));
 
+    private Rectangle? _pendingDirty;
+
     public void Invalidate(Rectangle? bounds = null)
     {
-        // в X11 нет InvalidateRect — рисуем сразу, синхронно
-        Paint();
+        // в X11 нет отложенной перерисовки — копим область и рисуем сразу
+        if (bounds is null)
+            _pendingDirty = null;
+        else if (_pendingDirty is { } existing)
+            _pendingDirty = existing.Union(bounds.Value);
+        else
+            _pendingDirty = bounds;
+
+        Paint(bounds is null ? null : _pendingDirty);
+    }
+
+    internal void Paint(Rectangle? dirty = null)
+    {
+        if (_surface?.BeginFrame() is SKSurface skSurface)
+        {
+            Skia.SkiaRenderer.Render(_form, skSurface.Canvas, 1f, dirty);
+            _surface.EndFrame(dirty);
+        }
+
+        _pendingDirty = null;
+        _form.TakeDirtyRegion();
     }
 
     public void Invoke(Action action)
@@ -143,6 +164,12 @@ internal sealed class X11Window : IPlatformWindow
     }
 
     internal bool IsDeleteMessage(nuint atom) => atom == _wmDeleteWindow;
+
+    public void StartTicking(int intervalMs) => _platform.StartTicking(this, intervalMs);
+
+    public void StopTicking() => _platform.StopTicking(this);
+
+    internal void RaiseTick() => _form.Tick();
 
     internal Form Form => _form;
 }

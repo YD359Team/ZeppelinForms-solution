@@ -66,12 +66,93 @@ public sealed class X11Platform : IPlatform
             PumpOnce();
     }
 
+    private readonly HashSet<X11Window> _tickingWindows = [];
+    private int _tickIntervalMs = 16;
+    private long _lastTickTicks;
+
+    internal void StartTicking(X11Window window, int intervalMs)
+    {
+        _tickIntervalMs = intervalMs;
+
+        if (_tickingWindows.Count == 0)
+            _lastTickTicks = Environment.TickCount64;
+
+        _tickingWindows.Add(window);
+    }
+
+    internal void StopTicking(X11Window window) => _tickingWindows.Remove(window);
+
     public void Run()
     {
         _running = true;
 
         while (_running)
             PumpOnce();
+    }
+
+    private void PumpOnce()
+    {
+        WaitForEventOrTimeout();
+
+        // разбираем всё, что накопилось, не блокируясь
+        while (X11.XPending(Display) > 0)
+        {
+            nint buffer = Marshal.AllocHGlobal(192);
+
+            try
+            {
+                X11.XNextEvent(Display, buffer);
+                Dispatch(buffer);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+
+        DispatchTick();
+    }
+
+    private void WaitForEventOrTimeout()
+    {
+        // события уже есть — ждать нечего
+        if (X11.XPending(Display) > 0)
+            return;
+
+        int fd = X11.XConnectionNumber(Display);
+
+        var readSet = new X11.FdSet();
+        readSet.Clear();
+        readSet.Set(fd);
+
+        // без анимаций ждём событие сколь угодно долго, с анимациями —
+        // просыпаемся к следующему кадру, даже если ввода не было
+        int timeoutMs = _tickingWindows.Count > 0 ? _tickIntervalMs : 100;
+
+        var timeout = new X11.TimeVal
+        {
+            Seconds = timeoutMs / 1000,
+            Microseconds = (timeoutMs % 1000) * 1000,
+        };
+
+        X11.select(fd + 1, ref readSet, 0, 0, ref timeout);
+    }
+
+    private void DispatchTick()
+    {
+        if (_tickingWindows.Count == 0)
+            return;
+
+        long now = Environment.TickCount64;
+        if (now - _lastTickTicks < _tickIntervalMs)
+            return;
+
+        _lastTickTicks = now;
+
+        // Tick может остановить анимации и убрать окно из набора —
+        // поэтому идём по копии
+        foreach (X11Window window in _tickingWindows.ToList())
+            window.RaiseTick();
     }
 
     public void Exit()
@@ -101,22 +182,6 @@ public sealed class X11Platform : IPlatform
             Marshal.StructureToPtr(message, buffer, false);
             X11.XSendEvent(Display, window.Handle, false, 0, buffer);
             X11.XFlush(Display);
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(buffer);
-        }
-    }
-
-    private void PumpOnce()
-    {
-        // XEvent — union размером 24 машинных слова
-        nint buffer = Marshal.AllocHGlobal(192);
-
-        try
-        {
-            X11.XNextEvent(Display, buffer);
-            Dispatch(buffer);
         }
         finally
         {

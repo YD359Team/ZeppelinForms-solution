@@ -1,5 +1,6 @@
 ﻿using SkiaSharp;
 using System.Runtime.InteropServices;
+using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Linux;
 
@@ -92,4 +93,33 @@ internal sealed class X11SkiaSurface : IDisposable
     private static readonly int DataFieldOffset = 16;
 
     public void Dispose() => Release();
+
+    public bool SupportsPartialRedraw => true;
+
+    public void EndFrame(Rectangle? dirty = null)
+    {
+        if (_surface is null || _image == 0) return;
+
+        _surface.Canvas.Flush();
+
+        if (dirty is { } rect)
+        {
+            int x = Math.Max(0, (int)Math.Floor(rect.X));
+            int y = Math.Max(0, (int)Math.Floor(rect.Y));
+            int right = Math.Min(_width, (int)Math.Ceiling(rect.X + rect.Width));
+            int bottom = Math.Min(_height, (int)Math.Ceiling(rect.Y + rect.Height));
+
+            if (right <= x || bottom <= y) return;
+
+            // копируем на экран только изменившийся прямоугольник
+            X11.XPutImage(_display, _window, _gc, _image,
+                x, y, x, y, (uint)(right - x), (uint)(bottom - y));
+        }
+        else
+        {
+            X11.XPutImage(_display, _window, _gc, _image, 0, 0, 0, 0, (uint)_width, (uint)_height);
+        }
+
+        X11.XFlush(_display);
+    }
 }
