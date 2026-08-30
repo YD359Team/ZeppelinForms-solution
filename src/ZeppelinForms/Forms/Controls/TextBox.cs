@@ -344,7 +344,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         g.ClipRect(content);
 
         int selectionStart = ToDisplayIndex(_document.SelectionStart);
-        int selectionEnd = selectionStart + ToDisplayIndex(_document.SelectionStart + _document.SelectionLength) - selectionStart;
+        int selectionEnd = ToDisplayIndex(_document.SelectionStart + _document.SelectionLength);
         int lineStartIndex = 0;
 
         float blockTop = content.Y + (IsMultiline ? 0 : VerticalOffsetForSingleLine(content, lineHeight));
