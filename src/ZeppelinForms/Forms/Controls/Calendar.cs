@@ -23,6 +23,12 @@ public class Calendar : UnitControl
     public Color SelectionColor { get; set; } = LightThemeColors.ButtonFill;
     public Color TodayColor { get; set; } = new Color(255, 220, 235, 255);
 
+    private int _hoveredCell = -1;
+    private int _hoveredHeaderButton;   // -1 — назад, 1 — вперёд, 0 — нет
+
+    public Color HoverColor { get; set; } = new Color(255, 235, 242, 255);
+    public Color HeaderHoverColor { get; set; } = new Color(255, 228, 228, 228);
+
     public Calendar()
     {
         Background = Colors.White;
@@ -135,6 +141,49 @@ public class Calendar : UnitControl
         Invalidate();
 
         DateSelected?.Invoke(this, picked);
+    }
+
+    private(int Cell, int HeaderButton) HitFromPoint(Point location)
+    {
+        Point abs = GetAbsolutePosition();
+        float localX = location.X - abs.X - Padding.Left;
+        float localY = location.Y - abs.Y - Padding.Top;
+
+        if (localY < HeaderHeight)
+        {
+            if (localX < 28) return (-1, -1);
+            if (localX > ContentBounds.Width - 28) return (-1, 1);
+            return (-1, 0);
+        }
+
+        float gridTop = HeaderHeight + DayOfWeekHeight;
+        if (localY < gridTop) return (-1, 0);
+
+        var cell = CellSize;
+        int col = (int)(localX / cell.Width);
+        int row = (int)((localY - gridTop) / cell.Height);
+
+        if (col < 0 || col >= Columns || row < 0 || row >= Rows)
+            return (-1, 0);
+
+        return (row * Columns + col, 0);
+    }
+
+    protected override void OnMouseMove(Point location)
+    {
+        var (cell, header) = HitFromPoint(location);
+
+        if (cell == _hoveredCell && header == _hoveredHeaderButton) return;
+
+        _hoveredCell = cell;
+        _hoveredHeaderButton = header;
+        InvalidateVisual();
+    }
+
+    protected override void OnMouseLeave()
+    {
+        _hoveredCell = -1;
+        _hoveredHeaderButton = 0;
     }
 
     public void SetSelectedDate(DateTime date)

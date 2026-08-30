@@ -7,7 +7,11 @@
 - Add ToggleButton
 - Add SplitButton
 
+### Fixes and extensions
+
 - Add ProgressBar display text customization
+- NumericUpDown  contains keyboard input, dot, caret
+- Add Calendar mouse hover effect
 
 ## [0.2.1] — 2026-08-30
 
