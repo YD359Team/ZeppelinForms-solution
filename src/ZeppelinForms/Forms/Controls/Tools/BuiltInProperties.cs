@@ -50,6 +50,9 @@ internal static class BuiltInProperties
             o => ((T)o).Size.Height,
             (o, v) => ((T)o).Size = new Size(((T)o).Size.Width, (float)(v ?? 0f))),
 
+        new("ActualWidth", typeof(float), o => ((T)o).ActualSize.Width),
+        new("ActualHeight", typeof(float), o => ((T)o).ActualSize.Height),
+
         new("Opacity", typeof(float),
             o => ((T)o).Opacity,
             (o, v) => ((T)o).Opacity = (float)(v ?? 1f)),
