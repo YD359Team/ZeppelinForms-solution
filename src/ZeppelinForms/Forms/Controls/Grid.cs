@@ -148,7 +148,7 @@ public class Grid : PanelControl
     }
 }
 
-public readonly partial record struct GridLength(float Value, GridUnit Unit)
+public readonly record struct GridLength(float Value, GridUnit Unit)
 {
     public bool IsStar => Unit == GridUnit.Star;
     public bool IsAuto => Unit == GridUnit.Auto;
