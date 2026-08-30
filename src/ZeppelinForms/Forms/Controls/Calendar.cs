@@ -73,6 +73,10 @@ public class Calendar : UnitControl
 
         for (int i = 0; i < Columns; i++)
         {
+            if (_hoveredHeaderButton == -1)
+                g.FillRectangle(new Rectangle(new Point(content.X, content.Y), new Size(28, HeaderHeight)), HeaderHoverColor);
+            else if (_hoveredHeaderButton == 1)
+                g.FillRectangle(new Rectangle(new Point(content.X + content.Width - 28, content.Y), new Size(28, HeaderHeight)), HeaderHoverColor);
             g.DrawText(dayNames[i],
                 new Rectangle(
                     new Point(content.X + i * cell.Width, content.Y + HeaderHeight),
@@ -99,6 +103,15 @@ public class Calendar : UnitControl
                 Color color = date.Month == _displayMonth.Month
                     ? (SelectedDate?.Date == date.Date ? Colors.White : TextColor)
                     : MutedColor;
+
+                int cellIndex = row * Columns + col;
+
+                if (SelectedDate?.Date == date.Date)
+                    g.FillRectangle(rect, SelectionColor);
+                else if (cellIndex == _hoveredCell)
+                    g.FillRectangle(rect, HoverColor);
+                else if (date.Date == DateTime.Today)
+                    g.FillRectangle(rect, TodayColor);
 
                 g.DrawText(date.Day.ToString(), rect, color, font,
                     HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
