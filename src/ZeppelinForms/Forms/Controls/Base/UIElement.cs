@@ -72,10 +72,10 @@ public abstract class UIElement : IGridPlaceable
                     return current.Font;
 
                 if (current.Parent is null)
-                    return current.Owner?.Font ?? Drawing.Font.Default;
+                    return current.Owner?.Font ?? Font.Default;
             }
 
-            return Drawing.Font.Default;
+            return Font.Default;
         }
     }
 
@@ -354,4 +354,8 @@ public abstract class UIElement : IGridPlaceable
             e.Handled = true;
         }
     }
+
+    protected virtual void OnDetached() { }
+
+    internal void RaiseDetached() => OnDetached();
 }

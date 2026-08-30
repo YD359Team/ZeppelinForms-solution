@@ -109,6 +109,22 @@ public class TimePicker : UnitControl, IInputElement, IBorderedElement
         hours.SelectionChanged += (_, _) => Apply();
         minutes.SelectionChanged += (_, _) => Apply();
 
+        var hoursScroller = new ScrollViewer
+        {
+            Content = hours,
+            Size = new Size(78, 160),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+
+        var minutesScroller = new ScrollViewer
+        {
+            Content = minutes,
+            Size = new Size(78, 160),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+
         _flyout = new Border
         {
             Background = Colors.White,
@@ -119,7 +135,7 @@ public class TimePicker : UnitControl, IInputElement, IBorderedElement
             {
                 Orientation = Orientation.Horizontal,
                 Spacing = 4,
-                Children = { hours, minutes },
+                Children = { hoursScroller, minutesScroller },
             },
         };
 

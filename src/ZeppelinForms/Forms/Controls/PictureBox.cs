@@ -12,10 +12,10 @@ public class PictureBox : UnitControl
 {
     public ImageFlip Flip { get; set; } = ImageFlip.None;
     public ImageLayout Layout { get; set; } = ImageLayout.Stretch;
+    public string? Source { get; private set; }
 
     private Image? _image;
-
-    public string? Source { get; private set; }
+    private static readonly Dictionary<string, Image> AssetCache = [];
 
     public void Load(string path)
     {
@@ -26,7 +26,13 @@ public class PictureBox : UnitControl
 
     public void LoadAsset(string relativePath)
     {
-        _image = Image.LoadAsset(relativePath);
+        if (!AssetCache.TryGetValue(relativePath, out Image? image))
+        {
+            image = Image.LoadAsset(relativePath);
+            AssetCache[relativePath] = image;
+        }
+
+        _image = image;
         Source = relativePath;
         Invalidate();
     }

@@ -152,7 +152,35 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         });
     }
 
-    internal void DetachTree(UIElement root) => Walk(root, NameScope.Unregister);
+    internal void DetachTree(UIElement root)
+    {
+        Walk(root, element =>
+        {
+            NameScope.Unregister(element);
+            element.RaiseDetached();
+        });
+
+        // иначе выброшенное дерево остаётся живым через ссылки диспетчера
+        if (_hoveredElement is not null && IsInTree(root, _hoveredElement))
+            _hoveredElement = null;
+
+        if (_pressedElement is not null && IsInTree(root, _pressedElement))
+            _pressedElement = null;
+
+        InspectedElement = null;
+        _toolTipOwner = null;
+
+        _animations.RemoveAll(a => a.Target is UIElement e && IsInTree(root, e));
+    }
+
+    private static bool IsInTree(UIElement root, UIElement candidate)
+    {
+        for (UIElement? current = candidate; current is not null; current = current.Parent)
+            if (ReferenceEquals(current, root))
+                return true;
+
+        return false;
+    }
 
     private static void Walk(UIElement root, Action<UIElement> action)
     {

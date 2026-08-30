@@ -498,6 +498,12 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         return ResolveSize(content, availableSize);
     }
 
+    protected override void OnDetached()
+    {
+        _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        _blinkTimer.Dispose();
+    }
+
     public void Dispose()
     {
         _blinkTimer?.Dispose();
