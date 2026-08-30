@@ -48,12 +48,15 @@ public class ToggleSwitch : UnitControl, ITextElement, IInputElement
 
     protected override bool IsKeyActivatable => true;
 
+    public HorizontalContentAlignment HorizontalContentAlign { get; set; }
+    public VerticalContentAlignment VerticalContentAlign { get; set; }
+
     private void AnimateThumb()
     {
         float from = _thumbProgress;
         float to = _isOn ? 1f : 0f;
 
-        Animate("toggle", from, to, TimeSpan.FromMilliseconds(140),
+        this.Animate("toggle", from, to, TimeSpan.FromMilliseconds(140),
             Interpolators.Float,
             value => { _thumbProgress = value; InvalidateVisual(); });
     }
