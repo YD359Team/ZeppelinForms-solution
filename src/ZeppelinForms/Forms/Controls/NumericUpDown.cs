@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -35,6 +36,18 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         }
     }
 
+    private string? _editText;
+    private bool _isEditing;
+    private int _caretIndex;
+
+    /// <summary>Разрешить ввод значения с клавиатуры.</summary>
+    public bool IsEditable { get; set; } = true;
+
+    private string DisplayText => _isEditing ? _editText ?? string.Empty : _value.ToString($"F{DecimalPlaces}");
+
+    private char DecimalSeparator =>
+        CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0];
+
     public event EventHandler? ValueChanged;
 
     public Color TextColor { get; set; } = Colors.Black;
@@ -54,8 +67,6 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         Padding = new Thickness(6, 3);
     }
 
-    private string DisplayText => _value.ToString($"F{DecimalPlaces}");
-
     private Rectangle UpButtonRect => new(
         new Point(ActualSize.Width - ButtonWidth, 0),
         new Size(ButtonWidth, ActualSize.Height / 2f));
@@ -69,13 +80,28 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         if (Background.A > 0)
             g.FillRectangle(this.LocalBounds, Background);
 
-        var text = new Rectangle(
+        if (_isEditing && IsFocused)
+        {
+            string text = DisplayText;
+            float textWidth = TextMeasurer.Current.MeasureText(text, EffectiveFont).Width;
+            float caretOffset = TextMeasurer.Current.MeasureTextWidth(text, _caretIndex, EffectiveFont);
+
+            // текст выровнен вправо, поэтому каретку считаем от правого края
+            float right = ActualSize.Width - ButtonWidth - Padding.Right;
+            float caretX = right - textWidth + caretOffset;
+
+            g.FillRectangle(
+                new Rectangle(new Point(caretX, Padding.Top + 2), new Size(1f, Math.Max(0, ActualSize.Height - Padding.Vertical - 4))),
+                TextColor);
+        }
+
+        var textRect = new Rectangle(
             new Point(Padding.Left, Padding.Top),
             new Size(
                 Math.Max(0, ActualSize.Width - ButtonWidth - Padding.Horizontal),
                 Math.Max(0, ActualSize.Height - Padding.Vertical)));
 
-        g.DrawText(DisplayText, text, TextColor, EffectiveFont,
+        g.DrawText(DisplayText, textRect, TextColor, EffectiveFont,
             HorizontalContentAlignment.Right, VerticalContentAlignment.Center);
 
         g.FillRectangle(UpButtonRect, _hoverUp ? ButtonHoverColor : ButtonColor);
@@ -141,14 +167,111 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         e.Handled = true;
     }
 
+    protected override void OnGotFocus()
+    {
+        if (!IsEditable) return;
+
+        _isEditing = true;
+        _editText = _value.ToString($"F{DecimalPlaces}");
+        _caretIndex = _editText.Length;
+        InvalidateVisual();
+    }
+
+    protected override void OnLostFocus()
+    {
+        CommitEdit();
+    }
+
+    private void CommitEdit()
+    {
+        if (!_isEditing) return;
+
+        _isEditing = false;
+
+        if (decimal.TryParse(_editText, NumberStyles.Number, CultureInfo.CurrentCulture, out decimal parsed))
+            Value = parsed;
+
+        // не распарсилось — молча возвращаем прежнее значение,
+        // ронять приложение из-за опечатки не за что
+        _editText = null;
+        InvalidateVisual();
+    }
+
+    protected override void OnTextInput(char c)
+    {
+        if (!IsEditable || !_isEditing) return;
+
+        bool isDigit = char.IsAsciiDigit(c);
+        bool isSeparator = (c == '.' || c == ',' || c == DecimalSeparator) && DecimalPlaces > 0;
+        bool isMinus = c == '-' && _caretIndex == 0 && Minimum < 0;
+
+        if (!isDigit && !isSeparator && !isMinus) return;
+
+        // разделитель уже есть — второй не нужен
+        if (isSeparator && (_editText?.Contains(DecimalSeparator) ?? false)) return;
+
+        // точку с клавиатуры приводим к разделителю текущей культуры,
+        // иначе decimal.TryParse её не примет
+        char inserted = isSeparator ? DecimalSeparator : c;
+
+        _editText = (_editText ?? string.Empty).Insert(_caretIndex, inserted.ToString());
+        _caretIndex++;
+
+        InvalidateVisual();
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        if (_isEditing)
+        {
+            switch (e.Key)
+            {
+                case Key.Enter:
+                    CommitEdit();
+                    OnGotFocus();   // сразу возвращаемся в режим правки
+                    e.Handled = true;
+                    return;
+
+                case Key.Escape:
+                    _isEditing = false;
+                    _editText = null;
+                    InvalidateVisual();
+                    e.Handled = true;
+                    return;
+
+                case Key.Back when _caretIndex > 0:
+                    _editText = _editText!.Remove(_caretIndex - 1, 1);
+                    _caretIndex--;
+                    InvalidateVisual();
+                    e.Handled = true;
+                    return;
+
+                case Key.Delete when _caretIndex < (_editText?.Length ?? 0):
+                    _editText = _editText!.Remove(_caretIndex, 1);
+                    InvalidateVisual();
+                    e.Handled = true;
+                    return;
+
+                case Key.Left:
+                    _caretIndex = Math.Max(0, _caretIndex - 1);
+                    InvalidateVisual();
+                    e.Handled = true;
+                    return;
+
+                case Key.Right:
+                    _caretIndex = Math.Min(_editText?.Length ?? 0, _caretIndex + 1);
+                    InvalidateVisual();
+                    e.Handled = true;
+                    return;
+            }
+        }
+
         switch (e.Key)
         {
-            case Key.Up: Value += Step; e.Handled = true; break;
-            case Key.Down: Value -= Step; e.Handled = true; break;
-            case Key.Home: Value = Minimum; e.Handled = true; break;
-            case Key.End: Value = Maximum; e.Handled = true; break;
+            case Key.Up: CommitEdit(); Value += Step; OnGotFocus(); e.Handled = true; break;
+            case Key.Down: CommitEdit(); Value -= Step; OnGotFocus(); e.Handled = true; break;
+            case Key.Home: CommitEdit(); Value = Minimum; OnGotFocus(); e.Handled = true; break;
+            case Key.End: CommitEdit(); Value = Maximum; OnGotFocus(); e.Handled = true; break;
         }
     }
 

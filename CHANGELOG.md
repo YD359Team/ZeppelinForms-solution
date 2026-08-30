@@ -7,6 +7,8 @@
 - Add ToggleButton
 - Add SplitButton
 
+- Add ProgressBar display text customization
+
 ## [0.2.1] — 2026-08-30
 
 - Hot fix Linux tests & CI
