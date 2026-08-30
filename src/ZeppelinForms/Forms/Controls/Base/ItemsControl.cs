@@ -27,8 +27,102 @@ public class ItemsControl : PanelControl
         Items.CollectionChanged += Items_CollectionChanged;
     }
 
-    private void Items_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
-        RegenerateContainers();
+    private readonly Dictionary<object, UIElement> _containers = new(ReferenceEqualityComparer.Instance);
+
+    private void Items_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        switch (e.Action)
+        {
+            case NotifyCollectionChangedAction.Add:
+                InsertContainers(e.NewStartingIndex, e.NewItems);
+                break;
+
+            case NotifyCollectionChangedAction.Remove:
+                RemoveContainers(e.OldStartingIndex, e.OldItems?.Count ?? 0, e.OldItems);
+                break;
+
+            case NotifyCollectionChangedAction.Replace:
+                RemoveContainers(e.OldStartingIndex, e.OldItems?.Count ?? 0, e.OldItems);
+                InsertContainers(e.NewStartingIndex, e.NewItems);
+                break;
+
+            case NotifyCollectionChangedAction.Move:
+                MoveContainer(e.OldStartingIndex, e.NewStartingIndex);
+                break;
+
+            default:
+                // Reset не сообщает, что именно убрали — только полная пересборка
+                RegenerateContainers();
+                return;
+        }
+
+        Invalidate();
+    }
+
+    private void InsertContainers(int index, System.Collections.IList? items)
+    {
+        if (items is null) return;
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            object? item = items[i];
+            if (item is null) continue;
+
+            UIElement container = GetOrCreateContainer(item);
+            Children.Insert(Math.Clamp(index + i, 0, Children.Count), container);
+        }
+    }
+
+    private void RemoveContainers(int index, int count, System.Collections.IList? items)
+    {
+        for (int i = count - 1; i >= 0; i--)
+        {
+            int position = index + i;
+            if (position < 0 || position >= Children.Count) continue;
+
+            Children.RemoveAt(position);
+        }
+
+        if (items is null) return;
+
+        foreach (object? item in items)
+            if (item is not null)
+                _containers.Remove(item);
+    }
+
+    private void MoveContainer(int from, int to)
+    {
+        if (from < 0 || from >= Children.Count) return;
+
+        UIElement container = Children[from];
+        Children.RemoveAt(from);
+        Children.Insert(Math.Clamp(to, 0, Children.Count), container);
+    }
+
+    /// <summary>Контейнер на элемент данных создаётся один раз: при переносе
+    /// или замене соседей строка сохраняет своё состояние.</summary>
+    private UIElement GetOrCreateContainer(object item)
+    {
+        if (_containers.TryGetValue(item, out UIElement? existing))
+            return existing;
+
+        UIElement created = CreateContainer(item);
+        _containers[item] = created;
+        return created;
+    }
+
+    protected void RegenerateContainers()
+    {
+        while (Children.Count > 0)
+            Children.RemoveAt(Children.Count - 1);
+
+        _containers.Clear();
+
+        foreach (object item in Items)
+            Children.Add(GetOrCreateContainer(item));
+
+        Invalidate();
+    }
 
     protected virtual UIElement CreateContainer(object item)
     {
@@ -46,20 +140,6 @@ public class ItemsControl : PanelControl
             VerticalContentAlign = VerticalContentAlignment.Center,
             Padding = new Thickness(6, 3),
         };
-    }
-
-    protected void RegenerateContainers()
-    {
-        // ВАЖНО: Children.Clear() поднимает Reset, у которого OldItems == null,
-        // поэтому PanelControl не смог бы отвязать Parent у старых детей.
-        // Удаляем поштучно — каждый Remove несёт нормальный OldItems.
-        while (Children.Count > 0)
-            Children.RemoveAt(Children.Count - 1);
-
-        foreach (var item in Items)
-            Children.Add(CreateContainer(item));
-
-        Invalidate();
     }
 
     protected override Size MeasureContentOverride(Size availableSize)
