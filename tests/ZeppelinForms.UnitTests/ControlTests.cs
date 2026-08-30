@@ -54,4 +54,42 @@ public class ControlTests
 
         Assert.Equal("привет ", doc.Text);
     }
+
+    [Fact]
+    public void TextBoxUndoTest()
+    {
+        var doc = new TextDocument();
+
+        foreach (char c in "привет")
+            doc.Insert(c.ToString());
+
+        doc.Undo();
+
+        Assert.Equal(string.Empty, doc.Text);
+    }
+
+    [Fact]
+    public void TextBoxBackspaceEmojiTest()
+    {
+        var doc = new TextDocument { Text = "тест 👍🏽" };
+        doc.SetCaret(doc.Text.Length);
+
+        doc.Backspace();
+
+        Assert.Equal("тест ", doc.Text);
+    }
+
+    [Fact]
+    public void TextBoxMoveVerticalTest()
+    {
+        var doc = new TextDocument { IsMultiline = true, Text = "длинная строка\nкор\nещё одна длинная" };
+        doc.SetCaret(12);
+
+        doc.MoveVertical(1, false);
+        doc.MoveVertical(1, false);
+
+        var (line, column) = doc.ToPosition(doc.CaretIndex);
+        Assert.Equal(2, line);
+        Assert.Equal(12, column);
+    }
 }

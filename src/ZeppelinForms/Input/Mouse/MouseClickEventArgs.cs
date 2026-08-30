@@ -6,7 +6,8 @@ namespace ZeppelinForms.Input.Mouse;
 public sealed record class MouseClickEventArgs(
     MouseButton Button,
     MouseButtonState State,
-    Point Location) : ZfEventArgs
+    Point Location,
+    int count) : ZfEventArgs
 {
     public bool Handled { get; set; }
 }

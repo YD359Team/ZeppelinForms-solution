@@ -112,6 +112,10 @@ public class Form : IDisposable
     private UIElement? _pressedElement;
     private readonly FocusDispatcher _focusDispatcher = new();
 
+    private long _lastClickTicks;
+    private Point _lastClickPoint;
+    private int _clickCount;
+
     // ===== ToolTip =====
     public int ToolTipDelay { get; set; } = 700;
     private readonly System.Threading.Timer _toolTipTimer;
@@ -656,6 +660,14 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     internal void OnPointerDown(Point point)
     {
+        long now = Environment.TickCount64;
+
+        bool sameSpot = Math.Abs(point.X - _lastClickPoint.X) < 4 && Math.Abs(point.Y - _lastClickPoint.Y) < 4;
+        _clickCount = (now - _lastClickTicks < 400 && sameSpot) ? _clickCount + 1 : 1;
+
+        _lastClickTicks = now;
+        _lastClickPoint = point;
+
         HideToolTip();
 
         // только флауты перехватывают клик мимо себя; тосты и тултипы — нет
@@ -697,7 +709,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         if (hit is not null && ReferenceEquals(hit, _pressedElement))
         {
-            var args = new MouseClickEventArgs(MouseButton.Left, MouseButtonState.Up, point);
+            var args = new MouseClickEventArgs(MouseButton.Left, MouseButtonState.Up, point, _clickCount);
 
             for (UIElement? current = hit; current is not null; current = current.Parent)
             {

@@ -202,6 +202,14 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
                 _document.Delete();
                 break;
 
+            case Key.Left when ctrl:
+                _document.MoveWordLeft(shift);
+                break;
+
+            case Key.Right when ctrl:
+                _document.MoveWordRight(shift);
+                break;
+
             case Key.Left:
                 _document.MoveLeft(shift);
                 break;

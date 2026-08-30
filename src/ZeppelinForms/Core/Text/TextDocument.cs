@@ -262,4 +262,43 @@ public sealed class TextDocument
         _undo.Clear();
         _redo.Clear();
     }
+
+    public void SelectWord()
+    {
+        int start = CaretIndex, end = CaretIndex;
+
+        while (start > 0 && !char.IsWhiteSpace(_text[start - 1])) start--;
+        while (end < _text.Length && !char.IsWhiteSpace(_text[end])) end++;
+
+        SelectionAnchor = start;
+        SetCaret(end, extendSelection: true);
+    }
+
+    public void SelectLine()
+    {
+        var (line, _) = ToPosition(CaretIndex);
+
+        SelectionAnchor = FromPosition(line, 0);
+        SetCaret(FromPosition(line, Lines[line].Length), extendSelection: true);
+    }
+
+    public void MoveWordLeft(bool extend)
+    {
+        int index = CaretIndex;
+
+        while (index > 0 && char.IsWhiteSpace(_text[index - 1])) index--;
+        while (index > 0 && !char.IsWhiteSpace(_text[index - 1])) index--;
+
+        SetCaret(index, extend);
+    }
+
+    public void MoveWordRight(bool extend)
+    {
+        int index = CaretIndex;
+
+        while (index < _text.Length && !char.IsWhiteSpace(_text[index])) index++;
+        while (index < _text.Length && char.IsWhiteSpace(_text[index])) index++;
+
+        SetCaret(index, extend);
+    }
 }
