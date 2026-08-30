@@ -1,5 +1,11 @@
 # Changes
 
+## Feature [0.4.0]
+
+### Added
+
+- Add headless platform
+
 ## [0.3.0] — 2026-08-30
 
 ### Added
