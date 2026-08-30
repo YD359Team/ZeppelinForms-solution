@@ -12,7 +12,7 @@ public class StackPanel : PanelControl
 
     public override void Draw(Graphics g) { }
 
-    protected override Size MeasureOverride(Size availableSize)
+    protected override Size MeasureContentOverride(Size availableSize)
     {
         var inner = new Size(
             Math.Max(0, availableSize.Width - Padding.Horizontal),
@@ -53,7 +53,7 @@ public class StackPanel : PanelControl
         return ResolveSize(content, availableSize);
     }
 
-    protected override Size ArrangeOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size finalSize)
     {
         var content = new Rectangle(
             new Point(Padding.Left, Padding.Top),
@@ -87,7 +87,5 @@ public class StackPanel : PanelControl
                 offset += child.ActualSize.Width + m.Right + Spacing;
             }
         }
-
-        return finalSize;
     }
 }

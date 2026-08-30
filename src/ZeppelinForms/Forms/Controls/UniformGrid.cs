@@ -56,7 +56,7 @@ public class UniformGrid : PanelControl
         Math.Max(0, (area.Width - SpacingX * (columns - 1)) / columns),
         Math.Max(0, (area.Height - SpacingY * (rows - 1)) / rows));
 
-    protected override Size MeasureOverride(Size availableSize)
+    protected override Size MeasureContentOverride(Size availableSize)
     {
         var inner = new Size(
             Math.Max(0, availableSize.Width - Padding.Horizontal),
@@ -89,7 +89,7 @@ public class UniformGrid : PanelControl
         return ResolveSize(content, availableSize);
     }
 
-    protected override Size ArrangeOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size finalSize)
     {
         var area = new Rectangle(
             new Point(Padding.Left, Padding.Top),
@@ -121,7 +121,5 @@ public class UniformGrid : PanelControl
                     Math.Max(0, cell.Width - m.Horizontal),
                     Math.Max(0, cell.Height - m.Vertical))));
         }
-
-        return finalSize;
     }
 }

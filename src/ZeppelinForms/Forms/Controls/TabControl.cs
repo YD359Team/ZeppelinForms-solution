@@ -295,7 +295,7 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
 
     // ===== раскладка =====
 
-    protected override Size MeasureOverride(Size availableSize)
+    protected override Size MeasureContentOverride(Size availableSize)
     {
         EnsureSelection();
 
@@ -324,7 +324,7 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
         return ResolveSize(content, availableSize);
     }
 
-    protected override Size ArrangeOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size finalSize)
     {
         if (Children.Count > 0)
         {
@@ -336,7 +336,5 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
                     Math.Max(0, area.Width - BorderWidth * 2),
                     Math.Max(0, area.Height - BorderWidth * 2))));
         }
-
-        return finalSize;
     }
 }

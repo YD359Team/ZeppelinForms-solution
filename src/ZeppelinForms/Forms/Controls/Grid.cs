@@ -18,7 +18,7 @@ public class Grid : PanelControl
 
     public override void Draw(Graphics g) { }
 
-    protected override Size MeasureOverride(Size availableSize)
+    protected override Size MeasureContentOverride(Size availableSize)
     {
         var content = new Size(
             Math.Max(0, availableSize.Width - Padding.Horizontal),
@@ -43,7 +43,7 @@ public class Grid : PanelControl
             availableSize);
     }
 
-    protected override Size ArrangeOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size finalSize)
     {
         var content = new Rectangle(
             new Point(Padding.Left, Padding.Top),
@@ -70,8 +70,6 @@ public class Grid : PanelControl
                     Math.Max(0, colWidths.ElementAtOrDefault(child.Column) - m.Horizontal),
                     Math.Max(0, rowHeights.ElementAtOrDefault(child.Row) - m.Vertical))));
         }
-
-        return finalSize;
     }
 
     private float[] ResolveTracks(List<GridLength> defs, float total, bool horizontal)

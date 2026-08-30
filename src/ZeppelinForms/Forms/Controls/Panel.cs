@@ -23,7 +23,7 @@ public class Panel : PanelControl, IBorderedElement
             g.DrawRectangle(this.LocalBounds, BorderColor, BorderWidth);
     }
 
-    protected override Size MeasureOverride(Size availableSize)
+    protected override Size MeasureContentOverride(Size availableSize)
     {
         // Canvas-style: дети сами решают, какого они размера/где стоят,
         // Panel их не ужимает. Собственный размер Panel — либо явный (Size
@@ -38,14 +38,12 @@ public class Panel : PanelControl, IBorderedElement
         return ResolveSize(Size.Empty, availableSize);
     }
 
-    protected override Size ArrangeOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size finalSize)
     {
         foreach (var child in Children)
         {
             if (!child.IsVisible) continue;
             child.Arrange(new Rectangle(child.Position, child.DesiredSize));
         }
-
-        return finalSize;
     }
 }

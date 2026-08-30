@@ -46,8 +46,12 @@ internal class MainForm : Form
         Button btnNext = new Button() { Text = "Goto view 1", Docking = Dock.Top };
         btnNext.Click -= BtnBack_Click;
         btnNext.Click += BtnBack_Click;
-        StackPanel grid = new() { Padding = 6f, Orientation = Orientation.Vertical };
-        PictureBox pBox = new();
+        var grid = new UniformGrid
+        {
+            Padding = new Thickness(6),
+            OverflowY = Overflow.Auto,        // прокрутка там, где нужна
+        };
+        PictureBox pBox = new() { Size = new(100, 100) };
         pBox.LoadAsset("Laughing.png");
         ListBox lBox = new();
         lBox.Items.AddRange([new Button() { Text = "Item1" }, new Button() { Text = "Item2" }]);

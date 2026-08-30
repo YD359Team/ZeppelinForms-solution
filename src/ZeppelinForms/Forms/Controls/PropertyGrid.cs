@@ -196,7 +196,7 @@ public class PropertyGrid : PanelControl
         }
     }
 
-    protected override Size MeasureOverride(Size availableSize)
+    protected override Size MeasureContentOverride(Size availableSize)
     {
         // при бесконечной ширине (так меряются оверлеи) проценты и вычитания
         // дают NaN, поэтому опираемся на собственный заданный размер
@@ -223,7 +223,7 @@ public class PropertyGrid : PanelControl
             availableSize);
     }
 
-    protected override Size ArrangeOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size finalSize)
     {
         var content = new Rectangle(
             new Point(Padding.Left, Padding.Top),
@@ -246,7 +246,5 @@ public class PropertyGrid : PanelControl
 
             Children[i].Arrange(slot);
         }
-
-        return finalSize;
     }
 }

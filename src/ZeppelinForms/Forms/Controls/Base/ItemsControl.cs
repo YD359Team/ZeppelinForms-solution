@@ -62,7 +62,7 @@ public class ItemsControl : PanelControl
         Invalidate();
     }
 
-    protected override Size MeasureOverride(Size availableSize)
+    protected override Size MeasureContentOverride(Size availableSize)
     {
         var inner = new Size(
             Math.Max(0, availableSize.Width - Padding.Horizontal),
@@ -86,7 +86,7 @@ public class ItemsControl : PanelControl
         return ResolveSize(content, availableSize);
     }
 
-    protected override Size ArrangeOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size finalSize)
     {
         var content = new Rectangle(
             new Point(Padding.Left, Padding.Top),
@@ -106,8 +106,6 @@ public class ItemsControl : PanelControl
 
             y += child.ActualSize.Height;
         }
-
-        return finalSize;
     }
 
 

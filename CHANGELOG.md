@@ -10,12 +10,16 @@
 - Add BarChart
 - Add LineChart
 - Add Graphics.FillPie
+- Add PanelControl
 
 ### Fixes and extensions
 
+- Now all panels can be scrollable
+- ScrollViewer now is lightweight panel with default overflow settings
 - Add ProgressBar display text customization
 - NumericUpDown  contains keyboard input, dot, caret
 - Fix mouse hover effects
+- Change example projects
 
 ## [0.2.1] — 2026-08-30
 

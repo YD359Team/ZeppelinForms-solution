@@ -374,4 +374,10 @@ public abstract class UIElement : IGridPlaceable
     protected virtual void OnDetached() { }
 
     internal void RaiseDetached() => OnDetached();
+
+    /// <summary>Рисуется после потомков и вне их отсечения — полосы прокрутки, рамки поверх.</summary>
+    protected internal virtual void DrawOverlay(Graphics g) { }
+
+    /// <summary>Забрать попадание себе, не спускаясь к потомкам (зона полосы прокрутки).</summary>
+    protected internal virtual bool HitTestSelfFirst(Point localPoint) => false;
 }

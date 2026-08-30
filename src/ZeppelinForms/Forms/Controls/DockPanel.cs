@@ -9,7 +9,7 @@ public class DockPanel : PanelControl
 {
     public override void Draw(Graphics g) { }
 
-    protected override Size MeasureOverride(Size availableSize)
+    protected override Size MeasureContentOverride(Size availableSize)
     {
         var remaining = new Size(
             Math.Max(0, availableSize.Width - Padding.Horizontal),
@@ -60,7 +60,7 @@ public class DockPanel : PanelControl
         return ResolveSize(content, availableSize);
     }
 
-    protected override Size ArrangeOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size finalSize)
     {
         var rect = new Rectangle(
             new Point(Padding.Left, Padding.Top),
@@ -118,7 +118,5 @@ public class DockPanel : PanelControl
                 new Point(rect.X + m.Left, rect.Y + m.Top),
                 new Size(Math.Max(0, rect.Width - m.Horizontal), Math.Max(0, rect.Height - m.Vertical))));
         }
-
-        return finalSize;
     }
 }

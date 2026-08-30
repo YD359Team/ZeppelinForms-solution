@@ -46,8 +46,12 @@ internal class MainForm : Form
         Button btnNext = new Button() { Text = "Goto view 1", Docking = Dock.Top };
         btnNext.Click -= BtnBack_Click;
         btnNext.Click += BtnBack_Click;
-        UniformGrid grid = new() { Padding = 6f };
-        PictureBox pBox = new();
+        var grid = new UniformGrid
+        {
+            Padding = new Thickness(6),
+            OverflowY = Overflow.Auto,        // прокрутка там, где нужна
+        };
+        PictureBox pBox = new() { Size = new(100, 100) };
         pBox.LoadAsset("Laughing.png");
         ListBox lBox = new();
         lBox.Items.AddRange([new Button() { Text = "Item1" }, new Button() { Text = "Item2" }]);
@@ -97,11 +101,11 @@ internal class MainForm : Form
     {
         PieChart pieChart = new()
         {
-            HoleRatio = 0.5f, 
+            HoleRatio = 0.5f,
         };
         pieChart.Slices.AddRange(
             new PieSlice() { Color = Colors.Red, Value = 0.25f },
-            new PieSlice() {  Color = Colors.Blue, Value = 0.75f }
+            new PieSlice() { Color = Colors.Blue, Value = 0.75f }
         );
         LineChart lineChart = new()
         {
@@ -117,6 +121,6 @@ internal class MainForm : Form
             Series = { new ChartSeries { Values = { 120, 180, 90, 210 } } },
         };
 
-        return [ pieChart, lineChart, barChart ];
+        return [pieChart, lineChart, barChart];
     }
 }

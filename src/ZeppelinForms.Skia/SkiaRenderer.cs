@@ -119,8 +119,11 @@ public static class SkiaRenderer
                 g.Save();
                 g.ClipRect(panel.ContentBounds);
                 foreach (var child in panel.Children)
-                    Draw(child, g);
+                    Draw(child, g, clip);
                 g.Restore();
+
+                // полоса прокрутки не должна обрезаться содержимым
+                panel.DrawOverlay(g);
                 break;
         }
 

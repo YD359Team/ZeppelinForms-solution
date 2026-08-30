@@ -24,6 +24,8 @@ internal static class HitTester
         if (local.X < 0 || local.Y < 0 || local.X > root.ActualSize.Width || local.Y > root.ActualSize.Height)
             return null;
 
+        if (root.HitTestSelfFirst(local))
+            return root;
         switch (root)
         {
             case WrapControl single when single.Child is not null:
