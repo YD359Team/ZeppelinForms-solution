@@ -24,6 +24,7 @@
 ### Рендеринг
 
 ZeppelinForms ничего не знает про Skia, потому что он существует в отдельном проекте ZeppelinForms.Skia, то есть графика полностью абстрагирована от логики. \
+Из этого следует, что фреймворк можно встроить в DirectX или вообще любой графический стек! \
 Если аппаратное ускорение недоступно, то идет откат на программный рендер.
 
 ### Формы
@@ -71,7 +72,7 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 7 | ToggleSwitch | 💡 |
 | 8 | DateTimePicker | ✅ |
 | 9 | TimePicker | ✅ |
-| 10 | ColorPicker | 💡 |
+| 10 | ColorPicker | ✅ |
 | 11 | ScrollBar | ✅ |
 | 12 | SvgIcon | ✅ |
 | 13 | NumericUpDown | ✅ |
@@ -96,7 +97,7 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 2 | StackPanel | ✅ |
 | 3 | Grid | ✅* |
 | 4 | DockPanel | ✅ |
-| 5 | TabControl | 💡 |
+| 5 | TabControl | ✅ |
 | 6 | ScrollViewer | ✅ |
 | 7 | UniformGrid | ✅ |
 
@@ -111,9 +112,11 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | № | Название | Статус |
 |---|------------|---|
 | 1 | ListBox | ✅ |
-| 2 | ComboBox | 💡 |
-| 3 | TreeView | 💡 |
-| 4 | DataGrid | 💡 |
+| 2 | ComboBox | ✅ |
+| 3 | CheckedListBox | ✅ |
+| 4 | CheckedComboBox | ✅ |
+| 5 | TreeView | 💡 |
+| 6 | DataGrid | 💡 |
 
 #### Контролы-обёртки
 
