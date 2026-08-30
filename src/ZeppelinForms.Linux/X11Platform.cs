@@ -22,7 +22,7 @@ public sealed class X11Platform : IPlatform
 
         Skia.SkiaImageDecoder.Register();
         Skia.SkiaTextMeasurer.Register();
-        Skia.SkiaElementRenderer.Register();
+        Skia.SkiaOffscreenRenderer.Register();
     }
 
     private X11Clipboard? _clipboard;

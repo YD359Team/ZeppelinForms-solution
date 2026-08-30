@@ -12,12 +12,12 @@ public class WindowsPlatform : IPlatform
 
         Skia.SkiaImageDecoder.Register();
         Skia.SkiaTextMeasurer.Register();
-        Skia.SkiaElementRenderer.Register();
+        Skia.SkiaOffscreenRenderer.Register();
         Win32Clipboard.Register();
 
         ZeppelinForms.Skia.SkiaImageDecoder.Register();
         ZeppelinForms.Skia.SkiaTextMeasurer.Register();
-        ZeppelinForms.Skia.SkiaElementRenderer.Register();
+        ZeppelinForms.Skia.SkiaOffscreenRenderer.Register();
     }
 
     public IPlatformWindow CreateWindow(Form form)
