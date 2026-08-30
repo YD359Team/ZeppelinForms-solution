@@ -30,9 +30,19 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
             decimal clamped = Minimum <= Maximum
                 ? Math.Clamp(value, Minimum, Maximum)
                 : value;
+
             if (_value == clamped) return;
 
             _value = clamped;
+
+            // в режиме правки на экран идёт _editText, поэтому его тоже
+            // надо обновить — иначе значение поменяется незаметно
+            if (_isEditing)
+            {
+                _editText = _value.ToString($"F{DecimalPlaces}");
+                _caretIndex = _editText.Length;
+            }
+
             ValueChanged?.Invoke(this, EventArgs.Empty);
             InvalidateVisual();
         }
@@ -273,10 +283,10 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
 
         switch (e.Key)
         {
-            case Key.Up: CommitEdit(); Value += Step; OnGotFocus(); e.Handled = true; break;
-            case Key.Down: CommitEdit(); Value -= Step; OnGotFocus(); e.Handled = true; break;
-            case Key.Home: CommitEdit(); Value = Minimum; OnGotFocus(); e.Handled = true; break;
-            case Key.End: CommitEdit(); Value = Maximum; OnGotFocus(); e.Handled = true; break;
+            case Key.Up: Value += Step; e.Handled = true; break;
+            case Key.Down: Value -= Step; e.Handled = true; break;
+            case Key.Home: Value = Minimum; e.Handled = true; break;
+            case Key.End: Value = Maximum; e.Handled = true; break;
         }
     }
 
