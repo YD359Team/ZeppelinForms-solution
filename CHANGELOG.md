@@ -6,12 +6,16 @@
 - Add SplitButton
 - Add ToggleButton
 - Add SplitButton
+- Add PieChart
+- Add BarChart
+- Add LineChart
+- Add Graphics.FillPie
 
 ### Fixes and extensions
 
 - Add ProgressBar display text customization
 - NumericUpDown  contains keyboard input, dot, caret
-- Add Calendar mouse hover effect
+- Fix mouse hover effects
 
 ## [0.2.1] — 2026-08-30
 

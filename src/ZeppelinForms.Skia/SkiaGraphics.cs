@@ -370,4 +370,17 @@ public sealed class SkiaGraphics : Graphics
             x += runFont.MeasureText(run);
         }
     }
+
+    public override void FillPie(Rectangle rect, float startAngle, float sweepAngle, Color color)
+    {
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(color.R, color.G, color.B, color.A),
+            IsAntialias = true,
+            Style = SKPaintStyle.Fill,
+        };
+
+        var oval = new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height);
+        _canvas.DrawArc(oval, startAngle, sweepAngle, useCenter: true, paint);
+    }
 }

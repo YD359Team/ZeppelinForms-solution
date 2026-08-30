@@ -33,9 +33,10 @@ public abstract class Graphics
     public abstract void DrawShadow(Rectangle rect, BoxShadow shadow);
     public abstract void FillRoundRectangle(Rectangle rect, CornerRadius radius, Color color);
     public abstract void DrawRoundRectangle(Rectangle rect, CornerRadius radius, Color color, float width);
+    public abstract void FillPie(Rectangle rect, float startAngle, float sweepAngle, Color color);
+
     public abstract void ClipRoundRect(Rectangle rect, CornerRadius radius);
     public abstract void Rotate(float degrees);
-
     public abstract void Save();
     public abstract void ClipRect(Rectangle bounds);
     public abstract void Restore();
