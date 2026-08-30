@@ -8,6 +8,8 @@
 
 ### Текущий статус
 
+![CI](https://github.com/YD359Team/ZeppelinForms-solution/actions/workflows/ci.yml/badge.svg)
+
 Проект находится в активной разработке, API пока нестабильный.
 
 | № | Название | Статус |

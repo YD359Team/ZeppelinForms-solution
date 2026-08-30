@@ -24,8 +24,25 @@ jobs:
 
       - run: sudo apt-get update && sudo apt-get install -y libfontconfig1
       - run: dotnet test --configuration Release
+  
+      - name: Извлечь описание версии
+        id: notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+
+          # ссылка на полный список изменений внизу описания
+          echo "" >> release-notes.md
+          echo "---" >> release-notes.md
+          echo "[Полный список изменений](https://github.com/${GITHUB_REPOSITORY}/blob/master/CHANGELOG.md)" >> release-notes.md
+
+          cat release-notes.md
 
       - name: Релиз на GitHub
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          body_path: release-notes.md

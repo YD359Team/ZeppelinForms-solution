@@ -8,7 +8,7 @@
     <PackageProjectUrl>https://github.com/YD359Team/ZeppelinForms-solution</PackageProjectUrl>
     <RepositoryUrl>https://github.com/YD359Team/ZeppelinForms-solution</RepositoryUrl>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <PackageIcon>ZF.png</PackageIcon>
+    <PackageIcon>ZF_medium.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
