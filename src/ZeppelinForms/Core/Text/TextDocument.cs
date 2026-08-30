@@ -96,8 +96,11 @@ public sealed class TextDocument
         int start = SelectionStart;
         int length = SelectionLength;
 
-        if (Length - TextElements.Count(SelectedText) + TextElements.Count(value) > MaxLength)
+        if (_text.Length - length + value.Length > MaxLength &&
+            Length - TextElements.Count(SelectedText) + TextElements.Count(value) > MaxLength)
+        {
             return;
+        }
 
         Replace(start, length, value);
     }
