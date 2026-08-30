@@ -38,10 +38,11 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 1 | Отладчик | ✅* |
 | 2 | Наложения | ✅** |
 | 3 | Всплывающие сообщения | ✅*** |
-| 4 | Диалоговые окна | ✅ |
-| 5 | Open\SaveFileDialog | 💡 |
-| 6 | MessageBox | 💡 |
-| 7 | Буфер обмена | ✅ |
+| 4 | ToolTips | ✅ |
+| 5 | Диалоговые окна | ✅ |
+| 6 | Open\SaveFileDialog | 💡 |
+| 7 | MessageBox | 💡 |
+| 8 | Буфер обмена | ✅ |
 
 \* - инспектор работает только для некоторых типов \
 \** - API еще будет дополняться \
@@ -50,7 +51,7 @@ ZeppelinForms ничего не знает про Skia, потому что он
 ### Контролы
 
 Все контролы должны являться наследниками `UIElement` явно или неявно - наследуя `UnitControl`, `PanelControl` или `WrapControl`. \
-Никаких компонентов из WinForms (например, Timer или BackgroundWorker) не предусмотрено.
+Никаких компонентов из WinForms, не являющихся контролами в полном смысле (например, Timer или BackgroundWorker), не предусмотрено.
 
 #### UIElement
 
@@ -71,7 +72,7 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 4 | PictureBox | ✅ |
 | 5 | RadioButton | ✅ |
 | 6 | TextBox | ✅* |
-| 7 | ToggleSwitch | 💡 |
+| 7 | ToggleSwitch | ✅ |
 | 8 | DateTimePicker | ✅ |
 | 9 | TimePicker | ✅ |
 | 10 | ColorPicker | ✅ |
@@ -84,6 +85,11 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 17 | Calendar | ✅ |
 | 18 | MenuBar | ✅ |
 | 19 | MenuList | ✅ |
+| 20 | SplitButton | ✅ |
+| 21 | ToggleButton | ✅ |
+| 22 | BarChart | ✅ |
+| 23 | LineChart | ✅ |
+| 24 | PieChart | ✅ |
 
 \* - есть баги и отсуствует часть API
 
@@ -97,13 +103,11 @@ ZeppelinForms ничего не знает про Skia, потому что он
 |---|------------|---|
 | 1 | Panel | ✅ |
 | 2 | StackPanel | ✅ |
-| 3 | Grid | ✅* |
+| 3 | Grid | ✅ |
 | 4 | DockPanel | ✅ |
 | 5 | TabControl | ✅ |
 | 6 | ScrollViewer | ✅ |
 | 7 | UniformGrid | ✅ |
-
-\* - не хватает только `GridLength.Auto`
 
 ##### Панели элементов
 
