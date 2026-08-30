@@ -3,12 +3,14 @@ using System.Runtime.CompilerServices;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
-using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Controls;
 
 public class Grid : PanelControl
 {
+    private float[] _rowHeights = [];
+    private float[] _colWidths = [];
+
     public string Columns { set => ColumnDefinitions = GridLength.Parse(value); }
     public string Rows { set => RowDefinitions = GridLength.Parse(value); }
 
@@ -23,25 +25,22 @@ public class Grid : PanelControl
             Math.Max(0, availableSize.Width - Padding.Horizontal),
             Math.Max(0, availableSize.Height - Padding.Vertical));
 
-        float[] rowHeights = ResolveSizes(RowDefinitions, content.Height);
-        float[] colWidths = ResolveSizes(ColumnDefinitions, content.Width);
+        _colWidths = ResolveTracks(ColumnDefinitions, content.Width, horizontal: true);
+        _rowHeights = ResolveTracks(RowDefinitions, content.Height, horizontal: false);
 
+        // окончательное измерение детей — уже по реальным размерам ячеек
         foreach (var child in Children)
         {
             if (!child.IsVisible) continue;
             var m = child.Margin;
 
-            var cellSize = new Size(
-                Math.Max(0, colWidths.ElementAtOrDefault(child.Column) - m.Horizontal),
-                Math.Max(0, rowHeights.ElementAtOrDefault(child.Row) - m.Vertical));
-
-            // Auto-строк/колонок пока нет — но Measure всё равно нужно
-            // прогнать вниз по дереву, иначе у внуков не будет DesiredSize
-            child.Measure(cellSize);
+            child.Measure(new Size(
+                Math.Max(0, _colWidths.ElementAtOrDefault(child.Column) - m.Horizontal),
+                Math.Max(0, _rowHeights.ElementAtOrDefault(child.Row) - m.Vertical)));
         }
 
         return ResolveSize(
-            new Size(content.Width + Padding.Horizontal, content.Height + Padding.Vertical),
+            new Size(_colWidths.Sum() + Padding.Horizontal, _rowHeights.Sum() + Padding.Vertical),
             availableSize);
     }
 
@@ -53,8 +52,10 @@ public class Grid : PanelControl
                 Math.Max(0, finalSize.Width - Padding.Horizontal),
                 Math.Max(0, finalSize.Height - Padding.Vertical)));
 
-        float[] rowHeights = ResolveSizes(RowDefinitions, content.Height);
-        float[] colWidths = ResolveSizes(ColumnDefinitions, content.Width);
+        // Auto-треки уже посчитаны в MeasureOverride по желаемым размерам детей;
+        // пересчитывать нельзя — Star-доли изменятся и раскладка «прыгнет»
+        float[] colWidths = RedistributeStars(_colWidths, ColumnDefinitions, content.Width);
+        float[] rowHeights = RedistributeStars(_rowHeights, RowDefinitions, content.Height);
 
         foreach (var child in Children)
         {
@@ -64,60 +65,103 @@ public class Grid : PanelControl
             float cellX = content.X + colWidths.Take(child.Column).Sum();
             float cellY = content.Y + rowHeights.Take(child.Row).Sum();
 
-            var rect = new Rectangle(
+            child.Arrange(new Rectangle(
                 new Point(cellX + m.Left, cellY + m.Top),
                 new Size(
                     Math.Max(0, colWidths.ElementAtOrDefault(child.Column) - m.Horizontal),
-                    Math.Max(0, rowHeights.ElementAtOrDefault(child.Row) - m.Vertical)));
-
-            child.Arrange(rect);
+                    Math.Max(0, rowHeights.ElementAtOrDefault(child.Row) - m.Vertical))));
         }
 
         return finalSize;
     }
 
-    private static float[] ResolveSizes(List<GridLength> defs, float total)
+    private float[] ResolveTracks(List<GridLength> defs, float total, bool horizontal)
     {
-        float fixedSum = defs.Where(d => !d.IsStar).Sum(d => d.Value);
-        float starSum = defs.Where(d => d.IsStar).Sum(d => d.Value);
-        float remaining = Math.Max(0, total - fixedSum);
+        float[] sizes = new float[defs.Count];
 
-        return defs.Select(d => d.IsStar
-            ? (starSum > 0 ? remaining * (d.Value / starSum) : 0)
-            : d.Value).ToArray();
-    }
-}
+        // 1. фиксированные — известны сразу
+        for (int i = 0; i < defs.Count; i++)
+            if (defs[i].Unit == GridUnit.Fixed)
+                sizes[i] = defs[i].Value;
 
-public readonly partial record struct GridLength(float Value, bool IsStar)
-{
-    public static GridLength Fixed(float px) => new(px, false);
-    public static GridLength Star(float weight = 1) => new(weight, true);
+        // 2. Auto — по самому крупному ребёнку в треке; для этого детей
+        //    надо предварительно измерить без ограничения по этой оси
+        bool hasAuto = defs.Any(d => d.IsAuto);
 
-    /// <summary>Разбирает описание треков: "100", "*", "2*", "100,*,2.5*".</summary>
-    public static List<GridLength> Parse(string definition)
-    {
-        ArgumentNullException.ThrowIfNull(definition);
-
-        List<GridLength> sizes = [];
-
-        foreach (Range range in definition.AsSpan().Split(','))
+        if (hasAuto)
         {
-            ReadOnlySpan<char> part = definition.AsSpan()[range].Trim();
-            if (part.IsEmpty)
-                continue;
+            foreach (var child in Children)
+            {
+                if (!child.IsVisible) continue;
 
-            sizes.Add(ParseSize(part));
+                int track = horizontal ? child.Column : child.Row;
+                if (track < 0 || track >= defs.Count || !defs[track].IsAuto) continue;
+
+                child.Measure(horizontal
+                    ? new Size(float.PositiveInfinity, total)
+                    : new Size(total, float.PositiveInfinity));
+
+                float desired = horizontal
+                    ? child.DesiredSize.Width + child.Margin.Horizontal
+                    : child.DesiredSize.Height + child.Margin.Vertical;
+
+                sizes[track] = Math.Max(sizes[track], desired);
+            }
         }
 
-        if (sizes.Count == 0)
-            throw new FormatException($"Пустое описание треков: '{definition}'.");
+        // 3. Star — делят то, что осталось после Fixed и Auto
+        float used = 0;
+        for (int i = 0; i < defs.Count; i++)
+            if (!defs[i].IsStar)
+                used += sizes[i];
+
+        float starSum = defs.Where(d => d.IsStar).Sum(d => d.Value);
+        float remaining = Math.Max(0, total - used);
+
+        for (int i = 0; i < defs.Count; i++)
+            if (defs[i].IsStar)
+                sizes[i] = starSum > 0 ? remaining * (defs[i].Value / starSum) : 0;
 
         return sizes;
     }
 
+    private static float[] RedistributeStars(float[] measured, List<GridLength> defs, float total)
+    {
+        if (measured.Length != defs.Count)
+            return measured;
+
+        float[] sizes = (float[])measured.Clone();
+
+        float used = 0;
+        for (int i = 0; i < defs.Count; i++)
+            if (!defs[i].IsStar)
+                used += sizes[i];
+
+        float starSum = defs.Where(d => d.IsStar).Sum(d => d.Value);
+        float remaining = Math.Max(0, total - used);
+
+        for (int i = 0; i < defs.Count; i++)
+            if (defs[i].IsStar)
+                sizes[i] = starSum > 0 ? remaining * (defs[i].Value / starSum) : 0;
+
+        return sizes;
+    }
+}
+
+public readonly partial record struct GridLength(float Value, GridUnit Unit)
+{
+    public bool IsStar => Unit == GridUnit.Star;
+    public bool IsAuto => Unit == GridUnit.Auto;
+
+    public static GridLength Fixed(float px) => new(px, GridUnit.Fixed);
+    public static GridLength Star(float weight = 1) => new(weight, GridUnit.Star);
+    public static GridLength Auto => new(0, GridUnit.Auto);
+
     private static GridLength ParseSize(ReadOnlySpan<char> chars)
     {
-        // звезда определяется суффиксом, а не тем, что не распарсилось число
+        if (chars.Equals("auto", StringComparison.OrdinalIgnoreCase))
+            return Auto;
+
         if (chars[^1] == '*')
         {
             ReadOnlySpan<char> weight = chars[..^1].Trim();
@@ -137,3 +181,5 @@ public readonly partial record struct GridLength(float Value, bool IsStar)
         throw new FormatException($"Не удалось разобрать размер трека: '{chars}'.");
     }
 }
+
+public enum GridUnit { Fixed, Star, Auto }

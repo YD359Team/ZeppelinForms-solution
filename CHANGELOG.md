@@ -1,5 +1,12 @@
 # Changes
 
+## Feature [0.3.0]
+
+- Add Grid.LengthAuto
+- Add SplitButton
+- Add ToggleButton
+- Add SplitButton
+
 ## [0.2.1] — 2026-08-30
 
 - Hot fix Linux tests & CI
