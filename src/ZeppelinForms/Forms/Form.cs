@@ -281,7 +281,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         content.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
 
         Point anchorPos = anchor.GetAbsolutePosition();
-        Size anchorSize = anchor.Size;
+        Size anchorSize = anchor.ActualSize;
         Size contentSize = content.DesiredSize;
 
         content.Position = placement switch

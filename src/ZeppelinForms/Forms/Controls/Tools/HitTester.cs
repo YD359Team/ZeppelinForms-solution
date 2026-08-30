@@ -21,7 +21,7 @@ internal static class HitTester
         if (root.Rotation != 0f)
             local = RotateAround(local, root.Center, -root.Rotation);
 
-        if (local.X < 0 || local.Y < 0 || local.X > root.Size.Width || local.Y > root.Size.Height)
+        if (local.X < 0 || local.Y < 0 || local.X > root.ActualSize.Width || local.Y > root.ActualSize.Height)
             return null;
 
         switch (root)

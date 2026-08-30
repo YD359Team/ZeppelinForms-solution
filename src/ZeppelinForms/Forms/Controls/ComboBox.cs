@@ -122,7 +122,7 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
         {
             // ширина как у самого комбобокса — так выпадающий список
             // выглядит его продолжением, а не отдельным окном
-            Size = new Size(Size.Width, DropDownHeight),
+            Size = new Size(ActualSize.Width, DropDownHeight),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
         };

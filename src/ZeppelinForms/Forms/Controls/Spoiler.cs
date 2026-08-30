@@ -44,7 +44,7 @@ public class Spoiler : WrapControl, IBorderedElement
         VerticalAlignment = VerticalAlignment.Top;
     }
 
-    private Rectangle HeaderRect => new(Point.Empty, new Size(Size.Width, HeaderHeight));
+    private Rectangle HeaderRect => new(Point.Empty, new Size(ActualSize.Width, HeaderHeight));
 
     // Ребёнок прячется через IsVisible, а не через "пропустим Arrange":
     // рендер и панели уважают этот флаг, а неразмещённый элемент
@@ -76,7 +76,7 @@ public class Spoiler : WrapControl, IBorderedElement
         {
             var textRect = new Rectangle(
                 new Point(24f, 0),
-                new Size(Math.Max(0, Size.Width - 28f), HeaderHeight));
+                new Size(Math.Max(0, ActualSize.Width - 28f), HeaderHeight));
 
             g.DrawText(Header, textRect, HeaderTextColor, EffectiveFont,
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);

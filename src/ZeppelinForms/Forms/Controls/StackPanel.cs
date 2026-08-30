@@ -75,7 +75,7 @@ public class StackPanel : PanelControl
                     new Point(content.X + m.Left, offset),
                     new Size(Math.Max(0, content.Width - m.Horizontal), child.DesiredSize.Height));
                 child.Arrange(rect);
-                offset += child.Size.Height + m.Bottom + Spacing;
+                offset += child.ActualSize.Height + m.Bottom + Spacing;
             }
             else
             {
@@ -84,7 +84,7 @@ public class StackPanel : PanelControl
                     new Point(offset, content.Y + m.Top),
                     new Size(child.DesiredSize.Width, Math.Max(0, content.Height - m.Vertical)));
                 child.Arrange(rect);
-                offset += child.Size.Width + m.Right + Spacing;
+                offset += child.ActualSize.Width + m.Right + Spacing;
             }
         }
 

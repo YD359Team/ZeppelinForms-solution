@@ -62,7 +62,7 @@ public abstract class UIElement : IGridPlaceable
     /// <summary>Поворот в градусах вокруг центра элемента.</summary>
     public float Rotation { get; set; }
     protected internal bool HasTransform => Rotation != 0f;
-    internal Point Center => new(Size.Width / 2f, Size.Height / 2f);
+    internal Point Center => new(ActualSize.Width / 2f, ActualSize.Height / 2f);
     public bool IsEnabled { get; set; } = true;
     public bool IsVisible { get; set; } = true;
     public string? ToolTip { get; set; }
@@ -102,8 +102,8 @@ public abstract class UIElement : IGridPlaceable
 
     public Image RenderToImage()
     {
-        int width = (int)MathF.Ceiling(Size.Width);
-        int height = (int)MathF.Ceiling(Size.Height);
+        int width = (int)MathF.Ceiling(ActualSize.Width);
+        int height = (int)MathF.Ceiling(ActualSize.Height);
 
         if (width <= 0 || height <= 0)
             throw new InvalidOperationException(
@@ -133,7 +133,7 @@ public abstract class UIElement : IGridPlaceable
     {
         get
         {
-            var bounds = new Rectangle(GetAbsolutePosition(), Size);
+            var bounds = new Rectangle(GetAbsolutePosition(), ActualSize);
 
             if (Rotation != 0f)
             {
@@ -142,8 +142,8 @@ public abstract class UIElement : IGridPlaceable
                 float cos = MathF.Abs(MathF.Cos(radians));
                 float sin = MathF.Abs(MathF.Sin(radians));
 
-                float w = Size.Width * cos + Size.Height * sin;
-                float h = Size.Width * sin + Size.Height * cos;
+                float w = ActualSize.Width * cos + ActualSize.Height * sin;
+                float h = ActualSize.Width * sin + ActualSize.Height * cos;
 
                 var center = new Point(
                     bounds.X + Size.Width / 2f,
@@ -264,7 +264,7 @@ public abstract class UIElement : IGridPlaceable
     /// <summary>Перерисовать только этот элемент, без пересчёта раскладки.</summary>
     protected internal void InvalidateVisual()
     {
-        if (!float.IsFinite(Size.Width) || !float.IsFinite(Size.Height))
+        if (!float.IsFinite(ActualSize.Width) || !float.IsFinite(ActualSize.Height))
             return;
 
         FindOwner()?.InvalidateRect(DirtyBounds);
@@ -363,8 +363,8 @@ public abstract class UIElement : IGridPlaceable
             // (например, ListBox определяет по ней строку)
             Point absolute = GetAbsolutePosition();
             var center = new Point(
-                absolute.X + Size.Width / 2f,
-                absolute.Y + Size.Height / 2f);
+                absolute.X + ActualSize.Width / 2f,
+                absolute.Y + ActualSize.Height / 2f);
 
             RaiseClick(new MouseClickEventArgs(MouseButton.Left, MouseButtonState.Up, center));
             e.Handled = true;

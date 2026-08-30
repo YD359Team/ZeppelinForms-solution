@@ -57,12 +57,12 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
     private string DisplayText => _value.ToString($"F{DecimalPlaces}");
 
     private Rectangle UpButtonRect => new(
-        new Point(Size.Width - ButtonWidth, 0),
-        new Size(ButtonWidth, Size.Height / 2f));
+        new Point(ActualSize.Width - ButtonWidth, 0),
+        new Size(ButtonWidth, ActualSize.Height / 2f));
 
     private Rectangle DownButtonRect => new(
-        new Point(Size.Width - ButtonWidth, Size.Height / 2f),
-        new Size(ButtonWidth, Size.Height / 2f));
+        new Point(ActualSize.Width - ButtonWidth, ActualSize.Height / 2f),
+        new Size(ButtonWidth, ActualSize.Height / 2f));
 
     public override void Draw(Graphics g)
     {
@@ -72,8 +72,8 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         var text = new Rectangle(
             new Point(Padding.Left, Padding.Top),
             new Size(
-                Math.Max(0, Size.Width - ButtonWidth - Padding.Horizontal),
-                Math.Max(0, Size.Height - Padding.Vertical)));
+                Math.Max(0, ActualSize.Width - ButtonWidth - Padding.Horizontal),
+                Math.Max(0, ActualSize.Height - Padding.Vertical)));
 
         g.DrawText(DisplayText, text, TextColor, EffectiveFont,
             HorizontalContentAlignment.Right, VerticalContentAlignment.Center);

@@ -64,7 +64,7 @@ public class TrackBar : UnitControl, IInputElement
 
     // длина, по которой реально ездит центр ползунка
     private float TravelLength => Math.Max(0,
-        (Orientation == Orientation.Horizontal ? Size.Width : Size.Height) - ThumbSize);
+        (Orientation == Orientation.Horizontal ? ActualSize.Width : ActualSize.Height) - ThumbSize);
 
     public override void Draw(Graphics g)
     {

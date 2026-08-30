@@ -17,7 +17,7 @@ public static class UIElementDebugExtensions
         sb.AppendLine(
             $"{new string(' ', depth * 2)}{element.GetType().Name} \"{element.Name}\" " +
             $"Pos={element.Position.X:0},{element.Position.Y:0} " +
-            $"Size={element.Size.Width:0}x{element.Size.Height:0} " +
+            $"Size={element.ActualSize.Width:0}x{element.ActualSize.Height:0} " +
             $"Dock={element.Docking} Visible={element.IsVisible}");
 
         switch (element)

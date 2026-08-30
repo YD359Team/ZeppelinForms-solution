@@ -56,7 +56,7 @@ public static class SkiaRenderer
 
         string info = $"{target.GetType().Name} \"{target.Name}\"  " +
                       $"X={absolute.X:0} Y={absolute.Y:0}  " +
-                      $"W={target.Size.Width:0} H={target.Size.Height:0}";
+                      $"W={target.ActualSize.Width:0} H={target.ActualSize.Height:0}";
 
         var labelRect = new Rectangle(
             new Point(bounds.X, Math.Max(0, bounds.Y - 20)),
@@ -69,7 +69,7 @@ public static class SkiaRenderer
     private static void Draw(UIElement element, Graphics g, Rectangle? clip = null)
     {
         if (!element.IsVisible || element.Opacity <= 0f) return;
-        if (!float.IsFinite(element.Size.Width) || !float.IsFinite(element.Size.Height)) return;
+        if (!float.IsFinite(element.ActualSize.Width) || !float.IsFinite(element.ActualSize.Height)) return;
 
         // элемент целиком вне грязной области — пропускаем вместе с потомками
         if (clip is { } dirty && !element.DirtyBounds.IntersectsWith(dirty))

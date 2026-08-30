@@ -104,7 +104,7 @@ public class ItemsControl : PanelControl
                 new Point(content.X, y),
                 new Size(content.Width, child.DesiredSize.Height)));
 
-            y += child.Size.Height;
+            y += child.ActualSize.Height;
         }
 
         return finalSize;

@@ -59,7 +59,7 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
             var container = Children[_selectedIndex];
             var highlight = new Rectangle(
                 new Point(ContentBounds.X, container.Position.Y),
-                new Size(ContentBounds.Width, container.Size.Height));
+                new Size(ContentBounds.Width, container.ActualSize.Height));
 
             g.FillRectangle(highlight, SelectionColor);
         }
@@ -75,7 +75,7 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
         for (int i = 0; i < Children.Count; i++)
         {
             var child = Children[i];
-            if (localY >= child.Position.Y && localY < child.Position.Y + child.Size.Height)
+            if (localY >= child.Position.Y && localY < child.Position.Y + child.ActualSize.Height)
             {
                 SelectedIndex = i;
                 e.Handled = true;

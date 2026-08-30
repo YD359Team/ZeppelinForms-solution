@@ -41,7 +41,7 @@ public class MenuBar : UnitControl
         for (int i = 0; i < Items.Count; i++)
         {
             float width = WidthOf(Items[i]);
-            var cell = new Rectangle(new Point(x, 0), new Size(width, Size.Height));
+            var cell = new Rectangle(new Point(x, 0), new Size(width, ActualSize.Height));
 
             if (i == _openIndex)
                 g.FillRectangle(cell, OpenColor);
@@ -119,7 +119,7 @@ public class MenuBar : UnitControl
             x += WidthOf(Items[i]);
 
         owner.ShowContextMenu(Items[index].Items,
-            new Point(x, GetAbsolutePosition().Y + Size.Height));
+            new Point(x, GetAbsolutePosition().Y + ActualSize.Height));
 
         _openIndex = index;
         Invalidate();

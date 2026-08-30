@@ -44,7 +44,7 @@ public class ScrollBar : UnitControl
 
     public ScrollBar() => Size = new Size(12, 12);
 
-    private float TrackLength => Orientation == Orientation.Vertical ? Size.Height : Size.Width;
+    private float TrackLength => Orientation == Orientation.Vertical ? ActualSize.Height : ActualSize.Width;
 
     private float ThumbLength
     {
@@ -67,8 +67,8 @@ public class ScrollBar : UnitControl
         if (!IsScrollable) return;
 
         var thumb = Orientation == Orientation.Vertical
-            ? new Rectangle(new Point(0, ThumbPosition), new Size(Size.Width, ThumbLength))
-            : new Rectangle(new Point(ThumbPosition, 0), new Size(ThumbLength, Size.Height));
+            ? new Rectangle(new Point(0, ThumbPosition), new Size(ActualSize.Width, ThumbLength))
+            : new Rectangle(new Point(ThumbPosition, 0), new Size(ThumbLength, ActualSize.Height));
 
         g.FillRectangle(thumb, ThumbColor);
     }
