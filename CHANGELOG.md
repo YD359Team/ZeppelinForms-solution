@@ -1,5 +1,9 @@
 # Changes
 
+## [0.2.1] — 2026-08-30
+
+- Hot fix Linux tests & CI
+
 ## [0.2.0] — 2026-08-30
 
 ### Add
