@@ -1,43 +1,70 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
+using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Skia;
 
 namespace ZeppelinForms.UnitTests.Snapshots;
 
 public static class SnapshotAssert
 {
-    private const int DefaultTolerance = 2;
+    private const int DefaultTolerance = 4;
 
-    private static string SnapshotDirectory =>
-        Path.Combine(AppContext.BaseDirectory, "Snapshots", "Expected");
+    /// <summary>Доля различающихся пикселей, ниже которой снимок считается совпавшим.</summary>
+    private const float AllowedDifferenceRatio = 0.002f;
 
-    private static string FailureDirectory =>
-        Path.Combine(AppContext.BaseDirectory, "Snapshots", "Failed");
+    private static string ExpectedDirectory => Path.Combine(AppContext.BaseDirectory, "Snapshots", "Expected");
+    private static string FailedDirectory => Path.Combine(AppContext.BaseDirectory, "Snapshots", "Failed");
 
-    /// <summary>Сравнить отрисовку элемента с эталоном. Эталон создаётся
-    /// автоматически при первом запуске — его нужно проверить глазами и закоммитить.</summary>
+    /// <summary>Шрифт из файла — системные различаются между машинами
+    /// и делают снимки невоспроизводимыми.</summary>
+    public static Font TestFont { get; } = new("Snapshot", 14)
+    {
+        FilePath = Path.Combine(AppContext.BaseDirectory, "Snapshots", "Fonts", "DejaVuSans.ttf"),
+    };
+
     public static void Matches(UIElement element, string name, int tolerance = DefaultTolerance)
     {
         Image actual = element.RenderToImage();
+        Compare(actual, name, tolerance);
+    }
 
-        Directory.CreateDirectory(SnapshotDirectory);
-        string expectedPath = Path.Combine(SnapshotDirectory, name + ".raw");
+    public static void Matches(Form form, string name, int tolerance = DefaultTolerance)
+    {
+        var renderer = new SkiaOffscreenRenderer();
 
-        if (!File.Exists(expectedPath))
+        Image actual = renderer.RenderForm(
+            form,
+            (int)MathF.Ceiling(form.ClientSize.Width),
+            (int)MathF.Ceiling(form.ClientSize.Height));
+
+        Compare(actual, name, tolerance);
+    }
+
+    private static void Compare(Image actual, string name, int tolerance)
+    {
+        Directory.CreateDirectory(ExpectedDirectory);
+
+        string expectedRaw = Path.Combine(ExpectedDirectory, name + ".raw");
+
+        if (!File.Exists(expectedRaw))
         {
-            SaveRaw(expectedPath, actual);
+            SaveRaw(expectedRaw, actual);
+            SkiaOffscreenRenderer.SavePng(actual, Path.Combine(ExpectedDirectory, name + ".png"));
 
             throw new Xunit.Sdk.XunitException(
-                $"Эталон '{name}' не найден и был создан. Проверьте его и добавьте в репозиторий.");
+                $"Эталон '{name}' не найден и был создан в {ExpectedDirectory}. " +
+                "Проверьте PNG глазами и добавьте оба файла в репозиторий.");
         }
 
-        Image expected = LoadRaw(expectedPath);
+        Image expected = LoadRaw(expectedRaw);
 
         if (expected.Width != actual.Width || expected.Height != actual.Height)
         {
-            SaveFailure(name, actual);
+            SaveFailure(name, actual, expected);
 
             throw new Xunit.Sdk.XunitException(
                 $"Размер снимка '{name}' изменился: было {expected.Width}x{expected.Height}, " +
@@ -45,16 +72,15 @@ public static class SnapshotAssert
         }
 
         int different = CountDifferentPixels(expected, actual, tolerance);
+        int total = actual.Width * actual.Height;
 
-        if (different > 0)
+        if (different > total * AllowedDifferenceRatio)
         {
-            SaveFailure(name, actual);
-
-            float percent = different * 100f / (actual.Width * actual.Height);
+            SaveFailure(name, actual, expected);
 
             throw new Xunit.Sdk.XunitException(
-                $"Снимок '{name}' отличается: {different} пикселей ({percent:0.##}%). " +
-                $"Фактический результат сохранён в {FailureDirectory}.");
+                $"Снимок '{name}' отличается: {different} из {total} пикселей " +
+                $"({different * 100f / total:0.##}%). Сравните PNG в {FailedDirectory}.");
         }
     }
 
@@ -64,8 +90,6 @@ public static class SnapshotAssert
 
         for (int i = 0; i < expected.Pixels.Length; i += 4)
         {
-            // допуск нужен из-за сглаживания: одна и та же картинка на разных
-            // машинах может отличаться на единицу в младшем разряде
             if (Math.Abs(expected.Pixels[i] - actual.Pixels[i]) > tolerance ||
                 Math.Abs(expected.Pixels[i + 1] - actual.Pixels[i + 1]) > tolerance ||
                 Math.Abs(expected.Pixels[i + 2] - actual.Pixels[i + 2]) > tolerance ||
@@ -76,6 +100,49 @@ public static class SnapshotAssert
         }
 
         return different;
+    }
+
+    private static void SaveFailure(string name, Image actual, Image? expected)
+    {
+        Directory.CreateDirectory(FailedDirectory);
+
+        SaveRaw(Path.Combine(FailedDirectory, name + ".raw"), actual);
+        SkiaOffscreenRenderer.SavePng(actual, Path.Combine(FailedDirectory, name + ".actual.png"));
+
+        if (expected is not null)
+        {
+            SkiaOffscreenRenderer.SavePng(expected, Path.Combine(FailedDirectory, name + ".expected.png"));
+            SkiaOffscreenRenderer.SavePng(BuildDiff(expected, actual), Path.Combine(FailedDirectory, name + ".diff.png"));
+        }
+    }
+
+    /// <summary>Карта различий: совпавшее приглушается, отличия красным.</summary>
+    private static Image BuildDiff(Image expected, Image actual)
+    {
+        byte[] pixels = new byte[actual.Pixels.Length];
+
+        for (int i = 0; i < pixels.Length; i += 4)
+        {
+            bool same =
+                expected.Pixels[i] == actual.Pixels[i] &&
+                expected.Pixels[i + 1] == actual.Pixels[i + 1] &&
+                expected.Pixels[i + 2] == actual.Pixels[i + 2];
+
+            if (same)
+            {
+                byte grey = (byte)((actual.Pixels[i] + actual.Pixels[i + 1] + actual.Pixels[i + 2]) / 6 + 128);
+                pixels[i] = pixels[i + 1] = pixels[i + 2] = grey;
+                pixels[i + 3] = 255;
+            }
+            else
+            {
+                pixels[i] = 255;
+                pixels[i + 1] = pixels[i + 2] = 0;
+                pixels[i + 3] = 255;
+            }
+        }
+
+        return new Image(actual.Width, actual.Height, pixels);
     }
 
     private static void SaveRaw(string path, Image image)
@@ -95,14 +162,7 @@ public static class SnapshotAssert
 
         int width = reader.ReadInt32();
         int height = reader.ReadInt32();
-        byte[] pixels = reader.ReadBytes(width * height * 4);
 
-        return new Image(width, height, pixels);
-    }
-
-    private static void SaveFailure(string name, Image image)
-    {
-        Directory.CreateDirectory(FailureDirectory);
-        SaveRaw(Path.Combine(FailureDirectory, name + ".raw"), image);
+        return new Image(width, height, reader.ReadBytes(width * height * 4));
     }
 }

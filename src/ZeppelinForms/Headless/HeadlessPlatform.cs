@@ -6,6 +6,7 @@ using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Controls.Tools;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Keyboard;
 
@@ -22,13 +23,14 @@ public sealed class HeadlessPlatform : IPlatform
 
     private bool _running;
 
-    public HeadlessPlatform()
+    public HeadlessPlatform(bool registerServices = true)
     {
-        // без этих сервисов не работает даже Measure —
-        // тест упадёт ещё на присвоении Content
+        if (!registerServices) return;
+
         HeadlessTextMeasurer.Register();
         HeadlessImageDecoder.Register();
         HeadlessElementRenderer.Register();
+        BuiltInProperties.Register();
     }
 
     public IPlatformWindow CreateWindow(Form form)

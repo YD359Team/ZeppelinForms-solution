@@ -43,3 +43,11 @@ jobs:
       - name: Тесты (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: xvfb-run -a --server-args="-screen 0 1024x768x24" dotnet test --no-build --configuration Release
+
+      - name: Сохранить неудачные снимки
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots-${{ matrix.os }}
+          path: '**/Snapshots/Failed/*.png'
+          if-no-files-found: ignore
