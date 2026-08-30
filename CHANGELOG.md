@@ -6,6 +6,8 @@
 
 - Add headless platform
 - Add RTL support
+- Add ItemsPanel incremental update
+- Add VirtualizedStackPanel
 
 ## [0.3.0] — 2026-08-30
 
