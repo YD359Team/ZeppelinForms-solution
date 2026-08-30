@@ -43,13 +43,14 @@ internal static class BuiltInProperties
             (o, v) => ((T)o).IsEnabled = (bool)(v ?? true)),
 
         new("Width", typeof(float),
-            o => ((T)o).Size.Width,
+            o => float.IsFinite(((T)o).Size.Width) ? ((T)o).Size.Width : 0f,
             (o, v) => ((T)o).Size = new Size((float)(v ?? 0f), ((T)o).Size.Height)),
 
         new("Height", typeof(float),
-            o => ((T)o).Size.Height,
+            o => float.IsFinite(((T)o).Size.Height) ? ((T)o).Size.Height : 0f,
             (o, v) => ((T)o).Size = new Size(((T)o).Size.Width, (float)(v ?? 0f))),
 
+        // фактический размер после раскладки — только для чтения
         new("ActualWidth", typeof(float), o => ((T)o).ActualSize.Width),
         new("ActualHeight", typeof(float), o => ((T)o).ActualSize.Height),
 

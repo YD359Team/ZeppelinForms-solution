@@ -91,12 +91,26 @@ public class PropertyGrid : PanelControl
 
         if (property.Type == typeof(float) || property.Type == typeof(int))
         {
+            // Size.Auto — это NaN, а decimal не знает ни NaN, ни бесконечностей.
+            // Показываем такие значения как 0, иначе Convert.ToDecimal падает.
+            decimal initial = 0m;
+
+            if (current is float f)
+                initial = float.IsFinite(f) ? (decimal)Math.Clamp(f, -100000f, 100000f) : 0m;
+            else if (current is int i)
+                initial = i;
+            else if (current is not null)
+            {
+                try { initial = Convert.ToDecimal(current); }
+                catch (OverflowException) { initial = 0m; }
+            }
+
             var numeric = new NumericUpDown
             {
                 Minimum = -100000,
                 Maximum = 100000,
                 DecimalPlaces = property.Type == typeof(float) ? 2 : 0,
-                Value = Convert.ToDecimal(current ?? 0),
+                Value = initial,
             };
 
             numeric.ValueChanged += (_, _) => Apply(property,

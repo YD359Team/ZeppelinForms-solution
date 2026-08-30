@@ -76,6 +76,8 @@ public class Form : IDisposable
         get;
         set
         {
+            if (field == value) return;
+
             if (field is not null)
             {
                 DetachTree(field);
@@ -89,6 +91,10 @@ public class Form : IDisposable
                 value.Owner = this;
                 AttachTree(value);
             }
+
+            // смена содержимого — это полная смена геометрии,
+            // нужен пересчёт раскладки и перерисовка всего окна
+            Invalidate();
         }
     }
 
@@ -199,18 +205,36 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
     }
 
+    private int _layoutDepth;
+
     internal void PerformLayout()
     {
-        if (Content is not null)
+        // защита от рекурсии: Invalidate во время раскладки запустил бы её заново
+        if (_layoutDepth > 0)
         {
-            Content.Measure(ClientSize);
-            Content.Arrange(new Rectangle(Point.Empty, ClientSize));
+            System.Diagnostics.Debug.WriteLine("PerformLayout вызван повторно во время раскладки");
+            return;
         }
 
-        foreach (var overlay in _overlays)
+        _layoutDepth++;
+
+        try
         {
-            overlay.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
-            overlay.Arrange(new Rectangle(overlay.Position, overlay.DesiredSize));
+            if (Content is not null)
+            {
+                Content.Measure(ClientSize);
+                Content.Arrange(new Rectangle(Point.Empty, ClientSize));
+            }
+
+            foreach (var overlay in _overlays)
+            {
+                overlay.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
+                overlay.Arrange(new Rectangle(overlay.Position, overlay.DesiredSize));
+            }
+        }
+        finally
+        {
+            _layoutDepth--;
         }
     }
 
