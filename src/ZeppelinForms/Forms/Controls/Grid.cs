@@ -88,7 +88,7 @@ public class Grid : PanelControl
     }
 }
 
-public readonly record struct GridLength(float Value, bool IsStar)
+public readonly partial record struct GridLength(float Value, bool IsStar)
 {
     public static GridLength Fixed(float px) => new(px, false);
     public static GridLength Star(float weight = 1) => new(weight, true);
