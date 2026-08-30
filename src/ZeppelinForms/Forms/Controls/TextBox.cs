@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -16,47 +17,66 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     private const float CaretWidth = 1f;
     private const int BlinkIntervalMs = 530;
 
-    private string _text = string.Empty;
-    private int _caretIndex;
-    private int _selectionAnchor;
-    private float _scrollOffset;      // горизонтальный
-    private float _verticalOffset;    // вертикальный (многострочный режим)
-    private bool _caretVisible;
-    private bool _isDragging;
-
+    private readonly TextDocument _document = new();
     private readonly System.Threading.Timer _blinkTimer;
 
-    public bool IsMultiline { get; set; }
-    public bool IsEnterAccepted { get; set; } = true;
-    public bool IsTabAccepted { get; set; }
+    private float _scrollOffset;
+    private float _verticalOffset;
+    private bool _caretVisible;
+    private bool _isDragging;
+    private char? _pendingHighSurrogate;
+    private bool _disposed;
 
-    private float LineHeight => TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
-
-    public string Text
+    public TextBox()
     {
-        get => _text;
-        set
+        Background = Colors.White;
+        Padding = new Thickness(4, 2);
+
+        _document.Changed += (_, _) =>
         {
-            _text = value ?? string.Empty;
-            _caretIndex = Math.Min(_caretIndex, _text.Length);
-            _caretIndex = PreviousTextElementIndex(_text, NextTextElementIndex(_text, _caretIndex));
-            _selectionAnchor = _caretIndex;
-            Invalidate();
-        }
+            TextChanged?.Invoke(this, EventArgs.Empty);
+            InvalidateVisual();
+        };
+
+        _document.CaretMoved += (_, _) =>
+        {
+            ShowCaretImmediately();
+            InvalidateVisual();
+        };
+
+        _blinkTimer = new System.Threading.Timer(OnBlink, null, Timeout.Infinite, Timeout.Infinite);
     }
 
-    public int MaxLength { get; set; } = int.MaxValue;
+    // ===== публичный API =====
+
+    public string? Text
+    {
+        get => _document.Text;
+        set => _document.Text = value ?? string.Empty;
+    }
+
+    public bool IsMultiline
+    {
+        get => _document.IsMultiline;
+        set => _document.IsMultiline = value;
+    }
+
+    public int MaxLength
+    {
+        get => _document.MaxLength;
+        set => _document.MaxLength = value;
+    }
+
+    public bool IsEnterAccepted { get; set; } = true;
+    public bool IsTabAccepted { get; set; }
     public bool IsReadOnly { get; set; }
     public char? PasswordChar { get; set; }
 
-    private string DisplayText =>
-    PasswordChar is char pc && !IsMultiline
-        ? new string(pc, new System.Globalization.StringInfo(_text).LengthInTextElements)
-        : _text;
+    public int SelectionStart => _document.SelectionStart;
+    public int SelectionLength => _document.SelectionLength;
+    public string SelectedText => _document.SelectedText;
 
-    public int SelectionStart => Math.Min(_selectionAnchor, _caretIndex);
-    public int SelectionLength => Math.Abs(_caretIndex - _selectionAnchor);
-    public string SelectedText => _text.Substring(SelectionStart, SelectionLength);
+    public int CaretIndex => _document.CaretIndex;
 
     public Color TextColor { get; set; } = Colors.Black;
     public Color CaretColor { get; set; } = Colors.Black;
@@ -77,63 +97,24 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
 
     protected override bool IsKeyActivatable => true;
 
-    public TextBox()
-    {
-        Background = Colors.White;
-        Padding = new Thickness(4, 2);
-        _blinkTimer = new System.Threading.Timer(OnBlink, null, Timeout.Infinite, Timeout.Infinite);
-    }
+    public void SelectAll() => _document.SelectAll();
 
-    private string[] DisplayLines => DisplayText.Split('\n');
+    // ===== отображение =====
 
-    // ===== перевод между линейным индексом и (строка, колонка) =====
+    private float LineHeight => TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
 
-    private (int Line, int Column) IndexToPosition(int index)
-    {
-        int line = 0, lineStart = 0;
+    // маска строится по видимым символам: одно эмодзи — одна точка
+    private string DisplayText => PasswordChar is char pc && !IsMultiline
+        ? new string(pc, _document.Length)
+        : _document.Text;
 
-        for (int i = 0; i < index && i < _text.Length; i++)
-            if (_text[i] == '\n') { line++; lineStart = i + 1; }
+    private string[] DisplayLines => IsMultiline ? _document.Lines : [DisplayText];
 
-        return (line, index - lineStart);
-    }
-
-    private int PositionToIndex(int line, int column)
-    {
-        string[] lines = DisplayLines;
-        line = Math.Clamp(line, 0, lines.Length - 1);
-
-        int index = 0;
-        for (int i = 0; i < line; i++)
-            index += lines[i].Length + 1;   // +1 на сам '\n'
-
-        return index + Math.Clamp(column, 0, lines[line].Length);
-    }
-
-    private static int PreviousTextElementIndex(string text, int index)
-    {
-        if (index <= 0) return 0;
-
-        var enumerator = System.Globalization.StringInfo.GetTextElementEnumerator(text);
-        int previous = 0;
-
-        while (enumerator.MoveNext())
-        {
-            int current = enumerator.ElementIndex;
-            if (current >= index) break;
-            previous = current;
-        }
-
-        return previous;
-    }
-
-    private static int NextTextElementIndex(string text, int index)
-    {
-        if (index >= text.Length) return text.Length;
-
-        int length = StringInfo.GetNextTextElementLength(text.AsSpan(index));
-        return index + length;
-    }
+    /// <summary>Индекс в тексте → индекс в отображаемой строке. Различаются под маской пароля.</summary>
+    private int ToDisplayIndex(int textIndex) =>
+        PasswordChar is not null && !IsMultiline
+            ? TextElements.Count(_document.Text[..Math.Min(textIndex, _document.Text.Length)])
+            : textIndex;
 
     // ===== фокус и мигание =====
 
@@ -149,61 +130,32 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         _caretVisible = false;
     }
 
-    private void OnBlink(object? state) =>
-        FindOwner()?.Invoke(() => { _caretVisible = !_caretVisible; Invalidate(); });
+    private void OnBlink(object? state)
+    {
+        if (_disposed) return;
+
+        FindOwner()?.Invoke(() =>
+        {
+            _caretVisible = !_caretVisible;
+            InvalidateVisual();
+        });
+    }
 
     private void ShowCaretImmediately()
     {
         _caretVisible = true;
-        if (IsFocused)
+
+        if (IsFocused && !_disposed)
             _blinkTimer.Change(BlinkIntervalMs, BlinkIntervalMs);
     }
 
-    // ===== редактирование =====
-
-    private void ClearSelection() => _selectionAnchor = _caretIndex;
-
-    private bool DeleteSelection()
-    {
-        if (SelectionLength == 0) return false;
-
-        _text = _text.Remove(SelectionStart, SelectionLength);
-        _caretIndex = SelectionStart;
-        ClearSelection();
-        return true;
-    }
-
-    private void InsertText(string value)
-    {
-        if (IsReadOnly) return;
-
-        var info = new System.Globalization.StringInfo(_text);
-        var addition = new System.Globalization.StringInfo(value);
-
-        // считаем в символах, а не в char; проверяем ДО удаления выделения,
-        // иначе при переполнении текст просто исчезнет
-        if (info.LengthInTextElements + addition.LengthInTextElements > MaxLength)
-            return;
-
-        DeleteSelection();
-
-        _text = _text.Insert(_caretIndex, value);
-        _caretIndex += value.Length;
-        ClearSelection();
-
-        ShowCaretImmediately();
-        TextChanged?.Invoke(this, EventArgs.Empty);
-        Invalidate();
-    }
-
-    private char? _pendingHighSurrogate;
+    // ===== ввод =====
 
     protected override void OnTextInput(char c)
     {
-        if (char.IsControl(c)) return;
+        if (IsReadOnly || char.IsControl(c)) return;
 
-        // эмодзи приходит двумя сообщениями WM_CHAR — сначала старший
-        // суррогат, потом младший; вставляем только собранную пару
+        // эмодзи приходит двумя сообщениями — собираем пару перед вставкой
         if (char.IsHighSurrogate(c))
         {
             _pendingHighSurrogate = c;
@@ -214,144 +166,101 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         {
             _pendingHighSurrogate = null;
 
-            // Rune.TryCreate сам проверит, что пара валидна —
-            // надёжнее, чем просто IsLowSurrogate
-            if (Rune.TryCreate(high, c, out Rune rune))
+            if (System.Text.Rune.TryCreate(high, c, out System.Text.Rune rune))
             {
-                InsertText(rune.ToString());
+                _document.Insert(rune.ToString());
                 return;
             }
         }
 
-        InsertText(c.ToString());
+        _document.Insert(c.ToString());
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
         bool shift = e.Modifiers.HasFlag(KeyModifiers.Shift);
         bool ctrl = e.Modifiers.HasFlag(KeyModifiers.Control);
-        bool handled = true;
 
         switch (e.Key)
         {
             case Key.Enter:
-                // многострочный + разрешён перенос -> вставляем \n;
-                // иначе трактуем как "ввод завершён"
-                if (IsMultiline && !IsEnterAccepted)
-                    InsertText("\n");
+                if (IsMultiline && !IsEnterAccepted && !IsReadOnly)
+                    _document.Insert("\n");
                 else
                     Accepted?.Invoke(this, EventArgs.Empty);
                 break;
 
-            case Key.Tab when IsTabAccepted:
-                InsertText("\t");
+            case Key.Tab when IsTabAccepted && !IsReadOnly:
+                _document.Insert("\t");
                 break;
 
             case Key.Back when !IsReadOnly:
-                if (!DeleteSelection() && _caretIndex > 0)
-                {
-                    _text = _text.Remove(_caretIndex - 1, 1);
-                    _caretIndex--;
-                    ClearSelection();
-                }
-                TextChanged?.Invoke(this, EventArgs.Empty);
+                _document.Backspace();
                 break;
 
             case Key.Delete when !IsReadOnly:
-                if (!DeleteSelection() && _caretIndex < _text.Length)
-                    _text = _text.Remove(_caretIndex, 1);
-                TextChanged?.Invoke(this, EventArgs.Empty);
+                _document.Delete();
                 break;
 
             case Key.Left:
-                _caretIndex = PreviousTextElementIndex(_text, _caretIndex);
-                if (!shift) ClearSelection();
+                _document.MoveLeft(shift);
                 break;
 
             case Key.Right:
-                _caretIndex = NextTextElementIndex(_text, _caretIndex);
-                if (!shift) ClearSelection();
+                _document.MoveRight(shift);
                 break;
 
-            case Key.Back when !IsReadOnly:
-                if (!DeleteSelection() && _caretIndex > 0)
-                {
-                    int start = PreviousTextElementIndex(_text, _caretIndex);
-                    _text = _text.Remove(start, _caretIndex - start);
-                    _caretIndex = start;
-                    ClearSelection();
-                }
-                TextChanged?.Invoke(this, EventArgs.Empty);
+            case Key.Up when IsMultiline:
+                _document.MoveVertical(-1, shift);
                 break;
 
-            case Key.Delete when !IsReadOnly:
-                if (!DeleteSelection() && _caretIndex < _text.Length)
-                {
-                    int end = NextTextElementIndex(_text, _caretIndex);
-                    _text = _text.Remove(_caretIndex, end - _caretIndex);
-                }
-                TextChanged?.Invoke(this, EventArgs.Empty);
+            case Key.Down when IsMultiline:
+                _document.MoveVertical(1, shift);
                 break;
 
             case Key.Home:
-                {
-                    var (line, _) = IndexToPosition(_caretIndex);
-                    _caretIndex = IsMultiline ? PositionToIndex(line, 0) : 0;
-                    if (!shift) ClearSelection();
-                    break;
-                }
+                if (IsMultiline) _document.MoveToLineStart(shift);
+                else _document.SetCaret(0, shift);
+                break;
 
             case Key.End:
-                {
-                    var (line, _) = IndexToPosition(_caretIndex);
-                    _caretIndex = IsMultiline
-                        ? PositionToIndex(line, DisplayLines[line].Length)
-                        : _text.Length;
-                    if (!shift) ClearSelection();
-                    break;
-                }
+                if (IsMultiline) _document.MoveToLineEnd(shift);
+                else _document.SetCaret(_document.Text.Length, shift);
+                break;
 
             case (Key)0x41 when ctrl:   // Ctrl+A
-                _selectionAnchor = 0;
-                _caretIndex = _text.Length;
+                _document.SelectAll();
                 break;
 
             case (Key)0x43 when ctrl:   // Ctrl+C
-                if (SelectionLength > 0)
-                    Clipboard.Current.SetText(SelectedText);
+                if (_document.SelectionLength > 0 && PasswordChar is null)
+                    Clipboard.Current.SetText(_document.SelectedText);
                 break;
 
-            case (Key)0x58 when ctrl:   // Ctrl+X
-                if (SelectionLength > 0 && !IsReadOnly)
+            case (Key)0x58 when ctrl && !IsReadOnly:   // Ctrl+X
+                if (_document.SelectionLength > 0 && PasswordChar is null)
                 {
-                    Clipboard.Current.SetText(SelectedText);
-                    DeleteSelection();
-                    TextChanged?.Invoke(this, EventArgs.Empty);
+                    Clipboard.Current.SetText(_document.SelectedText);
+                    _document.DeleteSelection();
                 }
                 break;
 
-            case (Key)0x56 when ctrl:   // Ctrl+V
-                if (!IsReadOnly && Clipboard.Current.GetText() is string pasted)
+            case (Key)0x56 when ctrl && !IsReadOnly:   // Ctrl+V
+                if (Clipboard.Current.GetText() is string pasted)
                 {
                     string clean = IsMultiline
                         ? pasted.Replace("\r\n", "\n").Replace('\r', '\n')
                         : pasted.Replace("\r", "").Replace("\n", " ");
 
-                    InsertText(clean);
+                    _document.Insert(clean);
                 }
                 break;
 
             default:
-                handled = false;
-                break;
+                return;   // не наша клавиша — не помечаем как обработанную
         }
 
-        if (handled)
-        {
-            e.Handled = true;
-            ShowCaretImmediately();
-            Invalidate();
-        }
+        e.Handled = true;
     }
 
     // ===== мышь =====
@@ -366,39 +275,32 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         int line = IsMultiline ? Math.Clamp((int)(localY / LineHeight), 0, lines.Length - 1) : 0;
         string lineText = lines[line];
 
-        int col = lineText.Length;
+        int column = lineText.Length;
 
-        for (int i = 0; i <= lineText.Length;)
+        // перебираем границы символов, а не char — иначе каретка встанет
+        // в середину суррогатной пары
+        foreach (int boundary in TextElements.Boundaries(lineText))
         {
-            if (TextMeasurer.Current.MeasureTextWidth(lineText, i, EffectiveFont) >= localX)
+            if (TextMeasurer.Current.MeasureTextWidth(lineText, boundary, EffectiveFont) >= localX)
             {
-                col = i;
+                column = boundary;
                 break;
             }
-
-            if (i >= lineText.Length) break;
-            i = NextTextElementIndex(lineText, i);
         }
 
-        return PositionToIndex(line, col);
+        return IsMultiline ? _document.FromPosition(line, column) : column;
     }
 
     protected override void OnMouseDown(Point location)
     {
-        _caretIndex = IndexFromPoint(location);
-        ClearSelection();
+        _document.SetCaret(IndexFromPoint(location));
         _isDragging = true;
-
-        ShowCaretImmediately();
-        Invalidate();
     }
 
     protected override void OnMouseMove(Point location)
     {
-        if (!_isDragging) return;
-
-        _caretIndex = IndexFromPoint(location);   // якорь не трогаем
-        Invalidate();
+        if (_isDragging)
+            _document.SetCaret(IndexFromPoint(location), extendSelection: true);
     }
 
     protected override void OnMouseUp(Point location) => _isDragging = false;
@@ -408,65 +310,47 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     public override void Draw(Graphics g)
     {
         if (Background.A > 0)
-            g.FillRectangle(this.LocalBounds, Background);
+            g.FillRoundRectangle(this.LocalBounds, CornerRadius, Background);
 
         if (BorderWidth > 0)
-            g.DrawRectangle(this.LocalBounds, IsFocused ? LightThemeColors.ButtonFill : BorderColor, BorderWidth);
+            g.DrawRoundRectangle(this.LocalBounds, CornerRadius,
+                IsFocused ? LightThemeColors.ButtonFill : BorderColor, BorderWidth);
 
         var content = this.ContentBounds;
         float lineHeight = LineHeight;
         string[] lines = DisplayLines;
 
-        var (caretLine, caretCol) = IndexToPosition(_caretIndex);
-        float caretX = TextMeasurer.Current.MeasureTextWidth(lines[Math.Min(caretLine, lines.Length - 1)], caretCol, EffectiveFont);
+        var (caretLine, caretColumn) = IsMultiline
+            ? _document.ToPosition(_document.CaretIndex)
+            : (0, ToDisplayIndex(_document.CaretIndex));
+
+        caretLine = Math.Clamp(caretLine, 0, lines.Length - 1);
+
+        float caretX = TextMeasurer.Current.MeasureTextWidth(lines[caretLine], caretColumn, EffectiveFont);
         float caretY = caretLine * lineHeight;
 
-        // держим каретку в поле зрения
-        if (caretX - _scrollOffset > content.Width) _scrollOffset = caretX - content.Width;
-        else if (caretX - _scrollOffset < 0) _scrollOffset = caretX;
-
-        if (IsMultiline)
-        {
-            if (caretY + lineHeight - _verticalOffset > content.Height)
-                _verticalOffset = caretY + lineHeight - content.Height;
-            else if (caretY - _verticalOffset < 0)
-                _verticalOffset = caretY;
-        }
+        UpdateScroll(content, caretX, caretY, lineHeight, lines.Length);
 
         g.Save();
         g.ClipRect(content);
 
-        int selStart = SelectionStart;
-        int selEnd = selStart + SelectionLength;
+        int selectionStart = ToDisplayIndex(_document.SelectionStart);
+        int selectionEnd = selectionStart + ToDisplayIndex(_document.SelectionStart + _document.SelectionLength) - selectionStart;
         int lineStartIndex = 0;
+
+        float blockTop = content.Y + (IsMultiline ? 0 : VerticalOffsetForSingleLine(content, lineHeight));
 
         for (int i = 0; i < lines.Length; i++)
         {
             string lineText = lines[i];
-            float y = content.Y + i * lineHeight - _verticalOffset;
+            float y = blockTop + i * lineHeight - _verticalOffset;
 
-            // подсветка выделения в пределах этой строки
-            if (SelectionLength > 0)
-            {
-                int lineEndIndex = lineStartIndex + lineText.Length;
-                int from = Math.Max(selStart, lineStartIndex) - lineStartIndex;
-                int to = Math.Min(selEnd, lineEndIndex) - lineStartIndex;
-
-                if (to > from)
-                {
-                    float x1 = TextMeasurer.Current.MeasureTextWidth(lineText, from, EffectiveFont);
-                    float x2 = TextMeasurer.Current.MeasureTextWidth(lineText, to, EffectiveFont);
-
-                    g.FillRectangle(
-                        new Rectangle(new Point(content.X + x1 - _scrollOffset, y), new Size(x2 - x1, lineHeight)),
-                        SelectionColor);
-                }
-            }
+            if (_document.SelectionLength > 0)
+                DrawSelection(g, lineText, lineStartIndex, selectionStart, selectionEnd, content.X, y, lineHeight);
 
             if (lineText.Length > 0)
             {
-                g.DrawText(
-                    lineText,
+                g.DrawText(lineText,
                     new Rectangle(new Point(content.X - _scrollOffset, y), new Size(float.MaxValue, lineHeight)),
                     TextColor, EffectiveFont,
                     HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
@@ -479,7 +363,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         {
             g.FillRectangle(
                 new Rectangle(
-                    new Point(content.X + caretX - _scrollOffset, content.Y + caretY - _verticalOffset),
+                    new Point(content.X + caretX - _scrollOffset, blockTop + caretY - _verticalOffset),
                     new Size(CaretWidth, lineHeight)),
                 CaretColor);
         }
@@ -487,25 +371,78 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         g.Restore();
     }
 
+    private float VerticalOffsetForSingleLine(Rectangle content, float lineHeight) =>
+        VerticalContentAlign switch
+        {
+            VerticalContentAlignment.Bottom => content.Height - lineHeight,
+            VerticalContentAlignment.Center => (content.Height - lineHeight) / 2f,
+            _ => 0f,
+        };
+
+    private void DrawSelection(
+        Graphics g, string lineText, int lineStartIndex,
+        int selectionStart, int selectionEnd, float x, float y, float lineHeight)
+    {
+        int lineEndIndex = lineStartIndex + lineText.Length;
+
+        int from = Math.Max(selectionStart, lineStartIndex) - lineStartIndex;
+        int to = Math.Min(selectionEnd, lineEndIndex) - lineStartIndex;
+
+        if (to <= from) return;
+
+        float x1 = TextMeasurer.Current.MeasureTextWidth(lineText, from, EffectiveFont);
+        float x2 = TextMeasurer.Current.MeasureTextWidth(lineText, to, EffectiveFont);
+
+        g.FillRectangle(
+            new Rectangle(new Point(x + x1 - _scrollOffset, y), new Size(x2 - x1, lineHeight)),
+            SelectionColor);
+    }
+
+    private void UpdateScroll(Rectangle content, float caretX, float caretY, float lineHeight, int lineCount)
+    {
+        if (caretX - _scrollOffset > content.Width) _scrollOffset = caretX - content.Width;
+        else if (caretX - _scrollOffset < 0) _scrollOffset = caretX;
+
+        if (!IsMultiline)
+        {
+            _verticalOffset = 0;
+            return;
+        }
+
+        if (caretY + lineHeight - _verticalOffset > content.Height)
+            _verticalOffset = caretY + lineHeight - content.Height;
+        else if (caretY - _verticalOffset < 0)
+            _verticalOffset = caretY;
+
+        // не отматываем ниже последней строки
+        _verticalOffset = Math.Clamp(_verticalOffset, 0, Math.Max(0, lineCount * lineHeight - content.Height));
+    }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         float lineHeight = LineHeight;
+
         float height = IsMultiline
             ? Math.Max(lineHeight * 3, lineHeight * DisplayLines.Length)
             : lineHeight;
 
-        var content = new Size(120 + Padding.Horizontal, height + Padding.Vertical + 6);
-        return ResolveSize(content, availableSize);
+        return ResolveSize(
+            new Size(120 + Padding.Horizontal, height + Padding.Vertical + 6),
+            availableSize);
     }
 
-    protected override void OnDetached()
-    {
-        _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        _blinkTimer.Dispose();
-    }
+    // ===== жизненный цикл =====
+
+    protected override void OnDetached() => Dispose();
 
     public void Dispose()
     {
-        _blinkTimer?.Dispose();
+        if (_disposed) return;
+
+        _disposed = true;
+        _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        _blinkTimer.Dispose();
+
+        GC.SuppressFinalize(this);
     }
 }

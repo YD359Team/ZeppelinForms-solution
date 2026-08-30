@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Xunit;
+using ZeppelinForms.Core.Text;
 using ZeppelinForms.Forms.Controls;
 
 namespace ZeppelinForms.UnitTests;
@@ -41,5 +42,16 @@ public class ControlTests
         comboBox.Items.Add(555);
 
         Assert.True(comboBox.Items.Count == 4);
+    }
+
+    [Fact]
+    public void TextBoxRemoveEmojiTest()
+    {
+        var doc = new TextDocument { Text = "привет 👍🏽" };
+        doc.SetCaret(doc.Text.Length);
+
+        doc.Backspace();
+
+        Assert.Equal("привет ", doc.Text);
     }
 }
