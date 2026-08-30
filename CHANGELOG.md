@@ -1,6 +1,8 @@
 # Changes
 
-## Feature [0.3.0]
+## [0.3.0] — 2026-08-30
+
+### Added
 
 - Add Grid.LengthAuto
 - Add SplitButton
