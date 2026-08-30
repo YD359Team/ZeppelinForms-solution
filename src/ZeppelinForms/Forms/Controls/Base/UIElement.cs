@@ -25,21 +25,37 @@ public abstract class UIElement : IGridPlaceable
     public VerticalAlignment VerticalAlignment { get; set; } = VerticalAlignment.Stretch;
     public Point Position { get; set; }
     // Auto по умолчанию — авторазмер по контенту, пока явно не задан Size
-    public Size Size { get; set; } = Size.Auto;
+    private Size _explicitSize = Size.Auto;
+    private Size _actualSize = Size.Empty;
+
+    /// <summary>Явно заданный размер. Size.Auto означает «подобрать по содержимому».</summary>
+    public Size Size
+    {
+        get => _explicitSize;
+        set
+        {
+            if (_explicitSize == value) return;
+
+            _explicitSize = value;
+            _actualSize = value;   // до первого layout рисуем по заданному
+            Invalidate();
+        }
+    }
+
+    /// <summary>Фактический размер после раскладки. Именно им рисуемся.</summary>
+    public Size ActualSize => _actualSize;
     public Thickness Margin { get; set; } = Thickness.Zero;
     public Thickness Padding { get; set; } = Thickness.Zero;
-    public Rectangle Rectangle => new(Position, Size);
+    public Rectangle Rectangle => new(Position, _actualSize);
     public Rectangle LocalBounds => new(Point.Empty, SanitizedSize);
     public Rectangle ContentBounds => new(
         new Point(Padding.Left, Padding.Top),
         new Size(
             NonNegative(SanitizedSize.Width - Padding.Horizontal),
             NonNegative(SanitizedSize.Height - Padding.Vertical)));
-    // Size.Auto (NaN) означает "размер ещё не вычислен".
-    // Для геометрии рисования это ноль, а не NaN.
     private Size SanitizedSize => new(
-        float.IsFinite(Size.Width) ? Size.Width : 0f,
-        float.IsFinite(Size.Height) ? Size.Height : 0f);
+        float.IsFinite(_actualSize.Width) ? _actualSize.Width : 0f,
+        float.IsFinite(_actualSize.Height) ? _actualSize.Height : 0f);
     private static float NonNegative(float value) =>
         float.IsFinite(value) && value > 0f ? value : 0f;
     public CornerRadius CornerRadius { get; set; } = CornerRadius.Zero;
@@ -169,13 +185,8 @@ public abstract class UIElement : IGridPlaceable
         bool stretchH = fill || HorizontalAlignment == HorizontalAlignment.Stretch;
         bool stretchV = fill || VerticalAlignment == VerticalAlignment.Stretch;
 
-        float width = stretchH
-            ? finalRect.Width
-            : Math.Min(DesiredSize.Width, finalRect.Width);
-
-        float height = stretchV
-            ? finalRect.Height
-            : Math.Min(DesiredSize.Height, finalRect.Height);
+        float width = stretchH ? finalRect.Width : Math.Min(DesiredSize.Width, finalRect.Width);
+        float height = stretchV ? finalRect.Height : Math.Min(DesiredSize.Height, finalRect.Height);
 
         float x = stretchH ? finalRect.X : HorizontalAlignment switch
         {
@@ -192,7 +203,11 @@ public abstract class UIElement : IGridPlaceable
         };
 
         Position = new Point(x, y);
-        Size = ArrangeOverride(new Size(width, height));
+
+        // результат раскладки уходит в ActualSize; Size остаётся тем,
+        // что задал пользователь, иначе авторазмер сработает лишь однажды
+        _actualSize = ArrangeOverride(new Size(width, height));
+
         OnSizeChanged();
     }
 
@@ -222,8 +237,9 @@ public abstract class UIElement : IGridPlaceable
     // не может превышать то, что реально выделил родитель.
     protected Size ResolveSize(Size contentSize, Size availableSize)
     {
-        float w = Size.IsWidthAuto ? contentSize.Width : Size.Width;
-        float h = Size.IsHeightAuto ? contentSize.Height : Size.Height;
+        float w = _explicitSize.IsWidthAuto ? contentSize.Width : _explicitSize.Width;
+        float h = _explicitSize.IsHeightAuto ? contentSize.Height : _explicitSize.Height;
+
         return new Size(Math.Min(w, availableSize.Width), Math.Min(h, availableSize.Height));
     }
 

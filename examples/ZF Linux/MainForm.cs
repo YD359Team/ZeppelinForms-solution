@@ -68,7 +68,7 @@ internal class MainForm : Form
             pBox,
             lBox,
             cBox,
-            new Spoiler() { Child = new Label() { Text = "Hidden label" } },
+            new Spoiler() { Child = new Label() { Text = "Hidden label" }, IsCollapsed = false },
             new CircularProgressBar() { Maximum = 1f, Value = 0.5f },
             new SvgIcon() { PathData = "M 45 45 L 345 45 L 345 345 L 45 345 Z M 195 45 L 195 345 M 45 195 L 345 195" },
             new ColorPicker()
