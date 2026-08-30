@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
+using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Headless;
 
 namespace ZeppelinForms.UnitTests;
@@ -12,7 +13,16 @@ public class HeadlessPlatformTests
     [Fact]
     public void ButtonClicked()
     {
-        var button = new Button { Text = "OK", Size = new Size(100, 30) };
+        // выравнивание по умолчанию у UnitControl — Center, поэтому позицию
+        // задаём явно, иначе тест зависит от размеров формы
+        var button = new Button
+        {
+            Text = "OK",
+            Size = new Size(100, 30),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+
         bool clicked = false;
         button.Click += (_, _) => clicked = true;
 
