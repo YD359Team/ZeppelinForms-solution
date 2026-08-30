@@ -4,6 +4,7 @@ using ZeppelinForms.Windows;
 
 namespace ZeppelinForms.UnitTests;
 
+[Collection("Platform")]
 public class WindowsPlatformTests
 {
     [Fact]

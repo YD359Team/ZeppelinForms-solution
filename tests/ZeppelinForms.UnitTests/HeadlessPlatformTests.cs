@@ -6,6 +6,7 @@ using ZeppelinForms.Headless;
 
 namespace ZeppelinForms.UnitTests;
 
+[Collection("Platform")]
 public class HeadlessPlatformTests
 {
     [Fact]

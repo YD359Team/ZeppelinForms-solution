@@ -5,6 +5,7 @@
 ### Added
 
 - Add headless platform
+- Add RTL support
 
 ## [0.3.0] — 2026-08-30
 
