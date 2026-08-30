@@ -168,14 +168,13 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
 
         if (Contains(UpButtonRect, local)) Value += Step;
         else if (Contains(DownButtonRect, local)) Value -= Step;
-        else return;
 
         e.Handled = true;
     }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
-        Value += Step * (e.Delta / 120);
+        Value += Step * Math.Sign(e.Delta);
         e.Handled = true;
     }
 
