@@ -29,9 +29,9 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Установка зависимостей Skia (Linux)
+      - name: Установка зависимостей (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 xvfb
 
       - run: dotnet restore
       - run: dotnet build --no-restore --configuration Release
@@ -42,4 +42,4 @@ jobs:
 
       - name: Тесты (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: xvfb-run -a dotnet test --no-build --configuration Release
+        run: xvfb-run -a --server-args="-screen 0 1024x768x24" dotnet test --no-build --configuration Release

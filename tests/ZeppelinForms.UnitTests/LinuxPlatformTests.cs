@@ -10,6 +10,9 @@ public class LinuxPlatformTests
     public void RunApp_ShowsWindowAndClosesGracefully()
     {
         Assert.SkipUnless(OperatingSystem.IsLinux(), "Test for Linux only");
+        Assert.SkipWhen(
+            string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")),
+            "Нет доступного X-сервера (DISPLAY не задан)");
 
         Exception? backgroundException = null;
         var shown = new ManualResetEventSlim(false);
