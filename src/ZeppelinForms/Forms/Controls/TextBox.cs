@@ -256,6 +256,15 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
                 }
                 break;
 
+            case (Key)0x5A when ctrl && !shift && !IsReadOnly:   // Ctrl+Z
+                _document.Undo();
+                break;
+
+            case (Key)0x59 when ctrl && !IsReadOnly:            // Ctrl+Y
+            case (Key)0x5A when ctrl && shift && !IsReadOnly:   // Ctrl+Shift+Z
+                _document.Redo();
+                break;
+
             default:
                 return;   // не наша клавиша — не помечаем как обработанную
         }

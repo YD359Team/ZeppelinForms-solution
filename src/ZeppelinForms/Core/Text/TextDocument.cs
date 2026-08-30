@@ -8,6 +8,16 @@ namespace ZeppelinForms.Core.Text;
 /// <summary>Текст с кареткой и выделением. Ничего не знает про отрисовку и ввод.</summary>
 public sealed class TextDocument
 {
+    private readonly Stack<TextEdit> _undo = new();
+    private readonly Stack<TextEdit> _redo = new();
+    private bool _applyingHistory;
+
+    /// <summary>Окно склейки последовательного набора в одну операцию.</summary>
+    public TimeSpan MergeWindow { get; set; } = TimeSpan.FromSeconds(1);
+
+    public bool CanUndo => _undo.Count > 0;
+    public bool CanRedo => _redo.Count > 0;
+
     private string _text = string.Empty;
 
     public string Text
@@ -18,6 +28,8 @@ public sealed class TextDocument
             _text = value ?? string.Empty;
             CaretIndex = Math.Min(CaretIndex, _text.Length);
             SelectionAnchor = CaretIndex;
+
+            ClearHistory();
             Changed?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -73,13 +85,7 @@ public sealed class TextDocument
     {
         if (SelectionLength == 0) return false;
 
-        int start = SelectionStart;
-        _text = _text.Remove(start, SelectionLength);
-
-        CaretIndex = start;
-        SelectionAnchor = start;
-
-        Changed?.Invoke(this, EventArgs.Empty);
+        Replace(SelectionStart, SelectionLength, string.Empty);
         return true;
     }
 
@@ -87,15 +93,13 @@ public sealed class TextDocument
     {
         if (string.IsNullOrEmpty(value)) return;
 
-        DeleteSelection();
+        int start = SelectionStart;
+        int length = SelectionLength;
 
-        // считаем в видимых символах: эмодзи не должен съедать два лимита
-        if (Length + TextElements.Count(value) > MaxLength) return;
+        if (Length - TextElements.Count(SelectedText) + TextElements.Count(value) > MaxLength)
+            return;
 
-        _text = _text.Insert(CaretIndex, value);
-        SetCaret(CaretIndex + value.Length);
-
-        Changed?.Invoke(this, EventArgs.Empty);
+        Replace(start, length, value);
     }
 
     public void Backspace()
@@ -104,10 +108,7 @@ public sealed class TextDocument
         if (CaretIndex == 0) return;
 
         int start = TextElements.Previous(_text, CaretIndex);
-        _text = _text.Remove(start, CaretIndex - start);
-        SetCaret(start);
-
-        Changed?.Invoke(this, EventArgs.Empty);
+        Replace(start, CaretIndex - start, string.Empty);
     }
 
     public void Delete()
@@ -116,9 +117,7 @@ public sealed class TextDocument
         if (CaretIndex >= _text.Length) return;
 
         int end = TextElements.Next(_text, CaretIndex);
-        _text = _text.Remove(CaretIndex, end - CaretIndex);
-
-        Changed?.Invoke(this, EventArgs.Empty);
+        Replace(CaretIndex, end - CaretIndex, string.Empty);
     }
 
     public int Length => TextElements.Count(_text);
@@ -157,5 +156,97 @@ public sealed class TextDocument
     {
         var (line, _) = ToPosition(index);
         return FromPosition(line, Lines[line].Length);
+    }
+
+    /// <summary>Единая точка правки: любое изменение текста проходит здесь
+    /// и попадает в историю.</summary>
+    private void Replace(int position, int length, string insertion)
+    {
+        string removed = length > 0 ? _text.Substring(position, length) : string.Empty;
+
+        if (removed.Length == 0 && insertion.Length == 0) return;
+
+        int caretBefore = CaretIndex;
+        int anchorBefore = SelectionAnchor;
+
+        _text = _text.Remove(position, length).Insert(position, insertion);
+
+        CaretIndex = position + insertion.Length;
+        SelectionAnchor = CaretIndex;
+
+        if (!_applyingHistory)
+        {
+            var edit = new TextEdit(position, removed, insertion, caretBefore, anchorBefore, CaretIndex);
+
+            if (!(_undo.Count > 0 && _undo.Peek().TryMerge(edit, MergeWindow)))
+                _undo.Push(edit);
+
+            _redo.Clear();   // новая правка обрывает ветку повтора
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+        CaretMoved?.Invoke(this, EventArgs.Empty);
+    }
+
+    public bool Undo()
+    {
+        if (_undo.Count == 0) return false;
+
+        TextEdit edit = _undo.Pop();
+
+        _applyingHistory = true;
+        try
+        {
+            _text = _text
+                .Remove(edit.Position, edit.InsertedText.Length)
+                .Insert(edit.Position, edit.RemovedText);
+
+            CaretIndex = edit.CaretBefore;
+            SelectionAnchor = edit.AnchorBefore;
+        }
+        finally
+        {
+            _applyingHistory = false;
+        }
+
+        _redo.Push(edit);
+
+        Changed?.Invoke(this, EventArgs.Empty);
+        CaretMoved?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    public bool Redo()
+    {
+        if (_redo.Count == 0) return false;
+
+        TextEdit edit = _redo.Pop();
+
+        _applyingHistory = true;
+        try
+        {
+            _text = _text
+                .Remove(edit.Position, edit.RemovedText.Length)
+                .Insert(edit.Position, edit.InsertedText);
+
+            CaretIndex = edit.CaretAfter;
+            SelectionAnchor = CaretIndex;
+        }
+        finally
+        {
+            _applyingHistory = false;
+        }
+
+        _undo.Push(edit);
+
+        Changed?.Invoke(this, EventArgs.Empty);
+        CaretMoved?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    public void ClearHistory()
+    {
+        _undo.Clear();
+        _redo.Clear();
     }
 }
