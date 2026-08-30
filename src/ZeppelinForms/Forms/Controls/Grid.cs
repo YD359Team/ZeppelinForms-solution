@@ -180,6 +180,28 @@ public readonly partial record struct GridLength(float Value, GridUnit Unit)
 
         throw new FormatException($"Не удалось разобрать размер трека: '{chars}'.");
     }
+
+    /// <summary>Разбирает описание треков: "100", "*", "2*", "auto", "auto,*,2.5*".</summary>
+    public static List<GridLength> Parse(string definition)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+
+        List<GridLength> sizes = [];
+
+        foreach (Range range in definition.AsSpan().Split(','))
+        {
+            ReadOnlySpan<char> part = definition.AsSpan()[range].Trim();
+            if (part.IsEmpty)
+                continue;
+
+            sizes.Add(ParseSize(part));
+        }
+
+        if (sizes.Count == 0)
+            throw new FormatException($"Пустое описание треков: '{definition}'.");
+
+        return sizes;
+    }
 }
 
 public enum GridUnit { Fixed, Star, Auto }
