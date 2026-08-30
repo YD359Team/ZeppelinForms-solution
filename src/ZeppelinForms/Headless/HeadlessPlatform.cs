@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
+using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Keyboard;
 
@@ -18,6 +21,15 @@ public sealed class HeadlessPlatform : IPlatform
     private readonly Queue<Action> _pending = new();
 
     private bool _running;
+
+    public HeadlessPlatform()
+    {
+        // без этих сервисов не работает даже Measure —
+        // тест упадёт ещё на присвоении Content
+        HeadlessTextMeasurer.Register();
+        HeadlessImageDecoder.Register();
+        HeadlessElementRenderer.Register();
+    }
 
     public IPlatformWindow CreateWindow(Form form)
     {
@@ -181,4 +193,66 @@ public static class HeadlessInput
         foreach (char c in text)
             form.OnTextInput(c);
     }
+}
+
+/// <summary>
+/// Считает размеры текста по фиксированной ширине символа.
+/// Числа предсказуемы и одинаковы на всех машинах — тестам нужна
+/// воспроизводимость, а не точность.
+/// </summary>
+public sealed class HeadlessTextMeasurer : ITextMeasurer
+{
+    /// <summary>Ширина символа как доля от размера шрифта.</summary>
+    public float CharWidthRatio { get; set; } = 0.6f;
+
+    /// <summary>Высота строки как доля от размера шрифта.</summary>
+    public float LineHeightRatio { get; set; } = 1.2f;
+
+    public static void Register() => TextMeasurer.Current = new HeadlessTextMeasurer();
+
+    public Size MeasureText(string text, Font font)
+    {
+        if (string.IsNullOrEmpty(text))
+            return new Size(0, font.Size * LineHeightRatio);
+
+        // многострочный текст меряем по самой длинной строке
+        string[] lines = text.Split('\n');
+
+        int widest = 0;
+        foreach (string line in lines)
+            widest = Math.Max(widest, line.Length);
+
+        return new Size(
+            widest * font.Size * CharWidthRatio,
+            lines.Length * font.Size * LineHeightRatio);
+    }
+
+    public float MeasureTextWidth(string text, int length, Font font)
+    {
+        if (length <= 0 || string.IsNullOrEmpty(text))
+            return 0;
+
+        return Math.Min(length, text.Length) * font.Size * CharWidthRatio;
+    }
+}
+
+/// <summary>Возвращает одноцветную заглушку вместо разбора файла.</summary>
+public sealed class HeadlessImageDecoder : ImageDecoder
+{
+    public int StubWidth { get; set; } = 64;
+    public int StubHeight { get; set; } = 64;
+
+    public static void Register() => Current = new HeadlessImageDecoder();
+
+    public override Image Decode(Stream stream) =>
+        new(StubWidth, StubHeight, new byte[StubWidth * StubHeight * 4]);
+}
+
+/// <summary>Отрисовки нет — отдаёт пустое изображение нужного размера.</summary>
+public sealed class HeadlessElementRenderer : IElementRenderer
+{
+    public static void Register() => ElementRenderer.Current = new HeadlessElementRenderer();
+
+    public Image Render(UIElement element, int width, int height) =>
+        new(Math.Max(1, width), Math.Max(1, height), new byte[Math.Max(1, width) * Math.Max(1, height) * 4]);
 }
