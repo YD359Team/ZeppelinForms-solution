@@ -24,8 +24,6 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
 
     private MenuItem? _lastInvoked;
 
-    public event EventHandler? Click;
-
     public Color BackgroundColor { get; set; } = LightThemeColors.ButtonFill;
     public Color HoverBackgroundColor { get; set; } = LightThemeColors.ButtonFill.Darken();
     public Color TextColor { get; set; } = Colors.White;
@@ -122,8 +120,6 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
 
         if (RepeatLastAction && _lastInvoked is not null)
             _lastInvoked.RaiseClick();
-        else
-            Click?.Invoke(this, EventArgs.Empty);
     }
 
     private void OpenMenu()
