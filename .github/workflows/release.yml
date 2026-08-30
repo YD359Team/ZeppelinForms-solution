@@ -26,7 +26,6 @@ jobs:
       - run: dotnet test --configuration Release
   
       - name: Извлечь описание версии
-        id: notes
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           awk -v ver="$VERSION" '
