@@ -29,6 +29,19 @@ public class ProgressBar : UnitControl, IBorderedElement
     public Orientation Orientation { get; set; } = Orientation.Horizontal;
     public bool ShowPercentage { get; set; }
 
+    /// <summary>Своё форматирование подписи. Получает долю (0..1) и текущее значение.</summary>
+    public Func<float, float, string>? TextFormatter { get; set; }
+
+    private string DisplayText
+    {
+        get
+        {
+            float fraction = Fraction;
+            return TextFormatter?.Invoke(fraction, Value) ?? $"{fraction * 100:0}%";
+        }
+    }
+
+    public Color FilledTextColor { get; set; } = Colors.White;
     public Color FillColor { get; set; } = LightThemeColors.ButtonFill;
     public Color TrackColor { get; set; } = new Color(255, 230, 230, 230);
     public Color TextColor { get; set; } = Colors.Black;
@@ -76,8 +89,25 @@ public class ProgressBar : UnitControl, IBorderedElement
             g.DrawRectangle(bounds, BorderColor, BorderWidth);
 
         if (ShowPercentage)
-            g.DrawText($"{fraction * 100:0}%", bounds, TextColor, EffectiveFont,
+        {
+            string label = DisplayText;
+
+            // тот же текст двумя цветами: контраст сохраняется
+            // и на заполненной части, и на дорожке
+            g.Save();
+            g.ClipRect(new Rectangle(bounds.AsPosition(), new Size(bounds.Width * fraction, bounds.Height)));
+            g.DrawText(label, bounds, FilledTextColor, EffectiveFont,
                 HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
+            g.Restore();
+
+            g.Save();
+            g.ClipRect(new Rectangle(
+                new Point(bounds.X + bounds.Width * fraction, bounds.Y),
+                new Size(bounds.Width * (1 - fraction), bounds.Height)));
+            g.DrawText(label, bounds, TextColor, EffectiveFont,
+                HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
+            g.Restore();
+        }
     }
 
     protected override Size MeasureOverride(Size availableSize)
