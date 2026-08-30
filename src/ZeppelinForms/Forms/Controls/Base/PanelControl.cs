@@ -94,6 +94,15 @@ public abstract class PanelControl : UIElement
 
         ArrangeContentOverride(contentArea);
 
+        if (IsRightToLeft)
+        {
+            // отражаем детей относительно вертикальной оси панели
+            foreach (UIElement child in Children)
+                child.Position = new Point(
+                    contentArea.Width - child.Position.X - child.ActualSize.Width,
+                    child.Position.Y);
+        }
+
         ScrollX = Math.Clamp(ScrollX, 0, MaxScrollX);
         ScrollY = Math.Clamp(ScrollY, 0, MaxScrollY);
 

@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using ZeppelinForms.Animation;
+using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
@@ -23,6 +24,7 @@ public abstract class UIElement : IGridPlaceable
     public Dock Docking { get; set; }
     public HorizontalAlignment HorizontalAlignment { get; set; } = HorizontalAlignment.Stretch;
     public VerticalAlignment VerticalAlignment { get; set; } = VerticalAlignment.Stretch;
+    public FlowDirection? FlowDirection { get; set; }
     public Point Position { get; set; }
     // Auto по умолчанию — авторазмер по контенту, пока явно не задан Size
     private Size _explicitSize = Size.Auto;
@@ -99,6 +101,26 @@ public abstract class UIElement : IGridPlaceable
     protected bool IsPressed { get; set; }
 
     internal Form? Owner { get; set; }
+
+    /// <summary>Направление своё, а если не задано — унаследованное от предков.</summary>
+    public FlowDirection EffectiveFlowDirection
+    {
+        get
+        {
+            for (UIElement? current = this; current is not null; current = current.Parent)
+            {
+                if (current.FlowDirection is FlowDirection direction)
+                    return direction;
+
+                if (current.Parent is null)
+                    return current.Owner?.FlowDirection ?? Core.Text.FlowDirection.LeftToRight;
+            }
+
+            return Core.Text.FlowDirection.LeftToRight;
+        }
+    }
+
+    public bool IsRightToLeft => EffectiveFlowDirection == Core.Text.FlowDirection.RightToLeft;
 
     public Image RenderToImage()
     {

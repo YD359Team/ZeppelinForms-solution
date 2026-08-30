@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using ZeppelinForms.Animation;
+using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
@@ -99,6 +100,8 @@ public class Form : IDisposable
     }
 
     public Size ClientSize { get; internal set; }
+
+    public FlowDirection? FlowDirection { get; set; }
 
     private readonly List<UIElement> _overlays = [];
     public IReadOnlyList<UIElement> Overlays => _overlays;
