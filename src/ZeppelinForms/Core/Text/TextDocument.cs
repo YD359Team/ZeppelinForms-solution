@@ -51,8 +51,11 @@ public sealed class TextDocument
 
     // ===== перемещение =====
 
-    public void SetCaret(int index, bool extendSelection = false)
+    public void SetCaret(int index, bool extendSelection = false, bool keepDesiredColumn = false)
     {
+        if (!keepDesiredColumn)
+            _desiredColumn = null;
+
         CaretIndex = Math.Clamp(index, 0, _text.Length);
 
         if (!extendSelection)
@@ -67,10 +70,17 @@ public sealed class TextDocument
     public void MoveToLineStart(bool extend) => SetCaret(LineStart(CaretIndex), extend);
     public void MoveToLineEnd(bool extend) => SetCaret(LineEnd(CaretIndex), extend);
 
+    private int? _desiredColumn;
+
     public void MoveVertical(int delta, bool extend)
     {
         var (line, column) = ToPosition(CaretIndex);
-        SetCaret(FromPosition(line + delta, column), extend);
+
+        // держим исходную колонку, пока идём по вертикали: короткая строка
+        // не должна «съедать» позицию навсегда
+        _desiredColumn ??= column;
+
+        SetCaret(FromPosition(line + delta, _desiredColumn.Value), extend, keepDesiredColumn: true);
     }
 
     public void SelectAll()
