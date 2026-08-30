@@ -27,12 +27,14 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         get => _value;
         set
         {
-            decimal clamped = Math.Clamp(value, Minimum, Maximum);
+            decimal clamped = Minimum <= Maximum
+                ? Math.Clamp(value, Minimum, Maximum)
+                : value;
             if (_value == clamped) return;
 
             _value = clamped;
             ValueChanged?.Invoke(this, EventArgs.Empty);
-            Invalidate();
+            InvalidateVisual();
         }
     }
 
@@ -140,7 +142,7 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         {
             _hoverUp = up;
             _hoverDown = down;
-            Invalidate();
+            InvalidateVisual();
         }
     }
 
@@ -167,7 +169,7 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         e.Handled = true;
     }
 
-    protected override void OnGotFocus()
+    private void BeginEdit()
     {
         if (!IsEditable) return;
 
@@ -176,6 +178,8 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         _caretIndex = _editText.Length;
         InvalidateVisual();
     }
+
+    protected override void OnGotFocus() => BeginEdit();
 
     protected override void OnLostFocus()
     {
@@ -189,7 +193,7 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         _isEditing = false;
 
         if (decimal.TryParse(_editText, NumberStyles.Number, CultureInfo.CurrentCulture, out decimal parsed))
-            Value = parsed;
+            Value = Math.Round(parsed, DecimalPlaces, MidpointRounding.AwayFromZero);
 
         // не распарсилось — молча возвращаем прежнее значение,
         // ронять приложение из-за опечатки не за что
@@ -203,7 +207,8 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
 
         bool isDigit = char.IsAsciiDigit(c);
         bool isSeparator = (c == '.' || c == ',' || c == DecimalSeparator) && DecimalPlaces > 0;
-        bool isMinus = c == '-' && _caretIndex == 0 && Minimum < 0;
+        bool isMinus = c == '-' && _caretIndex == 0 && Minimum < 0
+            && !(_editText?.StartsWith('-') ?? false);
 
         if (!isDigit && !isSeparator && !isMinus) return;
 
@@ -233,8 +238,8 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
                     return;
 
                 case Key.Escape:
-                    _isEditing = false;
-                    _editText = null;
+                    _editText = _value.ToString($"F{DecimalPlaces}");
+                    _caretIndex = _editText.Length;
                     InvalidateVisual();
                     e.Handled = true;
                     return;
@@ -287,7 +292,10 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
             ? Minimum.ToString($"F{DecimalPlaces}")
             : Maximum.ToString($"F{DecimalPlaces}");
 
-        Size textSize = TextMeasurer.Current.MeasureText(widest, EffectiveFont);
+        Size minSize = TextMeasurer.Current.MeasureText(Minimum.ToString($"F{DecimalPlaces}"), EffectiveFont);
+        Size maxSize = TextMeasurer.Current.MeasureText(Maximum.ToString($"F{DecimalPlaces}"), EffectiveFont);
+
+        Size textSize = minSize.Width >= maxSize.Width ? minSize : maxSize;
 
         var content = new Size(
             textSize.Width + ButtonWidth + Padding.Horizontal + 8,
