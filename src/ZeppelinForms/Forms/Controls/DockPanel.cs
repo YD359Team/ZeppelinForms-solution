@@ -17,6 +17,7 @@ public class DockPanel : PanelControl
 
         float usedWidth = 0, usedHeight = 0;
         float maxRowWidth = 0, maxColHeight = 0;
+        float fillWidth = 0, fillHeight = 0;
 
         foreach (var child in Children)
         {
@@ -35,18 +36,25 @@ public class DockPanel : PanelControl
                     usedWidth += child.DesiredSize.Width + m.Horizontal;
                     maxColHeight = Math.Max(maxColHeight, child.DesiredSize.Height + m.Vertical);
                     break;
+
                 case Dock.Top or Dock.Bottom:
                     usedHeight += child.DesiredSize.Height + m.Vertical;
                     maxRowWidth = Math.Max(maxRowWidth, child.DesiredSize.Width + m.Horizontal);
                     break;
-                default: // Fill/None — считаем как "остаток", не резервируем заранее
+
+                default:
+                    // Fill/None занимают остаток при размещении, но в желаемый
+                    // размер панели их вклад входить обязан — иначе панель
+                    // окажется высотой только под пришвартованные элементы
+                    fillWidth = Math.Max(fillWidth, child.DesiredSize.Width + m.Horizontal);
+                    fillHeight = Math.Max(fillHeight, child.DesiredSize.Height + m.Vertical);
                     break;
             }
         }
 
         var content = new Size(
-            Math.Max(usedWidth, maxRowWidth),
-            Math.Max(usedHeight, maxColHeight));
+            Math.Max(Math.Max(usedWidth, maxRowWidth), usedWidth + fillWidth),
+            Math.Max(Math.Max(usedHeight, maxColHeight), usedHeight + fillHeight));
 
         content = new Size(content.Width + Padding.Horizontal, content.Height + Padding.Vertical);
         return ResolveSize(content, availableSize);

@@ -30,7 +30,6 @@ internal class MainForm : Form
 
     private UIElement GetView1()
     {
-        ScrollViewer root = new() { Docking = Dock.Fill };
         DockPanel dockPanel = new DockPanel();
         Button btnNext = new Button() { Text = "Goto view 2", Docking = Dock.Top };
         btnNext.Click -= BtnNext_Click;
@@ -38,13 +37,11 @@ internal class MainForm : Form
         Label lbl = new Label();
         lbl.Text = "Presentation";
         dockPanel.Children.AddRange([lbl, btnNext]);
-        root.Content = dockPanel;
-        return root;
+        return dockPanel;
     }
 
     private UIElement GetView2()
     {
-        ScrollViewer root = new() { Docking = Dock.Fill };
         DockPanel dockPanel = new DockPanel();
         Button btnNext = new Button() { Text = "Goto view 1", Docking = Dock.Top };
         btnNext.Click -= BtnBack_Click;
@@ -83,8 +80,7 @@ internal class MainForm : Form
         ];
         grid.Children.AddRange(controls);
         dockPanel.Children.AddRange([grid, btnNext]);
-        root.Content = dockPanel;
-        return root;
+        return dockPanel;
     }
 
     private void BtnBack_Click(object? sender, ZeppelinForms.Input.Mouse.MouseClickEventArgs e)
