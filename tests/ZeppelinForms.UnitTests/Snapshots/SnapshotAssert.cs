@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Runtime.CompilerServices;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Forms;
@@ -16,7 +14,10 @@ public static class SnapshotAssert
     /// <summary>Доля различающихся пикселей, ниже которой снимок считается совпавшим.</summary>
     private const float AllowedDifferenceRatio = 0.002f;
 
-    private static string ExpectedDirectory => Path.Combine(AppContext.BaseDirectory, "Snapshots", "Expected");
+    /// <summary>Эталоны лежат в исходниках, а не в bin — иначе их нельзя
+    /// закоммитить, и каждый прогон CI создавал бы их заново.</summary>
+    private static readonly string ExpectedDirectory = ResolveExpectedDirectory();
+
     private static string FailedDirectory => Path.Combine(AppContext.BaseDirectory, "Snapshots", "Failed");
 
     /// <summary>Шрифт из файла — системные различаются между машинами
@@ -26,10 +27,13 @@ public static class SnapshotAssert
         FilePath = Path.Combine(AppContext.BaseDirectory, "Snapshots", "Fonts", "DejaVuSans.ttf"),
     };
 
+    private static bool IsContinuousIntegration =>
+        Environment.GetEnvironmentVariable("CI") == "true" ||
+        Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+
     public static void Matches(UIElement element, string name, int tolerance = DefaultTolerance)
     {
-        Image actual = element.RenderToImage();
-        Compare(actual, name, tolerance);
+        Compare(element.RenderToImage(), name, tolerance);
     }
 
     public static void Matches(Form form, string name, int tolerance = DefaultTolerance)
@@ -46,25 +50,32 @@ public static class SnapshotAssert
 
     private static void Compare(Image actual, string name, int tolerance)
     {
-        Directory.CreateDirectory(ExpectedDirectory);
-
         string expectedRaw = Path.Combine(ExpectedDirectory, name + ".raw");
 
         if (!File.Exists(expectedRaw))
         {
+            if (IsContinuousIntegration)
+            {
+                SaveFailure(name, actual, expected: null);
+
+                throw new Xunit.Sdk.XunitException(
+                    $"Эталон '{name}' отсутствует в репозитории. " +
+                    "Запустите тесты локально, проверьте PNG и закоммитьте файлы из Snapshots/Expected.");
+            }
+
+            Directory.CreateDirectory(ExpectedDirectory);
             SaveRaw(expectedRaw, actual);
             SkiaOffscreenRenderer.SavePng(actual, Path.Combine(ExpectedDirectory, name + ".png"));
 
             throw new Xunit.Sdk.XunitException(
-                $"Эталон '{name}' не найден и был создан в {ExpectedDirectory}. " +
-                "Проверьте PNG глазами и добавьте оба файла в репозиторий.");
+                $"Эталон '{name}' создан в {ExpectedDirectory}. Проверьте PNG и добавьте файлы в git.");
         }
 
         Image expected = LoadRaw(expectedRaw);
 
         if (expected.Width != actual.Width || expected.Height != actual.Height)
         {
-            SaveFailure(name, actual, expected);
+            SaveFailure(name, actual, expected: null);
 
             throw new Xunit.Sdk.XunitException(
                 $"Размер снимка '{name}' изменился: было {expected.Width}x{expected.Height}, " +
@@ -164,5 +175,15 @@ public static class SnapshotAssert
         int height = reader.ReadInt32();
 
         return new Image(width, height, reader.ReadBytes(width * height * 4));
+    }
+
+    private static string ResolveExpectedDirectory([CallerFilePath] string sourceFilePath = "")
+    {
+        string? directory = Path.GetDirectoryName(sourceFilePath);
+
+        // на CI исходников может не быть рядом с бинарником — тогда bin
+        return directory is not null && Directory.Exists(directory)
+            ? Path.Combine(directory, "Expected")
+            : Path.Combine(AppContext.BaseDirectory, "Snapshots", "Expected");
     }
 }

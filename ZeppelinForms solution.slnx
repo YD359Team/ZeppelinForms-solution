@@ -19,6 +19,7 @@
     <Project Path="tests/ZeppelinForms.UnitTests/ZeppelinForms.UnitTests.csproj" />
   </Folder>
   <Folder Name="/Элементы решения/">
+    <File Path=".gitattributes" />
     <File Path="CHANGELOG.md" />
     <File Path="Directory.Build.props" />
     <File Path="global.json" />
