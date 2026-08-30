@@ -619,11 +619,20 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
 
         UIElement? hit = HitTestAll(point);
-        if (hit == _hoveredElement) return;
 
-        _hoveredElement?.RaiseMouseLeave();
-        hit?.RaiseMouseOver();
-        _hoveredElement = hit;
+        if (hit != _hoveredElement)
+        {
+            _hoveredElement?.RaiseMouseLeave();
+            hit?.RaiseMouseOver();
+            _hoveredElement = hit;
+
+            ScheduleToolTip(hit);
+        }
+
+        // движение внутри элемента тоже нужно доставлять: контролы с
+        // внутренними зонами (ячейки календаря, кнопки NumericUpDown)
+        // отслеживают наведение сами
+        hit?.RaiseMouseMove(point);
 
         if (IsInspectorEnabled)
         {
@@ -633,8 +642,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
             InvalidateVisual();
         }
-
-        ScheduleToolTip(hit);
     }
 
     internal void OnPointerLeaveWindow()
