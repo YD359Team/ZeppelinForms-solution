@@ -7,6 +7,7 @@ namespace ZeppelinForms.Skia;
 internal static class SkiaFontCache
 {
     private static readonly Dictionary<Font, SKFont> Fonts = [];
+    private static readonly Dictionary<string, SKTypeface> FileTypefaces = [];
     private static readonly Dictionary<(string, FontWeight, FontStyle), SKTypeface> Typefaces = [];
     private static readonly Dictionary<(string, FontWeight, FontStyle, int), SKTypeface?> Fallbacks = [];
     private static readonly Lock Sync = new();
@@ -28,6 +29,23 @@ internal static class SkiaFontCache
 
     private static SKTypeface ResolveTypeface(Font font)
     {
+        if (font.FilePath is not null)
+        {
+            lock (Sync)
+            {
+                if (FileTypefaces.TryGetValue(font.FilePath, out SKTypeface? fromFile))
+                    return fromFile;
+
+                SKTypeface? loaded = SKTypeface.FromFile(font.FilePath);
+
+                if (loaded is not null)
+                {
+                    FileTypefaces[font.FilePath] = loaded;
+                    return loaded;
+                }
+            }
+        }
+
         var key = (font.Family, font.Weight, font.Style);
 
         if (Typefaces.TryGetValue(key, out SKTypeface? cached))

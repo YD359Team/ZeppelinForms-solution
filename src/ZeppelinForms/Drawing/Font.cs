@@ -15,6 +15,11 @@ public sealed record Font(
     FontWeight Weight = FontWeight.Normal,
     FontStyle Style = FontStyle.Normal)
 {
+    /// <summary>Путь к файлу шрифта. Задан — используется он, а не системный поиск.</summary>
+    public string? FilePath { get; init; }
+
+    public Font WithFile(string path) => this with { FilePath = path };
+
     public static Font Default { get; set; } = new("Segoe UI, sans-serif", 14);
 
     public static Font Monospace { get; } = new("Consolas, Courier New, monospace", 14);
