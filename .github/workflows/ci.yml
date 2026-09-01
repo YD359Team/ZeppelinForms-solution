@@ -51,3 +51,13 @@ jobs:
           name: snapshots-${{ matrix.os }}
           path: '**/Snapshots/Failed/*.png'
           if-no-files-found: ignore
+
+      - name: Выгрузить снимки
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshots-${{ matrix.os }}
+          path: |
+            **/Snapshots/Expected/**
+            **/Snapshots/Failed/**
+          if-no-files-found: ignore
