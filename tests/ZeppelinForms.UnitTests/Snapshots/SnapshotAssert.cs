@@ -177,13 +177,21 @@ public static class SnapshotAssert
         return new Image(width, height, reader.ReadBytes(width * height * 4));
     }
 
+    private static string PlatformFolder =>
+        OperatingSystem.IsWindows() ? "win"
+        : OperatingSystem.IsLinux() ? "linux"
+        : "other";
+
     private static string ResolveExpectedDirectory([CallerFilePath] string sourceFilePath = "")
     {
         string? directory = Path.GetDirectoryName(sourceFilePath);
 
-        // на CI исходников может не быть рядом с бинарником — тогда bin
-        return directory is not null && Directory.Exists(directory)
+        // отрисовка текста заметно отличается между платформами,
+        // поэтому эталоны храним отдельно для каждой
+        string root = directory is not null && Directory.Exists(directory)
             ? Path.Combine(directory, "Expected")
             : Path.Combine(AppContext.BaseDirectory, "Snapshots", "Expected");
+
+        return Path.Combine(root, PlatformFolder);
     }
 }
