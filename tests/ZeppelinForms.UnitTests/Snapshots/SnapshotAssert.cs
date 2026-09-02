@@ -9,6 +9,10 @@ namespace ZeppelinForms.UnitTests.Snapshots;
 
 public static class SnapshotAssert
 {
+    private static bool AllowSnapshotCreation =>
+        !IsContinuousIntegration ||
+        Environment.GetEnvironmentVariable("ZF_CREATE_SNAPSHOTS") == "true";
+
     private const int DefaultTolerance = 4;
 
     /// <summary>Доля различающихся пикселей, ниже которой снимок считается совпавшим.</summary>
@@ -54,7 +58,7 @@ public static class SnapshotAssert
 
         if (!File.Exists(expectedRaw))
         {
-            if (IsContinuousIntegration)
+            if (!AllowSnapshotCreation)
             {
                 SaveFailure(name, actual, expected: null);
 
