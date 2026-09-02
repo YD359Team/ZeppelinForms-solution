@@ -142,6 +142,23 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     {
         _toolTipTimer = new System.Threading.Timer(
             OnToolTipTimerElapsed, null, Timeout.Infinite, Timeout.Infinite);
+
+        App.ThemeChanged += OnThemeChanged;
+    }
+
+    private void OnThemeChanged(object? sender, EventArgs e)
+    {
+        if (Content is null) return;
+
+        ApplyTheme(Content);
+        Invalidate();
+    }
+
+    /// <summary>Оформить поддерево по текущей теме. Вызывается при
+    /// присоединении к форме и при смене темы.</summary>
+    internal void ApplyTheme(UIElement root)
+    {
+        Walk(root, App.Theme.Apply);
     }
 
     public void Show()
@@ -165,6 +182,11 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         Walk(root, element =>
         {
             NameScope.Register(element);
+
+            // тема применяется до первого layout, чтобы размеры считались
+            // уже с правильными шрифтами и отступами
+            App.Theme.Apply(element);
+
             element.RaiseAttached();
         });
     }
@@ -802,6 +824,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     public void Dispose()
     {
+        App.ThemeChanged -= OnThemeChanged;
         _toolTipTimer?.Dispose();
     }
 }

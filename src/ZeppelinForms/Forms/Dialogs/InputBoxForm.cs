@@ -58,7 +58,7 @@ internal sealed class InputBoxForm : Form
                         {
                             Text = prompt,
                             TextColor = Colors.Black,
-                            ContentAlign = HorizontalContentAlignment.Left,
+                            HorizontalContentAlign = HorizontalContentAlignment.Left,
                             HorizontalAlignment = HorizontalAlignment.Stretch,
                         },
                         _input,
