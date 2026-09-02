@@ -363,6 +363,34 @@ public class MapControl : UnitControl, IInputElement, IBorderedElement
 
     // ===== ввод =====
 
+    protected override void OnMouseMove(MouseMoveEventArgs e)
+    {
+        if (!_isDragging)
+        {
+            MapMarker? marker = MarkerAt(e.Location);
+
+            if (!ReferenceEquals(marker, _hoveredMarker))
+            {
+                _hoveredMarker = marker;
+                Cursor = marker is not null ? CursorKind.Hand : CursorKind.SizeAll;
+                InvalidateVisual();
+            }
+
+            return;
+        }
+
+        // сдвигаем центр в проецированных пикселях, а не в градусах:
+        // в Меркаторе градус широты на пиксель зависит от самой широты
+        double x = _dragStartWorld.X - (e.Location.X - _dragStart.X);
+        double y = _dragStartWorld.Y - (e.Location.Y - _dragStart.Y);
+
+        y = Math.Clamp(y, 0, MercatorProjection.WorldSize(_zoom));
+
+        var (latitude, longitude) = MercatorProjection.ToGeo(x, y, _zoom);
+
+        GoTo(latitude, longitude);
+    }
+
     protected override void OnMouseDown(MouseButtonEventArgs e)
     {
         if (e.Button != MouseButton.Left) return;

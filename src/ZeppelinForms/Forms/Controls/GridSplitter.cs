@@ -49,7 +49,7 @@ public class GridSplitter : UnitControl
     private (int Before, int After) Neighbours =>
         IsVertical ? (Column - 1, Column + 1) : (Row - 1, Row + 1);
 
-    protected override void OnMouseDown(MouseClickEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs args)
     {
         Grid? grid = ParentGrid;
         if (grid is null) return;
@@ -95,7 +95,7 @@ public class GridSplitter : UnitControl
         grid.Invalidate();
     }
 
-    protected override void OnMouseUp(MouseClickEventArgs args) => _dragging = false;
+    protected override void OnMouseUp(MouseButtonEventArgs args) => _dragging = false;
 
     private float MeasuredTrackSize(Grid grid, int index)
     {

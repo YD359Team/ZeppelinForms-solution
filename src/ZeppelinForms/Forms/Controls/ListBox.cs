@@ -68,9 +68,9 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
             g.DrawRectangle(this.LocalBounds, IsFocused ? new Color(255, 0x0D, 0x6E, 0xFD) : BorderColor, BorderWidth);
     }
 
-	protected override void OnPreviewMouseDown(MouseClickEventArgs args)
+	protected override void OnPreviewMouseDown(Point args)
 	{
-		float localY = args.Location.Y - GetAbsolutePosition().Y;
+		float localY = args.Y - GetAbsolutePosition().Y;
 
 		for (int i = 0; i < Children.Count; i++)
 		{

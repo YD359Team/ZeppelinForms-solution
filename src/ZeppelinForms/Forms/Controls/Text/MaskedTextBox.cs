@@ -258,7 +258,7 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
         return _mask.NextPlaceholder(0);
     }
 
-    protected override void OnMouseDown(MouseClickEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs args)
     {
         float localX = args.Location.X - GetAbsolutePosition().X - Padding.Left;
         string text = DisplayText;

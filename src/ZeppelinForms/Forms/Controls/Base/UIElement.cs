@@ -36,6 +36,7 @@ public abstract class UIElement : IGridPlaceable
 
     protected virtual void OnMouseEnter(MouseMoveEventArgs e) { }
     protected virtual void OnMouseExit(MouseMoveEventArgs e) { }
+    protected virtual void OnMouseMove(MouseMoveEventArgs e) { }
     protected virtual void OnMouseDown(MouseButtonEventArgs e) { }
     protected virtual void OnMouseUp(MouseButtonEventArgs e) { }
     protected virtual void OnClick(MouseClickEventArgs e) { }
@@ -43,11 +44,12 @@ public abstract class UIElement : IGridPlaceable
     protected virtual void OnRightClick(MouseClickEventArgs e) { }
     protected virtual void OnMiddleClick(MouseClickEventArgs e) { }
     protected virtual void OnMouseWheel(MouseWheelEventArgs e) { }
-    protected virtual void OnPreviewMouseDown(MouseClickEventArgs location) { }
-    /// <summary>Клавиша нажата, но событие ещё не дошло до сфокусированного
-    /// элемента — контейнер может перехватить её первым.</summary>
+    protected virtual void OnPreviewMouseDown(Point location) { }
     protected virtual void OnPreviewKeyDown(KeyEventArgs e) { }
     protected virtual void OnKeyUp(KeyEventArgs e) { }
+    protected virtual void OnTextInput(char c) { }
+
+    internal void RaiseTextInput(char c) => OnTextInput(c);
 
     // ===== подъём событий =====
 
@@ -83,7 +85,7 @@ public abstract class UIElement : IGridPlaceable
     {
         var args = new MouseMoveEventArgs(location);
 
-        OnMouseExit(args);
+        OnMouseMove(args);
         MouseMove?.Invoke(this, args);
     }
 
@@ -140,14 +142,6 @@ public abstract class UIElement : IGridPlaceable
 
         OnClick(args);
         Click?.Invoke(this, args);
-    }
-
-    internal void RaisePreviewMouseDown(MouseClickEventArgs args) => OnPreviewMouseDown(args);
-
-    internal void RaisePreviewKeyDown(KeyEventArgs e)
-    {
-        OnPreviewKeyDown(e);
-        PreviewKeyDown?.Invoke(this, e);
     }
 
     internal void RaiseKeyDown(KeyEventArgs e)
@@ -456,22 +450,6 @@ public abstract class UIElement : IGridPlaceable
 
     // ===== события мыши/фокуса (без изменений) =====
 
-    internal void RaiseMouseOver()
-    {
-        if (IsHovered) return;
-        IsHovered = true;
-        OnMouseOver();
-        InvalidateVisual();
-    }
-
-    internal void RaiseMouseLeave()
-    {
-        if (!IsHovered) return;
-        IsHovered = false;
-        OnMouseLeave();
-        InvalidateVisual();
-    }
-
     /// <summary>Перерисовать только этот элемент, без пересчёта раскладки.</summary>
     protected internal void InvalidateVisual()
     {
@@ -518,8 +496,13 @@ public abstract class UIElement : IGridPlaceable
     internal void RaiseGotFocus() => OnGotFocus();
     internal void RaiseLostFocus() => OnLostFocus();
 
-    protected virtual void OnTextInput(char c) { }
-    internal void RaiseTextInput(char c) => OnTextInput(c);
+    internal void RaisePreviewMouseDown(Point location) => OnPreviewMouseDown(location);
+
+    internal void RaisePreviewKeyDown(KeyEventArgs e)
+    {
+        OnPreviewKeyDown(e);
+        PreviewKeyDown?.Invoke(this, e);
+    }
 
     /// <summary>Реагирует ли контрол на пробел/Enter как на клик (кнопки, чекбоксы).</summary>
     protected virtual bool IsKeyActivatable => false;

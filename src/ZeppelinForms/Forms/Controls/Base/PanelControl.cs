@@ -215,7 +215,7 @@ public abstract class PanelControl : UIElement
     private static bool Contains(Rectangle r, Point p) =>
         p.X >= r.X && p.X <= r.X + r.Width && p.Y >= r.Y && p.Y <= r.Y + r.Height;
 
-    protected override void OnMouseDown(MouseClickEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs args)
     {
         Point abs = GetAbsolutePosition();
         var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
@@ -287,7 +287,7 @@ public abstract class PanelControl : UIElement
         }
     }
 
-    protected override void OnMouseUp(MouseClickEventArgs location)
+    protected override void OnMouseUp(MouseButtonEventArgs location)
     {
         _draggingVertical = _draggingHorizontal = false;
     }

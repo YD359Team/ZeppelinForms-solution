@@ -127,7 +127,7 @@ public class CheckedListBox : ListBox
         }
     }
 
-    protected override void OnPreviewMouseDown(MouseClickEventArgs args)
+    protected override void OnPreviewMouseDown(Point args)
     {
         base.OnPreviewMouseDown(args);   // выбор строки из ListBox
     }

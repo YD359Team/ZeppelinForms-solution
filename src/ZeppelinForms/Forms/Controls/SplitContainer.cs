@@ -145,7 +145,7 @@ public class SplitContainer : PanelControl
         InvalidateVisual();
     }
 
-    protected override void OnMouseDown(MouseMoveEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs args)
     {
         Point abs = GetAbsolutePosition();
         var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
@@ -161,7 +161,7 @@ public class SplitContainer : PanelControl
             : local.Y - SplitterRect.Y;
     }
 
-    protected override void OnMouseUp(MouseMoveEventArgs args)
+    protected override void OnMouseUp(MouseButtonEventArgs args)
     {
         _dragging = false;
     }

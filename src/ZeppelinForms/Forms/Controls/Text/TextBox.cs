@@ -368,7 +368,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         return IsMultiline ? _document.FromPosition(line, column) : column;
     }
 
-    protected override void OnMouseDown(MouseMoveEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs args)
     {
         _document.SetCaret(IndexFromPoint(args.Location));
         _isDragging = true;
@@ -380,7 +380,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
             _document.SetCaret(IndexFromPoint(args.Location), extendSelection: true);
     }
 
-    protected override void OnMouseUp(MouseMoveEventArgs args) => _isDragging = false;
+    protected override void OnMouseUp(MouseButtonEventArgs args) => _isDragging = false;
 
     // ===== отрисовка =====
 

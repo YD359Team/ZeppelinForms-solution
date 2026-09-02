@@ -74,7 +74,7 @@ public class ScrollBar : UnitControl
         g.FillRectangle(thumb, ThumbColor);
     }
 
-    protected override void OnMouseDown(MouseMoveEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs args)
     {
         if (!IsScrollable) return;
 
@@ -112,7 +112,7 @@ public class ScrollBar : UnitControl
         Value = (local - _dragOffset) / free * MaxValue;
     }
 
-    protected override void OnMouseUp(MouseMoveEventArgs location) => _isDragging = false;
+    protected override void OnMouseUp(MouseButtonEventArgs location) => _isDragging = false;
 
     protected override Size MeasureOverride(Size availableSize) =>
         ResolveSize(new Size(12, 12), availableSize);
