@@ -41,8 +41,9 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 4 | ToolTips | ✅ |
 | 5 | Диалоговые окна | ✅ |
 | 6 | Open\SaveFileDialog | 💡 |
-| 7 | MessageBox | 💡 |
-| 8 | Буфер обмена | ✅ |
+| 7 | MessageBox | ✅ |
+| 8 | InputBox | ✅ |
+| 9 | Буфер обмена | ✅ |
 
 \* - инспектор работает только для некоторых типов \
 \** - API еще будет дополняться \
@@ -92,7 +93,13 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 24 | PieChart | ✅ |
 | 25 | RichLabel | ✅ |
 | 26 | LinkLabel | ✅ |
-| 27 | Shapes | ✅ |
+| 27 | ShapeLine | ✅ |
+| 28 | ShapeRectangle | ✅ |
+| 29 | ShapeEllipse) | ✅ |
+| 30 | ShapePolygon) | ✅ |
+| 31 | CheckedComboBox | ✅ |
+| 32 | ComboBox | ✅ |
+| 33 | GridSplitter | ✅ |
 
 \* - есть баги и отсуствует часть API
 
@@ -109,9 +116,9 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 3 | Grid | ✅ |
 | 4 | DockPanel | ✅ |
 | 5 | TabControl | ✅ |
-| 6 | ScrollViewer | ✅ |
-| 7 | UniformGrid | ✅ |
-| 8 | VirtualizedStackPanel | ✅ |
+| 6 | UniformGrid | ✅ |
+| 7 | VirtualizedStackPanel | ✅ |
+| 8 | SplitContainer | ✅ |
 
 ##### Панели элементов
 
@@ -122,11 +129,12 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | № | Название | Статус |
 |---|------------|---|
 | 1 | ListBox | ✅ |
-| 2 | ComboBox | ✅ |
-| 3 | CheckedListBox | ✅ |
-| 4 | CheckedComboBox | ✅ |
-| 5 | TreeView | 💡 |
-| 6 | DataGrid | 💡 |
+| 2 | CheckedListBox | ✅ |
+| 3 | ScrollViewer | ✅ |
+| 4 | TreeView | 💡 |
+| 5 | DataGrid | 💡 |
+
+⭐ Все панели могут иметь скроллбар при переполнении.
 
 #### Контролы-обёртки
 
@@ -176,4 +184,4 @@ public class Program
 }
 ```
 
-Смотрите проекты в папке **examples**, чтобы узнать больше.
+Смотрите проекты в папке **/examples**, чтобы узнать больше.
