@@ -184,4 +184,16 @@ public class Program
 }
 ```
 
-Смотрите проекты в папке **/examples**, чтобы узнать больше.
+Смотрите проекты в папке `examples/`, чтобы узнать больше.
+
+### Снимковые тесты
+
+Эталоны хранятся в `tests/ZeppelinForms.UnitTests/Snapshots/Expected/{win,linux}` —
+отрисовка текста между платформами различается, поэтому наборы отдельные.
+
+После осознанного изменения внешнего вида:
+
+1. Локально: `dotnet test --settings tests/ZeppelinForms.UnitTests/updatesnapshots.runsettings`
+2. Проверить `git diff` по PNG, закоммитить.
+3. Для Linux: временно добавить `ZF_UPDATE_SNAPSHOTS: 'true'` в шаг тестов `ci.yml`,
+   прогнать, забрать эталоны артефактом, закоммитить, убрать переменную.
