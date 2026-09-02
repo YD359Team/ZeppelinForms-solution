@@ -1,6 +1,7 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Headless;
 using ZeppelinForms.Skia;
+using ZeppelinForms.Theming;
 
 namespace ZeppelinForms.UnitTests.Snapshots;
 
@@ -13,7 +14,7 @@ public sealed class SnapshotFixture
         SkiaImageDecoder.Register();
         SkiaOffscreenRenderer.Register();
 
-        // общий шрифт для всех снимков — иначе результат зависит от машины
+        App.Theme = Themes.Light;
         Font.Default = SnapshotAssert.TestFont;
     }
 

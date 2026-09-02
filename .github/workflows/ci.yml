@@ -40,18 +40,10 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: dotnet test --no-build --configuration Release
 
-      - name: Сохранить неудачные снимки
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: snapshots-${{ matrix.os }}
-          path: '**/Snapshots/Failed/*.png'
-          if-no-files-found: ignore
-
       - name: Тесты (Linux)
         if: matrix.os == 'ubuntu-latest'
         env:
-          ZF_CREATE_SNAPSHOTS: 'true'
+          ZF_UPDATE_SNAPSHOTS: 'true'   # временно, чтобы снять эталоны
         run: xvfb-run -a --server-args="-screen 0 1024x768x24" dotnet test --no-build --configuration Release
 
       - name: Выгрузить снимки

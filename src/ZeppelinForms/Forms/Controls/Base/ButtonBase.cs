@@ -58,7 +58,7 @@ public abstract class ButtonBase : UnitControl, IInputElement, IBorderedElement
         }
     }
 
-    protected Color CurrentTextColor => IsEnabled ? TextColor : DisabledTextColor;
+    protected virtual Color CurrentTextColor => IsEnabled ? TextColor : DisabledTextColor;
 
     public sealed override void Draw(Graphics g)
     {

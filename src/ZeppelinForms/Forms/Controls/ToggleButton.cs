@@ -8,6 +8,34 @@ namespace ZeppelinForms.Forms.Controls;
 
 public class ToggleButton : Button
 {
+    /// <summary>Цвет текста во включённом состоянии.</summary>
+    public Color CheckedTextColor { get; set; } = Colors.White;
+
+    public Color CheckedHoverBackgroundColor { get; set; } = Colors.Transparent;
+
+    protected override Color CurrentBackground
+    {
+        get
+        {
+            if (!IsEnabled && DisabledBackgroundColor.A > 0) return DisabledBackgroundColor;
+            if (IsPressed && PressedBackgroundColor.A > 0) return PressedBackgroundColor;
+
+            if (IsCheckedState)
+                return IsHovered && CheckedHoverBackgroundColor.A > 0
+                    ? CheckedHoverBackgroundColor
+                    : CheckedBackgroundColor;
+
+            if (IsHovered && HoverBackgroundColor.A > 0) return HoverBackgroundColor;
+
+            return BackgroundColor;
+        }
+    }
+
+    protected override Color CurrentTextColor =>
+    !IsEnabled ? DisabledTextColor
+    : _isChecked ? CheckedTextColor
+    : TextColor;
+
     private bool _isChecked;
 
     public bool IsChecked

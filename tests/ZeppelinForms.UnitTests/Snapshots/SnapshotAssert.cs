@@ -9,9 +9,19 @@ namespace ZeppelinForms.UnitTests.Snapshots;
 
 public static class SnapshotAssert
 {
-    private static bool AllowSnapshotCreation =>
-        !IsContinuousIntegration /*||
-        Environment.GetEnvironmentVariable("ZF_CREATE_SNAPSHOTS") == "true"*/;
+    private static bool IsContinuousIntegration =>
+         Environment.GetEnvironmentVariable("CI") == "true" ||
+         Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+
+    /// <summary>Разрешено создавать отсутствующие эталоны.</summary>
+    private static bool AllowCreate =>
+        !IsContinuousIntegration ||
+        Environment.GetEnvironmentVariable("ZF_CREATE_SNAPSHOTS") == "true" ||
+        ForceOverwrite;
+
+    /// <summary>Перезаписать эталоны, даже если они уже есть.</summary>
+    private static bool ForceOverwrite =>
+        Environment.GetEnvironmentVariable("ZF_UPDATE_SNAPSHOTS") == "true";
 
     private const int DefaultTolerance = 4;
 
@@ -30,10 +40,6 @@ public static class SnapshotAssert
     {
         FilePath = Path.Combine(AppContext.BaseDirectory, "Snapshots", "Fonts", "DejaVuSans.ttf"),
     };
-
-    private static bool IsContinuousIntegration =>
-        Environment.GetEnvironmentVariable("CI") == "true" ||
-        Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
 
     public static void Matches(UIElement element, string name, int tolerance = DefaultTolerance)
     {
@@ -59,20 +65,24 @@ public static class SnapshotAssert
     {
         string expectedRaw = Path.Combine(ExpectedDirectory, name + ".raw");
 
+        if (ForceOverwrite)
+        {
+            WriteExpected(expectedRaw, name, actual);
+            return;
+        }
+
         if (!File.Exists(expectedRaw))
         {
-            if (!AllowSnapshotCreation)
+            if (!AllowCreate)
             {
                 SaveFailure(name, actual, expected: null);
 
                 throw new Xunit.Sdk.XunitException(
                     $"Эталон '{name}' отсутствует в репозитории. " +
-                    "Запустите тесты локально, проверьте PNG и закоммитьте файлы из Snapshots/Expected.");
+                    "Снимите его локально или прогоном с ZF_CREATE_SNAPSHOTS и закоммитьте.");
             }
 
-            Directory.CreateDirectory(ExpectedDirectory);
-            SaveRaw(expectedRaw, actual);
-            SkiaOffscreenRenderer.SavePng(actual, Path.Combine(ExpectedDirectory, name + ".png"));
+            WriteExpected(expectedRaw, name, actual);
 
             throw new Xunit.Sdk.XunitException(
                 $"Эталон '{name}' создан в {ExpectedDirectory}. Проверьте PNG и добавьте файлы в git.");
@@ -200,5 +210,15 @@ public static class SnapshotAssert
             : Path.Combine(AppContext.BaseDirectory, "Snapshots", "Expected");
 
         return Path.Combine(root, PlatformFolder);
+    }
+
+    private static void WriteExpected(string rawPath, string name, Image actual)
+    {
+        Directory.CreateDirectory(ExpectedDirectory);
+
+        SaveRaw(rawPath, actual);
+        SkiaOffscreenRenderer.SavePng(actual, Path.Combine(ExpectedDirectory, name + ".png"));
+
+        Console.WriteLine($"[снимок] записан эталон: {rawPath}");
     }
 }

@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing.Helpers;
+using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Shapes;
@@ -82,7 +83,21 @@ public static class Themes
 
             .For<RichLabel>((label, c) => label.TextColor = c.Text)
 
+            // база — нейтральная кнопка, если тип не уточнён
             .For<ButtonBase>((button, c) =>
+            {
+                button.BackgroundColor = c.Surface;
+                button.HoverBackgroundColor = c.SurfaceHover;
+                button.PressedBackgroundColor = c.SurfacePressed;
+                button.CheckedBackgroundColor = c.Accent;
+                button.DisabledBackgroundColor = c.SurfacePressed;
+                button.TextColor = c.Text;
+                button.DisabledTextColor = c.TextDisabled;
+                button.BorderColor = c.Border;
+                button.FocusRingColor = c.Accent;
+            })
+
+            .For<PrimaryButton>((button, c) =>
             {
                 button.BackgroundColor = c.Accent;
                 button.HoverBackgroundColor = c.AccentHover;
@@ -93,6 +108,49 @@ public static class Themes
                 button.DisabledTextColor = c.TextDisabled;
                 button.BorderColor = c.Accent;
                 button.FocusRingColor = c.TextOnAccent;
+            })
+
+            .For<SecondaryButton>((button, c) =>
+            {
+                // контурная: заливки нет, цвет берёт акцент
+                button.BackgroundColor = Colors.Transparent;
+                button.HoverBackgroundColor = c.SurfaceHover;
+                button.PressedBackgroundColor = c.SurfacePressed;
+                button.CheckedBackgroundColor = c.Accent;
+                button.DisabledBackgroundColor = Colors.Transparent;
+                button.TextColor = c.Accent;
+                button.DisabledTextColor = c.TextDisabled;
+                button.BorderColor = c.Accent;
+                button.FocusRingColor = c.Accent;
+            })
+
+            .For<DangerButton>((button, c) =>
+            {
+                button.BackgroundColor = c.Error;
+                button.HoverBackgroundColor = c.Error.Lighten(0.12f);
+                button.PressedBackgroundColor = c.Error.Darken(0.15f);
+                button.CheckedBackgroundColor = c.Error.Darken(0.2f);
+                button.DisabledBackgroundColor = c.SurfacePressed;
+                button.TextColor = c.TextOnAccent;
+                button.DisabledTextColor = c.TextDisabled;
+                button.BorderColor = c.Error;
+                button.FocusRingColor = c.TextOnAccent;
+            })
+
+            .For<ToggleButton>((button, c) =>
+            {
+                // выключенная — как поверхность, включённая — акцент;
+                // разница должна быть очевидной, а не оттенком одного цвета
+                button.BackgroundColor = c.Surface;
+                button.HoverBackgroundColor = c.SurfaceHover;
+                button.PressedBackgroundColor = c.SurfacePressed;
+                button.CheckedBackgroundColor = c.Accent;
+                button.DisabledBackgroundColor = c.SurfacePressed;
+                button.TextColor = c.Text;
+                button.DisabledTextColor = c.TextDisabled;
+                button.BorderColor = c.Border;
+                button.FocusRingColor = c.Accent;
+                button.CheckedTextColor = c.TextOnAccent;
             })
 
             .For<CheckBox>((box, c) =>

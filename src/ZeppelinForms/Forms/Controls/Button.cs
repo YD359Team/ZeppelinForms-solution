@@ -72,8 +72,14 @@ public class SecondaryButton : Button
 
 }
 
+public class DangerButton : Button 
+{ 
+
+}
+
 public static class Buttons
 {
     public static PrimaryButton Primary(string caption) => new() { Text = caption };
     public static SecondaryButton Secondary(string caption) => new() { Text = caption };
+    public static DangerButton Danger(string caption) => new() { Text = caption };
 }
