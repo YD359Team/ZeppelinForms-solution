@@ -43,6 +43,9 @@ public class Form : IDisposable
     public Point Position { get; set; }
     public Size Size { get; set; }
 
+    /// <summary>Форма показана как модальный диалог.</summary>
+    public bool IsDialog { get; private set; }
+
     public Font? Font { get; set; }
 
     private WindowState _windowState = WindowState.Normal;
@@ -360,6 +363,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     public DialogResult<T> ShowDialog<T>(Form owner)
     {
+        IsDialog = true;
+
         IPlatform platform = owner.Platform
             ?? throw new InvalidOperationException("Владелец диалога ещё не привязан к платформе.");
 
@@ -593,6 +598,14 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (key == Key.F12)
         {
             ToggleInspector();
+            return;
+        }
+
+        // в модальном диалоге Escape отменяет — стандартное поведение,
+        // которое не должно требовать кода от каждого диалога
+        if (key == Key.Escape && IsDialog)
+        {
+            Cancel();
             return;
         }
 
