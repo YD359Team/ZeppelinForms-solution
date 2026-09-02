@@ -139,18 +139,20 @@ public static class Themes
 
             .For<ToggleButton>((button, c) =>
             {
-                // выключенная — как поверхность, включённая — акцент;
-                // разница должна быть очевидной, а не оттенком одного цвета
                 button.BackgroundColor = c.Surface;
                 button.HoverBackgroundColor = c.SurfaceHover;
                 button.PressedBackgroundColor = c.SurfacePressed;
+
                 button.CheckedBackgroundColor = c.Accent;
+                button.CheckedHoverBackgroundColor = c.AccentHover;
+                button.CheckedPressedBackgroundColor = c.AccentPressed;
+
                 button.DisabledBackgroundColor = c.SurfacePressed;
                 button.TextColor = c.Text;
+                button.CheckedTextColor = c.TextOnAccent;
                 button.DisabledTextColor = c.TextDisabled;
                 button.BorderColor = c.Border;
                 button.FocusRingColor = c.Accent;
-                button.CheckedTextColor = c.TextOnAccent;
             })
 
             .For<CheckBox>((box, c) =>

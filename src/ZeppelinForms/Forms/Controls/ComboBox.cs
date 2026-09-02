@@ -118,9 +118,6 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
     {
         var list = new ListBox
         {
-            // ширина как у самого комбобокса — так выпадающий список
-            // выглядит его продолжением, а не отдельным окном
-            Size = new Size(ActualSize.Width, DropDownHeight),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
             OverflowY = Overflow.Auto,
@@ -136,6 +133,14 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
             SelectedIndex = list.SelectedIndex;
             _flyout.Close();
         };
+
+        // сначала узнаём, сколько списку нужно, и только потом ограничиваем:
+        // при трёх элементах не должно оставаться пустого места
+        list.Measure(new Size(ActualSize.Width, float.PositiveInfinity));
+
+        float height = Math.Min(list.DesiredSize.Height, DropDownHeight);
+
+        list.Size = new Size(ActualSize.Width, height);
 
         return list;
     }

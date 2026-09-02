@@ -8,10 +8,14 @@
 ### Features
 - Add Display API
 - Add OnPreviewMouseDown
+- Now disabled control have special filling
 
 ### Fixes
 - Fix all flyout controls. Now all flyouts will be closed correct
-- Fix click in clickable UIElement in ListBox dont raise selection 
+- Fix click in clickable UIElement in ListBox dont raise selection
+- Fix pressed buttons blink
+- Fix ComboBox flyout height
+- Fix Calendar text lag
 
 ## [0.5.0] — 2026-09-02
 

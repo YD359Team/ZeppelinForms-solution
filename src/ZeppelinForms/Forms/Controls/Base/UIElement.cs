@@ -30,6 +30,10 @@ public abstract class UIElement : IGridPlaceable
     private Size _explicitSize = Size.Auto;
     private Size _actualSize = Size.Empty;
 
+    /// <summary>Насколько приглушать выключенный элемент.</summary>
+    public float DisabledOpacity { get; set; } = 0.5f;
+    public float DisabledDesaturation { get; set; } = 0.6f;
+
     /// <summary>Явно заданный размер. Size.Auto означает «подобрать по содержимому».</summary>
     public Size Size
     {

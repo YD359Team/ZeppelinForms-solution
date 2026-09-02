@@ -78,6 +78,16 @@ public static class SkiaRenderer
         g.Save();
         g.Translate(element.Position.X, element.Position.Y);
 
+        // Приглушение и прозрачность — один слой на элемент.
+        // SaveDisabledLayer уже умеет альфу, поэтому при выключенном
+        // элементе второй слой не нужен.
+        bool needsLayer = !element.IsEnabled || element.Opacity < 1f;
+
+        if (!element.IsEnabled)
+            g.SaveDisabledLayer(element.DisabledOpacity * element.Opacity, element.DisabledDesaturation);
+        else if (element.Opacity < 1f)
+            g.SaveLayer(element.Opacity);
+
         if (element.Rotation != 0f)
         {
             // поворот вокруг центра: сдвиг в центр, поворот, сдвиг обратно
@@ -86,12 +96,6 @@ public static class SkiaRenderer
             g.Rotate(element.Rotation);
             g.Translate(-center.X, -center.Y);
         }
-
-        // слой нужен, только если прозрачность реально задана: SaveLayer —
-        // это отдельная offscreen-поверхность, дорого делать её на каждый элемент
-        bool needsLayer = element.Opacity < 1f;
-        if (needsLayer)
-            g.SaveLayer(element.Opacity);
 
         if (element.BoxShadow is { } shadow)
             g.DrawShadow(element.LocalBounds, shadow);
@@ -109,7 +113,7 @@ public static class SkiaRenderer
                     g.Save();
                     g.ClipRect(wrap.ContentBounds);
                     wrap.ApplyChildTransform(g);
-                    Draw(wrap.Child, g);
+                    Draw(wrap.Child, g, clip);
                     g.Restore();
                 }
                 break;

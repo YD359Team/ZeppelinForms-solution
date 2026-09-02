@@ -17,6 +17,8 @@ public abstract class ButtonBase : UnitControl, IInputElement, IBorderedElement
     public Color PressedBackgroundColor { get; set; } = Colors.Transparent;
     public Color CheckedBackgroundColor { get; set; } = Colors.Transparent;
     public Color DisabledBackgroundColor { get; set; } = Colors.Transparent;
+    public Color CheckedPressedBackgroundColor { get; set; } = Colors.Transparent;
+    public Color CheckedHoverBackgroundColor { get; set; } = Colors.Transparent;
 
     public Color TextColor { get; set; } = Colors.Black;
     public Color DisabledTextColor { get; set; } = new Color(255, 160, 160, 160);
@@ -49,9 +51,20 @@ public abstract class ButtonBase : UnitControl, IInputElement, IBorderedElement
     {
         get
         {
-            if (!IsEnabled && DisabledBackgroundColor.A > 0) return DisabledBackgroundColor;
+            if (!IsEnabled && DisabledBackgroundColor.A > 0)
+                return DisabledBackgroundColor;
+
+            // для залипшего состояния нажатие и наведение — свои оттенки,
+            // иначе кнопка на мгновение перекрашивается в цвет выключенного
+            if (IsCheckedState)
+            {
+                if (IsPressed && CheckedPressedBackgroundColor.A > 0) return CheckedPressedBackgroundColor;
+                if (IsHovered && CheckedHoverBackgroundColor.A > 0) return CheckedHoverBackgroundColor;
+
+                return CheckedBackgroundColor;
+            }
+
             if (IsPressed && PressedBackgroundColor.A > 0) return PressedBackgroundColor;
-            if (IsCheckedState && CheckedBackgroundColor.A > 0) return CheckedBackgroundColor;
             if (IsHovered && HoverBackgroundColor.A > 0) return HoverBackgroundColor;
 
             return BackgroundColor;

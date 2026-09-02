@@ -38,6 +38,9 @@ public abstract class Graphics
     IReadOnlyList<TextRun> runs, Rectangle rect, Font baseFont, Color baseColor,
     HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
     VerticalContentAlignment vAlign = VerticalContentAlignment.Center);
+    /// <summary>Слой с приглушением: всё нарисованное внутри теряет
+    /// насыщенность и прозрачность.</summary>
+    public abstract void SaveDisabledLayer(float opacity, float desaturation);
 
     public abstract void ClipRoundRect(Rectangle rect, CornerRadius radius);
     public abstract void Rotate(float degrees);

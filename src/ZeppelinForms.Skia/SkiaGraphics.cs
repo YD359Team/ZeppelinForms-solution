@@ -486,4 +486,28 @@ public sealed class SkiaGraphics : Graphics
             }
         }
     }
+
+    public override void SaveDisabledLayer(float opacity, float desaturation)
+    {
+        // матрица цвета: смешиваем каждый канал в сторону яркости,
+        // получая частичное обесцвечивание без ручного пересчёта пикселей
+        float s = 1f - Math.Clamp(desaturation, 0f, 1f);
+
+        float rr = 0.213f + 0.787f * s, rg = 0.715f - 0.715f * s, rb = 0.072f - 0.072f * s;
+        float gr = 0.213f - 0.213f * s, gg = 0.715f + 0.285f * s, gb = 0.072f - 0.072f * s;
+        float br = 0.213f - 0.213f * s, bg = 0.715f - 0.715f * s, bb = 0.072f + 0.928f * s;
+
+        float[] matrix =
+        [
+            rr, rg, rb, 0, 0,
+            gr, gg, gb, 0, 0,
+            br, bg, bb, 0, 0,
+            0,  0,  0,  Math.Clamp(opacity, 0f, 1f), 0,
+        ];
+
+        using var filter = SKColorFilter.CreateColorMatrix(matrix);
+        using var paint = new SKPaint { ColorFilter = filter };
+
+        _canvas.SaveLayer(paint);
+    }
 }

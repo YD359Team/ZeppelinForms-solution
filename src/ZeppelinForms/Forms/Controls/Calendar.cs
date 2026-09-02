@@ -62,9 +62,16 @@ public class Calendar : UnitControl
         g.DrawText("‹", new Rectangle(new Point(content.X, content.Y), new Size(28, HeaderHeight)),
             TextColor, font, HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
-        g.DrawText($"{_displayMonth:MMMM yyyy}",
-            new Rectangle(new Point(content.X + 28, content.Y), new Size(content.Width - 56, HeaderHeight)),
-            TextColor, font, HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
+        // высоту строки берём по эталонной паре, а не по самому тексту:
+        // иначе центр гуляет из-за выносных элементов букв
+        float lineHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
+
+        var monthRect = new Rectangle(
+            new Point(content.X + 28, content.Y + (HeaderHeight - lineHeight) / 2f),
+            new Size(content.Width - 56, lineHeight));
+
+        g.DrawText($"{_displayMonth:MMMM yyyy}", monthRect, TextColor, font,
+            HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
         g.DrawText("›", new Rectangle(new Point(content.X + content.Width - 28, content.Y), new Size(28, HeaderHeight)),
             TextColor, font, HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
