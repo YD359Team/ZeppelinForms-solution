@@ -3,7 +3,6 @@
 ## Feature [0.5.0]
 
 ### Breaking changes
-
 - Rectangle.AsSize() -> Rectangle.Size
 - Rectangle.AsPosition() -> Rectangle.Position
 
@@ -11,6 +10,9 @@
 - Add MessageBox
 - Add InputBox
 - Add Form.IsDialog
+- Add theme support
+
+## New controls
 - Add SplitContainer
 - Add GridSplitter
 
