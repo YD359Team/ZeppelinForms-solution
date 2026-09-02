@@ -10,8 +10,8 @@ namespace ZeppelinForms.UnitTests.Snapshots;
 public static class SnapshotAssert
 {
     private static bool AllowSnapshotCreation =>
-        !IsContinuousIntegration ||
-        Environment.GetEnvironmentVariable("ZF_CREATE_SNAPSHOTS") == "true";
+        !IsContinuousIntegration /*||
+        Environment.GetEnvironmentVariable("ZF_CREATE_SNAPSHOTS") == "true"*/;
 
     private const int DefaultTolerance = 4;
 
