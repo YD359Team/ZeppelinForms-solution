@@ -40,16 +40,15 @@ public static class SnapshotAssert
         Compare(element.RenderToImage(), name, tolerance);
     }
 
-    public static void Matches(Form form, string name, int tolerance = DefaultTolerance)
+    public static void Matches(Form form, string name, float scale = 1f, int tolerance = DefaultTolerance)
     {
-        var renderer = new SkiaOffscreenRenderer();
-
-        Image actual = renderer.RenderForm(
+        Image actual = new SkiaOffscreenRenderer().RenderForm(
             form,
-            (int)MathF.Ceiling(form.ClientSize.Width),
-            (int)MathF.Ceiling(form.ClientSize.Height));
+            (int)MathF.Ceiling(form.ClientSize.Width * scale),
+            (int)MathF.Ceiling(form.ClientSize.Height * scale),
+            scale);
 
-        Compare(actual, name, tolerance);
+        Compare(actual, $"{name}@{scale:0.##}x", tolerance);
     }
 
     private static void Compare(Image actual, string name, int tolerance)
