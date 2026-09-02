@@ -247,7 +247,7 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
         return -1;
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs args)
     {
         int index = IndexFromPoint(args.Location);
         if (index == _hoveredIndex) return;
@@ -256,7 +256,7 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
         InvalidateVisual();
     }
 
-    protected override void OnMouseLeave()
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
         _hoveredIndex = -1;
     }

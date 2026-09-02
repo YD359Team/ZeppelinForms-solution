@@ -374,10 +374,10 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         _isDragging = true;
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         if (_isDragging)
-            _document.SetCaret(IndexFromPoint(args.Location), extendSelection: true);
+            _document.SetCaret(IndexFromPoint(e.Location), extendSelection: true);
     }
 
     protected override void OnMouseUp(MouseButtonEventArgs args) => _isDragging = false;

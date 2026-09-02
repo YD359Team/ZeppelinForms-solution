@@ -72,7 +72,7 @@ public class MenuBar : UnitControl
         return -1;
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs args)
     {
         int index = IndexFromPoint(args.Location);
         if (index == _hoveredIndex) return;
@@ -87,7 +87,7 @@ public class MenuBar : UnitControl
         Invalidate();
     }
 
-    protected override void OnMouseLeave() => _hoveredIndex = -1;
+    protected override void OnMouseExit(MouseMoveEventArgs args) => _hoveredIndex = -1;
 
     protected override void OnClick(MouseClickEventArgs e)
     {

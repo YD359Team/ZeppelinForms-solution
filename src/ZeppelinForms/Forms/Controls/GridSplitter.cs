@@ -69,7 +69,7 @@ public class GridSplitter : UnitControl
         _afterStart = MeasuredTrackSize(grid, after);
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs args)
     {
         if (!_dragging) return;
 

@@ -140,7 +140,7 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         g.DrawPolyline(points, Colors.Black, 1.5f);
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs args)
     {
         Point abs = GetAbsolutePosition();
         var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
@@ -156,7 +156,7 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         }
     }
 
-    protected override void OnMouseLeave()
+    protected override void OnMouseExit(MouseMoveEventArgs a)
     {
         _hoverUp = _hoverDown = false;
     }

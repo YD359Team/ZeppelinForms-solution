@@ -475,9 +475,6 @@ public abstract class UIElement : IGridPlaceable
         // called when size changed. TODO: Dont call this before size assigned first time
     }
 
-    protected virtual void OnMouseOver() { }
-    protected virtual void OnMouseLeave() { }
-
     internal void RaiseAttached() => OnAttached();
 
     // TODO: кешировать owner

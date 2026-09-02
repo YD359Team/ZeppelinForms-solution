@@ -189,7 +189,7 @@ public class Calendar : UnitControl
         return (row * Columns + col, 0);
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs args)
     {
         var (cell, header) = HitFromPoint(args.Location);
 
@@ -200,7 +200,7 @@ public class Calendar : UnitControl
         InvalidateVisual();
     }
 
-    protected override void OnMouseLeave()
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
         _hoveredCell = -1;
         _hoveredHeaderButton = 0;

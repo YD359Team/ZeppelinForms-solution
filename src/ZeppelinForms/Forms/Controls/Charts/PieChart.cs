@@ -171,7 +171,7 @@ public class PieChart : UnitControl
         }
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs args)
     {
         Point abs = GetAbsolutePosition();
         Rectangle circle = PieBounds;
@@ -209,7 +209,7 @@ public class PieChart : UnitControl
         InvalidateVisual();
     }
 
-    protected override void OnMouseLeave() => _hoveredSlice = -1;
+    protected override void OnMouseExit(MouseMoveEventArgs args) => _hoveredSlice = -1;
 
     protected override Size MeasureOverride(Size availableSize) =>
         ResolveSize(new Size(260 + LegendWidth + Padding.Horizontal, 200 + Padding.Vertical), availableSize);

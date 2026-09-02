@@ -97,7 +97,7 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
             g.DrawRoundRectangle(bounds, CornerRadius, BorderColor, BorderWidth);
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs args)
     {
         float localX = args.Location.X - GetAbsolutePosition().X;
         bool inArrow = localX >= ActualSize.Width - ArrowZoneWidth;
@@ -108,7 +108,7 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
         InvalidateVisual();
     }
 
-    protected override void OnMouseLeave() => _arrowHovered = false;
+    protected override void OnMouseExit(MouseMoveEventArgs args) => _arrowHovered = false;
 
     protected override void OnClick(MouseClickEventArgs e)
     {

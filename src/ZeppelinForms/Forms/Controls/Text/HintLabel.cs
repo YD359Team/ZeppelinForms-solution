@@ -76,8 +76,8 @@ public class HintLabel : UnitControl
         }
     }
 
-    protected override void OnMouseOver() => InvalidateVisual();
-    protected override void OnMouseLeave() => InvalidateVisual();
+    protected override void OnMouseEnter(MouseMoveEventArgs e) => InvalidateVisual();
+    protected override void OnMouseExit(MouseMoveEventArgs e) => InvalidateVisual();
 
     protected override void OnClick(MouseClickEventArgs e)
     {

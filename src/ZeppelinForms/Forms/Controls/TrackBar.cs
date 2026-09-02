@@ -132,7 +132,7 @@ public class TrackBar : UnitControl, IInputElement
         SetValueFromPoint(args.Location);
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs args)
     {
         if (_isDragging)
             SetValueFromPoint(args.Location);

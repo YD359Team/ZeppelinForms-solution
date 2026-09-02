@@ -97,7 +97,7 @@ public class ScrollBar : UnitControl
         }
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs args)
     {
         if (!_isDragging) return;
 

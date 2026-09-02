@@ -116,7 +116,7 @@ public class SplitContainer : PanelControl
             && localPoint.Y >= rect.Y && localPoint.Y <= rect.Y + rect.Height;
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs args)
     {
         Point abs = GetAbsolutePosition();
 
@@ -166,7 +166,7 @@ public class SplitContainer : PanelControl
         _dragging = false;
     }
 
-    protected override void OnMouseLeave()
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         _splitterHovered = false;
         Cursor = CursorKind.Default;

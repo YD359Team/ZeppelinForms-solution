@@ -255,7 +255,7 @@ public abstract class PanelControl : UIElement
         }
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs args)
     {
         if (!_draggingVertical && !_draggingHorizontal) return;
 

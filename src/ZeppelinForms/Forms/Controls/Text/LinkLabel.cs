@@ -47,8 +47,8 @@ public class LinkLabel : RichLabel
         Invalidate();
     }
 
-    protected override void OnMouseOver() => RebuildInlines();
-    protected override void OnMouseLeave() => RebuildInlines();
+    protected override void OnMouseEnter(MouseMoveEventArgs e) => RebuildInlines();
+    protected override void OnMouseExit(MouseMoveEventArgs e) => RebuildInlines();
 
     protected override void OnClick(MouseClickEventArgs e)
     {
