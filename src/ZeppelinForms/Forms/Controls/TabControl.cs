@@ -215,12 +215,12 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
             TabStripPlacement.Top => new Rectangle(
                 new Point(rect.X, rect.Y + rect.Height - thickness), new Size(rect.Width, thickness)),
 
-            TabStripPlacement.Bottom => new Rectangle(rect.AsPosition(), new Size(rect.Width, thickness)),
+            TabStripPlacement.Bottom => new Rectangle(rect.Position, new Size(rect.Width, thickness)),
 
             TabStripPlacement.Left => new Rectangle(
                 new Point(rect.X + rect.Width - thickness, rect.Y), new Size(thickness, rect.Height)),
 
-            _ => new Rectangle(rect.AsPosition(), new Size(thickness, rect.Height)),
+            _ => new Rectangle(rect.Position, new Size(thickness, rect.Height)),
         };
 
         g.FillRectangle(marker, AccentColor);

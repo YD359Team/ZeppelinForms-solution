@@ -62,7 +62,7 @@ public class PieChart : UnitControl
 
         if (!string.IsNullOrEmpty(Title))
             g.DrawText(Title,
-                new Rectangle(content.AsPosition(), new Size(content.Width, TitleHeight)),
+                new Rectangle(content.Position, new Size(content.Width, TitleHeight)),
                 TitleColor, EffectiveFont,
                 HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
@@ -88,7 +88,7 @@ public class PieChart : UnitControl
                     new Point(
                         circle.X + MathF.Cos(mid) * HoverOffset,
                         circle.Y + MathF.Sin(mid) * HoverOffset),
-                    circle.AsSize());
+                    circle.Size);
             }
 
             g.FillPie(sliceBounds, angle, sweep, color);

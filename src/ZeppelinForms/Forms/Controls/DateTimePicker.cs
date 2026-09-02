@@ -49,7 +49,7 @@ public class DateTimePicker : UnitControl, IInputElement, IBorderedElement
             g.DrawRectangle(this.LocalBounds, IsFocused ? LightThemeColors.ButtonFill : BorderColor, BorderWidth);
 
         var content = this.ContentBounds;
-        var textArea = new Rectangle(content.AsPosition(), new Size(Math.Max(0, content.Width - 18), content.Height));
+        var textArea = new Rectangle(content.Position, new Size(Math.Max(0, content.Width - 18), content.Height));
 
         g.DrawText(Value.ToString(Format), textArea, TextColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);

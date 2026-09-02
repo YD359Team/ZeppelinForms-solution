@@ -76,7 +76,7 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
         var content = this.ContentBounds;
 
         var textArea = new Rectangle(
-            content.AsPosition(),
+            content.Position,
             new Size(Math.Max(0, content.Width - ArrowWidth), content.Height));
 
         if (SelectedItem is object item)

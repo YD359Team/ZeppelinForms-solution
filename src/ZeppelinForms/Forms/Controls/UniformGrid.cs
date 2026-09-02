@@ -98,7 +98,7 @@ public class UniformGrid : PanelControl
                 Math.Max(0, finalSize.Height - Padding.Vertical)));
 
         var (rows, columns) = ResolveGrid();
-        Size cell = CellSize(area.AsSize(), rows, columns);
+        Size cell = CellSize(area.Size, rows, columns);
 
         int index = Math.Max(0, FirstColumn);
 

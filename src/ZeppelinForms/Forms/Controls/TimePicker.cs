@@ -54,7 +54,7 @@ public class TimePicker : UnitControl, IInputElement, IBorderedElement
         var content = this.ContentBounds;
 
         g.DrawText(Value.ToString(Format),
-            new Rectangle(content.AsPosition(), new Size(Math.Max(0, content.Width - 18), content.Height)),
+            new Rectangle(content.Position, new Size(Math.Max(0, content.Width - 18), content.Height)),
             TextColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 

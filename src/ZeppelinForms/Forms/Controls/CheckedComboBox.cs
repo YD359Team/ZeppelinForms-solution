@@ -82,7 +82,7 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
         var content = this.ContentBounds;
 
         var textArea = new Rectangle(
-            content.AsPosition(), new Size(Math.Max(0, content.Width - ArrowWidth), content.Height));
+            content.Position, new Size(Math.Max(0, content.Width - ArrowWidth), content.Height));
 
         g.DrawText(DisplayText, textArea,
             _checked.Count == 0 ? PlaceholderColor : TextColor, EffectiveFont,

@@ -78,7 +78,7 @@ public class TrackBar : UnitControl, IInputElement
                 new Size(Math.Max(0, bounds.Width - ThumbSize), TrackThickness));
 
             g.FillRectangle(track, TrackColor);
-            g.FillRectangle(new Rectangle(track.AsPosition(), new Size(track.Width * fraction, TrackThickness)), FillColor);
+            g.FillRectangle(new Rectangle(track.Position, new Size(track.Width * fraction, TrackThickness)), FillColor);
 
             float cx = ThumbSize / 2f + TravelLength * fraction;
             DrawThumb(g, cx, bounds.Height / 2f);

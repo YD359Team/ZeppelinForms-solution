@@ -48,7 +48,7 @@ public sealed class HeadlessWindow : IPlatformWindow
 
     public void SetBounds(Rectangle bounds)
     {
-        _form.ClientSize = bounds.AsSize();
+        _form.ClientSize = bounds.Size;
         _form.PerformLayout();
     }
 

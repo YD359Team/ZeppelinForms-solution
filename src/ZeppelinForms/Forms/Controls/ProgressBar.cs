@@ -76,7 +76,7 @@ public class ProgressBar : UnitControl, IBorderedElement
         if (fraction > 0)
         {
             Rectangle fill = Orientation == Orientation.Horizontal
-                ? new Rectangle(bounds.AsPosition(), new Size(bounds.Width * fraction, bounds.Height))
+                ? new Rectangle(bounds.Position, new Size(bounds.Width * fraction, bounds.Height))
                 // вертикальная растёт снизу вверх, как и ожидает глаз
                 : new Rectangle(
                     new Point(bounds.X, bounds.Y + bounds.Height * (1 - fraction)),
@@ -95,7 +95,7 @@ public class ProgressBar : UnitControl, IBorderedElement
             // тот же текст двумя цветами: контраст сохраняется
             // и на заполненной части, и на дорожке
             g.Save();
-            g.ClipRect(new Rectangle(bounds.AsPosition(), new Size(bounds.Width * fraction, bounds.Height)));
+            g.ClipRect(new Rectangle(bounds.Position, new Size(bounds.Width * fraction, bounds.Height)));
             g.DrawText(label, bounds, FilledTextColor, EffectiveFont,
                 HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
             g.Restore();

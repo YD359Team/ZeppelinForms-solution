@@ -13,6 +13,10 @@ public readonly record struct Rectangle
     public readonly float Right => X + Width;
     public readonly float Bottom => Y + Height;
 
+    public readonly Point Position => new(this.X, this.Y);
+
+    public readonly Size Size => new(this.Width, this.Height);
+
     public Rectangle(float x, float y, float width, float height)
     {
         this.X = x;
@@ -51,8 +55,4 @@ public readonly record struct Rectangle
 
     public Rectangle Inflate(float amount) =>
         new(new Point(X - amount, Y - amount), new Size(Width + amount * 2, Height + amount * 2));
-
-    public readonly Point AsPosition() => new(this.X, this.Y);
-
-    public readonly Size AsSize() => new(this.Width, this.Height);
 }  

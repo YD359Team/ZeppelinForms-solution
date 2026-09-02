@@ -2,10 +2,17 @@
 
 ## Feature [0.5.0]
 
+### Breaking changes
+
+- Rectangle.AsSize() -> Rectangle.Size
+- Rectangle.AsPosition() -> Rectangle.Position
+
 ### Features
 - Add MessageBox
 - Add InputBox
 - Add Form.IsDialog
+- Add SplitContainer
+- Add GridSplitter
 
 ## [0.4.0] — 2026-09-02
 

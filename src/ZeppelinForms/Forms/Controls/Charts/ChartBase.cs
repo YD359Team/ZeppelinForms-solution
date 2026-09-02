@@ -92,7 +92,7 @@ public abstract class ChartBase : UnitControl
         var content = ContentBounds;
 
         g.DrawText(Title,
-            new Rectangle(content.AsPosition(), new Size(content.Width, TitleHeight)),
+            new Rectangle(content.Position, new Size(content.Width, TitleHeight)),
             TitleColor, EffectiveFont,
             HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
     }
