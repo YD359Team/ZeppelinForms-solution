@@ -1,6 +1,6 @@
 # Changes
 
-## Feature [0.5.0]
+## [0.5.0] — 2026-09-02
 
 ### Breaking changes
 - Rectangle.AsSize() -> Rectangle.Size
