@@ -99,7 +99,7 @@ public class ExampleMainForm : Form
         grid.Children.AddRange(controls);
         dockPanel.Children.AddRange([grid, btnNext]);
         map.GoTo(55.751244, 37.618423, zoom: 12);
-        return dockPanel;
+        return new GroupBox { Child = dockPanel, Header = "Controls" };
     }
 
     private void BtnBack_Click(object? sender, ZeppelinForms.Input.Mouse.MouseClickEventArgs e)

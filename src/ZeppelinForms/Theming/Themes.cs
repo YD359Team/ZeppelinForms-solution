@@ -206,6 +206,13 @@ public static class Themes
                 border.BorderColor = c.Border;
             })
 
+            .For<GroupBox>((box, c) =>
+            {
+                box.Background = Colors.Transparent;
+                box.BorderColor = c.Border;
+                box.HeaderColor = c.TextSecondary;
+            })
+
             .For<Spoiler>((spoiler, c) =>
             {
                 spoiler.HeaderColor = c.Surface;

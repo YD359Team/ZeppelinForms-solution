@@ -16,6 +16,7 @@
 
 ### New controls
 - Add MapControl
+- Add GroupBox
 
 ### Fixes
 - Fix all flyout controls. Now all flyouts will be closed correct
