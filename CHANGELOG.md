@@ -12,6 +12,9 @@
 - Mouse events without location	now has location
 - Now disabled control have special filling
 
+### New controls
+- Add MapControl
+
 ### Fixes
 - Fix all flyout controls. Now all flyouts will be closed correct
 - Fix click in clickable UIElement in ListBox dont raise selection

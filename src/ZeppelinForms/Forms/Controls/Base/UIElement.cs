@@ -172,6 +172,12 @@ public abstract class UIElement : IGridPlaceable
     // ===================
 
     public UIElement? Parent { get; internal set; }
+    /// <summary>
+    /// Доля свободного места по главной оси панели. 0 — элемент занимает
+    /// желаемый размер, больше нуля — делит остаток пропорционально весу.
+    /// Учитывается только панелями с главной осью (StackPanel, DockPanel).
+    /// </summary>
+    public float FlexGrow { get; set; }
     public Dock Docking { get; set; }
     public HorizontalAlignment HorizontalAlignment { get; set; } = HorizontalAlignment.Stretch;
     public VerticalAlignment VerticalAlignment { get; set; } = VerticalAlignment.Stretch;

@@ -8,6 +8,7 @@ using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Forms.Controls.Shapes;
+using ZeppelinForms.Forms.Controls.Map;
 
 namespace ZF_SharedLib;
 
@@ -49,6 +50,8 @@ public class ExampleMainForm : Form
         {
             Padding = new Thickness(6),
             OverflowY = Overflow.Auto,        // прокрутка там, где нужна
+            SpacingX = 5,
+            SpacingY = 2,
         };
         PictureBox pBox = new() { Size = new(100, 100) };
         pBox.LoadAsset("Laughing.png");
@@ -56,6 +59,11 @@ public class ExampleMainForm : Form
         lBox.Items.AddRange([new Button() { Text = "Item1" }, new Button() { Text = "Item2" }]);
         ComboBox cBox = new();
         cBox.Items.AddRange("Item 1", "Item 2", "Item 3");
+        var map = new MapControl()
+        {
+            FlexGrow = 1,
+            UserAgent = "ZeppelinForms/0.5.0",
+        };
         UIElement[] controls = [
             new Label() { Text = "Label" },
             new LinkLabel() { Text = "LinkLabel" },
@@ -73,6 +81,7 @@ public class ExampleMainForm : Form
             pBox,
             lBox,
             cBox,
+            map,
             new Spoiler() { Child = new Label() { Text = "Hidden label" }, IsCollapsed = true },
             new CircularProgressBar() { Maximum = 1f, Value = 0.5f },
             new SvgIcon() { PathData = "M 45 45 L 345 45 L 345 345 L 45 345 Z M 195 45 L 195 345 M 45 195 L 345 195" },
@@ -88,6 +97,7 @@ public class ExampleMainForm : Form
         ];
         grid.Children.AddRange(controls);
         dockPanel.Children.AddRange([grid, btnNext]);
+        map.GoTo(55.751244, 37.618423, zoom: 12);
         return dockPanel;
     }
 
