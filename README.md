@@ -90,6 +90,9 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 22 | BarChart | ✅ |
 | 23 | LineChart | ✅ |
 | 24 | PieChart | ✅ |
+| 25 | RichLabel | ✅ |
+| 26 | RichTextBox* | ✅ |
+| 27 | Shapes | ✅ |
 
 \* - есть баги и отсуствует часть API
 
@@ -108,6 +111,7 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 5 | TabControl | ✅ |
 | 6 | ScrollViewer | ✅ |
 | 7 | UniformGrid | ✅ |
+| 8 | VirtualizedStackPanel | ✅ |
 
 ##### Панели элементов
 
