@@ -26,4 +26,6 @@ public sealed record TextRun(string Text)
 
     public static TextRun Link(string text, Color color) =>
         new(text) { Color = color, Underline = true };
+
+    public static implicit operator TextRun(string text) => new(text);
 }

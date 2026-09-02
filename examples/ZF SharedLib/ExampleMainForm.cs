@@ -6,6 +6,8 @@ using ZeppelinForms.Forms.Controls.Charts;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
+using ZeppelinForms.Forms.Controls.Shapes;
 
 namespace ZF_SharedLib;
 
@@ -31,8 +33,8 @@ public class ExampleMainForm : Form
         Button btnNext = new Button() { Text = "Goto view 2", Docking = Dock.Top };
         btnNext.Click -= BtnNext_Click;
         btnNext.Click += BtnNext_Click;
-        Label lbl = new Label();
-        lbl.Text = "Presentation";
+        RichLabel lbl = new();
+        lbl.SetText("Hi! Welcome to presentation of ", TextRun.Colored("Zeppelin Forms", Colors.Blue), " framework");
         dockPanel.Children.AddRange([lbl, btnNext]);
         return dockPanel;
     }
@@ -56,6 +58,7 @@ public class ExampleMainForm : Form
         cBox.Items.AddRange("Item 1", "Item 2", "Item 3");
         UIElement[] controls = [
             new Label() { Text = "Label" },
+            new LinkLabel() { Text = "LinkLabel" },
             new Button() { Text = "Button" },
             new Button() { Text = "Button with shadow", BoxShadow = BoxShadow.Large },
             new NumericUpDown(),
@@ -70,13 +73,17 @@ public class ExampleMainForm : Form
             pBox,
             lBox,
             cBox,
-            new Spoiler() { Child = new Label() { Text = "Hidden label" }, IsCollapsed = false },
+            new Spoiler() { Child = new Label() { Text = "Hidden label" }, IsCollapsed = true },
             new CircularProgressBar() { Maximum = 1f, Value = 0.5f },
             new SvgIcon() { PathData = "M 45 45 L 345 45 L 345 345 L 45 345 Z M 195 45 L 195 345 M 45 195 L 345 195" },
             new ColorPicker(),
             new SplitButton() { Text = "SplitButton", Items = [ new() { Text = "Item 1" }, new() { Text = "Item 2" }] },
             new ToggleButton() { Text = "ToggleButton" },
             new ToggleSwitch() { Text = "ToggleSwitch" },
+            new LineShape() { Stroke = Colors.Black },
+            new RectangleShape() { Stroke = Colors.Black },
+            new EllipseShape() { Stroke = Colors.Black },
+            new PolygonShape() { Stroke = Colors.Black, Points = [new(), new(1, 1), new(0, 1)] },
             .. GetPlotControls()
         ];
         grid.Children.AddRange(controls);
@@ -101,8 +108,8 @@ public class ExampleMainForm : Form
             HoleRatio = 0.5f,
         };
         pieChart.Slices.AddRange(
-            new PieSlice() { Color = Colors.Red, Value = 0.25f },
-            new PieSlice() { Color = Colors.Blue, Value = 0.75f }
+            new PieSlice() { Color = Colors.Red, Value = 0.25f, Label = "Red" },
+            new PieSlice() { Color = Colors.Blue, Value = 0.75f, Label = "Blue" }
         );
         LineChart lineChart = new()
         {

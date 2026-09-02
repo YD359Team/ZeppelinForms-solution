@@ -28,7 +28,7 @@
 ### New controls
 
 - Add VirtualizedStackPanel
-- Add RichLabel and RichTextBox
+- Add RichLabel and LinkLabel
 - Add Shape and RectangleShape, EllipseShape, LineShape, PolygonShape
 
 ## [0.3.0] — 2026-08-30

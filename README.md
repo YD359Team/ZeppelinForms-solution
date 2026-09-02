@@ -91,7 +91,7 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 23 | LineChart | ✅ |
 | 24 | PieChart | ✅ |
 | 25 | RichLabel | ✅ |
-| 26 | RichTextBox* | ✅ |
+| 26 | LinkLabel | ✅ |
 | 27 | Shapes | ✅ |
 
 \* - есть баги и отсуствует часть API
