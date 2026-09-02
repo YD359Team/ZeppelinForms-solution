@@ -48,7 +48,11 @@ public static class SnapshotAssert
             (int)MathF.Ceiling(form.ClientSize.Height * scale),
             scale);
 
-        Compare(actual, $"{name}@{scale:0.##}x", tolerance);
+        // суффикс только для нестандартного масштаба — иначе обычные снимки
+        // получают лишнее «@1x» в имени без всякой пользы
+        string snapshotName = Math.Abs(scale - 1f) < 0.001f ? name : $"{name}@{scale:0.##}x";
+
+        Compare(actual, snapshotName, tolerance);
     }
 
     private static void Compare(Image actual, string name, int tolerance)
