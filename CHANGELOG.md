@@ -2,7 +2,11 @@
 
 ## Feature [0.6.0]
 
+### Features
+- Display API
 
+### Fixes
+- Fix all flyout controls. Now all flyouts will be closed correct
 
 ## [0.5.0] — 2026-09-02
 
