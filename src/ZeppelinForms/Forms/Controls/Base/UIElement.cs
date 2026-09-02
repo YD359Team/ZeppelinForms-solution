@@ -408,6 +408,12 @@ public abstract class UIElement : IGridPlaceable
         }
     }
 
+    /// <summary>Нажатие в пределах элемента или его потомков.
+    /// Приходит от корня к цели — до обычного OnMouseDown.</summary>
+    protected virtual void OnPreviewMouseDown(Point location) { }
+
+    internal void RaisePreviewMouseDown(Point location) => OnPreviewMouseDown(location);
+
     protected virtual void OnDetached() { }
 
     internal void RaiseDetached() => OnDetached();

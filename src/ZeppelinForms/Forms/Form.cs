@@ -731,6 +731,22 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (hit is { IsEnabled: false }) return;
 
         _pressedElement = hit;
+        // нажатие уведомляет всю цепочку от корня к элементу: так контейнеры
+        // (список, дерево) успевают отметить выбор до того, как содержимое
+        // погасит событие
+        if (hit is not null)
+        {
+            List<UIElement> chain = [];
+
+            for (UIElement? current = hit; current is not null; current = current.Parent)
+                chain.Add(current);
+
+            chain.Reverse();
+
+            foreach (UIElement element in chain)
+                element.RaisePreviewMouseDown(point);
+        }
+
         hit?.RaiseMouseDown(point);
 
         // в режиме инспектора клик по контенту выбирает элемент, но клик

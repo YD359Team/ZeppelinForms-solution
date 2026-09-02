@@ -68,23 +68,23 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
             g.DrawRectangle(this.LocalBounds, IsFocused ? new Color(255, 0x0D, 0x6E, 0xFD) : BorderColor, BorderWidth);
     }
 
-    protected override void OnClick(MouseClickEventArgs e)
-    {
-        float localY = e.Location.Y - GetAbsolutePosition().Y;
+	protected override void OnPreviewMouseDown(Point location)
+	{
+		float localY = location.Y - GetAbsolutePosition().Y;
 
-        for (int i = 0; i < Children.Count; i++)
-        {
-            var child = Children[i];
-            if (localY >= child.Position.Y && localY < child.Position.Y + child.ActualSize.Height)
-            {
-                SelectedIndex = i;
-                e.Handled = true;
-                return;
-            }
-        }
-    }
+		for (int i = 0; i < Children.Count; i++)
+		{
+			UIElement child = Children[i];
 
-    protected override void OnKeyDown(KeyEventArgs e)
+			if (localY >= child.Position.Y && localY < child.Position.Y + child.ActualSize.Height)
+			{
+				SelectedIndex = i;
+				return;
+			}
+		}
+	}
+
+	protected override void OnKeyDown(KeyEventArgs e)
     {
         switch (e.Key)
         {

@@ -122,12 +122,14 @@ public class CheckedListBox : ListBox
             if (inBox || ToggleOnRowClick)
                 ToggleChecked(i);
 
-            // выбор строки ставим в любом случае — курсор и отметка независимы,
-            // как в WinForms: строка может быть выбрана, но не отмечена
-            SelectedIndex = i;
             e.Handled = true;
             return;
         }
+    }
+
+    protected override void OnPreviewMouseDown(Point location)
+    {
+        base.OnPreviewMouseDown(location);   // выбор строки из ListBox
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

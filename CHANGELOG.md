@@ -6,10 +6,12 @@
 - Old class LightThemeColors removed
 
 ### Features
-- Display API
+- Add Display API
+- Add OnPreviewMouseDown
 
 ### Fixes
 - Fix all flyout controls. Now all flyouts will be closed correct
+- Fix click in clickable UIElement in ListBox dont raise selection 
 
 ## [0.5.0] — 2026-09-02
 
