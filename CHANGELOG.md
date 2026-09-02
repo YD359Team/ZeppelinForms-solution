@@ -8,6 +8,8 @@
 ### Features
 - Add Display API
 - Add OnPreviewMouseDown
+- Right\Middle mouse button events
+- Mouse events without location	now has location
 - Now disabled control have special filling
 
 ### Fixes
