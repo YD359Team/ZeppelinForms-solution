@@ -1,6 +1,6 @@
 # Changes
 
-## Feature [0.6.0]
+## [0.6.0] — 2026-09-03
 
 ### Breaking changes
 - Old class LightThemeColors removed
