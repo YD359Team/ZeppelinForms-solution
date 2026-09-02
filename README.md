@@ -100,6 +100,8 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 31 | CheckedComboBox | ✅ |
 | 32 | ComboBox | ✅ |
 | 33 | GridSplitter | ✅ |
+| 34 | MaskedTextBox | ✅ |
+| 35 | HintLabel | ✅ |
 
 \* - есть баги и отсуствует часть API
 

@@ -5,16 +5,26 @@
 ### Breaking changes
 - Rectangle.AsSize() -> Rectangle.Size
 - Rectangle.AsPosition() -> Rectangle.Position
+- Core.Text classes moved to *.Controls.Text
 
 ### Features
 - Add MessageBox
 - Add InputBox
 - Add Form.IsDialog
 - Add theme support
+- Extracts ButtonBase class 
+- Now Primary, Secondary и Danger button is new classes with custom themes
+- Add validation to TextBox
+- Add watermark to TextBox
 
-## New controls
+### Fixes
+- ToggleSwitch now changes color after checking state changed
+
+### New controls
 - Add SplitContainer
 - Add GridSplitter
+- Add MaskedTextBox
+- Add HintLabel
 
 ## [0.4.0] — 2026-09-02
 
