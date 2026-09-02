@@ -369,6 +369,8 @@ public abstract class UIElement : IGridPlaceable
         DesiredSize = MeasureOverride(availableSize);
     }
 
+    private bool _hasBeenArranged;
+
     public void Arrange(Rectangle finalRect)
     {
         // Dock.Fill — явное требование занять всё, оно перекрывает выравнивание
@@ -400,7 +402,12 @@ public abstract class UIElement : IGridPlaceable
         // что задал пользователь, иначе авторазмер сработает лишь однажды
         _actualSize = ArrangeOverride(new Size(width, height));
 
-        OnSizeChanged();
+        // первый проход только фиксирует размер: наследники, реагирующие
+        // на изменение, не должны срабатывать на переходе из «не размещён»
+        if (_hasBeenArranged)
+            OnSizeChanged();
+        else
+            _hasBeenArranged = true;
     }
 
     public Point GetAbsolutePosition()
@@ -432,7 +439,14 @@ public abstract class UIElement : IGridPlaceable
         float w = _explicitSize.IsWidthAuto ? contentSize.Width : _explicitSize.Width;
         float h = _explicitSize.IsHeightAuto ? contentSize.Height : _explicitSize.Height;
 
-        return new Size(Math.Min(w, availableSize.Width), Math.Min(h, availableSize.Height));
+        w = Math.Min(w, availableSize.Width);
+        h = Math.Min(h, availableSize.Height);
+
+        // бесконечность не должна доезжать до размеров: она означает
+        // «ограничений нет», а не «элемент бесконечный»
+        return new Size(
+            float.IsFinite(w) ? w : 0f,
+            float.IsFinite(h) ? h : 0f);
     }
 
     // ===== события мыши/фокуса (без изменений) =====
@@ -442,7 +456,7 @@ public abstract class UIElement : IGridPlaceable
         if (IsHovered) return;
         IsHovered = true;
         OnMouseOver();
-        Invalidate();
+        InvalidateVisual();
     }
 
     internal void RaiseMouseLeave()
@@ -450,7 +464,7 @@ public abstract class UIElement : IGridPlaceable
         if (!IsHovered) return;
         IsHovered = false;
         OnMouseLeave();
-        Invalidate();
+        InvalidateVisual();
     }
 
     /// <summary>Перерисовать только этот элемент, без пересчёта раскладки.</summary>
@@ -483,6 +497,7 @@ public abstract class UIElement : IGridPlaceable
 
     internal void RaiseAttached() => OnAttached();
 
+    // TODO: кешировать owner
     internal Form? FindOwner()
     {
         UIElement root = this;
@@ -509,7 +524,7 @@ public abstract class UIElement : IGridPlaceable
     {
         IsPressed = true;
         OnMouseDown(location);
-        Invalidate();
+        InvalidateVisual();
     }
 
     internal void RaiseMouseUp(Point location)
@@ -517,7 +532,7 @@ public abstract class UIElement : IGridPlaceable
         if (!IsPressed) return;
         IsPressed = false;
         OnMouseUp(location);
-        Invalidate();
+        InvalidateVisual();
     }
 
     /// <summary>Реагирует ли контрол на пробел/Enter как на клик (кнопки, чекбоксы).</summary>
