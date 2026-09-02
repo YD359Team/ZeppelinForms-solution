@@ -123,7 +123,7 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         DrawArrow(g, DownButtonRect, up: false);
 
         if (BorderWidth > 0)
-            g.DrawRectangle(this.LocalBounds, IsFocused ? LightThemeColors.ButtonFill : BorderColor, BorderWidth);
+            g.DrawRectangle(this.LocalBounds, IsFocused ? new Color(255, 0x0D, 0x6E, 0xFD) : BorderColor, BorderWidth);
     }
 
     private static void DrawArrow(Graphics g, Rectangle area, bool up)

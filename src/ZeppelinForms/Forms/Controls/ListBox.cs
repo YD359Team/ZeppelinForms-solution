@@ -30,7 +30,7 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
 
     public event EventHandler? SelectionChanged;
 
-    public Color SelectionColor { get; set; } = LightThemeColors.ButtonFill;
+    public Color SelectionColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
 
     // IBorderedElement
     public Color BorderColor { get; set; } = Colors.Black;
@@ -65,7 +65,7 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
         }
 
         if (BorderWidth > 0)
-            g.DrawRectangle(this.LocalBounds, IsFocused ? LightThemeColors.ButtonFill : BorderColor, BorderWidth);
+            g.DrawRectangle(this.LocalBounds, IsFocused ? new Color(255, 0x0D, 0x6E, 0xFD) : BorderColor, BorderWidth);
     }
 
     protected override void OnClick(MouseClickEventArgs e)

@@ -39,7 +39,7 @@ public class TrackBar : UnitControl, IInputElement
     public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
     public Color TrackColor { get; set; } = new Color(255, 210, 210, 210);
-    public Color FillColor { get; set; } = LightThemeColors.ButtonFill;
+    public Color FillColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
     public Color ThumbColor { get; set; } = Colors.White;
     public Color ThumbBorderColor { get; set; } = new Color(255, 130, 130, 130);
 

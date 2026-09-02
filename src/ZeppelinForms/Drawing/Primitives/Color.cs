@@ -35,12 +35,3 @@ public static class Colors
     public static readonly Color Red = new(255, 255, 0, 0);
     public static readonly Color Blue = new(255, 0, 0, 255);
 }
-
-public static class LightThemeColors
-{
-    public static readonly Color Background = new(0xFF, 0xFF, 0xFF);
-    public static readonly Color Text = new(0x00, 0x00, 0x00);
-    public static readonly Color ButtonFill = new(0x0D, 0x6E, 0xFD);
-    public static readonly Color AccentBackground = new(0xF8, 0xF9, 0xFA);
-    public static readonly Color AccentFill = new(0x0D, 0x6E, 0xFD);
-}

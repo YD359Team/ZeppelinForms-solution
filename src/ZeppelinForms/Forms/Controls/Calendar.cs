@@ -20,7 +20,7 @@ public class Calendar : UnitControl
 
     public Color TextColor { get; set; } = Colors.Black;
     public Color MutedColor { get; set; } = new Color(255, 160, 160, 160);
-    public Color SelectionColor { get; set; } = LightThemeColors.ButtonFill;
+    public Color SelectionColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
     public Color TodayColor { get; set; } = new Color(255, 220, 235, 255);
 
     private int _hoveredCell = -1;

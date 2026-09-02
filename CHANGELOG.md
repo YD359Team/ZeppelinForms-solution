@@ -2,6 +2,9 @@
 
 ## Feature [0.6.0]
 
+### Breaking changes
+- Old class LightThemeColors removed
+
 ### Features
 - Display API
 

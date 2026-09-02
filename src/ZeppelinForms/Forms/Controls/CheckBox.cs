@@ -68,7 +68,7 @@ public class CheckBox : UnitControl, ITextElement, IInputElement
 
     public Color BoxBorderColor { get; set; } = Colors.Black;
     public Color BoxBackground { get; set; } = Colors.White;
-    public Color CheckColor { get; set; } = LightThemeColors.ButtonFill;
+    public Color CheckColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
 
     // IInputElement
     public bool IsFocused { get; set; }

@@ -38,7 +38,7 @@ public class ToggleSwitch : UnitControl, ITextElement, IInputElement
     public VerticalContentAlignment ContentVerticalAlign { get; set; } = VerticalContentAlignment.Center;
     public Color TextColor { get; set; } = Colors.Black;
 
-    public Color OnColor { get; set; } = LightThemeColors.ButtonFill;
+    public Color OnColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
     public Color OffColor { get; set; } = new Color(255, 200, 200, 200);
     public Color ThumbColor { get; set; } = Colors.White;
 

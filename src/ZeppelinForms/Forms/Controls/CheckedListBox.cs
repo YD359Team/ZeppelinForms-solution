@@ -15,7 +15,7 @@ public class CheckedListBox : ListBox
 
     public Color BoxBorderColor { get; set; } = new Color(255, 120, 120, 120);
     public Color BoxBackground { get; set; } = Colors.White;
-    public Color CheckColor { get; set; } = LightThemeColors.ButtonFill;
+    public Color CheckColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
 
     /// <summary>Отметка ставится по клику в любом месте строки, а не только по квадратику.</summary>
     public bool ToggleOnRowClick { get; set; }
