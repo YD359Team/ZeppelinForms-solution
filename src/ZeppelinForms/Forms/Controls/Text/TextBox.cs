@@ -14,6 +14,23 @@ namespace ZeppelinForms.Forms.Controls.Text;
 
 public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElement, IDisposable
 {
+    /// <summary>Подсказка в пустом поле.</summary>
+    public string? Watermark { get; set; }
+
+    public Color WatermarkColor { get; set; } = new Color(255, 160, 160, 160);
+
+    public ValidationState ValidationState { get; private set; } = ValidationState.None;
+
+    public string? ValidationMessage { get; private set; }
+
+    /// <summary>Проверка содержимого. Возвращает null, если всё в порядке.</summary>
+    public Func<string, string?>? Validator { get; set; }
+
+    public Color SuccessColor { get; set; } = new Color(255, 0x19, 0x87, 0x54);
+    public Color ErrorColor { get; set; } = new Color(255, 0xDC, 0x35, 0x45);
+
+    public event EventHandler? ValidationChanged;
+
     private const float CaretWidth = 1f;
     private const int BlinkIntervalMs = 530;
 
@@ -100,6 +117,43 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
 
     public void SelectAll() => _document.SelectAll();
 
+    /// <summary>Проверить содержимое сейчас.</summary>
+    public bool Validate()
+    {
+        if (Validator is null)
+        {
+            SetValidation(ValidationState.None, null);
+            return true;
+        }
+
+        string? error = Validator(_document.Text);
+
+        SetValidation(error is null ? ValidationState.Success : ValidationState.Error, error);
+
+        // сообщение об ошибке показываем подсказкой — отдельного места под него нет
+        ToolTip = error;
+
+        return error is null;
+    }
+
+    private void SetValidation(ValidationState state, string? message)
+    {
+        if (ValidationState == state && ValidationMessage == message) return;
+
+        ValidationState = state;
+        ValidationMessage = message;
+
+        ValidationChanged?.Invoke(this, EventArgs.Empty);
+        InvalidateVisual();
+    }
+
+    private Color CurrentBorderColor => ValidationState switch
+    {
+        ValidationState.Error => ErrorColor,
+        ValidationState.Success => SuccessColor,
+        _ => IsFocused ? App.Theme.Colors.BorderFocused : BorderColor,
+    };
+
     // ===== отображение =====
 
     private float LineHeight => TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
@@ -129,6 +183,10 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     {
         _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
         _caretVisible = false;
+
+        // проверяем при уходе из поля, а не на каждый символ:
+        // иначе половина введённого адреса будет краснеть
+        Validate();
     }
 
     private void OnBlink(object? state)
@@ -331,8 +389,8 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
             g.FillRoundRectangle(this.LocalBounds, CornerRadius, Background);
 
         if (BorderWidth > 0)
-            g.DrawRoundRectangle(this.LocalBounds, CornerRadius,
-                IsFocused ? LightThemeColors.ButtonFill : BorderColor, BorderWidth);
+            g.DrawRoundRectangle(LocalBounds, CornerRadius, CurrentBorderColor,
+                ValidationState == ValidationState.None ? BorderWidth : Math.Max(BorderWidth, 1.5f));
 
         var content = this.ContentBounds;
         float lineHeight = LineHeight;
@@ -375,6 +433,15 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
             }
 
             lineStartIndex += lineText.Length + 1;
+        }
+
+        // подсказка вместо текста, пока поле пусто и не в фокусе
+        if (_document.Text.Length == 0 && !IsFocused && !string.IsNullOrEmpty(Watermark))
+        {
+            g.DrawText(Watermark,
+                new Rectangle(new Point(content.X, blockTop), new Size(content.Width, lineHeight)),
+                WatermarkColor, EffectiveFont,
+                HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
         }
 
         if (IsFocused && _caretVisible)
