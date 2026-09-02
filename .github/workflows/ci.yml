@@ -42,16 +42,12 @@ jobs:
 
       - name: Тесты (Linux)
         if: matrix.os == 'ubuntu-latest'
-        env:
-          ZF_UPDATE_SNAPSHOTS: 'true'   # временно, чтобы снять эталоны
         run: xvfb-run -a --server-args="-screen 0 1024x768x24" dotnet test --no-build --configuration Release
 
-      - name: Выгрузить снимки
-        if: always()
+      - name: Выгрузить неудачные снимки
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: snapshots-${{ matrix.os }}
-          path: |
-            tests/ZeppelinForms.UnitTests/Snapshots/Expected/**
-            tests/ZeppelinForms.UnitTests/Snapshots/Failed/**
-          if-no-files-found: warn
+          path: tests/ZeppelinForms.UnitTests/Snapshots/Failed/**
+          if-no-files-found: ignore
