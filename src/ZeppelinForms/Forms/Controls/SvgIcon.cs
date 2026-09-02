@@ -27,6 +27,12 @@ public class SvgIcon : UnitControl
         g.DrawSvgPath(PathData, this.ContentBounds, Color, StrokeWidth);
     }
 
-    protected override Size MeasureOverride(Size availableSize) =>
-        ResolveSize(new Size(IconSize + Padding.Horizontal, IconSize + Padding.Vertical), availableSize);
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        // если места дали меньше желаемого — вписываемся в него,
+        // DrawSvgPath всё равно сохраняет пропорции
+        float size = Math.Min(IconSize, Math.Min(availableSize.Width, availableSize.Height));
+
+        return ResolveSize(new Size(size + Padding.Horizontal, size + Padding.Vertical), availableSize);
+    }
 }
