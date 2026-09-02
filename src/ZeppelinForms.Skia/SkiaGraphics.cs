@@ -383,4 +383,107 @@ public sealed class SkiaGraphics : Graphics
         var oval = new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height);
         _canvas.DrawArc(oval, startAngle, sweepAngle, useCenter: true, paint);
     }
+
+    public override void DrawRuns(
+      IReadOnlyList<TextRun> runs, Rectangle rect, Font baseFont, Color baseColor,
+      HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
+      VerticalContentAlignment vAlign = VerticalContentAlignment.Center)
+    {
+        if (runs.Count == 0) return;
+
+        float totalWidth = 0;
+        float maxAscent = 0, maxDescent = 0;
+
+        // первый проход — габариты, чтобы знать, откуда начинать
+        foreach (TextRun run in runs)
+        {
+            Font font = run.Font ?? baseFont;
+            SKFont skFont = SkiaFontCache.Get(font);
+
+            foreach ((string piece, SKFont pieceFont) in SkiaFontCache.SplitRuns(run.Text, font))
+                totalWidth += pieceFont.MeasureText(piece);
+
+            SKFontMetrics metrics = skFont.Metrics;
+            maxAscent = Math.Max(maxAscent, -metrics.Ascent);
+            maxDescent = Math.Max(maxDescent, metrics.Descent);
+        }
+
+        float lineHeight = maxAscent + maxDescent;
+
+        float x = hAlign switch
+        {
+            HorizontalContentAlignment.Left => rect.X,
+            HorizontalContentAlignment.Right => rect.X + rect.Width - totalWidth,
+            _ => rect.X + (rect.Width - totalWidth) / 2f,
+        };
+
+        float top = vAlign switch
+        {
+            VerticalContentAlignment.Top => rect.Y,
+            VerticalContentAlignment.Bottom => rect.Y + rect.Height - lineHeight,
+            _ => rect.Y + (rect.Height - lineHeight) / 2f,
+        };
+
+        // общая базовая линия: прогоны разного размера должны стоять на одной линии,
+        // а не каждый по центру своего прямоугольника
+        float baseline = top + maxAscent;
+
+        foreach (TextRun run in runs)
+        {
+            Font font = run.Font ?? baseFont;
+            Color color = run.Color ?? baseColor;
+
+            float runStart = x;
+            float runWidth = 0;
+
+            foreach ((string piece, SKFont pieceFont) in SkiaFontCache.SplitRuns(run.Text, font))
+                runWidth += pieceFont.MeasureText(piece);
+
+            if (run.Background is Color background)
+            {
+                using var backgroundPaint = new SKPaint
+                {
+                    Color = new SKColor(background.R, background.G, background.B, background.A),
+                };
+
+                _canvas.DrawRect(
+                    new SKRect(runStart, top, runStart + runWidth, top + lineHeight),
+                    backgroundPaint);
+            }
+
+            using var paint = new SKPaint
+            {
+                Color = new SKColor(color.R, color.G, color.B, color.A),
+                IsAntialias = true,
+            };
+
+            foreach ((string piece, SKFont pieceFont) in SkiaFontCache.SplitRuns(run.Text, font))
+            {
+                _canvas.DrawText(piece, x, baseline, SKTextAlign.Left, pieceFont, paint);
+                x += pieceFont.MeasureText(piece);
+            }
+
+            if (run.Underline || run.Strikethrough)
+            {
+                using var linePaint = new SKPaint
+                {
+                    Color = paint.Color,
+                    StrokeWidth = Math.Max(1f, font.Size / 14f),
+                    IsAntialias = true,
+                };
+
+                if (run.Underline)
+                {
+                    float y = baseline + font.Size * 0.12f;
+                    _canvas.DrawLine(runStart, y, runStart + runWidth, y, linePaint);
+                }
+
+                if (run.Strikethrough)
+                {
+                    float y = baseline - font.Size * 0.28f;
+                    _canvas.DrawLine(runStart, y, runStart + runWidth, y, linePaint);
+                }
+            }
+        }
+    }
 }

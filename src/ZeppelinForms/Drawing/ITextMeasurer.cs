@@ -10,4 +10,5 @@ public interface ITextMeasurer
 {
     Size MeasureText(string text, Font font);
     float MeasureTextWidth(string text, int length, Font font);
+    Size MeasureRuns(IReadOnlyList<TextRun> runs, Font baseFont);
 }

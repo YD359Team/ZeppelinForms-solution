@@ -34,4 +34,25 @@ public sealed class SkiaTextMeasurer : ITextMeasurer
         length = Math.Min(length, text.Length);
         return MeasureText(text[..length], font).Width;
     }
+
+    public Size MeasureRuns(IReadOnlyList<TextRun> runs, Font baseFont)
+    {
+        float width = 0;
+        float ascent = 0, descent = 0;
+
+        foreach (TextRun run in runs)
+        {
+            Font font = run.Font ?? baseFont;
+            SKFont skFont = SkiaFontCache.Get(font);
+
+            foreach ((string piece, SKFont pieceFont) in SkiaFontCache.SplitRuns(run.Text, font))
+                width += pieceFont.MeasureText(piece);
+
+            SKFontMetrics metrics = skFont.Metrics;
+            ascent = Math.Max(ascent, -metrics.Ascent);
+            descent = Math.Max(descent, metrics.Descent);
+        }
+
+        return new Size(width, ascent + descent);
+    }
 }
