@@ -2,6 +2,8 @@
 
 internal static class NativeConstants
 {
+    public const int MONITOR_DEFAULTTONEAREST = 2;
+    public const uint MONITORINFOF_PRIMARY = 1;
     public const uint WM_SETCURSOR = 0x0020;
     public const int IDC_ARROW = 32512;
     public const int IDC_IBEAM = 32513;

@@ -5,13 +5,14 @@ using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Layout;
+using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
 public class ColorPicker : UnitControl, IInputElement, IBorderedElement
 {
-    private UIElement? _flyout;
+    private readonly FlyoutHost _flyout;
     private Color _value = Colors.Black;
 
     public Color Value
@@ -23,7 +24,7 @@ public class ColorPicker : UnitControl, IInputElement, IBorderedElement
 
             _value = value;
             ValueChanged?.Invoke(this, EventArgs.Empty);
-            Invalidate();
+            InvalidateVisual();
         }
     }
 
@@ -45,17 +46,22 @@ public class ColorPicker : UnitControl, IInputElement, IBorderedElement
     {
         Background = Colors.White;
         Padding = new Thickness(4, 3);
+        Cursor = CursorKind.Hand;
+
+        _flyout = new FlyoutHost(this);
+        _flyout.Closed += (_, _) => InvalidateVisual();
     }
 
-    private string HexOf(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+    private static string HexOf(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
     public override void Draw(Graphics g)
     {
         if (Background.A > 0)
-            g.FillRectangle(this.LocalBounds, Background);
+            g.FillRoundRectangle(this.LocalBounds, CornerRadius, Background);
 
         if (BorderWidth > 0)
-            g.DrawRectangle(this.LocalBounds, IsFocused ? LightThemeColors.ButtonFill : BorderColor, BorderWidth);
+            g.DrawRoundRectangle(this.LocalBounds, CornerRadius,
+                IsFocused ? App.Theme.Colors.BorderFocused : BorderColor, BorderWidth);
 
         var content = this.ContentBounds;
         float swatchSize = Math.Max(0, content.Height - 2);
@@ -63,50 +69,37 @@ public class ColorPicker : UnitControl, IInputElement, IBorderedElement
         var swatch = new Rectangle(
             new Point(content.X, content.Y + 1), new Size(swatchSize, swatchSize));
 
-        g.FillRectangle(swatch, _value);
-        g.DrawRectangle(swatch, new Color(255, 140, 140, 140), 1f);
+        g.FillRoundRectangle(swatch, new CornerRadius(2f), _value);
+        g.DrawRoundRectangle(swatch, new CornerRadius(2f), new Color(255, 140, 140, 140), 1f);
 
-        if (ShowHex)
-        {
-            var textArea = new Rectangle(
-                new Point(content.X + swatchSize + 6, content.Y),
-                new Size(Math.Max(0, content.Width - swatchSize - 6), content.Height));
+        if (!ShowHex) return;
 
-            g.DrawText(HexOf(_value), textArea, TextColor, EffectiveFont,
-                HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
-        }
+        var textArea = new Rectangle(
+            new Point(content.X + swatchSize + 6, content.Y),
+            new Size(Math.Max(0, content.Width - swatchSize - 6), content.Height));
+
+        g.DrawText(HexOf(_value), textArea, TextColor, EffectiveFont,
+            HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
     }
 
     protected override void OnClick(MouseClickEventArgs e)
     {
-        Form? owner = FindOwner();
-        if (owner is null) return;
-
         e.Handled = true;
-
-        if (_flyout is not null)
-        {
-            owner.CloseFlyout(_flyout);
-            _flyout = null;
-            return;
-        }
-
-        _flyout = BuildEditor();
-        owner.ShowFlyout(this, _flyout, FlyoutPlacement.Bottom);
+        _flyout.Toggle(BuildEditor);
     }
 
     private UIElement BuildEditor()
     {
         var preview = new Panel
         {
-            Size = new Size(0, 28),
+            Size = new Size(float.NaN, 28),
             Background = _value,
             BorderColor = new Color(255, 140, 140, 140),
             BorderWidth = 1,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
 
-        TrackBar MakeChannel(string label, byte initial, Action<byte> apply)
+        TrackBar MakeChannel(byte initial, Action<byte> apply)
         {
             var slider = new TrackBar
             {
@@ -121,11 +114,18 @@ public class ColorPicker : UnitControl, IInputElement, IBorderedElement
             {
                 apply((byte)slider.Value);
                 preview.Background = _value;
-                Invalidate();
+                preview.InvalidateVisual();
             };
 
             return slider;
         }
+
+        Label Caption(string text) => new()
+        {
+            Text = text,
+            TextColor = App.Theme.Colors.TextSecondary,
+            HorizontalContentAlign = HorizontalContentAlignment.Left,
+        };
 
         var stack = new StackPanel
         {
@@ -134,22 +134,35 @@ public class ColorPicker : UnitControl, IInputElement, IBorderedElement
             Children =
             {
                 preview,
-                new Label { Text = "R", HorizontalContentAlign = HorizontalContentAlignment.Left },
-                MakeChannel("R", _value.R, v => Value = new Color(_value.A, v, _value.G, _value.B)),
-                new Label { Text = "G", HorizontalContentAlign = HorizontalContentAlignment.Left },
-                MakeChannel("G", _value.G, v => Value = new Color(_value.A, _value.R, v, _value.B)),
-                new Label { Text = "B", HorizontalContentAlign = HorizontalContentAlignment.Left },
-                MakeChannel("B", _value.B, v => Value = new Color(_value.A, _value.R, _value.G, v)),
+                Caption("R"),
+                MakeChannel(_value.R, v => Value = new Color(_value.A, v, _value.G, _value.B)),
+                Caption("G"),
+                MakeChannel(_value.G, v => Value = new Color(_value.A, _value.R, v, _value.B)),
+                Caption("B"),
+                MakeChannel(_value.B, v => Value = new Color(_value.A, _value.R, _value.G, v)),
             },
         };
 
         return new Border
         {
-            Background = Colors.White,
-            BorderColor = new Color(255, 190, 190, 190),
+            Background = App.Theme.Colors.Surface,
+            BorderColor = App.Theme.Colors.Border,
             BorderWidth = 1,
+            CornerRadius = new CornerRadius(4f),
             Child = stack,
         };
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && _flyout.IsOpen)
+        {
+            _flyout.Close();
+            e.Handled = true;
+            return;
+        }
+
+        base.OnKeyDown(e);
     }
 
     protected override Size MeasureOverride(Size availableSize)

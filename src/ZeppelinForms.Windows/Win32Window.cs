@@ -58,8 +58,12 @@ internal sealed class Win32Window : IPlatformWindow
         switch (_form.WindowStartupLocation)
         {
             case WindowStartupLocation.CenterScreen:
-            // CenterOwner пока ведёт себя как CenterScreen — понятия "владелец окна"
-            // в фреймворке ещё нет (все окна создаются независимо)
+                DisplayInfo display = Displays.Primary;
+                Rectangle area = display.WorkingArea;
+
+                x = (int)(area.X + (area.Width - width * _scale) / 2);
+                y = (int)(area.Y + (area.Height - height * _scale) / 2);
+                break;
             case WindowStartupLocation.CenterOwner:
                 // GetSystemMetrics отдаёт физические пиксели, а width/height у нас
                 // логические — на 150% окно уедет левее и выше центра

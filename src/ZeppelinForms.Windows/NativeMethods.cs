@@ -402,4 +402,26 @@ internal static class NativeMethods
         public RECT rcArea;
     }
     [DllImport("user32.dll")] public static extern nint SetCursor(nint hCursor);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct MONITORINFOEX
+    {
+        public uint cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string szDevice;
+    }
+
+    public delegate bool MonitorEnumProc(nint monitor, nint hdc, nint rect, nint data);
+
+    [DllImport("user32.dll")]
+    public static extern bool EnumDisplayMonitors(nint hdc, nint clip, MonitorEnumProc callback, nint data);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern bool GetMonitorInfo(nint monitor, ref MONITORINFOEX info);
+
+    [DllImport("shcore.dll")]
+    public static extern int GetDpiForMonitor(nint monitor, int dpiType, out uint dpiX, out uint dpiY);
 }

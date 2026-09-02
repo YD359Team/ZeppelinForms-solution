@@ -12,11 +12,11 @@ namespace ZeppelinForms.Forms.Controls.Text;
 /// </summary>
 public class HintLabel : UnitControl
 {
-    private UIElement? _flyout;
+    private readonly FlyoutHost _flyout;
 
     public string? Text { get; set; }
 
-    /// <summary>Пояснение. Может быть многострочным.</summary>
+    /// <summary>Пояснение. Может быть многострочным через \n.</summary>
     public string? Hint { get; set; }
 
     /// <summary>Своё содержимое подсказки вместо простого текста.</summary>
@@ -33,10 +33,15 @@ public class HintLabel : UnitControl
 
     public FlyoutPlacement Placement { get; set; } = FlyoutPlacement.Bottom;
 
+    public bool IsHintOpen => _flyout.IsOpen;
+
     public HintLabel()
     {
         Cursor = CursorKind.Hand;
         Padding = new Thickness(0, 2);
+
+        _flyout = new FlyoutHost(this);
+        _flyout.Closed += (_, _) => InvalidateVisual();
     }
 
     public override void Draw(Graphics g)
@@ -44,7 +49,7 @@ public class HintLabel : UnitControl
         if (string.IsNullOrEmpty(Text)) return;
 
         Rectangle content = ContentBounds;
-        Color color = IsHovered ? HoverTextColor : TextColor;
+        Color color = IsHovered || _flyout.IsOpen ? HoverTextColor : TextColor;
 
         g.DrawText(Text, content, color, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
@@ -54,7 +59,7 @@ public class HintLabel : UnitControl
         float y = content.Y + (content.Height + lineHeight) / 2f;
 
         DrawDashedLine(g, content.X, content.X + textWidth, y,
-            IsHovered ? HoverTextColor : UnderlineColor);
+            IsHovered || _flyout.IsOpen ? HoverTextColor : UnderlineColor);
     }
 
     private void DrawDashedLine(Graphics g, float from, float to, float y, Color color)
@@ -76,18 +81,13 @@ public class HintLabel : UnitControl
 
     protected override void OnClick(MouseClickEventArgs e)
     {
-        Form? owner = FindOwner();
-        if (owner is null) return;
-
         e.Handled = true;
+        _flyout.Toggle(BuildHint, Placement);
+        InvalidateVisual();
+    }
 
-        if (_flyout is not null)
-        {
-            owner.CloseFlyout(_flyout);
-            _flyout = null;
-            return;
-        }
-
+    private UIElement BuildHint()
+    {
         UIElement inner = HintContent?.Invoke() ?? new Label
         {
             Text = Hint ?? string.Empty,
@@ -97,7 +97,7 @@ public class HintLabel : UnitControl
             Size = new Size(MaxHintWidth, float.NaN),
         };
 
-        _flyout = new Border
+        return new Border
         {
             Background = App.Theme.Colors.Surface,
             BorderColor = App.Theme.Colors.Border,
@@ -107,8 +107,6 @@ public class HintLabel : UnitControl
             BoxShadow = BoxShadow.Medium,
             Child = inner,
         };
-
-        owner.ShowFlyout(this, _flyout, Placement);
     }
 
     protected override Size MeasureOverride(Size availableSize)

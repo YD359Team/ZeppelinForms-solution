@@ -5,6 +5,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Layout;
+using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
@@ -13,8 +14,9 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
 {
     private const float ArrowZoneWidth = 26f;
 
-    private UIElement? _flyout;
+    private readonly FlyoutHost _flyout;
     private bool _arrowHovered;
+    private MenuItem? _lastInvoked;
 
     public string? Text { get; set; }
     public List<MenuItem> Items { get; init; } = [];
@@ -22,18 +24,18 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
     /// <summary>Нажатие на основную часть повторяет последний выбранный пункт.</summary>
     public bool RepeatLastAction { get; set; } = true;
 
-    private MenuItem? _lastInvoked;
-
-    public Color BackgroundColor { get; set; } = LightThemeColors.ButtonFill;
-    public Color HoverBackgroundColor { get; set; } = LightThemeColors.ButtonFill.Darken();
+    public Color BackgroundColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
+    public Color HoverBackgroundColor { get; set; } = new Color(255, 0x0B, 0x5E, 0xD7);
     public Color TextColor { get; set; } = Colors.White;
 
-    public Color BorderColor { get; set; } = LightThemeColors.ButtonFill;
+    public Color BorderColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
     public float BorderWidth { get; set; } = 1f;
 
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; } = true;
     public uint TabIndex { get; set; }
+
+    public bool IsMenuOpen => _flyout.IsOpen;
 
     protected override bool IsKeyActivatable => true;
 
@@ -41,6 +43,10 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
     {
         Padding = new Thickness(14, 6);
         CornerRadius = new CornerRadius(4f);
+        Cursor = CursorKind.Hand;
+
+        _flyout = new FlyoutHost(this);
+        _flyout.Closed += (_, _) => InvalidateVisual();
     }
 
     private Rectangle ArrowZone => new(
@@ -54,14 +60,15 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
         g.FillRoundRectangle(bounds, CornerRadius,
             IsHovered && !_arrowHovered ? HoverBackgroundColor : BackgroundColor);
 
-        if (_arrowHovered)
+        if (_arrowHovered || _flyout.IsOpen)
             g.FillRectangle(ArrowZone, HoverBackgroundColor);
 
         // разделитель между основной частью и стрелкой
-        float sepX = ActualSize.Width - ArrowZoneWidth;
+        float separatorX = ActualSize.Width - ArrowZoneWidth;
+
         g.DrawLine(
-            new Point(sepX, 4f),
-            new Point(sepX, ActualSize.Height - 4f),
+            new Point(separatorX, 4f),
+            new Point(separatorX, ActualSize.Height - 4f),
             new Color(120, 255, 255, 255), 1f);
 
         if (!string.IsNullOrEmpty(Text))
@@ -80,12 +87,9 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
         float cx = arrow.X + arrow.Width / 2f;
         float cy = arrow.Y + arrow.Height / 2f;
 
-        ReadOnlySpan<Point> triangle =
-        [
-            new(cx - 4f, cy - 2f),
-            new(cx, cy + 2.5f),
-            new(cx + 4f, cy - 2f),
-        ];
+        ReadOnlySpan<Point> triangle = _flyout.IsOpen
+            ? [new(cx - 4f, cy + 2f), new(cx, cy - 2.5f), new(cx + 4f, cy + 2f)]
+            : [new(cx - 4f, cy - 2f), new(cx, cy + 2.5f), new(cx + 4f, cy - 2f)];
 
         g.DrawPolyline(triangle, TextColor, 1.6f);
 
@@ -114,7 +118,10 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
 
         if (localX >= ActualSize.Width - ArrowZoneWidth)
         {
-            OpenMenu();
+            if (Items.Count > 0)
+                _flyout.Toggle(BuildMenu);
+
+            InvalidateVisual();
             return;
         }
 
@@ -122,30 +129,38 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
             _lastInvoked.RaiseClick();
     }
 
-    private void OpenMenu()
+    private UIElement BuildMenu()
     {
-        Form? owner = FindOwner();
-        if (owner is null || Items.Count == 0) return;
-
-        if (_flyout is not null)
-        {
-            owner.CloseFlyout(_flyout);
-            _flyout = null;
-            return;
-        }
-
         var menu = new MenuList { Items = Items };
 
         menu.ItemInvoked += (_, item) =>
         {
             _lastInvoked = item;
-            owner.CloseAllFlyouts();
-            _flyout = null;
-            InvalidateVisual();
+            _flyout.Close();
         };
 
-        _flyout = menu;
-        owner.ShowFlyout(this, menu, FlyoutPlacement.Bottom);
+        return menu;
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Escape when _flyout.IsOpen:
+                _flyout.Close();
+                e.Handled = true;
+                break;
+
+            case Key.Down when Items.Count > 0 && !_flyout.IsOpen:
+                _flyout.Open(BuildMenu());
+                InvalidateVisual();
+                e.Handled = true;
+                break;
+
+            default:
+                base.OnKeyDown(e);
+                break;
+        }
     }
 
     protected override Size MeasureOverride(Size availableSize)

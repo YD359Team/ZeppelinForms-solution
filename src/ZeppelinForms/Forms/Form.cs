@@ -19,6 +19,9 @@ namespace ZeppelinForms.Forms;
 
 public class Form : IDisposable
 {
+    /// <summary>Флаут закрыт — по клику мимо, программно или вместе с формой.
+    /// Контролы, открывшие его, обязаны сбросить свою ссылку здесь.</summary>
+    public event EventHandler<UIElement>? FlyoutClosed;
     public event EventHandler? Shown;
 
     internal IPlatformWindow? PlatformWindow { get; set; }
@@ -359,25 +362,34 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     public void CloseFlyout(UIElement content)
     {
-        if (_overlays.Remove(content))
-        {
-            _flyouts.Remove(content);
-            content.Owner = null;
-            Invalidate();
-        }
+        if (!_overlays.Remove(content)) return;
+
+        _flyouts.Remove(content);
+        content.Owner = null;
+
+        FlyoutClosed?.Invoke(this, content);
+        Invalidate();
     }
 
     public void CloseAllFlyouts()
     {
         if (_flyouts.Count == 0) return;
 
-        foreach (var flyout in _flyouts)
+        // копия: обработчики события могут открыть новый флаут,
+        // и коллекция изменится во время обхода
+        UIElement[] closing = [.. _flyouts];
+
+        foreach (UIElement flyout in closing)
         {
             _overlays.Remove(flyout);
             flyout.Owner = null;
         }
 
         _flyouts.Clear();
+
+        foreach (UIElement flyout in closing)
+            FlyoutClosed?.Invoke(this, flyout);
+
         Invalidate();
     }
 
@@ -420,7 +432,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     }
 
     // ==== Toast =====
-
 
     public void ShowToast(string message, int durationMs = 3000, ToastPosition position = ToastPosition.BottomRight)
     {

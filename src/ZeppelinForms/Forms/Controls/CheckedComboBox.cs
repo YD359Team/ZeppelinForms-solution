@@ -4,6 +4,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Layout;
+using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
@@ -12,8 +13,8 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
 {
     private const float ArrowWidth = 20f;
 
-    private UIElement? _flyout;
-    private CheckedListBox? _list;
+    private readonly FlyoutHost _flyout;
+    private readonly HashSet<int> _checked = [];
 
     public List<object> Items { get; init; } = [];
     public Func<object, string>? DisplaySelector { get; set; }
@@ -37,8 +38,6 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
 
     protected override bool IsKeyActivatable => true;
 
-    private readonly HashSet<int> _checked = [];
-
     public IEnumerable<object> CheckedItems
     {
         get
@@ -53,6 +52,10 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
     {
         Background = Colors.White;
         Padding = new Thickness(6, 3);
+        Cursor = CursorKind.Hand;
+
+        _flyout = new FlyoutHost(this);
+        _flyout.Closed += (_, _) => InvalidateVisual();
     }
 
     private string TextOf(object item) => DisplaySelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;
@@ -70,6 +73,26 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
         }
     }
 
+    public void SetChecked(int index, bool value)
+    {
+        if (index < 0 || index >= Items.Count) return;
+
+        bool changed = value ? _checked.Add(index) : _checked.Remove(index);
+        if (!changed) return;
+
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+        InvalidateVisual();
+    }
+
+    public void UncheckAll()
+    {
+        if (_checked.Count == 0) return;
+
+        _checked.Clear();
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+        InvalidateVisual();
+    }
+
     public override void Draw(Graphics g)
     {
         if (Background.A > 0)
@@ -77,7 +100,7 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
 
         if (BorderWidth > 0)
             g.DrawRoundRectangle(this.LocalBounds, CornerRadius,
-                IsFocused ? LightThemeColors.ButtonFill : BorderColor, BorderWidth);
+                IsFocused ? App.Theme.Colors.BorderFocused : BorderColor, BorderWidth);
 
         var content = this.ContentBounds;
 
@@ -91,12 +114,9 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
         float cx = content.X + content.Width - ArrowWidth / 2f;
         float cy = content.Y + content.Height / 2f;
 
-        ReadOnlySpan<Point> arrow =
-        [
-            new(cx - 4.5f, cy - 2f),
-            new(cx, cy + 3f),
-            new(cx + 4.5f, cy - 2f),
-        ];
+        ReadOnlySpan<Point> arrow = _flyout.IsOpen
+            ? [new(cx - 4.5f, cy + 2f), new(cx, cy - 3f), new(cx + 4.5f, cy + 2f)]
+            : [new(cx - 4.5f, cy - 2f), new(cx, cy + 3f), new(cx + 4.5f, cy - 2f)];
 
         g.DrawPolyline(arrow, TextColor, 1.6f);
     }
@@ -105,67 +125,46 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
     {
         e.Handled = true;
 
-        if (_flyout is not null)
-        {
-            Close();
-            return;
-        }
+        if (Items.Count == 0) return;
 
-        Open();
+        _flyout.Toggle(BuildDropDown);
+        InvalidateVisual();
     }
 
-    private void Open()
+    private UIElement BuildDropDown()
     {
-        Form? owner = FindOwner();
-        if (owner is null || Items.Count == 0) return;
-
-        _list = new CheckedListBox
+        var list = new CheckedListBox
         {
             ToggleOnRowClick = true,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Size = new Size(ActualSize.Width, DropDownHeight),
+            OverflowY = Overflow.Auto,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
         };
 
         foreach (object item in Items)
-            _list.Items.Add(TextOf(item));
+            list.Items.Add(TextOf(item));
 
         foreach (int index in _checked)
-            _list.SetChecked(index, true);
+            list.SetChecked(index, true);
 
-        _list.ItemCheckedChanged += (_, index) =>
-        {
-            // флаут не закрываем: смысл контрола в том, чтобы отметить несколько
-            if (_list!.IsChecked(index)) _checked.Add(index);
-            else _checked.Remove(index);
+        // флаут остаётся открытым: смысл контрола в том,
+        // чтобы отметить несколько пунктов подряд
+        list.ItemCheckedChanged += (_, index) => SetChecked(index, list.IsChecked(index));
 
-            SelectionChanged?.Invoke(this, EventArgs.Empty);
-            InvalidateVisual();
-        };
-
-        _flyout = new Border
-        {
-            Background = Colors.White,
-            BorderColor = new Color(255, 190, 190, 190),
-            BorderWidth = 1,
-            CornerRadius = new CornerRadius(4f),
-            Child = new ScrollViewer
-            {
-                Content = _list,
-                Size = new Size(ActualSize.Width, DropDownHeight),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top,
-            },
-        };
-
-        owner.ShowFlyout(this, _flyout, FlyoutPlacement.Bottom);
+        return list;
     }
 
-    private void Close()
+    protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (_flyout is null) return;
+        if (e.Key == Key.Escape && _flyout.IsOpen)
+        {
+            _flyout.Close();
+            e.Handled = true;
+            return;
+        }
 
-        FindOwner()?.CloseFlyout(_flyout);
-        _flyout = null;
-        _list = null;
+        base.OnKeyDown(e);
     }
 
     protected override Size MeasureOverride(Size availableSize)

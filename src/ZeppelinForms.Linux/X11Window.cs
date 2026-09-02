@@ -41,6 +41,7 @@ internal sealed class X11Window : IPlatformWindow
         int screen = X11.XDefaultScreen(_display);
 
         _scale = X11Dpi.GetScale(_display, screen);
+        Displays.Current = new X11DisplayProvider(_display, X11Dpi.GetScale(_display, X11.XDefaultScreen(_display)));
 
         _window = X11.XCreateSimpleWindow(
             _display, X11.XRootWindow(_display, screen),

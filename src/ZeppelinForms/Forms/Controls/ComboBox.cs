@@ -13,7 +13,7 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
 {
     private const float ArrowWidth = 20f;
 
-    private ListBox? _dropDown;
+    private readonly FlyoutHost _flyout;
     private int _selectedIndex = -1;
 
     public List<object> Items { get; init; } = [];
@@ -31,7 +31,7 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
 
             _selectedIndex = clamped;
             SelectionChanged?.Invoke(this, EventArgs.Empty);
-            Invalidate();
+            InvalidateVisual();
         }
     }
 
@@ -55,12 +55,18 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
     public bool TabStop { get; set; } = true;
     public uint TabIndex { get; set; }
 
+    public bool IsDropDownOpen => _flyout.IsOpen;
+
     protected override bool IsKeyActivatable => true;
 
     public ComboBox()
     {
         Background = Colors.White;
         Padding = new Thickness(6, 3);
+        Cursor = CursorKind.Hand;
+
+        _flyout = new FlyoutHost(this);
+        _flyout.Closed += (_, _) => InvalidateVisual();
     }
 
     private string TextOf(object item) => DisplaySelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;
@@ -68,10 +74,11 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
     public override void Draw(Graphics g)
     {
         if (Background.A > 0)
-            g.FillRectangle(this.LocalBounds, Background);
+            g.FillRoundRectangle(this.LocalBounds, CornerRadius, Background);
 
         if (BorderWidth > 0)
-            g.DrawRectangle(this.LocalBounds, IsFocused ? LightThemeColors.ButtonFill : BorderColor, BorderWidth);
+            g.DrawRoundRectangle(this.LocalBounds, CornerRadius,
+                IsFocused ? App.Theme.Colors.BorderFocused : BorderColor, BorderWidth);
 
         var content = this.ContentBounds;
 
@@ -86,16 +93,13 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
             g.DrawText(PlaceholderText, textArea, PlaceholderColor, EffectiveFont,
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 
-        // стрелка вниз
         float cx = content.X + content.Width - ArrowWidth / 2f;
         float cy = content.Y + content.Height / 2f;
 
-        ReadOnlySpan<Point> arrow =
-        [
-            new(cx - 4.5f, cy - 2f),
-            new(cx, cy + 3f),
-            new(cx + 4.5f, cy - 2f),
-        ];
+        // стрелка переворачивается, когда список раскрыт
+        ReadOnlySpan<Point> arrow = _flyout.IsOpen
+            ? [new(cx - 4.5f, cy + 2f), new(cx, cy - 3f), new(cx + 4.5f, cy + 2f)]
+            : [new(cx - 4.5f, cy - 2f), new(cx, cy + 3f), new(cx + 4.5f, cy - 2f)];
 
         g.DrawPolyline(arrow, TextColor, 1.6f);
     }
@@ -104,20 +108,14 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
     {
         e.Handled = true;
 
-        if (_dropDown is not null)
-        {
-            CloseDropDown();
-            return;
-        }
+        if (Items.Count == 0) return;
 
-        OpenDropDown();
+        _flyout.Toggle(BuildDropDown);
+        InvalidateVisual();
     }
 
-    private void OpenDropDown()
+    private UIElement BuildDropDown()
     {
-        Form? owner = FindOwner();
-        if (owner is null || Items.Count == 0) return;
-
         var list = new ListBox
         {
             // ширина как у самого комбобокса — так выпадающий список
@@ -125,6 +123,7 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
             Size = new Size(ActualSize.Width, DropDownHeight),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
+            OverflowY = Overflow.Auto,
         };
 
         foreach (object item in Items)
@@ -135,19 +134,10 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
         list.SelectionChanged += (_, _) =>
         {
             SelectedIndex = list.SelectedIndex;
-            CloseDropDown();
+            _flyout.Close();
         };
 
-        _dropDown = list;
-        owner.ShowFlyout(this, list, FlyoutPlacement.Bottom);
-    }
-
-    private void CloseDropDown()
-    {
-        if (_dropDown is null) return;
-
-        FindOwner()?.CloseFlyout(_dropDown);
-        _dropDown = null;
+        return list;
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -164,8 +154,8 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
                 e.Handled = true;
                 break;
 
-            case Key.Escape when _dropDown is not null:
-                CloseDropDown();
+            case Key.Escape when _flyout.IsOpen:
+                _flyout.Close();
                 e.Handled = true;
                 break;
 
@@ -177,7 +167,7 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
-        if (_dropDown is not null) return;   // прокрутка внутри списка важнее
+        if (_flyout.IsOpen) return;   // прокрутка внутри списка важнее
 
         SelectedIndex = Math.Clamp(_selectedIndex - Math.Sign(e.Delta), 0, Items.Count - 1);
         e.Handled = true;
