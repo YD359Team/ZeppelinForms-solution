@@ -189,9 +189,9 @@ public class Calendar : UnitControl
         return (row * Columns + col, 0);
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
-        var (cell, header) = HitFromPoint(location);
+        var (cell, header) = HitFromPoint(args.Location);
 
         if (cell == _hoveredCell && header == _hoveredHeaderButton) return;
 

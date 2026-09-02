@@ -140,10 +140,10 @@ public class NumericUpDown : UnitControl, IInputElement, IBorderedElement
         g.DrawPolyline(points, Colors.Black, 1.5f);
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
         Point abs = GetAbsolutePosition();
-        var local = new Point(location.X - abs.X, location.Y - abs.Y);
+        var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
 
         bool up = Contains(UpButtonRect, local);
         bool down = Contains(DownButtonRect, local);

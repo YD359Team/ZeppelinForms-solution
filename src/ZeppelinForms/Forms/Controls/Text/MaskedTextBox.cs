@@ -4,6 +4,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Input.Keyboard;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
@@ -257,9 +258,9 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
         return _mask.NextPlaceholder(0);
     }
 
-    protected override void OnMouseDown(Point location)
+    protected override void OnMouseDown(MouseClickEventArgs args)
     {
-        float localX = location.X - GetAbsolutePosition().X - Padding.Left;
+        float localX = args.Location.X - GetAbsolutePosition().X - Padding.Left;
         string text = DisplayText;
 
         int index = text.Length;

@@ -86,10 +86,10 @@ public class Spoiler : WrapControl, IBorderedElement
             g.DrawRectangle(this.LocalBounds, BorderColor, BorderWidth);
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
         Point abs = GetAbsolutePosition();
-        bool inHeader = location.Y - abs.Y <= HeaderHeight;
+        bool inHeader = args.Location.Y - abs.Y <= HeaderHeight;
 
         if (inHeader != _headerHovered)
         {

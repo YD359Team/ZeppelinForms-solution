@@ -9,6 +9,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Input.Keyboard;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
@@ -367,19 +368,19 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         return IsMultiline ? _document.FromPosition(line, column) : column;
     }
 
-    protected override void OnMouseDown(Point location)
+    protected override void OnMouseDown(MouseMoveEventArgs args)
     {
-        _document.SetCaret(IndexFromPoint(location));
+        _document.SetCaret(IndexFromPoint(args.Location));
         _isDragging = true;
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
         if (_isDragging)
-            _document.SetCaret(IndexFromPoint(location), extendSelection: true);
+            _document.SetCaret(IndexFromPoint(args.Location), extendSelection: true);
     }
 
-    protected override void OnMouseUp(Point location) => _isDragging = false;
+    protected override void OnMouseUp(MouseMoveEventArgs args) => _isDragging = false;
 
     // ===== отрисовка =====
 

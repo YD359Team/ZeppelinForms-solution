@@ -36,7 +36,6 @@ public abstract class UIElement : IGridPlaceable
 
     protected virtual void OnMouseEnter(MouseMoveEventArgs e) { }
     protected virtual void OnMouseExit(MouseMoveEventArgs e) { }
-    protected virtual void OnMouseMove(MouseMoveEventArgs e) { }
     protected virtual void OnMouseDown(MouseButtonEventArgs e) { }
     protected virtual void OnMouseUp(MouseButtonEventArgs e) { }
     protected virtual void OnClick(MouseClickEventArgs e) { }
@@ -44,7 +43,7 @@ public abstract class UIElement : IGridPlaceable
     protected virtual void OnRightClick(MouseClickEventArgs e) { }
     protected virtual void OnMiddleClick(MouseClickEventArgs e) { }
     protected virtual void OnMouseWheel(MouseWheelEventArgs e) { }
-    protected virtual void OnPreviewMouseDown(Point location) { }
+    protected virtual void OnPreviewMouseDown(MouseClickEventArgs location) { }
     /// <summary>Клавиша нажата, но событие ещё не дошло до сфокусированного
     /// элемента — контейнер может перехватить её первым.</summary>
     protected virtual void OnPreviewKeyDown(KeyEventArgs e) { }
@@ -84,7 +83,7 @@ public abstract class UIElement : IGridPlaceable
     {
         var args = new MouseMoveEventArgs(location);
 
-        OnMouseMove(args);
+        OnMouseExit(args);
         MouseMove?.Invoke(this, args);
     }
 
@@ -143,7 +142,7 @@ public abstract class UIElement : IGridPlaceable
         Click?.Invoke(this, args);
     }
 
-    internal void RaisePreviewMouseDown(Point location) => OnPreviewMouseDown(location);
+    internal void RaisePreviewMouseDown(MouseClickEventArgs args) => OnPreviewMouseDown(args);
 
     internal void RaisePreviewKeyDown(KeyEventArgs e)
     {
@@ -521,25 +520,6 @@ public abstract class UIElement : IGridPlaceable
 
     protected virtual void OnTextInput(char c) { }
     internal void RaiseTextInput(char c) => OnTextInput(c);
-
-    protected virtual void OnMouseDown(Point location) { }
-    protected virtual void OnMouseUp(Point location) { }
-    protected virtual void OnMouseMove(Point location) { }
-
-    internal void RaiseMouseDown(Point location)
-    {
-        IsPressed = true;
-        OnMouseDown(location);
-        InvalidateVisual();
-    }
-
-    internal void RaiseMouseUp(Point location)
-    {
-        if (!IsPressed) return;
-        IsPressed = false;
-        OnMouseUp(location);
-        InvalidateVisual();
-    }
 
     /// <summary>Реагирует ли контрол на пробел/Enter как на клик (кнопки, чекбоксы).</summary>
     protected virtual bool IsKeyActivatable => false;

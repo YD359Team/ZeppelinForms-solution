@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -48,7 +49,7 @@ public class GridSplitter : UnitControl
     private (int Before, int After) Neighbours =>
         IsVertical ? (Column - 1, Column + 1) : (Row - 1, Row + 1);
 
-    protected override void OnMouseDown(Point location)
+    protected override void OnMouseDown(MouseClickEventArgs args)
     {
         Grid? grid = ParentGrid;
         if (grid is null) return;
@@ -60,7 +61,7 @@ public class GridSplitter : UnitControl
         if (before < 0 || after >= definitions.Count) return;
 
         _dragging = true;
-        _dragStart = IsVertical ? location.X : location.Y;
+        _dragStart = IsVertical ? args.Location.X : args.Location.Y;
 
         // фиксируем стартовые размеры: считать от текущих на каждом шаге
         // нельзя — накопится дрейф
@@ -68,7 +69,7 @@ public class GridSplitter : UnitControl
         _afterStart = MeasuredTrackSize(grid, after);
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
         if (!_dragging) return;
 
@@ -77,7 +78,7 @@ public class GridSplitter : UnitControl
 
         var (before, after) = Neighbours;
 
-        float delta = (IsVertical ? location.X : location.Y) - _dragStart;
+        float delta = (IsVertical ? args.Location.X : args.Location.Y) - _dragStart;
 
         float newBefore = _beforeStart + delta;
         float newAfter = _afterStart - delta;
@@ -94,7 +95,7 @@ public class GridSplitter : UnitControl
         grid.Invalidate();
     }
 
-    protected override void OnMouseUp(Point location) => _dragging = false;
+    protected override void OnMouseUp(MouseClickEventArgs args) => _dragging = false;
 
     private float MeasuredTrackSize(Grid grid, int index)
     {

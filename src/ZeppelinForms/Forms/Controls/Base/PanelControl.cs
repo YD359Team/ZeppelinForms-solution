@@ -215,10 +215,10 @@ public abstract class PanelControl : UIElement
     private static bool Contains(Rectangle r, Point p) =>
         p.X >= r.X && p.X <= r.X + r.Width && p.Y >= r.Y && p.Y <= r.Y + r.Height;
 
-    protected override void OnMouseDown(Point location)
+    protected override void OnMouseDown(MouseClickEventArgs args)
     {
         Point abs = GetAbsolutePosition();
-        var local = new Point(location.X - abs.X, location.Y - abs.Y);
+        var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
 
         if (ShowVerticalBar && Contains(VerticalBarRect, local))
         {
@@ -255,7 +255,7 @@ public abstract class PanelControl : UIElement
         }
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
         if (!_draggingVertical && !_draggingHorizontal) return;
 
@@ -269,7 +269,7 @@ public abstract class PanelControl : UIElement
 
             if (free > 0)
             {
-                float t = (location.Y - abs.Y - bar.Y - _dragOffset) / free;
+                float t = (args.Location.Y - abs.Y - bar.Y - _dragOffset) / free;
                 ScrollTo(ScrollX, MaxScrollY * Math.Clamp(t, 0, 1));
             }
         }
@@ -281,13 +281,13 @@ public abstract class PanelControl : UIElement
 
             if (free > 0)
             {
-                float t = (location.X - abs.X - bar.X - _dragOffset) / free;
+                float t = (args.Location.X - abs.X - bar.X - _dragOffset) / free;
                 ScrollTo(MaxScrollX * Math.Clamp(t, 0, 1), ScrollY);
             }
         }
     }
 
-    protected override void OnMouseUp(Point location)
+    protected override void OnMouseUp(MouseClickEventArgs location)
     {
         _draggingVertical = _draggingHorizontal = false;
     }

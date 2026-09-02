@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -115,15 +116,15 @@ public class SplitContainer : PanelControl
             && localPoint.Y >= rect.Y && localPoint.Y <= rect.Y + rect.Height;
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
         Point abs = GetAbsolutePosition();
 
         if (_dragging)
         {
             float position = IsHorizontal
-                ? location.X - abs.X - ContentBounds.X - _dragOffset
-                : location.Y - abs.Y - ContentBounds.Y - _dragOffset;
+                ? args.Location.X - abs.X - ContentBounds.X - _dragOffset
+                : args.Location.Y - abs.Y - ContentBounds.Y - _dragOffset;
 
             SplitterPosition = position;
             SplitterMoved?.Invoke(this, EventArgs.Empty);
@@ -131,7 +132,7 @@ public class SplitContainer : PanelControl
             return;
         }
 
-        var local = new Point(location.X - abs.X, location.Y - abs.Y);
+        var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
         bool hovered = HitTestSelfFirst(local);
 
         if (hovered == _splitterHovered) return;
@@ -144,10 +145,10 @@ public class SplitContainer : PanelControl
         InvalidateVisual();
     }
 
-    protected override void OnMouseDown(Point location)
+    protected override void OnMouseDown(MouseMoveEventArgs args)
     {
         Point abs = GetAbsolutePosition();
-        var local = new Point(location.X - abs.X, location.Y - abs.Y);
+        var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
 
         if (!HitTestSelfFirst(local)) return;
 
@@ -160,7 +161,7 @@ public class SplitContainer : PanelControl
             : local.Y - SplitterRect.Y;
     }
 
-    protected override void OnMouseUp(Point location)
+    protected override void OnMouseUp(MouseMoveEventArgs args)
     {
         _dragging = false;
     }

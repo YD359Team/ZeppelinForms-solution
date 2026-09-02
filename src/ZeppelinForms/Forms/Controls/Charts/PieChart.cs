@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Charts;
 
@@ -170,7 +171,7 @@ public class PieChart : UnitControl
         }
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
         Point abs = GetAbsolutePosition();
         Rectangle circle = PieBounds;
@@ -178,8 +179,8 @@ public class PieChart : UnitControl
         float cx = circle.X + circle.Width / 2f;
         float cy = circle.Y + circle.Height / 2f;
 
-        float dx = location.X - abs.X - cx;
-        float dy = location.Y - abs.Y - cy;
+        float dx = args.Location.X - abs.X - cx;
+        float dy = args.Location.Y - abs.Y - cy;
 
         float distance = MathF.Sqrt(dx * dx + dy * dy);
         float radius = circle.Width / 2f;

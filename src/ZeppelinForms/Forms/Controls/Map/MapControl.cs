@@ -363,28 +363,29 @@ public class MapControl : UnitControl, IInputElement, IBorderedElement
 
     // ===== ввод =====
 
-    protected override void OnMouseDown(Point location)
+    protected override void OnMouseDown(MouseButtonEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"MapControl.OnMouseDown {location.X},{location.Y}");
+        if (e.Button != MouseButton.Left) return;
 
-        MapMarker? marker = MarkerAt(location);
+        MapMarker? marker = MarkerAt(e.Location);
 
         if (marker is not null)
         {
             MarkerClicked?.Invoke(this, marker);
+            e.Handled = true;
             return;
         }
 
         _isDragging = true;
-        _dragStart = location;
+        _dragStart = e.Location;
         _dragStartWorld = MercatorProjection.ToWorld(_centerLatitude, _centerLongitude, _zoom);
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         if (!_isDragging)
         {
-            MapMarker? marker = MarkerAt(location);
+            MapMarker? marker = MarkerAt(e.Location);
 
             if (!ReferenceEquals(marker, _hoveredMarker))
             {
@@ -396,27 +397,17 @@ public class MapControl : UnitControl, IInputElement, IBorderedElement
             return;
         }
 
-        // сдвигаем центр в проецированных пикселях, а не в градусах:
-        // в Меркаторе градус широты на пиксель зависит от самой широты,
-        // и прямой пересчёт делает перетаскивание неравномерным
-        double x = _dragStartWorld.X - (location.X - _dragStart.X);
-        double y = _dragStartWorld.Y - (location.Y - _dragStart.Y);
+        double x = _dragStartWorld.X - (e.Location.X - _dragStart.X);
+        double y = _dragStartWorld.Y - (e.Location.Y - _dragStart.Y);
 
-        double worldSize = MercatorProjection.WorldSize(_zoom);
-        y = Math.Clamp(y, 0, worldSize);
+        y = Math.Clamp(y, 0, MercatorProjection.WorldSize(_zoom));
 
         var (latitude, longitude) = MercatorProjection.ToGeo(x, y, _zoom);
 
         GoTo(latitude, longitude);
     }
 
-    protected override void OnMouseUp(Point location) => _isDragging = false;
-
-    protected override void OnMouseLeave()
-    {
-        _hoveredMarker = null;
-        _isDragging = false;
-    }
+    protected override void OnMouseUp(MouseButtonEventArgs e) => _isDragging = false;
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {

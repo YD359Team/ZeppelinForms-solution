@@ -126,19 +126,19 @@ public class TrackBar : UnitControl, IInputElement
         Value = Minimum + (Maximum - Minimum) * Math.Clamp(fraction, 0f, 1f);
     }
 
-    protected override void OnMouseDown(Point location)
+    protected override void OnMouseDown(MouseMoveEventArgs args)
     {
         _isDragging = true;
-        SetValueFromPoint(location);
+        SetValueFromPoint(args.Location);
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
         if (_isDragging)
-            SetValueFromPoint(location);
+            SetValueFromPoint(args.Location);
     }
 
-    protected override void OnMouseUp(Point location) => _isDragging = false;
+    protected override void OnMouseUp(MouseMoveEventArgs args) => _isDragging = false;
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {

@@ -832,68 +832,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         return false;
     }
 
-    internal void OnPointerMove(Point point)
-    {
-        _lastPointerPosition = point;
-
-        // пока кнопка зажата — все move уходят элементу, который её поймал,
-        // даже если курсор ушёл за его границы (мышиный захват)
-        if (_pressedElement is not null)
-        {
-            _pressedElement.RaiseMouseMove(point);
-            return;
-        }
-
-        UIElement? hit = HitTestAll(point);
-
-        if (hit != _hoveredElement)
-        {
-            _hoveredElement?.RaiseMouseLeave();
-            hit?.RaiseMouseOver();
-            _hoveredElement = hit;
-
-            ScheduleToolTip(hit);
-
-            // курсор задаёт элемент под мышью, а не окно
-            PlatformWindow?.SetCursor(hit?.EffectiveCursor ?? CursorKind.Arrow);
-        }
-
-        // движение внутри элемента тоже нужно доставлять: контролы с
-        // внутренними зонами (ячейки календаря, кнопки NumericUpDown)
-        // отслеживают наведение сами
-        hit?.RaiseMouseMove(point);
-
-        if (IsInspectorEnabled)
-        {
-            InspectedElement = !IsInsideInspector(point) && Content is not null
-                ? HitTester.HitTest(Content, point)
-                : null;
-
-            InvalidateVisual();
-        }
-    }
-
-    internal void OnPointerUp(Point point)
-    {
-        UIElement? hit = HitTestAll(point);
-
-        _pressedElement?.RaiseMouseUp(point);
-
-        if (hit is not null && ReferenceEquals(hit, _pressedElement))
-        {
-            var args = new MouseClickEventArgs(MouseButton.Left, MouseButtonState.Up, point, _clickCount);
-
-            for (UIElement? current = hit; current is not null; current = current.Parent)
-            {
-                current.RaiseClick(args);
-                if (args.Handled)
-                    break;
-            }
-        }
-
-        _pressedElement = null;
-    }
-
     internal void OnMouseWheel(Point point, int delta)
     {
         UIElement? hit = HitTestAll(point);

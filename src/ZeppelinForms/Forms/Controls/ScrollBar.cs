@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -73,14 +74,14 @@ public class ScrollBar : UnitControl
         g.FillRectangle(thumb, ThumbColor);
     }
 
-    protected override void OnMouseDown(Point location)
+    protected override void OnMouseDown(MouseMoveEventArgs args)
     {
         if (!IsScrollable) return;
 
         Point abs = GetAbsolutePosition();
         float local = Orientation == Orientation.Vertical
-            ? location.Y - abs.Y
-            : location.X - abs.X;
+            ? args.Location.Y - abs.Y
+            : args.Location.X - abs.X;
 
         float thumbPos = ThumbPosition;
 
@@ -96,14 +97,14 @@ public class ScrollBar : UnitControl
         }
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
         if (!_isDragging) return;
 
         Point abs = GetAbsolutePosition();
         float local = Orientation == Orientation.Vertical
-            ? location.Y - abs.Y
-            : location.X - abs.X;
+            ? args.Location.Y - abs.Y
+            : args.Location.X - abs.X;
 
         float free = TrackLength - ThumbLength;
         if (free <= 0) return;
@@ -111,7 +112,7 @@ public class ScrollBar : UnitControl
         Value = (local - _dragOffset) / free * MaxValue;
     }
 
-    protected override void OnMouseUp(Point location) => _isDragging = false;
+    protected override void OnMouseUp(MouseMoveEventArgs location) => _isDragging = false;
 
     protected override Size MeasureOverride(Size availableSize) =>
         ResolveSize(new Size(12, 12), availableSize);

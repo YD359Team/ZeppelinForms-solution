@@ -97,9 +97,9 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
             g.DrawRoundRectangle(bounds, CornerRadius, BorderColor, BorderWidth);
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseExit(MouseMoveEventArgs args)
     {
-        float localX = location.X - GetAbsolutePosition().X;
+        float localX = args.Location.X - GetAbsolutePosition().X;
         bool inArrow = localX >= ActualSize.Width - ArrowZoneWidth;
 
         if (inArrow == _arrowHovered) return;
