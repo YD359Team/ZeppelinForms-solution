@@ -10,13 +10,14 @@
 
 ![CI](https://github.com/YD359Team/ZeppelinForms-solution/actions/workflows/ci.yml/badge.svg)
 
-Проект находится в активной разработке, API пока нестабильный.
+Проект находится в активной разработке.
 
 | № | Название | Статус |
 |---|------------|---|
-| 1 | Windows | ✅ |
-| 2 | Linux (X11) | ✅ |
-| 3 | MacOS | 💡 |
+| 1 | Headless | ✅ |
+| 2 | Windows | ✅ |
+| 3 | Linux (X11) | ✅ |
+| 4 | MacOS | 💡 |
 
 ### 🧠 Философия
 
@@ -49,6 +50,12 @@ ZeppelinForms ничего не знает про Skia, потому что он
 \** - API еще будет дополняться \
 \*** - есть недоработки
 
+### 🛣️ Компоновка
+
+- Поддержка Measure и Arrange
+- Все контролы имеют Docking
+- Горизонтальное и вертикальное выравнивание (в том числе контента)
+
 ### 🧩 Контролы
 
 Все контролы должны являться наследниками `UIElement` явно или неявно - наследуя `UnitControl`, `PanelControl` или `WrapControl`. \
@@ -63,7 +70,7 @@ ZeppelinForms ничего не знает про Skia, потому что он
 
 `UIElement` -> `UnitControl`
 
-**Единичные контролы** - похожи на Control из мира WinForms, можно назвать их обычными контолами. У них не может быть дочерних контролов.
+**Единичные контролы** - похожи на Control из мира WinForms, можно назвать их обычными контролами. У них не может быть дочерних контролов.
 
 | № | Название      | Статус |
 |---|------------|---|
@@ -95,8 +102,8 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 26 | LinkLabel | ✅ |
 | 27 | ShapeLine | ✅ |
 | 28 | ShapeRectangle | ✅ |
-| 29 | ShapeEllipse) | ✅ |
-| 30 | ShapePolygon) | ✅ |
+| 29 | ShapeEllipse | ✅ |
+| 30 | ShapePolygon | ✅ |
 | 31 | CheckedComboBox | ✅ |
 | 32 | ComboBox | ✅ |
 | 33 | GridSplitter | ✅ |
@@ -119,7 +126,7 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 4 | DockPanel | ✅ |
 | 5 | TabControl | ✅ |
 | 6 | UniformGrid | ✅ |
-| 7 | VirtualizedStackPanel | ✅ |
+| 7 | VirtualizingStackPanel | ✅ |
 | 8 | SplitContainer | ✅ |
 
 ##### Панели элементов
@@ -149,6 +156,10 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 1 | Border      | ✅ |
 | 2 | Spoiler     | ✅ |
 | 3 | ZoomBox     | ✅ |
+
+### 🎄 Темы
+
+Имеется поддержка тем, есть предустановленные светлая и тёмная темы.
 
 ### 🛠️ Примеры кода
 
