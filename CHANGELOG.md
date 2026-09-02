@@ -11,6 +11,8 @@
 - Right\Middle mouse button events
 - Mouse events without location	now has location
 - Now disabled control have special filling
+- Add FlexGrow support for StackPanel
+- Add RowSpan and ColumnSpan for UniformGrid
 
 ### New controls
 - Add MapControl
