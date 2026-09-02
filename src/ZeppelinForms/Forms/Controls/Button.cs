@@ -8,45 +8,43 @@ using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class Button : UnitControl, ITextElement, IInputElement, IBorderedElement
+public class Button : ButtonBase, ITextElement
 {
-    public Color BackgroundColor { get; set; } = LightThemeColors.ButtonFill;
-    public Color HoverBackgroundColor { get; set; } = LightThemeColors.ButtonFill.Darken();
-    // ITextElement
     public string? Text { get; set; }
     public HorizontalContentAlignment HorizontalContentAlign { get; set; }
     public VerticalContentAlignment VerticalContentAlign { get; set; }
-    public Color TextColor { get; set; } = Colors.White;
-    // IBorderedElement
-    public Color BorderColor { get; set; } = LightThemeColors.ButtonFill;
-    public float BorderWidth { get; set; } = 1f;
 
-    // IInputElement
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
+    public HorizontalContentAlignment ContentAlign { get; set; } = HorizontalContentAlignment.Center;
+    public VerticalContentAlignment ContentVerticalAlign { get; set; } = VerticalContentAlignment.Center;
 
-    protected override bool IsKeyActivatable => true;
+    /// <summary>Иконка слева от текста — path data одиночного SVG-контура.</summary>
+    public string? IconPathData { get; set; }
+    public float IconSize { get; set; } = 16f;
+    public float IconGap { get; set; } = 8f;
 
-    public Button()
+    protected override void DrawContent(Graphics g)
     {
-        HorizontalContentAlign = HorizontalContentAlignment.Center;
-        VerticalContentAlign = VerticalContentAlignment.Center;
-        Padding = new Thickness(6, 4);
+        Rectangle content = ContentBounds;
+        float textLeft = content.X;
+
+        if (!string.IsNullOrEmpty(IconPathData))
+        {
+            var icon = new Rectangle(
+                new Point(content.X, content.Y + (content.Height - IconSize) / 2f),
+                new Size(IconSize, IconSize));
+
+            g.DrawSvgPath(IconPathData, icon, CurrentTextColor);
+            textLeft += IconSize + IconGap;
+        }
+
+        if (string.IsNullOrEmpty(Text)) return;
+
+        var textRect = new Rectangle(
+            new Point(textLeft, content.Y),
+            new Size(Math.Max(0, content.X + content.Width - textLeft), content.Height));
+
+        g.DrawText(Text, textRect, CurrentTextColor, EffectiveFont, ContentAlign, ContentVerticalAlign);
     }
-
-    public override void Draw(Graphics g)
-    {
-        g.FillRectangle(this.LocalBounds, IsHovered ? HoverBackgroundColor : BackgroundColor);
-
-        if (BorderWidth > 0)
-            g.DrawRectangle(this.LocalBounds, BorderColor, BorderWidth);
-
-        if (Text is not null)
-            g.DrawText(this.Text, this.ContentBounds, this.TextColor, this.EffectiveFont,
-                this.HorizontalContentAlign, this.VerticalContentAlign);
-    }
-
 
     protected override Size MeasureOverride(Size availableSize)
     {
@@ -54,29 +52,28 @@ public class Button : UnitControl, ITextElement, IInputElement, IBorderedElement
             ? Size.Empty
             : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
 
-        // немного запаса под рамку/визуальный "воздух" кнопки сверх чистого текста
-        var content = new Size(textSize.Width + Padding.Horizontal + 16, textSize.Height + Padding.Vertical + 8);
-        return ResolveSize(content, availableSize);
+        float width = textSize.Width + Padding.Horizontal;
+        float height = Math.Max(textSize.Height, string.IsNullOrEmpty(IconPathData) ? 0 : IconSize) + Padding.Vertical;
+
+        if (!string.IsNullOrEmpty(IconPathData))
+            width += IconSize + (textSize.Width > 0 ? IconGap : 0);
+
+        return ResolveSize(new Size(width, height), availableSize);
     }
+}
+
+public class PrimaryButton : Button
+{
+
+}
+
+public class SecondaryButton : Button
+{
+
 }
 
 public static class Buttons
 {
-    public static Button Primary(string text) => new()
-    {
-        Text = text,
-        BackgroundColor = LightThemeColors.ButtonFill,
-        HoverBackgroundColor = LightThemeColors.ButtonFill.Darken(),
-        TextColor = Colors.White,
-        BorderColor = LightThemeColors.ButtonFill,
-    };
-
-    public static Button Secondary(string text) => new()
-    {
-        Text = text,
-        BackgroundColor = Colors.White,
-        HoverBackgroundColor = LightThemeColors.AccentBackground,
-        TextColor = LightThemeColors.ButtonFill,
-        BorderColor = LightThemeColors.ButtonFill,
-    };
+    public static PrimaryButton Primary(string caption) => new() { Text = caption };
+    public static SecondaryButton Secondary(string caption) => new() { Text = caption };
 }

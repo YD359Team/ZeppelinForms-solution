@@ -82,12 +82,17 @@ public static class Themes
 
             .For<RichLabel>((label, c) => label.TextColor = c.Text)
 
-            .For<Button>((button, c) =>
+            .For<ButtonBase>((button, c) =>
             {
                 button.BackgroundColor = c.Accent;
                 button.HoverBackgroundColor = c.AccentHover;
+                button.PressedBackgroundColor = c.AccentPressed;
+                button.CheckedBackgroundColor = c.AccentPressed;
+                button.DisabledBackgroundColor = c.SurfacePressed;
                 button.TextColor = c.TextOnAccent;
+                button.DisabledTextColor = c.TextDisabled;
                 button.BorderColor = c.Accent;
+                button.FocusRingColor = c.TextOnAccent;
             })
 
             .For<CheckBox>((box, c) =>

@@ -23,20 +23,19 @@ public class ToggleButton : Button
         }
     }
 
-    /// <summary>Группа взаимного исключения. Если задана, нажатие снимает
-    /// отметку с соседей по родителю с тем же именем группы.</summary>
     public string? GroupName { get; set; }
 
     public event EventHandler? CheckedChanged;
 
-    public Color CheckedBackgroundColor { get; set; } = LightThemeColors.ButtonFill.Darken(0.25f);
+    // база сама подставит CheckedBackgroundColor — подмена цвета
+    // во время отрисовки больше не нужна
+    protected override bool IsCheckedState => _isChecked;
 
-    protected override void OnClick(MouseClickEventArgs e)
+    protected override void OnActivated()
     {
         if (GroupName is not null)
         {
-            // в группе повторное нажатие не выключает — как у радиокнопок
-            if (_isChecked) { e.Handled = true; return; }
+            if (_isChecked) return;   // в группе повторное нажатие не выключает
 
             UncheckGroupSiblings();
             IsChecked = true;
@@ -45,32 +44,14 @@ public class ToggleButton : Button
         {
             IsChecked = !IsChecked;
         }
-
-        base.OnClick(e);
     }
 
     private void UncheckGroupSiblings()
     {
         if (Parent is not PanelControl panel) return;
 
-        foreach (var sibling in panel.Children.OfType<ToggleButton>())
+        foreach (ToggleButton sibling in panel.Children.OfType<ToggleButton>())
             if (!ReferenceEquals(sibling, this) && sibling.GroupName == GroupName)
                 sibling.IsChecked = false;
-    }
-
-    public override void Draw(Graphics g)
-    {
-        if (!_isChecked)
-        {
-            base.Draw(g);
-            return;
-        }
-
-        // нажатое состояние: тот же макет, но фон акцентный
-        Color original = BackgroundColor;
-        BackgroundColor = CheckedBackgroundColor;
-
-        try { base.Draw(g); }
-        finally { BackgroundColor = original; }
     }
 }

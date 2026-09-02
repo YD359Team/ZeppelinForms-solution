@@ -1,5 +1,7 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Controls.Base;
 
