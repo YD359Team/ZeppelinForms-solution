@@ -28,6 +28,14 @@ public class Form : IDisposable
 
     public WindowStartupLocation WindowStartupLocation { get; set; }
 
+    private long _lastClickTicks;
+    private Point _lastClickPoint;
+    private int _clickCount;
+    private MouseButton _lastClickButton;
+
+    public int DoubleClickIntervalMs { get; set; } = 400;
+    public float DoubleClickSlop { get; set; } = 4f;
+
     private float _opacity = 1f;
 
     public float Opacity
@@ -119,10 +127,6 @@ public class Form : IDisposable
     private UIElement? _pressedElement;
     private readonly FocusDispatcher _focusDispatcher = new();
 
-    private long _lastClickTicks;
-    private Point _lastClickPoint;
-    private int _clickCount;
-
     // ===== ToolTip =====
     public int ToolTipDelay { get; set; } = 700;
     private readonly System.Threading.Timer _toolTipTimer;
@@ -147,6 +151,208 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             OnToolTipTimerElapsed, null, Timeout.Infinite, Timeout.Infinite);
 
         App.ThemeChanged += OnThemeChanged;
+    }
+
+    internal void OnPointerMove(Point point, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        _lastPointerPosition = point;
+
+        if (_pressedElement is not null)
+        {
+            _pressedElement.RaiseMouseMove(point);
+            return;
+        }
+
+        UIElement? hit = HitTestAll(point);
+
+        if (hit != _hoveredElement)
+        {
+            // в аргументах указываем «откуда» и «куда», чтобы обработчик
+            // мог отличить переход внутрь потомка от выхода наружу
+            _hoveredElement?.RaiseMouseExit(point, hit);
+            hit?.RaiseMouseEnter(point, _hoveredElement);
+
+            _hoveredElement = hit;
+
+            ScheduleToolTip(hit);
+            PlatformWindow?.SetCursor(hit?.EffectiveCursor ?? CursorKind.Arrow);
+        }
+
+        hit?.RaiseMouseMove(point);
+
+        if (IsInspectorEnabled)
+        {
+            InspectedElement = !IsInsideInspector(point) && Content is not null
+                ? HitTester.HitTest(Content, point)
+                : null;
+
+            InvalidateVisual();
+        }
+    }
+
+    internal void OnPointerLeaveWindow()
+    {
+        HideToolTip();
+        _hoveredElement?.RaiseMouseExit(_lastPointerPosition, null);
+        _hoveredElement = null;
+    }
+
+    internal void OnPointerDown(Point point, MouseButton button = MouseButton.Left, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        HideToolTip();
+
+        if (button == MouseButton.Left && _flyouts.Count > 0 && !IsInsideAnyFlyout(point))
+        {
+            CloseAllFlyouts();
+            return;
+        }
+
+        UIElement? hit = HitTestAll(point);
+        if (hit is { IsEnabled: false }) return;
+
+        UpdateClickCount(point, button);
+
+        if (IsInspectorEnabled && _inspectorGrid is not null && !IsInsideInspector(point))
+        {
+            UIElement? picked = Content is not null ? HitTester.HitTest(Content, point) : null;
+
+            if (picked is not null)
+            {
+                _inspectorGrid.SelectedObject = picked;
+                Invalidate();
+                return;
+            }
+        }
+
+        if (hit is not null)
+        {
+            List<UIElement> chain = [];
+
+            for (UIElement? current = hit; current is not null; current = current.Parent)
+                chain.Add(current);
+
+            chain.Reverse();
+
+            foreach (UIElement element in chain)
+                element.RaisePreviewMouseDown(point);
+        }
+
+        if (button == MouseButton.Left)
+            _pressedElement = hit;
+
+        hit?.RaiseMouseDown(new MouseButtonEventArgs(button, MouseButtonState.Down, point, modifiers));
+
+        if (button == MouseButton.Left && hit is not null)
+            _focusDispatcher.FocusElement(hit);
+    }
+
+    internal void OnPointerUp(Point point, MouseButton button = MouseButton.Left, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        UIElement? hit = HitTestAll(point);
+
+        var upArgs = new MouseButtonEventArgs(button, MouseButtonState.Up, point, modifiers);
+
+        if (button == MouseButton.Left)
+        {
+            _pressedElement?.RaiseMouseUp(upArgs);
+
+            // клик = нажатие и отпускание на одном элементе
+            if (hit is not null && ReferenceEquals(hit, _pressedElement))
+                BubbleClick(hit, button, point);
+
+            _pressedElement = null;
+            return;
+        }
+
+        hit?.RaiseMouseUp(upArgs);
+
+        // правая и средняя не требуют совпадения с нажатием:
+        // захвата для них нет, поэтому клик по факту отпускания
+        if (hit is not null)
+            BubbleClick(hit, button, point);
+    }
+
+    private void BubbleClick(UIElement hit, MouseButton button, Point point)
+    {
+        var args = new MouseClickEventArgs(button, MouseButtonState.Up, point, _clickCount);
+
+        for (UIElement? current = hit; current is not null; current = current.Parent)
+        {
+            current.RaiseClick(args);
+            if (args.Handled) break;
+        }
+    }
+
+    private void UpdateClickCount(Point point, MouseButton button)
+    {
+        long now = Environment.TickCount64;
+
+        bool sameSpot =
+            Math.Abs(point.X - _lastClickPoint.X) <= DoubleClickSlop &&
+            Math.Abs(point.Y - _lastClickPoint.Y) <= DoubleClickSlop;
+
+        bool inTime = now - _lastClickTicks <= DoubleClickIntervalMs;
+
+        _clickCount = inTime && sameSpot && button == _lastClickButton ? _clickCount + 1 : 1;
+
+        _lastClickTicks = now;
+        _lastClickPoint = point;
+        _lastClickButton = button;
+    }
+
+    internal void OnKeyDown(Key key, KeyModifiers modifiers)
+    {
+        if (key == Key.F12 || (key == (Key)0x49 && modifiers.HasFlag(KeyModifiers.Control) && modifiers.HasFlag(KeyModifiers.Shift)))
+        {
+            ToggleInspector();
+            return;
+        }
+
+        var args = new KeyEventArgs(key, modifiers);
+
+        // превью идёт от корня к сфокусированному элементу
+        UIElement? focused = _focusDispatcher.FocusedElement;
+
+        if (focused is not null)
+        {
+            List<UIElement> chain = [];
+
+            for (UIElement? current = focused; current is not null; current = current.Parent)
+                chain.Add(current);
+
+            chain.Reverse();
+
+            foreach (UIElement element in chain)
+            {
+                element.RaisePreviewKeyDown(args);
+                if (args.Handled) return;
+            }
+        }
+
+        for (UIElement? current = focused; current is not null; current = current.Parent)
+        {
+            current.RaiseKeyDown(args);
+            if (args.Handled) break;
+        }
+
+        if (!args.Handled && key == Key.Tab && Content is not null)
+        {
+            if (modifiers.HasFlag(KeyModifiers.Shift))
+                _focusDispatcher.MovePrevious(Content);
+            else
+                _focusDispatcher.MoveNext(Content);
+        }
+    }
+
+    internal void OnKeyUp(Key key, KeyModifiers modifiers)
+    {
+        var args = new KeyEventArgs(key, modifiers);
+
+        for (UIElement? current = _focusDispatcher.FocusedElement; current is not null; current = current.Parent)
+        {
+            current.RaiseKeyUp(args);
+            if (args.Handled) break;
+        }
     }
 
     private void OnThemeChanged(object? sender, EventArgs e)
@@ -626,40 +832,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         return false;
     }
 
-    internal void OnKeyDown(Key key, KeyModifiers modifiers)
-    {
-        if (key == Key.F12)
-        {
-            ToggleInspector();
-            return;
-        }
-
-        // в модальном диалоге Escape отменяет — стандартное поведение,
-        // которое не должно требовать кода от каждого диалога
-        if (key == Key.Escape && IsDialog)
-        {
-            Cancel();
-            return;
-        }
-
-        var args = new KeyEventArgs(key, modifiers);
-
-        for (UIElement? current = _focusDispatcher.FocusedElement; current is not null; current = current.Parent)
-        {
-            current.RaiseKeyDown(args);
-            if (args.Handled)
-                break;
-        }
-
-        if (!args.Handled && key == Key.Tab && Content is not null)
-        {
-            if (modifiers.HasFlag(KeyModifiers.Shift))
-                _focusDispatcher.MovePrevious(Content);
-            else
-                _focusDispatcher.MoveNext(Content);
-        }
-    }
-
     internal void OnPointerMove(Point point)
     {
         _lastPointerPosition = point;
@@ -699,72 +871,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
             InvalidateVisual();
         }
-    }
-
-    internal void OnPointerLeaveWindow()
-    {
-        HideToolTip();
-        _hoveredElement?.RaiseMouseLeave();
-        _hoveredElement = null;
-    }
-
-    internal void OnPointerDown(Point point)
-    {
-        long now = Environment.TickCount64;
-
-        bool sameSpot = Math.Abs(point.X - _lastClickPoint.X) < 4 && Math.Abs(point.Y - _lastClickPoint.Y) < 4;
-        _clickCount = (now - _lastClickTicks < 400 && sameSpot) ? _clickCount + 1 : 1;
-
-        _lastClickTicks = now;
-        _lastClickPoint = point;
-
-        HideToolTip();
-
-        // только флауты перехватывают клик мимо себя; тосты и тултипы — нет
-        if (_flyouts.Count > 0 && !IsInsideAnyFlyout(point))
-        {
-            CloseAllFlyouts();
-            return;
-        }
-
-        UIElement? hit = HitTestAll(point);
-        if (hit is { IsEnabled: false }) return;
-
-        _pressedElement = hit;
-        // нажатие уведомляет всю цепочку от корня к элементу: так контейнеры
-        // (список, дерево) успевают отметить выбор до того, как содержимое
-        // погасит событие
-        if (hit is not null)
-        {
-            List<UIElement> chain = [];
-
-            for (UIElement? current = hit; current is not null; current = current.Parent)
-                chain.Add(current);
-
-            chain.Reverse();
-
-            foreach (UIElement element in chain)
-                element.RaisePreviewMouseDown(point);
-        }
-
-        hit?.RaiseMouseDown(point);
-
-        // в режиме инспектора клик по контенту выбирает элемент, но клик
-        // по самому гриду должен работать как обычный клик по контролам
-        if (IsInspectorEnabled && _inspectorGrid is not null && !IsInsideInspector(point))
-        {
-            UIElement? picked = Content is not null ? HitTester.HitTest(Content, point) : null;
-
-            if (picked is not null)
-            {
-                _inspectorGrid.SelectedObject = picked;
-                Invalidate();
-                return;
-            }
-        }
-
-        if (hit is not null)
-            _focusDispatcher.FocusElement(hit);
     }
 
     internal void OnPointerUp(Point point)

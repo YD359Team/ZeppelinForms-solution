@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Input.Keyboard;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Linux;
 
@@ -195,6 +196,63 @@ public sealed class X11Platform : IPlatform
 
         switch (type)
         {
+            case X11.ButtonPress:
+                {
+                    var button = Marshal.PtrToStructure<X11.XButtonEvent>(eventPtr);
+                    if (!_windows.TryGetValue(button.window, out X11Window? window)) break;
+
+                    var point = new Point(button.x / window.Scale, button.y / window.Scale);
+                    KeyModifiers modifiers = ToModifiers(button.state);
+
+                    switch (button.button)
+                    {
+                        case 1: window.Form.OnPointerDown(point, MouseButton.Left, modifiers); break;
+                        case 2: window.Form.OnPointerDown(point, MouseButton.Middle, modifiers); break;
+                        case 3: window.Form.OnPointerDown(point, MouseButton.Right, modifiers); break;
+                        case 4: window.Form.OnMouseWheel(point, 120); break;
+                        case 5: window.Form.OnMouseWheel(point, -120); break;
+                    }
+
+                    break;
+                }
+
+            case X11.ButtonRelease:
+                {
+                    var button = Marshal.PtrToStructure<X11.XButtonEvent>(eventPtr);
+                    if (!_windows.TryGetValue(button.window, out X11Window? window)) break;
+
+                    var point = new Point(button.x / window.Scale, button.y / window.Scale);
+                    KeyModifiers modifiers = ToModifiers(button.state);
+
+                    switch (button.button)
+                    {
+                        case 1:
+                            window.Form.OnPointerUp(point, MouseButton.Left, modifiers);
+                            break;
+
+                        case 2:
+                            window.Form.OnPointerUp(point, MouseButton.Middle, modifiers);
+                            break;
+
+                        case 3:
+                            window.Form.OnPointerUp(point, MouseButton.Right, modifiers);
+                            window.Form.OnContextMenu(point);
+                            break;
+                    }
+
+                    break;
+                }
+
+            case X11.KeyRelease:
+                {
+                    var key = Marshal.PtrToStructure<X11.XKeyEvent>(eventPtr);
+                    if (!_windows.TryGetValue(key.window, out X11Window? window)) break;
+
+                    nuint keysym = X11.XLookupKeysym(eventPtr, 0);
+                    window.Form.OnKeyUp(X11KeyMap.ToKey(keysym), ToModifiers(key.state));
+
+                    break;
+                }
             case X11.Expose:
                 {
                     var configure = Marshal.PtrToStructure<X11.XConfigureEvent>(eventPtr);
@@ -208,32 +266,6 @@ public sealed class X11Platform : IPlatform
                     var configure = Marshal.PtrToStructure<X11.XConfigureEvent>(eventPtr);
                     if (_windows.TryGetValue(configure.window, out X11Window? window))
                         window.HandleConfigure(configure.width, configure.height);
-                    break;
-                }
-
-            case X11.ButtonPress:
-                {
-                    var button = Marshal.PtrToStructure<X11.XButtonEvent>(eventPtr);
-                    if (!_windows.TryGetValue(button.window, out X11Window? window)) break;
-
-                    var point = new Point(button.x / window.Scale, button.y / window.Scale);
-
-                    // 4 и 5 — это прокрутка колеса, а не кнопки
-                    if (button.button == 4) window.Form.OnMouseWheel(point, 120);
-                    else if (button.button == 5) window.Form.OnMouseWheel(point, -120);
-                    else if (button.button == 1) window.Form.OnPointerDown(point);
-                    break;
-                }
-
-            case X11.ButtonRelease:
-                {
-                    var button = Marshal.PtrToStructure<X11.XButtonEvent>(eventPtr);
-                    if (!_windows.TryGetValue(button.window, out X11Window? window)) break;
-
-                    if (button.button == 1)
-                        window.Form.OnPointerUp(new Point(button.x / window.Scale, button.y / window.Scale));
-                    else if (button.button == 3)
-                        window.Form.OnContextMenu(new Point(button.x / window.Scale, button.y / window.Scale));
                     break;
                 }
 
@@ -311,5 +343,15 @@ public sealed class X11Platform : IPlatform
                 }
         }
     }
-}
 
+    private static KeyModifiers ToModifiers(uint state)
+    {
+        var modifiers = KeyModifiers.None;
+
+        if ((state & X11.ShiftMask) != 0) modifiers |= KeyModifiers.Shift;
+        if ((state & X11.ControlMask) != 0) modifiers |= KeyModifiers.Control;
+        if ((state & X11.Mod1Mask) != 0) modifiers |= KeyModifiers.Alt;
+
+        return modifiers;
+    }
+}

@@ -7,6 +7,7 @@ using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls.Tools;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Keyboard;
+using ZeppelinForms.Input.Mouse;
 using ZeppelinForms.Windows.Rendering;
 
 namespace ZeppelinForms.Windows;
@@ -338,6 +339,42 @@ internal sealed class Win32Window : IPlatformWindow
     {
         switch (message)
         {
+            case NativeConstants.WM_LBUTTONDOWN:
+                _form.OnPointerDown(PointFromLParam(lParam), MouseButton.Left, GetModifiers());
+                return 0;
+
+            case NativeConstants.WM_LBUTTONUP:
+                _form.OnPointerUp(PointFromLParam(lParam), MouseButton.Left, GetModifiers());
+                return 0;
+
+            case NativeConstants.WM_RBUTTONDOWN:
+                _form.OnPointerDown(PointFromLParam(lParam), MouseButton.Right, GetModifiers());
+                return 0;
+
+            case NativeConstants.WM_RBUTTONUP:
+                {
+                    Point point = PointFromLParam(lParam);
+
+                    _form.OnPointerUp(point, MouseButton.Right, GetModifiers());
+                    _form.OnContextMenu(point);
+                    return 0;
+                }
+
+            case NativeConstants.WM_MBUTTONDOWN:
+                _form.OnPointerDown(PointFromLParam(lParam), MouseButton.Middle, GetModifiers());
+                return 0;
+
+            case NativeConstants.WM_MBUTTONUP:
+                _form.OnPointerUp(PointFromLParam(lParam), MouseButton.Middle, GetModifiers());
+                return 0;
+
+            case NativeConstants.WM_KEYDOWN:
+                _form.OnKeyDown((Key)(int)wParam, GetModifiers());
+                return 0;
+
+            case NativeConstants.WM_KEYUP:
+                _form.OnKeyUp((Key)(int)wParam, GetModifiers());
+                return 0;
             case NativeConstants.WM_CLOSE:
                 Close();
                 return 0;
@@ -475,32 +512,6 @@ internal sealed class Win32Window : IPlatformWindow
                     return 0;
                 }
 
-            case NativeConstants.WM_LBUTTONDOWN:
-                {
-                    int x = (short)(lParam.ToInt64() & 0xFFFF);
-                    int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
-                    NativeMethods.SetCapture(hWnd);
-                    _form.OnPointerDown(new Point(x / _scale, y / _scale));
-                    return 0;
-                }
-
-            case NativeConstants.WM_LBUTTONUP:
-                {
-                    int x = (short)(lParam.ToInt64() & 0xFFFF);
-                    int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
-                    NativeMethods.ReleaseCapture();
-                    _form.OnPointerUp(new Point(x / _scale, y / _scale));
-                    return 0;
-                }
-
-            case NativeConstants.WM_RBUTTONUP:
-                {
-                    int x = (short)(lParam.ToInt64() & 0xFFFF);
-                    int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
-                    _form.OnContextMenu(new Point(x / _scale, y / _scale));
-                    return 0;
-                }
-
             case NativeConstants.WM_MOUSEWHEEL:
                 {
                     int delta = (short)((wParam.ToInt64() >> 16) & 0xFFFF);
@@ -513,12 +524,6 @@ internal sealed class Win32Window : IPlatformWindow
                     NativeMethods.ScreenToClient(hWnd, ref screenPoint);
 
                     _form.OnMouseWheel(new Point(screenPoint.X / _scale, screenPoint.Y / _scale), delta);
-                    return 0;
-                }
-
-            case NativeConstants.WM_KEYDOWN:
-                {
-                    _form.OnKeyDown((Key)(int)wParam, GetModifiers());
                     return 0;
                 }
 
@@ -732,5 +737,15 @@ internal sealed class Win32Window : IPlatformWindow
         nint handle = NativeMethods.LoadCursor(0, id);
         CursorCache[cursor] = handle;
         return handle;
+    }
+
+    private Point PointFromLParam(nint lParam)
+    {
+        // (short), а не маска: координаты бывают отрицательными
+        // на мультимониторных конфигурациях
+        int x = (short)(lParam.ToInt64() & 0xFFFF);
+        int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+
+        return new Point(x / _scale, y / _scale);
     }
 }

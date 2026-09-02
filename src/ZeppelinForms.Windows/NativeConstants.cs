@@ -2,6 +2,9 @@
 
 internal static class NativeConstants
 {
+    public const uint WM_KEYUP = 0x0101;
+    public const uint WM_MBUTTONDOWN = 0x0207;
+    public const uint WM_MBUTTONUP = 0x0208;
     public const int MONITOR_DEFAULTTONEAREST = 2;
     public const uint MONITORINFOF_PRIMARY = 1;
     public const uint WM_SETCURSOR = 0x0020;

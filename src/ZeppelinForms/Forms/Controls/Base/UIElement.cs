@@ -16,9 +16,160 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// </summary>
 public abstract class UIElement : IGridPlaceable
 {
+    // ===== события =====
+
     public event EventHandler<MouseClickEventArgs>? Click;
+    public event EventHandler<MouseClickEventArgs>? DoubleClick;
+    public event EventHandler<MouseClickEventArgs>? RightClick;
+    public event EventHandler<MouseClickEventArgs>? MiddleClick;
+    public event EventHandler<MouseButtonEventArgs>? MouseDown;
+    public event EventHandler<MouseButtonEventArgs>? MouseUp;
+    public event EventHandler<MouseMoveEventArgs>? MouseMove;
+    public event EventHandler<MouseMoveEventArgs>? MouseEnter;
+    public event EventHandler<MouseMoveEventArgs>? MouseExit;
     public event EventHandler<MouseWheelEventArgs>? MouseWheel;
+    public event EventHandler<KeyEventArgs>? PreviewKeyDown;
     public event EventHandler<KeyEventArgs>? KeyDown;
+    public event EventHandler<KeyEventArgs>? KeyUp;
+
+    // ===== хуки для наследников =====
+
+    protected virtual void OnMouseEnter(MouseMoveEventArgs e) { }
+    protected virtual void OnMouseExit(MouseMoveEventArgs e) { }
+    protected virtual void OnMouseMove(MouseMoveEventArgs e) { }
+    protected virtual void OnMouseDown(MouseButtonEventArgs e) { }
+    protected virtual void OnMouseUp(MouseButtonEventArgs e) { }
+    protected virtual void OnClick(MouseClickEventArgs e) { }
+    protected virtual void OnDoubleClick(MouseClickEventArgs e) { }
+    protected virtual void OnRightClick(MouseClickEventArgs e) { }
+    protected virtual void OnMiddleClick(MouseClickEventArgs e) { }
+    protected virtual void OnMouseWheel(MouseWheelEventArgs e) { }
+    protected virtual void OnPreviewMouseDown(Point location) { }
+    /// <summary>Клавиша нажата, но событие ещё не дошло до сфокусированного
+    /// элемента — контейнер может перехватить её первым.</summary>
+    protected virtual void OnPreviewKeyDown(KeyEventArgs e) { }
+    protected virtual void OnKeyUp(KeyEventArgs e) { }
+
+    // ===== подъём событий =====
+
+    internal void RaiseMouseEnter(Point location, UIElement? from)
+    {
+        if (IsHovered) return;
+
+        IsHovered = true;
+
+        var args = new MouseMoveEventArgs(location) { RelatedElement = from };
+
+        OnMouseEnter(args);
+        MouseEnter?.Invoke(this, args);
+
+        InvalidateVisual();
+    }
+
+    internal void RaiseMouseExit(Point location, UIElement? to)
+    {
+        if (!IsHovered) return;
+
+        IsHovered = false;
+
+        var args = new MouseMoveEventArgs(location) { RelatedElement = to };
+
+        OnMouseExit(args);
+        MouseExit?.Invoke(this, args);
+
+        InvalidateVisual();
+    }
+
+    internal void RaiseMouseMove(Point location)
+    {
+        var args = new MouseMoveEventArgs(location);
+
+        OnMouseMove(args);
+        MouseMove?.Invoke(this, args);
+    }
+
+    internal void RaiseMouseDown(MouseButtonEventArgs e)
+    {
+        // прижатым считаем только левую: правая и средняя не «удерживают» контрол
+        if (e.Button == MouseButton.Left)
+            IsPressed = true;
+
+        OnMouseDown(e);
+        MouseDown?.Invoke(this, e);
+
+        InvalidateVisual();
+    }
+
+    internal void RaiseMouseUp(MouseButtonEventArgs e)
+    {
+        if (e.Button == MouseButton.Left)
+        {
+            if (!IsPressed) return;
+            IsPressed = false;
+        }
+
+        OnMouseUp(e);
+        MouseUp?.Invoke(this, e);
+
+        InvalidateVisual();
+    }
+
+    internal void RaiseClick(MouseClickEventArgs args)
+    {
+        switch (args.Button)
+        {
+            case MouseButton.Right:
+                OnRightClick(args);
+                RightClick?.Invoke(this, args);
+                return;
+
+            case MouseButton.Middle:
+                OnMiddleClick(args);
+                MiddleClick?.Invoke(this, args);
+                return;
+        }
+
+        // двойной клик приходит вторым: сначала обычный Click с Count=1,
+        // потом ещё один с Count=2 — так же ведут себя системные контролы
+        if (args.Count >= 2)
+        {
+            OnDoubleClick(args);
+            DoubleClick?.Invoke(this, args);
+
+            if (args.Handled) return;
+        }
+
+        OnClick(args);
+        Click?.Invoke(this, args);
+    }
+
+    internal void RaisePreviewMouseDown(Point location) => OnPreviewMouseDown(location);
+
+    internal void RaisePreviewKeyDown(KeyEventArgs e)
+    {
+        OnPreviewKeyDown(e);
+        PreviewKeyDown?.Invoke(this, e);
+    }
+
+    internal void RaiseKeyDown(KeyEventArgs e)
+    {
+        OnKeyDown(e);
+        KeyDown?.Invoke(this, e);
+    }
+
+    internal void RaiseKeyUp(KeyEventArgs e)
+    {
+        OnKeyUp(e);
+        KeyUp?.Invoke(this, e);
+    }
+
+    internal void RaiseMouseWheel(MouseWheelEventArgs e)
+    {
+        OnMouseWheel(e);
+        MouseWheel?.Invoke(this, e);
+    }
+
+    // ===================
 
     public UIElement? Parent { get; internal set; }
     public Dock Docking { get; set; }
@@ -329,26 +480,6 @@ public abstract class UIElement : IGridPlaceable
 
     protected virtual void OnMouseOver() { }
     protected virtual void OnMouseLeave() { }
-    protected virtual void OnClick(MouseClickEventArgs e) { }
-    protected virtual void OnMouseWheel(MouseWheelEventArgs e) { }
-
-    internal void RaiseClick(MouseClickEventArgs args)
-    {
-        OnClick(args);
-        Click?.Invoke(this, args);
-    }
-
-    internal void RaiseMouseWheel(MouseWheelEventArgs e)
-    {
-        OnMouseWheel(e);
-        MouseWheel?.Invoke(this, e);
-    }
-
-    internal void RaiseKeyDown(KeyEventArgs e)
-    {
-        OnKeyDown(e);
-        KeyDown?.Invoke(this, e);
-    }
 
     internal void RaiseAttached() => OnAttached();
 
@@ -389,8 +520,6 @@ public abstract class UIElement : IGridPlaceable
         Invalidate();
     }
 
-    internal void RaiseMouseMove(Point location) => OnMouseMove(location);
-
     /// <summary>Реагирует ли контрол на пробел/Enter как на клик (кнопки, чекбоксы).</summary>
     protected virtual bool IsKeyActivatable => false;
 
@@ -407,16 +536,10 @@ public abstract class UIElement : IGridPlaceable
                 absolute.X + ActualSize.Width / 2f,
                 absolute.Y + ActualSize.Height / 2f);
 
-            RaiseClick(new MouseClickEventArgs(MouseButton.Left, MouseButtonState.Up, center));
+            RaiseClick(new MouseClickEventArgs(MouseButton.Left, MouseButtonState.Up, center, 1));
             e.Handled = true;
         }
     }
-
-    /// <summary>Нажатие в пределах элемента или его потомков.
-    /// Приходит от корня к цели — до обычного OnMouseDown.</summary>
-    protected virtual void OnPreviewMouseDown(Point location) { }
-
-    internal void RaisePreviewMouseDown(Point location) => OnPreviewMouseDown(location);
 
     protected virtual void OnDetached() { }
 
