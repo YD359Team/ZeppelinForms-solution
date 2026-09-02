@@ -536,6 +536,24 @@ internal sealed class Win32Window : IPlatformWindow
                 _form.Tick();
                 return 0;
 
+            case NativeConstants.WM_SETCURSOR:
+                {
+                    // курсором распоряжаемся сами, только в клиентской области;
+                    // рамки и заголовок оставляем системе
+                    int hitTest = (int)(lParam.ToInt64() & 0xFFFF);
+
+                    if (hitTest == 1 /* HTCLIENT */)
+                    {
+                        NativeMethods.SetCursor(_currentCursor == 0
+                            ? LoadCursorHandle(CursorKind.Arrow)
+                            : _currentCursor);
+
+                        return 1;
+                    }
+
+                    return NativeMethods.DefWindowProc(hWnd, message, wParam, lParam);
+                }
+
             default:
                 return NativeMethods.DefWindowProc(
                     hWnd, message, wParam, lParam);
@@ -674,5 +692,41 @@ internal sealed class Win32Window : IPlatformWindow
         {
             NativeMethods.ImmReleaseContext(_handle, context);
         }
+    }
+
+    private static readonly Dictionary<CursorKind, nint> CursorCache = [];
+    private nint _currentCursor;
+
+    public void SetCursor(CursorKind cursor)
+    {
+        nint handle = LoadCursorHandle(cursor);
+
+        if (handle == _currentCursor) return;
+
+        _currentCursor = handle;
+        NativeMethods.SetCursor(handle);
+    }
+
+    private static nint LoadCursorHandle(CursorKind cursor)
+    {
+        if (CursorCache.TryGetValue(cursor, out nint cached))
+            return cached;
+
+        int id = cursor switch
+        {
+            CursorKind.Hand => NativeConstants.IDC_HAND,
+            CursorKind.IBeam => NativeConstants.IDC_IBEAM,
+            CursorKind.Wait => NativeConstants.IDC_WAIT,
+            CursorKind.SizeWestEast => NativeConstants.IDC_SIZEWE,
+            CursorKind.SizeNorthSouth => NativeConstants.IDC_SIZENS,
+            CursorKind.SizeAll => NativeConstants.IDC_SIZEALL,
+            CursorKind.Cross => NativeConstants.IDC_CROSS,
+            CursorKind.No => NativeConstants.IDC_NO,
+            _ => NativeConstants.IDC_ARROW,
+        };
+
+        nint handle = NativeMethods.LoadCursor(0, id);
+        CursorCache[cursor] = handle;
+        return handle;
     }
 }

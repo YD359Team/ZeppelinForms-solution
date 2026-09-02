@@ -77,6 +77,21 @@ public abstract class UIElement : IGridPlaceable
     public Size DesiredSize { get; private set; }
     public bool IsHitTestVisible { get; set; } = true;
 
+    /// <summary>Курсор над элементом. Default — наследуется от предков.</summary>
+    public CursorKind Cursor { get; set; } = CursorKind.Default;
+
+    internal CursorKind EffectiveCursor
+    {
+        get
+        {
+            for (UIElement? current = this; current is not null; current = current.Parent)
+                if (current.Cursor != CursorKind.Default)
+                    return current.Cursor;
+
+            return CursorKind.Arrow;
+        }
+    }
+
     public Font? Font { get; set; }
 
     /// <summary>Свой шрифт, а если не задан — ближайший заданный у предков, иначе Font.Default.</summary>

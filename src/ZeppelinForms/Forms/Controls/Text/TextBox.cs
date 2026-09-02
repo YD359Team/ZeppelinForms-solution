@@ -10,7 +10,7 @@ using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Input.Keyboard;
 
-namespace ZeppelinForms.Forms.Controls;
+namespace ZeppelinForms.Forms.Controls.Text;
 
 public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElement, IDisposable
 {
@@ -31,6 +31,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     {
         Background = Colors.White;
         Padding = new Thickness(4, 2);
+        this.Cursor = CursorKind.IBeam;
 
         _document.Changed += (_, _) =>
         {
@@ -166,7 +167,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         {
             _pendingHighSurrogate = null;
 
-            if (System.Text.Rune.TryCreate(high, c, out System.Text.Rune rune))
+            if (System.Text.Rune.TryCreate(high, c, out Rune rune))
             {
                 _document.Insert(rune.ToString());
                 return;

@@ -15,4 +15,5 @@ public interface IPlatformWindow
     void SetWindowState(WindowState state);
     void StartTicking(int intervalMs);
     void StopTicking();
+    void SetCursor(CursorKind cursor);
 }

@@ -401,4 +401,5 @@ internal static class NativeMethods
         public POINT ptCurrentPos;
         public RECT rcArea;
     }
+    [DllImport("user32.dll")] public static extern nint SetCursor(nint hCursor);
 }

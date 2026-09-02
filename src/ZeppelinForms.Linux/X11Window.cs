@@ -147,6 +147,39 @@ internal sealed class X11Window : IPlatformWindow
         // требует _NET_WM_STATE / XIconifyWindow — TODO
     }
 
+    private readonly Dictionary<CursorKind, nuint> _cursorCache = [];
+    private CursorKind _currentCursor = CursorKind.Default;
+
+    public void SetCursor(CursorKind cursor)
+    {
+        if (_window == 0 || cursor == _currentCursor) return;
+
+        _currentCursor = cursor;
+
+        if (!_cursorCache.TryGetValue(cursor, out nuint handle))
+        {
+            handle = X11.XCreateFontCursor(_display, ToXShape(cursor));
+            _cursorCache[cursor] = handle;
+        }
+
+        X11.XDefineCursor(_display, _window, handle);
+        X11.XFlush(_display);
+    }
+
+    // коды из X11/cursorfont.h
+    private static uint ToXShape(CursorKind cursor) => cursor switch
+    {
+        CursorKind.Hand => 60,              // XC_hand2
+        CursorKind.IBeam => 152,            // XC_xterm
+        CursorKind.Wait => 150,             // XC_watch
+        CursorKind.SizeWestEast => 108,     // XC_sb_h_double_arrow
+        CursorKind.SizeNorthSouth => 116,   // XC_sb_v_double_arrow
+        CursorKind.SizeAll => 52,           // XC_fleur
+        CursorKind.Cross => 34,             // XC_crosshair
+        CursorKind.No => 88,                // XC_pirate
+        _ => 68,                            // XC_left_ptr
+    };
+
     internal void DrainInvokeQueue()
     {
         while (_invokeQueue.TryDequeue(out Action? action))

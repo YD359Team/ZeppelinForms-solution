@@ -3,7 +3,7 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 
-namespace ZeppelinForms.Forms.Controls;
+namespace ZeppelinForms.Forms.Controls.Text;
 
 /// <summary>Строка текста, собранная из прогонов с разным оформлением.</summary>
 public class RichLabel : UnitControl

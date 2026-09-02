@@ -15,6 +15,9 @@ public sealed class HeadlessWindow : IPlatformWindow
     public float Opacity { get; private set; } = 1f;
     public WindowState WindowState { get; private set; }
 
+    public CursorKind Cursor { get; private set; } = CursorKind.Default;
+    public void SetCursor(CursorKind cursor) => Cursor = cursor;
+
     /// <summary>Сколько раз запрашивалась перерисовка — проверяется в тестах.</summary>
     public int InvalidateCount { get; private set; }
 

@@ -4,7 +4,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 
-namespace ZeppelinForms.Forms.Controls;
+namespace ZeppelinForms.Forms.Controls.Text;
 
 /// <summary>
 /// Control with caption

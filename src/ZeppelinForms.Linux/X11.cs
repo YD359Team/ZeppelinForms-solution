@@ -278,4 +278,7 @@ internal static class X11
         public uint Size;
         public nint Address;
     }
+
+    [DllImport(Lib)] public static extern nuint XCreateFontCursor(nint display, uint shape);
+    [DllImport(Lib)] public static extern int XDefineCursor(nint display, nuint window, nuint cursor);
 }

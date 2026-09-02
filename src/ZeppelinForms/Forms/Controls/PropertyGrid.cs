@@ -1,6 +1,7 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Controls.Tools;
 using ZeppelinForms.Forms.Enums;
 

@@ -7,6 +7,7 @@ using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Charts;
+using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Layout;
 

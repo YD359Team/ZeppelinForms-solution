@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Forms.Controls.Tools;

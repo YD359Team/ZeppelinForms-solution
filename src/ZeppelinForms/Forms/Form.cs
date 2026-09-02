@@ -634,6 +634,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             _hoveredElement = hit;
 
             ScheduleToolTip(hit);
+
+            // курсор задаёт элемент под мышью, а не окно
+            PlatformWindow?.SetCursor(hit?.EffectiveCursor ?? CursorKind.Arrow);
         }
 
         // движение внутри элемента тоже нужно доставлять: контролы с
