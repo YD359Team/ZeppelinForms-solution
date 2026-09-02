@@ -6,6 +6,7 @@
   </Folder>
   <Folder Name="/examples/">
     <Project Path="examples/ZF Linux/ZF Linux.csproj" />
+    <Project Path="examples/ZF SharedLib/ZF SharedLib.csproj" />
     <Project Path="examples/ZF Win/ZF Win.csproj" />
   </Folder>
   <Folder Name="/src/">

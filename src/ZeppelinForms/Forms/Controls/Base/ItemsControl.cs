@@ -5,6 +5,7 @@ using System.Collections.Specialized;
 using System.Text;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Mouse;
 

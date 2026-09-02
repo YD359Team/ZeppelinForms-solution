@@ -1,8 +1,5 @@
 ﻿using ZeppelinForms;
-using ZeppelinForms.Drawing.Primitives;
-using ZeppelinForms.Forms;
-using ZeppelinForms.Forms.Controls;
-using ZeppelinForms.Forms.Enums;
+using ZF_SharedLib;
 using ZeppelinForms.Linux;
 
 namespace ZF_Linux;
@@ -14,7 +11,7 @@ public class Program
         X11Platform linuxPlatform = new();
         App myApp = new(linuxPlatform)
         {
-            MainForm = new MainForm()
+            MainForm = new ExampleMainForm()
         };
         myApp.Run();
     }

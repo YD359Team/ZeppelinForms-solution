@@ -2,12 +2,18 @@
 
 ## Feature [0.4.0]
 
-### Added
-
+### Features
 - Add headless platform
 - Add RTL support
 - Add ItemsPanel incremental update
+- Rich text support
+- Cursor support
+
+### New controls
+
 - Add VirtualizedStackPanel
+- Add RichLabel and RichTextBox
+- Add Shape and RectangleShape, EllipseShape, LineShape, PolygonShape
 
 ## [0.3.0] — 2026-08-30
 

@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ZeppelinForms.Linux\ZeppelinForms.Linux.csproj" />
+    <ProjectReference Include="..\ZF SharedLib\ZF SharedLib.csproj" />
   </ItemGroup>
 
 	<ItemGroup>

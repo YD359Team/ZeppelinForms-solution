@@ -1,21 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using ZeppelinForms.Core.Collections;
-using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Charts;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
-using ZeppelinForms.Forms.Layout;
+using ZeppelinForms.Core.Collections;
 
-namespace ZF_Linux;
+namespace ZF_SharedLib;
 
-internal class MainForm : Form
+public class ExampleMainForm : Form
 {
-    public MainForm()
+    public ExampleMainForm()
     {
         InitializeComponents();
     }

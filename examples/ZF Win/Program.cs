@@ -1,8 +1,5 @@
 ﻿using ZeppelinForms;
-using ZeppelinForms.Drawing.Primitives;
-using ZeppelinForms.Forms;
-using ZeppelinForms.Forms.Controls;
-using ZeppelinForms.Forms.Enums;
+using ZF_SharedLib;
 using ZeppelinForms.Windows;
 
 namespace ZF_Win;
@@ -14,7 +11,7 @@ public class Program
         WindowsPlatform windowsPlatform = new();
         App myApp = new(windowsPlatform)
         {
-            MainForm = new MainForm()
+            MainForm = new ExampleMainForm()
         };
         myApp.Run();
     }

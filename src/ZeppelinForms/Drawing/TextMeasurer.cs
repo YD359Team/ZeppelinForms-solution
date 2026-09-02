@@ -8,6 +8,10 @@ public static class TextMeasurer
 
     private sealed class NotRegisteredTextMeasurer : ITextMeasurer
     {
+        public Size MeasureRuns(IReadOnlyList<TextRun> runs, Font baseFont) =>
+            throw new InvalidOperationException(
+                "Text measurer не зарегистрирован. Вызовите SkiaTextMeasurer.Register().");
+
         public Size MeasureText(string text, Font font) =>
             throw new InvalidOperationException(
                 "Text measurer не зарегистрирован. Вызовите SkiaTextMeasurer.Register().");

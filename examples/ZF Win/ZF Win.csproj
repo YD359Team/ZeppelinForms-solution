@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ZeppelinForms.Windows\ZeppelinForms.Windows.csproj" />
+    <ProjectReference Include="..\ZF SharedLib\ZF SharedLib.csproj" />
   </ItemGroup>
 
 	<ItemGroup>
