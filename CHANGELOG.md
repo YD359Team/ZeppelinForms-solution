@@ -1,5 +1,12 @@
 # Changes
 
+## Feature [0.5.0]
+
+### Features
+- Add MessageBox
+- Add InputBox
+- Add Form.IsDialog
+
 ## [0.4.0] — 2026-09-02
 
 ### Features
