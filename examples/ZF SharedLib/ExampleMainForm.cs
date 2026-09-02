@@ -61,7 +61,8 @@ public class ExampleMainForm : Form
         cBox.Items.AddRange("Item 1", "Item 2", "Item 3");
         var map = new MapControl()
         {
-            FlexGrow = 1,
+            RowSpan = 2,
+            ColumnSpan = 2,
             UserAgent = "ZeppelinForms/0.5.0",
         };
         UIElement[] controls = [

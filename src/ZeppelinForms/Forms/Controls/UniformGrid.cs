@@ -13,7 +13,6 @@ public class UniformGrid : PanelControl
     public int Rows { get; set; }
     public int Columns { get; set; }
 
-    /// <summary>Сколько ячеек в первой строке пропустить (как FirstColumn в WPF).</summary>
     public int FirstColumn { get; set; }
 
     public float SpacingX { get; set; }
@@ -22,34 +21,102 @@ public class UniformGrid : PanelControl
     public override void Draw(Graphics g)
     {
         if (Background.A > 0)
-            g.FillRectangle(this.LocalBounds, Background);
+            g.FillRectangle(LocalBounds, Background);
     }
 
-    private (int Rows, int Columns) ResolveGrid()
+    /// <summary>Раскладка по ячейкам с учётом того, что элементы могут
+    /// занимать несколько клеток сразу.</summary>
+    private (int Rows, int Columns, List<(UIElement Child, int Row, int Column)> Placement) BuildPlacement()
     {
-        int visible = 0;
-        foreach (var child in Children)
-            if (child.IsVisible) visible++;
+        List<UIElement> visible = [];
 
-        int cells = visible + Math.Max(0, FirstColumn);
-        if (cells == 0) return (1, 1);
+        foreach (UIElement child in Children)
+            if (child.IsVisible)
+                visible.Add(child);
 
         int columns = Columns;
         int rows = Rows;
 
-        if (columns > 0 && rows > 0)
-            return (rows, columns);
+        if (columns <= 0)
+        {
+            // считаем суммарную площадь в клетках, а не число элементов —
+            // иначе широкие элементы не влезут в подобранную сетку
+            int cells = Math.Max(0, FirstColumn);
 
-        if (columns > 0)
-            return ((int)Math.Ceiling(cells / (float)columns), columns);
+            foreach (UIElement child in visible)
+                cells += Math.Max(1, child.ColumnSpan) * Math.Max(1, child.RowSpan);
 
-        if (rows > 0)
-            return (rows, (int)Math.Ceiling(cells / (float)rows));
+            if (cells == 0) return (1, 1, []);
 
-        // обе оси авто — стремимся к квадрату, как это делает WPF
-        columns = (int)Math.Ceiling(Math.Sqrt(cells));
-        rows = (int)Math.Ceiling(cells / (float)columns);
-        return (rows, columns);
+            columns = rows > 0
+                ? (int)Math.Ceiling(cells / (float)rows)
+                : (int)Math.Ceiling(Math.Sqrt(cells));
+        }
+
+        columns = Math.Max(1, columns);
+
+        // занятость клеток: элемент со span > 1 блокирует несколько
+        List<bool[]> occupied = [];
+        List<(UIElement, int, int)> placement = [];
+
+        bool IsFree(int row, int column, int rowSpan, int columnSpan)
+        {
+            if (column + columnSpan > columns) return false;
+
+            for (int r = row; r < row + rowSpan; r++)
+            {
+                while (occupied.Count <= r)
+                    occupied.Add(new bool[columns]);
+
+                for (int c = column; c < column + columnSpan; c++)
+                    if (occupied[r][c]) return false;
+            }
+
+            return true;
+        }
+
+        void Occupy(int row, int column, int rowSpan, int columnSpan)
+        {
+            for (int r = row; r < row + rowSpan; r++)
+            {
+                while (occupied.Count <= r)
+                    occupied.Add(new bool[columns]);
+
+                for (int c = column; c < column + columnSpan; c++)
+                    occupied[r][c] = true;
+            }
+        }
+
+        Occupy(0, 0, 1, Math.Min(Math.Max(0, FirstColumn), columns));
+
+        foreach (UIElement child in visible)
+        {
+            int columnSpan = Math.Clamp(child.ColumnSpan, 1, columns);
+            int rowSpan = Math.Max(1, child.RowSpan);
+
+            int row = 0;
+            bool placed = false;
+
+            while (!placed)
+            {
+                for (int column = 0; column < columns; column++)
+                {
+                    if (!IsFree(row, column, rowSpan, columnSpan)) continue;
+
+                    Occupy(row, column, rowSpan, columnSpan);
+                    placement.Add((child, row, column));
+
+                    placed = true;
+                    break;
+                }
+
+                if (!placed) row++;
+            }
+        }
+
+        int usedRows = Math.Max(rows, occupied.Count);
+
+        return (Math.Max(1, usedRows), columns, placement);
     }
 
     private Size CellSize(Size area, int rows, int columns) => new(
@@ -62,64 +129,65 @@ public class UniformGrid : PanelControl
             Math.Max(0, availableSize.Width - Padding.Horizontal),
             Math.Max(0, availableSize.Height - Padding.Vertical));
 
-        var (rows, columns) = ResolveGrid();
+        var (rows, columns, placement) = BuildPlacement();
         Size cell = CellSize(inner, rows, columns);
 
-        float maxChildWidth = 0;
-        float maxChildHeight = 0;
+        float maxCellWidth = 0;
+        float maxCellHeight = 0;
 
-        foreach (var child in Children)
+        foreach ((UIElement child, _, _) in placement)
         {
-            if (!child.IsVisible) continue;
+            Thickness m = child.Margin;
 
-            var m = child.Margin;
-            child.Measure(new Size(
-                Math.Max(0, cell.Width - m.Horizontal),
-                Math.Max(0, cell.Height - m.Vertical)));
+            int columnSpan = Math.Clamp(child.ColumnSpan, 1, columns);
+            int rowSpan = Math.Max(1, child.RowSpan);
 
-            maxChildWidth = Math.Max(maxChildWidth, child.DesiredSize.Width + m.Horizontal);
-            maxChildHeight = Math.Max(maxChildHeight, child.DesiredSize.Height + m.Vertical);
+            var childAvailable = new Size(
+                Math.Max(0, cell.Width * columnSpan + SpacingX * (columnSpan - 1) - m.Horizontal),
+                Math.Max(0, cell.Height * rowSpan + SpacingY * (rowSpan - 1) - m.Vertical));
+
+            child.Measure(childAvailable);
+
+            // приводим желаемый размер к размеру одной клетки,
+            // иначе широкий элемент раздует всю сетку
+            maxCellWidth = Math.Max(maxCellWidth, (child.DesiredSize.Width + m.Horizontal) / columnSpan);
+            maxCellHeight = Math.Max(maxCellHeight, (child.DesiredSize.Height + m.Vertical) / rowSpan);
         }
 
-        // собственный желаемый размер — самая большая ячейка, размноженная на сетку
         var content = new Size(
-            maxChildWidth * columns + SpacingX * (columns - 1) + Padding.Horizontal,
-            maxChildHeight * rows + SpacingY * (rows - 1) + Padding.Vertical);
+            maxCellWidth * columns + SpacingX * (columns - 1) + Padding.Horizontal,
+            maxCellHeight * rows + SpacingY * (rows - 1) + Padding.Vertical);
 
         return ResolveSize(content, availableSize);
     }
 
-    protected override void ArrangeContentOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size contentSize)
     {
         var area = new Rectangle(
             new Point(Padding.Left, Padding.Top),
             new Size(
-                Math.Max(0, finalSize.Width - Padding.Horizontal),
-                Math.Max(0, finalSize.Height - Padding.Vertical)));
+                Math.Max(0, contentSize.Width - Padding.Horizontal),
+                Math.Max(0, contentSize.Height - Padding.Vertical)));
 
-        var (rows, columns) = ResolveGrid();
+        var (rows, columns, placement) = BuildPlacement();
         Size cell = CellSize(area.Size, rows, columns);
 
-        int index = Math.Max(0, FirstColumn);
-
-        foreach (var child in Children)
+        foreach ((UIElement child, int row, int column) in placement)
         {
-            if (!child.IsVisible) continue;
+            Thickness m = child.Margin;
 
-            int row = index / columns;
-            int column = index % columns;
-            index++;
-
-            var m = child.Margin;
+            int columnSpan = Math.Clamp(child.ColumnSpan, 1, columns);
+            int rowSpan = Math.Max(1, child.RowSpan);
 
             float x = area.X + column * (cell.Width + SpacingX) + m.Left;
             float y = area.Y + row * (cell.Height + SpacingY) + m.Top;
 
+            float width = cell.Width * columnSpan + SpacingX * (columnSpan - 1) - m.Horizontal;
+            float height = cell.Height * rowSpan + SpacingY * (rowSpan - 1) - m.Vertical;
+
             child.Arrange(new Rectangle(
                 new Point(x, y),
-                new Size(
-                    Math.Max(0, cell.Width - m.Horizontal),
-                    Math.Max(0, cell.Height - m.Vertical))));
+                new Size(Math.Max(0, width), Math.Max(0, height))));
         }
     }
 }

@@ -228,6 +228,12 @@ public abstract class UIElement : IGridPlaceable
     // IGridPlaceable
     public int Row { get; set; }
     public int Column { get; set; }
+    /// <summary>Сколько ячеек занимает элемент по горизонтали в UniformGrid.</summary>
+    public int ColumnSpan { get; set; } = 1;
+
+    /// <summary>Сколько ячеек занимает элемент по вертикали в UniformGrid.</summary>
+    public int RowSpan { get; set; } = 1;
+
     public Size DesiredSize { get; private set; }
     public bool IsHitTestVisible { get; set; } = true;
 
