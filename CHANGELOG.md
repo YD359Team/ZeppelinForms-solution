@@ -2,9 +2,19 @@
 
 ## Feature [0.7.0]
 
+### Features
+- Add Ripple effect for buttons
 - Add Color.Lerp(Color,Color,float)
 - Add new colors in Colors class
 - Add constructor with single UIElement for WrapPanel
+- StackPanel now can align children
+- Add MainAxisAlignment
+- Add CrossAxisAlignment
+
+### New controls
+- Add PageControl 
+- Add Page
+- Add PageNavigation
 
 ## [0.6.0] — 2026-09-03
 
