@@ -510,4 +510,12 @@ public sealed class SkiaGraphics : Graphics
 
         _canvas.SaveLayer(paint);
     }
+
+    public override void ClipCircle(Point center, float radius)
+    {
+        using var path = new SKPath();
+        path.AddCircle(center.X, center.Y, Math.Max(0, radius));
+
+        _canvas.ClipPath(path, antialias: true);
+    }
 }

@@ -95,6 +95,7 @@ public static class Themes
                 button.DisabledTextColor = c.TextDisabled;
                 button.BorderColor = c.Border;
                 button.FocusRingColor = c.Accent;
+                button.RippleColor = new Color(70, 255, 255, 255);
             })
 
             .For<PrimaryButton>((button, c) =>
@@ -122,6 +123,7 @@ public static class Themes
                 button.DisabledTextColor = c.TextDisabled;
                 button.BorderColor = c.Accent;
                 button.FocusRingColor = c.Accent;
+                button.RippleColor = new Color(40, 0, 0, 0);
             })
 
             .For<DangerButton>((button, c) =>

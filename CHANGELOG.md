@@ -2,7 +2,9 @@
 
 ## Feature [0.7.0]
 
-
+- Add Color.Lerp(Color,Color,float)
+- Add new colors in Colors class
+- Add constructor with single UIElement for WrapPanel
 
 ## [0.6.0] — 2026-09-03
 

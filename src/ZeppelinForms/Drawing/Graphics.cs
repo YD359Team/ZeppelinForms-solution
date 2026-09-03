@@ -41,6 +41,8 @@ public abstract class Graphics
     /// <summary>Слой с приглушением: всё нарисованное внутри теряет
     /// насыщенность и прозрачность.</summary>
     public abstract void SaveDisabledLayer(float opacity, float desaturation);
+    /// <summary>Ограничить отрисовку кругом. Нужно для эффекта волны.</summary>
+    public abstract void ClipCircle(Point center, float radius);
 
     public abstract void ClipRoundRect(Rectangle rect, CornerRadius radius);
     public abstract void Rotate(float degrees);

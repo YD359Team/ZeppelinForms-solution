@@ -28,6 +28,27 @@ public static class SkiaRenderer
             canvas.Clear(SKColors.White);
         }
 
+        var (rippleActive, rippleOrigin, rippleRadius, rippleColor) = form.ThemeRipple;
+
+        if (rippleActive)
+        {
+            // старый фон остаётся за пределами круга, новый — внутри;
+            // содержимое рисуется поверх уже с новой темой
+            canvas.Save();
+
+            using var path = new SKPath();
+            path.AddCircle(rippleOrigin.X, rippleOrigin.Y, rippleRadius);
+            canvas.ClipPath(path, antialias: true);
+
+            using var paint = new SKPaint
+            {
+                Color = new SKColor(rippleColor.R, rippleColor.G, rippleColor.B, rippleColor.A),
+            };
+
+            canvas.DrawRect(new SKRect(0, 0, form.ClientSize.Width, form.ClientSize.Height), paint);
+            canvas.Restore();
+        }
+
         var g = new SkiaGraphics(canvas);
 
         if (form.Content is not null)

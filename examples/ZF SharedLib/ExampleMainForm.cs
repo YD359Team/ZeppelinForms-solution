@@ -25,27 +25,31 @@ public class ExampleMainForm : Form
         this.Size = new Size(1024, 768);
         this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
-        this.Content = GetView1();
+        this.Content = GetView();
+    }
+
+    private PageControl GetView()
+    {
+        PageControl root = new();
+        root.AddPage("home", () => GetView1(), "Home");
+        root.AddPage("controls", () => GetView2(), "Controls");
+        root.Navigate("controls");
+        root.GoBack();
+        return root;
     }
 
     private UIElement GetView1()
     {
-        DockPanel dockPanel = new DockPanel();
-        Button btnNext = new Button() { Text = "Goto view 2", Docking = Dock.Top };
-        btnNext.Click -= BtnNext_Click;
-        btnNext.Click += BtnNext_Click;
+        Page page = new Page();
         RichLabel lbl = new();
         lbl.SetText("Hi! Welcome to presentation of ", TextRun.Colored("Zeppelin Forms", Colors.Blue), " framework");
-        dockPanel.Children.AddRange([lbl, btnNext]);
-        return dockPanel;
+        page.Child = lbl;
+        return page;
     }
 
     private UIElement GetView2()
     {
-        DockPanel dockPanel = new DockPanel();
-        Button btnNext = new Button() { Text = "Goto view 1", Docking = Dock.Top };
-        btnNext.Click -= BtnBack_Click;
-        btnNext.Click += BtnBack_Click;
+        Page page = new Page();
         var grid = new UniformGrid
         {
             Padding = new Thickness(6),
@@ -97,19 +101,9 @@ public class ExampleMainForm : Form
             .. GetPlotControls()
         ];
         grid.Children.AddRange(controls);
-        dockPanel.Children.AddRange([grid, btnNext]);
+        page.Child = grid;
         map.GoTo(55.751244, 37.618423, zoom: 12);
-        return new GroupBox(dockPanel) { Header = "Controls" };
-    }
-
-    private void BtnBack_Click(object? sender, ZeppelinForms.Input.Mouse.MouseClickEventArgs e)
-    {
-        this.Content = GetView1();
-    }
-
-    private void BtnNext_Click(object? sender, ZeppelinForms.Input.Mouse.MouseClickEventArgs e)
-    {
-        this.Content = GetView2();
+        return page;
     }
 
     private UIElement[] GetPlotControls()

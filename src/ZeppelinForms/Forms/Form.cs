@@ -14,6 +14,7 @@ using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Layout;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
+using ZeppelinForms.Theming;
 
 namespace ZeppelinForms.Forms;
 
@@ -27,6 +28,11 @@ public class Form : IDisposable
     internal IPlatformWindow? PlatformWindow { get; set; }
 
     public WindowStartupLocation WindowStartupLocation { get; set; }
+
+    private Point _themeRippleOrigin;
+    private float _themeRippleRadius;
+    private Color _themeRippleColor;
+    private bool _themeRippleActive;
 
     private long _lastClickTicks;
     private Point _lastClickPoint;
@@ -369,6 +375,32 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     {
         Walk(root, App.Theme.Apply);
     }
+
+    /// <summary>Сменить тему с расходящейся волной от точки.</summary>
+    public void SwitchTheme(Theme theme, Point origin)
+    {
+        _themeRippleOrigin = origin;
+        _themeRippleColor = theme.Colors.Background;
+        _themeRippleActive = true;
+
+        float maxRadius = MathF.Sqrt(
+            ClientSize.Width * ClientSize.Width + ClientSize.Height * ClientSize.Height);
+
+        // тему применяем сразу, а волна прикрывает момент перекраски
+        App.Theme = theme;
+
+        var animation = new Animation<float>(
+            this, "theme-ripple", 0f, maxRadius, TimeSpan.FromMilliseconds(450),
+            Interpolators.Float,
+            value => { _themeRippleRadius = value; InvalidateVisual(); },
+            Easing.EaseOut,
+            completed: () => { _themeRippleActive = false; InvalidateVisual(); });
+
+        AddAnimation(animation);
+    }
+
+    internal (bool Active, Point Origin, float Radius, Color Color) ThemeRipple =>
+        (_themeRippleActive, _themeRippleOrigin, _themeRippleRadius, _themeRippleColor);
 
     public void Show()
     {

@@ -12,6 +12,17 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// </summary>
 public abstract class ButtonBase : UnitControl, IInputElement, IBorderedElement
 {
+    private readonly RippleEffect _ripple;
+
+    /// <summary>Показывать расходящуюся волну от точки нажатия.</summary>
+    public bool RippleEnabled { get; set; } = true;
+
+    public Color RippleColor
+    {
+        get => _ripple.Color;
+        set => _ripple.Color = value;
+    }
+
     public Color BackgroundColor { get; set; } = Colors.Transparent;
     public Color HoverBackgroundColor { get; set; } = Colors.Transparent;
     public Color PressedBackgroundColor { get; set; } = Colors.Transparent;
@@ -43,6 +54,8 @@ public abstract class ButtonBase : UnitControl, IInputElement, IBorderedElement
         Cursor = CursorKind.Hand;
         Padding = new Thickness(14, 6);
         CornerRadius = new CornerRadius(4f);
+
+        _ripple = new RippleEffect(this);
     }
 
     /// <summary>Цвет подложки под текущее состояние. Порядок проверок
@@ -73,6 +86,14 @@ public abstract class ButtonBase : UnitControl, IInputElement, IBorderedElement
 
     protected virtual Color CurrentTextColor => IsEnabled ? TextColor : DisabledTextColor;
 
+    protected override void OnMouseDown(MouseButtonEventArgs e)
+    {
+        if (!RippleEnabled || e.Button != MouseButton.Left) return;
+
+        Point abs = GetAbsolutePosition();
+        _ripple.Start(new Point(e.Location.X - abs.X, e.Location.Y - abs.Y));
+    }
+
     public sealed override void Draw(Graphics g)
     {
         Rectangle bounds = LocalBounds;
@@ -81,13 +102,14 @@ public abstract class ButtonBase : UnitControl, IInputElement, IBorderedElement
         if (background.A > 0)
             g.FillRoundRectangle(bounds, CornerRadius, background);
 
+        // волна между подложкой и содержимым: под текстом, над фоном
+        _ripple.Draw(g, bounds, CornerRadius);
+
         if (BorderWidth > 0 && BorderColor.A > 0)
             g.DrawRoundRectangle(bounds, CornerRadius, BorderColor, BorderWidth);
 
         DrawContent(g);
 
-        // кольцо фокуса поверх содержимого, чуть внутри границ —
-        // иначе оно обрежется клипом родителя
         if (IsFocused && ShowFocusRing && FocusRingColor.A > 0)
         {
             Rectangle ring = new(
