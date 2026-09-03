@@ -49,7 +49,7 @@ public class ExampleMainForm : Form
         var grid = new UniformGrid
         {
             Padding = new Thickness(6),
-            OverflowY = Overflow.Auto,        // прокрутка там, где нужна
+            OverflowY = Overflow.Auto,
             SpacingX = 5,
             SpacingY = 2,
         };
@@ -99,7 +99,7 @@ public class ExampleMainForm : Form
         grid.Children.AddRange(controls);
         dockPanel.Children.AddRange([grid, btnNext]);
         map.GoTo(55.751244, 37.618423, zoom: 12);
-        return new GroupBox { Child = dockPanel, Header = "Controls" };
+        return new GroupBox(dockPanel) { Header = "Controls" };
     }
 
     private void BtnBack_Click(object? sender, ZeppelinForms.Input.Mouse.MouseClickEventArgs e)

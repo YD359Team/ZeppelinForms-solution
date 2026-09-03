@@ -20,6 +20,16 @@ public class ZoomBox : WrapControl, IInputElement
     public bool TabStop { get; set; }
     public uint TabIndex { get; set; }
 
+    public ZoomBox()
+    {
+        
+    }
+
+    public ZoomBox(UIElement child) : base(child)
+    {
+
+    }
+
     public override void Draw(Graphics g) { }
 
     public void Zoom(float factor)

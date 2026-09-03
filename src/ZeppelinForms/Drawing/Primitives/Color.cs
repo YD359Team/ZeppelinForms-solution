@@ -25,13 +25,15 @@ public readonly record struct Color
     {
         return (uint)((A << 24) | (R << 16) | (G << 8) | B);
     }
-}
 
-public static class Colors
-{
-    public static readonly Color Transparent = new(0, 0, 0, 0);
-    public static readonly Color Black = new(255, 0, 0, 0);
-    public static readonly Color White = new(255, 255, 255, 255);
-    public static readonly Color Red = new(255, 255, 0, 0);
-    public static readonly Color Blue = new(255, 0, 0, 255);
+    public static Color Lerp(Color a, Color b, float t) 
+    { 
+        t = Math.Clamp(t, 0f, 1f); 
+        return new(
+            (byte)(a.A + (b.A - a.A) * t), 
+            (byte)(a.R + (b.R - a.R) * t), 
+            (byte)(a.G + (b.G - a.G) * t), 
+            (byte)(a.B + (b.B - a.B) * t)
+        ); 
+    }
 }

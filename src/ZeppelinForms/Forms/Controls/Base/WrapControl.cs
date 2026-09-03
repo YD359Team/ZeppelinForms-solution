@@ -35,6 +35,16 @@ public abstract class WrapControl : UIElement
         }
     }
 
+    public WrapControl()
+    {
+        
+    }
+
+    public WrapControl(UIElement child)
+    {
+        this.Child = child;
+    }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         var content = new Size(

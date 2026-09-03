@@ -109,8 +109,11 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 33 | GridSplitter | ✅ |
 | 34 | MaskedTextBox | ✅ |
 | 35 | HintLabel | ✅ |
+| 36 | MapControl | ✅ |
+| 37 | PropertyGrid | ✅** |
 
-\* - есть баги и отсуствует часть API
+\* - есть баги и отсутствует часть API \
+\** - пока работает только для некоторых контролов
 
 #### Панели
 
@@ -156,6 +159,8 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 1 | Border      | ✅ |
 | 2 | Spoiler     | ✅ |
 | 3 | ZoomBox     | ✅ |
+| 4 | GroupBox     | ✅ |
+| 5 | LayoutBuilder | ✅ |
 
 ### 🎄 Темы
 

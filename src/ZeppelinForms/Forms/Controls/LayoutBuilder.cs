@@ -24,6 +24,16 @@ public class LayoutBuilder : WrapControl
 
     public event EventHandler? ContentRebuilt;
 
+    public LayoutBuilder()
+    {
+        
+    }
+
+    public LayoutBuilder(UIElement child) : base(child)
+    {
+
+    }
+
     public override void Draw(Graphics g) { }
 
     /// <summary>Пересобрать содержимое принудительно — например, после

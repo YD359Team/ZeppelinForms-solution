@@ -44,6 +44,11 @@ public class Spoiler : WrapControl, IBorderedElement
         VerticalAlignment = VerticalAlignment.Top;
     }
 
+    public Spoiler(UIElement child) : base(child)
+    {
+        VerticalAlignment = VerticalAlignment.Top;
+    }
+
     private Rectangle HeaderRect => new(Point.Empty, new Size(ActualSize.Width, HeaderHeight));
 
     // Ребёнок прячется через IsVisible, а не через "пропустим Arrange":

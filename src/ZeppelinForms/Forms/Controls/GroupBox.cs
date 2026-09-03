@@ -31,6 +31,11 @@ public class GroupBox : WrapControl, IBorderedElement
         Padding = new Thickness(10, 8);
     }
 
+    public GroupBox(UIElement child) : base(child)
+    {
+        Padding = new Thickness(10, 8);
+    }
+
     private float HeaderHeight
     {
         get
