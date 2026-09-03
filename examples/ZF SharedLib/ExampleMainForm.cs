@@ -57,6 +57,7 @@ public class ExampleMainForm : Form
         PrimaryButton btn = new()
         {
             Text = "Goto project GitHub",
+            Font = new Font("Segoe UI", 16f),
             Size = new(200, 80)
         };
         StackPanel stackPanel = new()
