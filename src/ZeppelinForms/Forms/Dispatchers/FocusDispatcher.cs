@@ -83,3 +83,18 @@ public class FocusDispatcher
         }
     }
 }
+
+public class OverlayManager
+{
+
+}
+
+public class InputRouter
+{
+
+}
+
+public class DebugInspector
+{
+
+}

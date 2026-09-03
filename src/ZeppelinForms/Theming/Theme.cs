@@ -1,6 +1,7 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Theming;
 
@@ -32,6 +33,27 @@ public sealed class Theme
                 apply(element);
                 return;
             }
+        }
+    }
+
+    internal static void Apply(UIElement element, ControlStyle style)
+    {
+        if (style.Background is Color bg) element.Background = bg;
+        if (style.CornerRadius is CornerRadius radius) element.CornerRadius = radius;
+
+        if (element is DecoratedControl decorated)
+        {
+            if (style.Border is Color border) decorated.BorderColor = border;
+        }
+
+        if (element is InteractiveControl interactive)
+        {
+            if (style.BorderFocus is Color focus) interactive.FocusBorderColor = focus;
+        }
+
+        if (element is ITextElement text)
+        {
+            if (style.Text is Color color) text.TextColor = color;
         }
     }
 }
