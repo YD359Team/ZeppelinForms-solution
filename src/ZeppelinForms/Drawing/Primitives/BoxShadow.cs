@@ -12,28 +12,3 @@ public sealed record BoxShadow(
     public static BoxShadow Medium => new(0, 4, 8, 0, new Color(50, 0, 0, 0));
     public static BoxShadow Large => new(0, 10, 20, 0, new Color(45, 0, 0, 0));
 }
-
-
-public sealed record DisplayInfo
-{
-    /// <summary>Полная область экрана в физических пикселях.</summary>
-    public required Rectangle Bounds { get; init; }
-
-    /// <summary>Область без панели задач и системных панелей.</summary>
-    public required Rectangle WorkingArea { get; init; }
-
-    public required float Scale { get; init; }
-
-    public required bool IsPrimary { get; init; }
-
-    public string? Name { get; init; }
-
-    /// <summary>Логический размер рабочей области — в этих единицах живут контролы.</summary>
-    public Size LogicalWorkingSize =>
-        new(WorkingArea.Width / Scale, WorkingArea.Height / Scale);
-}
-
-public interface IDisplayProvider
-{
-    IReadOnlyList<DisplayInfo> GetDisplays();
-}
