@@ -4,7 +4,6 @@ using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Controls.Base;
 
-// Base/DecoratedControl.cs
 /// <summary>Контрол с фоном, рамкой и скруглением. Рисует оформление сам,
 /// наследники добавляют только содержимое.</summary>
 public abstract class DecoratedControl : UnitControl, IBorderedElement

@@ -7,7 +7,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class CheckBox : UnitControl, ITextElement, IInputElement
+public class CheckBox : InteractiveControl, ITextElement
 {
     private const float BoxSize = 16f;
     private const float Gap = 6f;
@@ -51,31 +51,30 @@ public class CheckBox : UnitControl, ITextElement, IInputElement
 
     public event EventHandler? CheckedChanged;
 
+    public string? Text { get; set; }
+    public HorizontalContentAlignment ContentAlign { get; set; } = HorizontalContentAlignment.Left;
+    public VerticalContentAlignment ContentVerticalAlign { get; set; } = VerticalContentAlignment.Center;
+    public Color TextColor { get; set; } = Colors.Black;
+
+    public Color BoxBorderColor { get; set; } = Colors.Black;
+    public Color BoxBackground { get; set; } = Colors.White;
+    public Color CheckColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
+    public HorizontalContentAlignment HorizontalContentAlign { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public VerticalContentAlignment VerticalContentAlign { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+    public CheckBox()
+    {
+        Cursor = CursorKind.Hand;
+    }
+
     private void SetState(CheckedState state)
     {
         if (_checkState == state) return;
 
         _checkState = state;
         CheckedChanged?.Invoke(this, EventArgs.Empty);
-        Invalidate();
+        InvalidateVisual();
     }
-
-    // ITextElement
-    public string? Text { get; set; }
-    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
-    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
-    public Color TextColor { get; set; } = Colors.Black;
-
-    public Color BoxBorderColor { get; set; } = Colors.Black;
-    public Color BoxBackground { get; set; } = Colors.White;
-    public Color CheckColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
-
-    // IInputElement
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
-
-    protected override bool IsKeyActivatable => true;
 
     protected override void OnClick(MouseClickEventArgs e)
     {
@@ -91,18 +90,19 @@ public class CheckBox : UnitControl, ITextElement, IInputElement
         e.Handled = true;
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
-        var content = this.ContentBounds;
+        var content = ContentBounds;
 
         float boxY = content.Y + (content.Height - BoxSize) / 2f;
         var boxRect = new Rectangle(new Point(content.X, boxY), new Size(BoxSize, BoxSize));
 
-        // залитая рамка при отмеченном состоянии смотрится ближе к системным чекбоксам
+        // залитая рамка при отмеченном состоянии смотрится ближе к системным
         bool filled = _checkState != CheckedState.Unchecked;
+        var radius = new CornerRadius(3f);
 
-        g.FillRectangle(boxRect, filled ? CheckColor : BoxBackground);
-        g.DrawRectangle(boxRect, filled ? CheckColor : BoxBorderColor, 1.5f);
+        g.FillRoundRectangle(boxRect, radius, filled ? CheckColor : BoxBackground);
+        g.DrawRoundRectangle(boxRect, radius, filled ? CheckColor : BoxBorderColor, 1.5f);
 
         switch (_checkState)
         {
@@ -115,14 +115,13 @@ public class CheckBox : UnitControl, ITextElement, IInputElement
                 break;
         }
 
-        if (!string.IsNullOrEmpty(Text))
-        {
-            var textRect = new Rectangle(
-                new Point(content.X + BoxSize + Gap, content.Y),
-                new Size(Math.Max(0, content.Width - BoxSize - Gap), content.Height));
+        if (string.IsNullOrEmpty(Text)) return;
 
-            g.DrawText(Text, textRect, TextColor, EffectiveFont, HorizontalContentAlign, VerticalContentAlign);
-        }
+        var textRect = new Rectangle(
+            new Point(content.X + BoxSize + Gap, content.Y),
+            new Size(Math.Max(0, content.Width - BoxSize - Gap), content.Height));
+
+        g.DrawText(Text, textRect, TextColor, EffectiveFont, ContentAlign, ContentVerticalAlign);
     }
 
     private static void DrawCheckMark(Graphics g, Rectangle box)

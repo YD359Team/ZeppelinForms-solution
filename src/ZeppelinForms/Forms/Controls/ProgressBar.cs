@@ -6,7 +6,7 @@ using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ProgressBar : UnitControl, IBorderedElement
+public class ProgressBar : DecoratedControl
 {
     private float _value;
 
@@ -22,38 +22,30 @@ public class ProgressBar : UnitControl, IBorderedElement
             if (Math.Abs(_value - clamped) < 0.001f) return;
 
             _value = clamped;
-            Invalidate();
+            InvalidateVisual();
         }
     }
 
     public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
     public bool ShowPercentage { get; set; }
 
-    /// <summary>Своё форматирование подписи. Получает долю (0..1) и текущее значение.</summary>
+    /// <summary>Своё форматирование подписи: доля (0..1) и текущее значение.</summary>
     public Func<float, float, string>? TextFormatter { get; set; }
 
-    private string DisplayText
-    {
-        get
-        {
-            float fraction = Fraction;
-            return TextFormatter?.Invoke(fraction, Value) ?? $"{fraction * 100:0}%";
-        }
-    }
-
-    public Color FilledTextColor { get; set; } = Colors.White;
     public Color FillColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
     public Color TrackColor { get; set; } = new Color(255, 230, 230, 230);
     public Color TextColor { get; set; } = Colors.Black;
-
-    public Color BorderColor { get; set; } = new Color(255, 180, 180, 180);
-    public float BorderWidth { get; set; } = 1f;
+    public Color FilledTextColor { get; set; } = Colors.White;
 
     public ProgressBar()
     {
         // полоса прогресса по своей природе тянется вдоль, а не сохраняет размер
         HorizontalAlignment = HorizontalAlignment.Stretch;
         VerticalAlignment = VerticalAlignment.Center;
+
+        BorderColor = new Color(255, 180, 180, 180);
+        BorderWidth = 1f;
     }
 
     private float Fraction
@@ -65,12 +57,21 @@ public class ProgressBar : UnitControl, IBorderedElement
         }
     }
 
-    public override void Draw(Graphics g)
+    private string DisplayText
     {
-        var bounds = this.LocalBounds;
+        get
+        {
+            float fraction = Fraction;
+            return TextFormatter?.Invoke(fraction, _value) ?? $"{fraction * 100:0}%";
+        }
+    }
 
-        g.FillRectangle(bounds, TrackColor);
+    // дорожка — это фон полосы, поэтому подменяем его целиком
+    protected override Color CurrentBackground => TrackColor;
 
+    protected override void DrawContent(Graphics g)
+    {
+        Rectangle bounds = LocalBounds;
         float fraction = Fraction;
 
         if (fraction > 0)
@@ -82,32 +83,28 @@ public class ProgressBar : UnitControl, IBorderedElement
                     new Point(bounds.X, bounds.Y + bounds.Height * (1 - fraction)),
                     new Size(bounds.Width, bounds.Height * fraction));
 
-            g.FillRectangle(fill, FillColor);
+            g.FillRoundRectangle(fill, CornerRadius, FillColor);
         }
 
-        if (BorderWidth > 0)
-            g.DrawRectangle(bounds, BorderColor, BorderWidth);
+        if (!ShowPercentage) return;
 
-        if (ShowPercentage)
-        {
-            string label = DisplayText;
+        string label = DisplayText;
 
-            // тот же текст двумя цветами: контраст сохраняется
-            // и на заполненной части, и на дорожке
-            g.Save();
-            g.ClipRect(new Rectangle(bounds.Position, new Size(bounds.Width * fraction, bounds.Height)));
-            g.DrawText(label, bounds, FilledTextColor, EffectiveFont,
-                HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
-            g.Restore();
+        // тот же текст двумя цветами: контраст сохраняется
+        // и на заполненной части, и на дорожке
+        g.Save();
+        g.ClipRect(new Rectangle(bounds.Position, new Size(bounds.Width * fraction, bounds.Height)));
+        g.DrawText(label, bounds, FilledTextColor, EffectiveFont,
+            HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
+        g.Restore();
 
-            g.Save();
-            g.ClipRect(new Rectangle(
-                new Point(bounds.X + bounds.Width * fraction, bounds.Y),
-                new Size(bounds.Width * (1 - fraction), bounds.Height)));
-            g.DrawText(label, bounds, TextColor, EffectiveFont,
-                HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
-            g.Restore();
-        }
+        g.Save();
+        g.ClipRect(new Rectangle(
+            new Point(bounds.X + bounds.Width * fraction, bounds.Y),
+            new Size(bounds.Width * (1 - fraction), bounds.Height)));
+        g.DrawText(label, bounds, TextColor, EffectiveFont,
+            HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
+        g.Restore();
     }
 
     protected override Size MeasureOverride(Size availableSize)

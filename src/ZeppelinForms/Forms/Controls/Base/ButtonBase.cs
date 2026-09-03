@@ -8,9 +8,9 @@ namespace ZeppelinForms.Forms.Controls.Base;
 
 /// <summary>
 /// Общая основа нажимаемых контролов: состояния, цвета под каждое
-/// состояние и отрисовка подложки. Содержимое рисуют наследники.
+/// состояние и волна нажатия. Содержимое рисуют наследники.
 /// </summary>
-public abstract class ButtonBase : UnitControl, IInputElement, IBorderedElement
+public abstract class ButtonBase : InteractiveControl
 {
     private readonly RippleEffect _ripple;
 
@@ -34,17 +34,8 @@ public abstract class ButtonBase : UnitControl, IInputElement, IBorderedElement
     public Color TextColor { get; set; } = Colors.Black;
     public Color DisabledTextColor { get; set; } = new Color(255, 160, 160, 160);
 
-    public Color BorderColor { get; set; } = Colors.Transparent;
-    public float BorderWidth { get; set; } = 1f;
-
     public Color FocusRingColor { get; set; } = Colors.Transparent;
     public bool ShowFocusRing { get; set; } = true;
-
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
-
-    protected override bool IsKeyActivatable => true;
 
     /// <summary>Залипшее состояние — для ToggleButton и подобных.</summary>
     protected virtual bool IsCheckedState => false;
@@ -54,13 +45,14 @@ public abstract class ButtonBase : UnitControl, IInputElement, IBorderedElement
         Cursor = CursorKind.Hand;
         Padding = new Thickness(14, 6);
         CornerRadius = new CornerRadius(4f);
+        BorderWidth = 1f;
 
         _ripple = new RippleEffect(this);
     }
 
     /// <summary>Цвет подложки под текущее состояние. Порядок проверок
     /// определяет приоритет: выключено важнее нажатия, нажатие важнее наведения.</summary>
-    protected virtual Color CurrentBackground
+    protected override Color CurrentBackground
     {
         get
         {
@@ -94,34 +86,33 @@ public abstract class ButtonBase : UnitControl, IInputElement, IBorderedElement
         _ripple.Start(new Point(e.Location.X - abs.X, e.Location.Y - abs.Y));
     }
 
-    public sealed override void Draw(Graphics g)
+    /// <summary>
+    /// Волна рисуется первой, до содержимого: она должна лежать
+    /// на подложке и под текстом.
+    /// </summary>
+    protected sealed override void DrawContent(Graphics g)
     {
-        Rectangle bounds = LocalBounds;
-        Color background = CurrentBackground;
+        _ripple.Draw(g, LocalBounds, CornerRadius);
 
-        if (background.A > 0)
-            g.FillRoundRectangle(bounds, CornerRadius, background);
-
-        // волна между подложкой и содержимым: под текстом, над фоном
-        _ripple.Draw(g, bounds, CornerRadius);
-
-        if (BorderWidth > 0 && BorderColor.A > 0)
-            g.DrawRoundRectangle(bounds, CornerRadius, BorderColor, BorderWidth);
-
-        DrawContent(g);
-
-        if (IsFocused && ShowFocusRing && FocusRingColor.A > 0)
-        {
-            Rectangle ring = new(
-                new Point(bounds.X + 2, bounds.Y + 2),
-                new Size(Math.Max(0, bounds.Width - 4), Math.Max(0, bounds.Height - 4)));
-
-            g.DrawRoundRectangle(ring, CornerRadius, FocusRingColor, 1.5f);
-        }
+        DrawButtonContent(g);
     }
 
-    /// <summary>Нарисовать содержимое поверх подложки.</summary>
-    protected abstract void DrawContent(Graphics g);
+    /// <summary>Содержимое кнопки поверх подложки и волны.</summary>
+    protected abstract void DrawButtonContent(Graphics g);
+
+    protected override void DrawDecoration(Graphics g)
+    {
+        if (!IsFocused || !ShowFocusRing || FocusRingColor.A == 0) return;
+
+        Rectangle bounds = LocalBounds;
+
+        // кольцо чуть внутри границ, иначе обрежется клипом родителя
+        var ring = new Rectangle(
+            new Point(bounds.X + 2, bounds.Y + 2),
+            new Size(Math.Max(0, bounds.Width - 4), Math.Max(0, bounds.Height - 4)));
+
+        g.DrawRoundRectangle(ring, CornerRadius, FocusRingColor, 1.5f);
+    }
 
     protected override void OnClick(MouseClickEventArgs e)
     {
