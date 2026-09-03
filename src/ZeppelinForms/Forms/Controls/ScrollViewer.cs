@@ -11,6 +11,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// Технически панель: содержимое и полоса прокрутки — обычные Children,
 /// поэтому хит-тестинг, клип и рендер работают без правок.
 /// </summary>
+[Obsolete]
 public class ScrollViewer : StackPanel
 {
     public UIElement? Content

@@ -2,6 +2,9 @@
 
 ## Feature [0.7.0]
 
+### Breaking changes
+- ScrollViewer marked as obsolete
+
 ### Features
 - Add Ripple effect for buttons
 - Add Color.Lerp(Color,Color,float)
