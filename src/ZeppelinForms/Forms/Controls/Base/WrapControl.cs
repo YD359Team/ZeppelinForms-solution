@@ -45,6 +45,9 @@ public abstract class WrapControl : UIElement
         this.Child = child;
     }
 
+    /// <summary>Рисуется после потомка и вне его отсечения.</summary>
+    protected internal virtual void DrawOverlay(Graphics g) { }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         var content = new Size(

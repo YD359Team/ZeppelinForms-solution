@@ -21,7 +21,7 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
 
             _selectedIndex = clamped;
             SelectionChanged?.Invoke(this, EventArgs.Empty);
-            Invalidate();
+            InvalidateVisual();
         }
     }
 
@@ -32,11 +32,11 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
 
     public Color SelectionColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
 
-    // IBorderedElement
     public Color BorderColor { get; set; } = Colors.Black;
     public float BorderWidth { get; set; } = 1f;
 
-    // IInputElement
+    public Color FocusBorderColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
+
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; } = true;
     public uint TabIndex { get; set; }
@@ -49,42 +49,53 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
     public override void Draw(Graphics g)
     {
         if (Background.A > 0)
-            g.FillRectangle(this.LocalBounds, Background);
+            g.FillRoundRectangle(LocalBounds, CornerRadius, Background);
 
-        // подсветка выделенной строки рисуется ДО детей —
-        // SkiaRenderer вызывает panel.Draw() перед обходом Children,
-        // так что она окажется под текстом, а не поверх
+        // подсветка выделенной строки рисуется до потомков:
+        // SkiaRenderer вызывает Draw, затем обходит Children
         if (_selectedIndex >= 0 && _selectedIndex < Children.Count)
         {
-            var container = Children[_selectedIndex];
-            var highlight = new Rectangle(
-                new Point(ContentBounds.X, container.Position.Y),
-                new Size(ContentBounds.Width, container.ActualSize.Height));
+            UIElement container = Children[_selectedIndex];
 
-            g.FillRectangle(highlight, SelectionColor);
+            g.FillRectangle(
+                new Rectangle(
+                    new Point(ContentBounds.X, container.Position.Y),
+                    new Size(ContentBounds.Width, container.ActualSize.Height)),
+                SelectionColor);
         }
-
-        if (BorderWidth > 0)
-            g.DrawRectangle(this.LocalBounds, IsFocused ? new Color(255, 0x0D, 0x6E, 0xFD) : BorderColor, BorderWidth);
     }
 
-	protected override void OnPreviewMouseDown(Point args)
-	{
-		float localY = args.Y - GetAbsolutePosition().Y;
+    protected internal override void DrawOverlay(Graphics g)
+    {
+        // рамка поверх строк, но под полосами прокрутки
+        if (BorderWidth > 0)
+        {
+            Color border = IsFocused && FocusBorderColor.A > 0 ? FocusBorderColor : BorderColor;
+            g.DrawRoundRectangle(LocalBounds, CornerRadius, border, BorderWidth);
+        }
 
-		for (int i = 0; i < Children.Count; i++)
-		{
-			UIElement child = Children[i];
+        base.DrawOverlay(g);
+    }
 
-			if (localY >= child.Position.Y && localY < child.Position.Y + child.ActualSize.Height)
-			{
-				SelectedIndex = i;
-				return;
-			}
-		}
-	}
+    /// <summary>Выбор строки по нажатию, а не по клику: содержимое строки
+    /// может погасить клик, а выделение всё равно должно смениться.</summary>
+    protected override void OnPreviewMouseDown(Point location)
+    {
+        float localY = location.Y - GetAbsolutePosition().Y;
 
-	protected override void OnKeyDown(KeyEventArgs e)
+        for (int i = 0; i < Children.Count; i++)
+        {
+            UIElement child = Children[i];
+
+            if (localY >= child.Position.Y && localY < child.Position.Y + child.ActualSize.Height)
+            {
+                SelectedIndex = i;
+                return;
+            }
+        }
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
     {
         switch (e.Key)
         {

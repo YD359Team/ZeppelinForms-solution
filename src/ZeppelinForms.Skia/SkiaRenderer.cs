@@ -129,6 +129,7 @@ public static class SkiaRenderer
 
             case WrapControl wrap:
                 wrap.Draw(g);
+
                 if (wrap.Child is not null)
                 {
                     g.Save();
@@ -137,6 +138,9 @@ public static class SkiaRenderer
                     Draw(wrap.Child, g, clip);
                     g.Restore();
                 }
+
+                // рамка не должна обрезаться содержимым
+                wrap.DrawOverlay(g);
                 break;
 
             case PanelControl panel:

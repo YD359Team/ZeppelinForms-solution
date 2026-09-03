@@ -9,7 +9,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// <summary>
 /// Рамка с заголовком, врезанным в верхнюю линию — как GroupBox в WinForms.
 /// </summary>
-public class GroupBox : WrapControl, IBorderedElement
+public class GroupBox : DecoratedWrapControl
 {
     private const float HeaderSideGap = 8f;
     private const float HeaderTextPadding = 4f;
@@ -23,17 +23,11 @@ public class GroupBox : WrapControl, IBorderedElement
 
     public HorizontalContentAlignment HeaderAlign { get; set; } = HorizontalContentAlignment.Left;
 
-    public Color BorderColor { get; set; } = new Color(255, 200, 200, 200);
-    public float BorderWidth { get; set; } = 1f;
-
     public GroupBox()
     {
         Padding = new Thickness(10, 8);
-    }
-
-    public GroupBox(UIElement child) : base(child)
-    {
-        Padding = new Thickness(10, 8);
+        BorderColor = new Color(255, 200, 200, 200);
+        BorderWidth = 1f;
     }
 
     private float HeaderHeight
@@ -43,7 +37,7 @@ public class GroupBox : WrapControl, IBorderedElement
             if (string.IsNullOrEmpty(Header)) return 0;
 
             // высота по эталонной паре, а не по самому тексту: иначе рамка
-            // будет дёргаться при смене заголовка из-за выносных элементов букв
+            // дёргается при смене заголовка из-за выносных элементов букв
             return TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
         }
     }
@@ -52,44 +46,54 @@ public class GroupBox : WrapControl, IBorderedElement
         ? 0
         : TextMeasurer.Current.MeasureText(Header, EffectiveFont).Width;
 
-    public override void Draw(Graphics g)
+    private Rectangle Frame
+    {
+        get
+        {
+            // рамка начинается на середине строки заголовка — так текст
+            // визуально «врезан» в линию, а не висит над ней
+            float top = HeaderHeight / 2f;
+
+            return new Rectangle(
+                new Point(BorderWidth / 2f, top),
+                new Size(
+                    Math.Max(0, ActualSize.Width - BorderWidth),
+                    Math.Max(0, ActualSize.Height - top - BorderWidth / 2f)));
+        }
+    }
+
+    /// <summary>Фон рисуем сами, по прямоугольнику рамки: базовый залил бы
+    /// и полосу заголовка над ней.</summary>
+    protected override Color CurrentBackground => Colors.Transparent;
+
+    protected override void DrawContent(Graphics g)
     {
         if (Background.A > 0)
-            g.FillRoundRectangle(LocalBounds, CornerRadius, Background);
+            g.FillRoundRectangle(Frame, CornerRadius, Background);
+    }
 
-        float headerHeight = HeaderHeight;
+    protected override void DrawDecoration(Graphics g)
+    {
+        Rectangle frame = Frame;
 
-        // рамка начинается на середине строки заголовка — так текст
-        // визуально «врезан» в линию, а не висит над ней
-        float top = headerHeight / 2f;
-
-        var frame = new Rectangle(
-            new Point(BorderWidth / 2f, top),
-            new Size(
-                Math.Max(0, ActualSize.Width - BorderWidth),
-                Math.Max(0, ActualSize.Height - top - BorderWidth / 2f)));
-
-        if (BorderWidth > 0)
+        if (BorderWidth > 0 && BorderColor.A > 0)
         {
             if (string.IsNullOrEmpty(Header))
-            {
                 g.DrawRoundRectangle(frame, CornerRadius, BorderColor, BorderWidth);
-            }
             else
-            {
-                DrawFrameWithGap(g, frame, headerHeight);
-            }
+                DrawFrameWithGap(g, frame);
         }
 
         if (string.IsNullOrEmpty(Header)) return;
 
-        float textX = HeaderTextX(frame);
-
         g.DrawText(Header,
-            new Rectangle(new Point(textX, 0), new Size(HeaderWidth, headerHeight)),
+            new Rectangle(new Point(HeaderTextX(frame), 0), new Size(HeaderWidth, HeaderHeight)),
             HeaderColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
     }
+
+    // базовая рамка не подходит: её рисует DrawDecoration с разрывом
+    protected override Color CurrentBorderColor => Colors.Transparent;
 
     private float HeaderTextX(Rectangle frame) => HeaderAlign switch
     {
@@ -99,11 +103,10 @@ public class GroupBox : WrapControl, IBorderedElement
     };
 
     /// <summary>
-    /// Рисует рамку из четырёх сторон, оставляя разрыв в верхней линии
-    /// под заголовок. Целиком прямоугольник рисовать нельзя — линия
-    /// прошла бы прямо через текст.
+    /// Рамка из четырёх сторон с разрывом в верхней линии под заголовок:
+    /// целиком прямоугольник прошёл бы прямо через текст.
     /// </summary>
-    private void DrawFrameWithGap(Graphics g, Rectangle frame, float headerHeight)
+    private void DrawFrameWithGap(Graphics g, Rectangle frame)
     {
         float textX = HeaderTextX(frame);
 
@@ -114,7 +117,6 @@ public class GroupBox : WrapControl, IBorderedElement
         float right = frame.X + frame.Width;
         float bottom = frame.Y + frame.Height;
 
-        // верхняя линия двумя отрезками по бокам от заголовка
         if (gapStart > frame.X)
             g.DrawLine(new Point(frame.X, y), new Point(gapStart, y), BorderColor, BorderWidth);
 
@@ -145,11 +147,11 @@ public class GroupBox : WrapControl, IBorderedElement
         // ширина не меньше заголовка с отступами, иначе текст вылезет за рамку
         float minWidth = HeaderWidth + HeaderIndent + HeaderSideGap * 2;
 
-        var content = new Size(
-            Math.Max(childDesired.Width + Padding.Horizontal, minWidth),
-            childDesired.Height + Padding.Vertical + headerHeight);
-
-        return ResolveSize(content, availableSize);
+        return ResolveSize(
+            new Size(
+                Math.Max(childDesired.Width + Padding.Horizontal, minWidth),
+                childDesired.Height + Padding.Vertical + headerHeight),
+            availableSize);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
