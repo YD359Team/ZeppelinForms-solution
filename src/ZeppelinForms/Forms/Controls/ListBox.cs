@@ -110,5 +110,3 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
         }
     }
 }
-
-public enum PageTransition { None, Fade, SlideLeft, SlideRight, SlideUp, SlideDown }

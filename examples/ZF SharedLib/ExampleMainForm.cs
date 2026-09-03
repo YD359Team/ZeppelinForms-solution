@@ -61,7 +61,8 @@ public class ExampleMainForm : Form
         StackPanel stackPanel = new()
         {
             Orientation = Orientation.Vertical,
-            Docking = Dock.Fill,
+            MainAxisAlignment = MainAxisAlignment.Center,
+            Spacing = 6,
         };
         stackPanel.Children.AddRange([lbl, btn]);
         return stackPanel;

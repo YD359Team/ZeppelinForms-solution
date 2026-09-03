@@ -9,6 +9,8 @@ public class StackPanel : PanelControl
 {
     public Orientation Orientation { get; set; } = Orientation.Vertical;
     public float Spacing { get; set; }
+    public MainAxisAlignment MainAxisAlignment { get; set; } = MainAxisAlignment.Start;
+    public CrossAxisAlignment CrossAxisAlignment { get; set; } = CrossAxisAlignment.Stretch;
 
     private bool IsVertical => Orientation == Orientation.Vertical;
 
@@ -113,33 +115,41 @@ public class StackPanel : PanelControl
                 Math.Max(0, finalSize.Width - Padding.Horizontal),
                 Math.Max(0, finalSize.Height - Padding.Vertical)));
 
-        float fixedMain = 0;
-        float totalFlex = 0;
-        int visibleCount = 0;
+        List<UIElement> visible = [];
 
         foreach (UIElement child in Children)
+            if (child.IsVisible)
+                visible.Add(child);
+
+        if (visible.Count == 0) return;
+
+        float fixedMain = 0;
+        float totalFlex = 0;
+
+        foreach (UIElement child in visible)
         {
-            if (!child.IsVisible) continue;
-
-            visibleCount++;
-
             if (child.FlexGrow > 0)
                 totalFlex += child.FlexGrow;
             else
                 fixedMain += MainOf(child.DesiredSize) + MainMargin(child.Margin);
         }
 
-        float spacingTotal = visibleCount > 1 ? Spacing * (visibleCount - 1) : 0;
-        float freeMain = Math.Max(0, MainOf(content.Size) - fixedMain - spacingTotal);
+        float availableMain = MainOf(content.Size);
+        float spacingTotal = Spacing * (visible.Count - 1);
+        float freeMain = Math.Max(0, availableMain - fixedMain - spacingTotal);
 
-        float offset = IsVertical ? content.Y : content.X;
+        // при наличии гибких детей свободного места не остаётся —
+        // распределять нечего, выравнивание вдоль оси не применяется
+        float leftover = totalFlex > 0 ? 0 : freeMain;
+
+        var (startOffset, gap) = Distribute(leftover, visible.Count);
+
+        float offset = (IsVertical ? content.Y : content.X) + startOffset;
         bool first = true;
 
-        foreach (UIElement child in Children)
+        foreach (UIElement child in visible)
         {
-            if (!child.IsVisible) continue;
-
-            if (!first) offset += Spacing;
+            if (!first) offset += Spacing + gap;
             first = false;
 
             Thickness m = child.Margin;
@@ -148,13 +158,25 @@ public class StackPanel : PanelControl
                 ? Math.Max(0, freeMain * (child.FlexGrow / totalFlex) - MainMargin(m))
                 : MainOf(child.DesiredSize);
 
+            float crossAvailable = CrossOf(content.Size) - CrossMargin(m);
+            float cross = CrossAxisAlignment == CrossAxisAlignment.Stretch
+                ? crossAvailable
+                : Math.Min(CrossOf(child.DesiredSize), crossAvailable);
+
+            float crossOffset = CrossAxisAlignment switch
+            {
+                CrossAxisAlignment.Center => (crossAvailable - cross) / 2f,
+                CrossAxisAlignment.End => crossAvailable - cross,
+                _ => 0f,
+            };
+
             if (IsVertical)
             {
                 offset += m.Top;
 
                 child.Arrange(new Rectangle(
-                    new Point(content.X + m.Left, offset),
-                    new Size(Math.Max(0, content.Width - m.Horizontal), main)));
+                    new Point(content.X + m.Left + crossOffset, offset),
+                    new Size(Math.Max(0, cross), main)));
 
                 offset += child.ActualSize.Height + m.Bottom;
             }
@@ -163,11 +185,33 @@ public class StackPanel : PanelControl
                 offset += m.Left;
 
                 child.Arrange(new Rectangle(
-                    new Point(offset, content.Y + m.Top),
-                    new Size(main, Math.Max(0, content.Height - m.Vertical))));
+                    new Point(offset, content.Y + m.Top + crossOffset),
+                    new Size(main, Math.Max(0, cross))));
 
                 offset += child.ActualSize.Width + m.Right;
             }
         }
+    }
+
+    /// <summary>Начальный отступ и добавочный промежуток между детьми.</summary>
+    private (float Start, float Gap) Distribute(float leftover, int count)
+    {
+        if (leftover <= 0) return (0f, 0f);
+
+        return MainAxisAlignment switch
+        {
+            MainAxisAlignment.Center => (leftover / 2f, 0f),
+            MainAxisAlignment.End => (leftover, 0f),
+
+            MainAxisAlignment.SpaceBetween => count > 1
+                ? (0f, leftover / (count - 1))
+                : (leftover / 2f, 0f),
+
+            MainAxisAlignment.SpaceAround => (leftover / count / 2f, leftover / count),
+
+            MainAxisAlignment.SpaceEvenly => (leftover / (count + 1), leftover / (count + 1)),
+
+            _ => (0f, 0f),
+        };
     }
 }

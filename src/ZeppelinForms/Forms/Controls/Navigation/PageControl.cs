@@ -21,7 +21,7 @@ public class PageControl : PanelControl
     public PageIndicator CreateIndicator(PageIndicatorStyle style = PageIndicatorStyle.Dots) =>
         new() { Target = this, Style = style };
 
-    public PageTransition Transition { get; set; } = PageTransition.Fade;
+    public PageTransition Transition { get; set; } = PageTransition.SlideLeft;
     public int TransitionDurationMs { get; set; } = 220;
 
     public Page? CurrentPage => _current;
@@ -93,6 +93,8 @@ public class PageControl : PanelControl
         _ => transition,
     };
 
+    private Rectangle _baseSlot;
+
     private void Switch(Page target, PageTransition transition)
     {
         Page? previous = _current;
@@ -105,43 +107,94 @@ public class PageControl : PanelControl
 
         Navigated?.Invoke(this, target);
 
-        if (transition == PageTransition.None || TransitionDurationMs <= 0)
+        // без окна тик кадра не идёт: анимация не завершится
+        // и уходящая страница останется висеть поверх новой
+        bool canAnimate = transition != PageTransition.None
+            && TransitionDurationMs > 0
+            && previous is not null
+            && FindOwner()?.PlatformWindow is not null;
+
+        if (!canAnimate)
         {
-            if (previous is not null) previous.IsVisible = false;
+            if (previous is not null)
+            {
+                previous.IsVisible = false;
+                previous.Opacity = 1f;
+            }
+
+            target.Opacity = 1f;
 
             _outgoing = null;
             _progress = 1f;
+            _activeTransition = PageTransition.None;
 
             Invalidate();
             return;
         }
 
-        // уходящая страница остаётся видимой до конца анимации,
-        // иначе переход будет с пустым кадром
         _outgoing = previous;
         _progress = 0f;
-
         _activeTransition = transition;
+
+        // пересчитываем раскладку один раз, чтобы обе страницы получили
+        // базовые позиции; дальше двигаем их напрямую, без Arrange
+        Invalidate();
+
+        Page outgoing = previous!;
 
         this.Animate("page", 0f, 1f, TimeSpan.FromMilliseconds(TransitionDurationMs),
             Interpolators.Float,
             value =>
             {
                 _progress = value;
+                ApplyTransition(target, outgoing);
                 InvalidateVisual();
             },
             Easing.EaseInOut,
             completed: () =>
             {
-                if (_outgoing is not null) _outgoing.IsVisible = false;
+                outgoing.IsVisible = false;
+                outgoing.Opacity = 1f;
+                target.Opacity = 1f;
 
                 _outgoing = null;
                 _progress = 1f;
+                _activeTransition = PageTransition.None;
 
                 Invalidate();
             });
+    }
 
-        Invalidate();
+    /// <summary>Сдвигает и подкрашивает страницы по текущему прогрессу.
+    /// Меняет только Position и Opacity — полная раскладка на каждый кадр не нужна.</summary>
+    private void ApplyTransition(Page incoming, Page outgoing)
+    {
+        if (_activeTransition == PageTransition.Fade)
+        {
+            incoming.Opacity = _progress;
+            outgoing.Opacity = 1f - _progress;
+            return;
+        }
+
+        (float dxIn, float dyIn) = OffsetDelta(incoming: true);
+        (float dxOut, float dyOut) = OffsetDelta(incoming: false);
+
+        incoming.Position = new Point(_baseSlot.X + dxIn, _baseSlot.Y + dyIn);
+        outgoing.Position = new Point(_baseSlot.X + dxOut, _baseSlot.Y + dyOut);
+    }
+
+    private (float Dx, float Dy) OffsetDelta(bool incoming)
+    {
+        float t = incoming ? 1f - _progress : -_progress;
+
+        return _activeTransition switch
+        {
+            PageTransition.SlideLeft => (_baseSlot.Width * t, 0f),
+            PageTransition.SlideRight => (-_baseSlot.Width * t, 0f),
+            PageTransition.SlideUp => (0f, _baseSlot.Height * t),
+            PageTransition.SlideDown => (0f, -_baseSlot.Height * t),
+            _ => (0f, 0f),
+        };
     }
 
     private PageTransition _activeTransition = PageTransition.None;
@@ -181,38 +234,19 @@ public class PageControl : PanelControl
                 Math.Max(0, contentSize.Width - Padding.Horizontal),
                 Math.Max(0, contentSize.Height - Padding.Vertical)));
 
+        // запоминаем базовый слот: анимация двигает страницы относительно него
+        _baseSlot = area;
+
         foreach (UIElement child in Children)
         {
             if (!child.IsVisible) continue;
 
-            Rectangle slot = area;
-
-            // во время перехода страницы разъезжаются: входящая приходит
-            // со своей стороны, уходящая уезжает в противоположную
-            if (_progress < 1f && _activeTransition is not PageTransition.None and not PageTransition.Fade)
-            {
-                bool incoming = ReferenceEquals(child, _current);
-                slot = OffsetFor(area, incoming);
-            }
-
-            child.Arrange(slot);
+            child.Arrange(area);
         }
-    }
 
-    private Rectangle OffsetFor(Rectangle area, bool incoming)
-    {
-        float t = incoming ? 1f - _progress : -_progress;
-
-        (float dx, float dy) = _activeTransition switch
-        {
-            PageTransition.SlideLeft => (area.Width * t, 0f),
-            PageTransition.SlideRight => (-area.Width * t, 0f),
-            PageTransition.SlideUp => (0f, area.Height * t),
-            PageTransition.SlideDown => (0f, -area.Height * t),
-            _ => (0f, 0f),
-        };
-
-        return new Rectangle(new Point(area.X + dx, area.Y + dy), area.Size);
+        // если раскладка случилась посреди перехода, восстанавливаем смещения
+        if (_progress < 1f && _outgoing is not null && _current is not null)
+            ApplyTransition(_current, _outgoing);
     }
 
     protected internal override void DrawOverlay(Graphics g)
