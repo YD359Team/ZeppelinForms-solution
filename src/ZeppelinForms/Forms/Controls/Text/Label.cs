@@ -9,17 +9,16 @@ namespace ZeppelinForms.Forms.Controls.Text;
 /// <summary>
 /// Control with caption
 /// </summary>
-public class Label : UnitControl, ITextElement, IBorderedElement
+public class Label : DecoratedControl, ITextElement
 {
     public string? Text { get; set; }
+
+    public HorizontalContentAlignment ContentAlign { get; set; }
+    public VerticalContentAlignment ContentVerticalAlign { get; set; }
+    public Color TextColor { get; set; } = Colors.Black;
     public HorizontalContentAlignment HorizontalContentAlign { get; set; }
     public VerticalContentAlignment VerticalContentAlign { get; set; }
-    public Color TextColor { get; set; } = Colors.Black;
 
-    public Color BorderColor { get; set; } = Colors.Black;
-    public float BorderWidth { get; set; } = 0f;
-
-    /// <summary>Межстрочный интервал как множитель высоты строки.</summary>
     public float LineSpacing { get; set; } = 1.2f;
 
     private string[] SplitLines() =>
@@ -28,23 +27,18 @@ public class Label : UnitControl, ITextElement, IBorderedElement
     private float LineHeight =>
         TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height * LineSpacing;
 
-    public override void Draw(Graphics g)
+    // фон, рамка и скругление рисует база — здесь только текст
+    protected override void DrawContent(Graphics g)
     {
-        if (this.BorderWidth > 0)
-            g.DrawRectangle(this.LocalBounds, this.BorderColor, this.BorderWidth);
+        if (string.IsNullOrEmpty(Text)) return;
 
-        if (string.IsNullOrEmpty(Text))
-            return;
-
-        var content = this.ContentBounds;
+        var content = ContentBounds;
         string[] lines = SplitLines();
 
         float lineHeight = LineHeight;
         float totalHeight = lineHeight * lines.Length;
 
-        // блок строк выравнивается по вертикали целиком,
-        // а каждая строка внутри своей полосы — по горизонтали
-        float startY = VerticalContentAlign switch
+        float startY = ContentVerticalAlign switch
         {
             VerticalContentAlignment.Top => content.Y,
             VerticalContentAlignment.Bottom => content.Y + content.Height - totalHeight,
@@ -53,15 +47,13 @@ public class Label : UnitControl, ITextElement, IBorderedElement
 
         for (int i = 0; i < lines.Length; i++)
         {
-            if (lines[i].Length == 0)
-                continue;
+            if (lines[i].Length == 0) continue;
 
-            var lineRect = new Rectangle(
-                new Point(content.X, startY + i * lineHeight),
-                new Size(content.Width, lineHeight));
-
-            g.DrawText(lines[i], lineRect, TextColor, EffectiveFont,
-                HorizontalContentAlign, VerticalContentAlignment.Center);
+            g.DrawText(lines[i],
+                new Rectangle(new Point(content.X, startY + i * lineHeight),
+                    new Size(content.Width, lineHeight)),
+                TextColor, EffectiveFont,
+                ContentAlign, VerticalContentAlignment.Center);
         }
     }
 
@@ -76,10 +68,8 @@ public class Label : UnitControl, ITextElement, IBorderedElement
         foreach (string line in lines)
             maxWidth = Math.Max(maxWidth, TextMeasurer.Current.MeasureText(line, EffectiveFont).Width);
 
-        var content = new Size(
-            maxWidth + Padding.Horizontal,
-            LineHeight * lines.Length + Padding.Vertical);
-
-        return ResolveSize(content, availableSize);
+        return ResolveSize(
+            new Size(maxWidth + Padding.Horizontal, LineHeight * lines.Length + Padding.Vertical),
+            availableSize);
     }
 }

@@ -9,7 +9,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ComboBox : UnitControl, IInputElement, IBorderedElement
+public class ComboBox : InteractiveControl
 {
     private const float ArrowWidth = 20f;
 
@@ -48,14 +48,6 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
 
     public Color TextColor { get; set; } = Colors.Black;
     public Color PlaceholderColor { get; set; } = new Color(255, 160, 160, 160);
-    public Color BorderColor { get; set; } = Colors.Black;
-    public float BorderWidth { get; set; } = 1f;
-
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
-
-    public bool IsDropDownOpen => _flyout.IsOpen;
 
     protected override bool IsKeyActivatable => true;
 
@@ -64,10 +56,12 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
         Background = Colors.White;
         Padding = new Thickness(6, 3);
         Cursor = CursorKind.Hand;
+        BorderWidth = 1f;
 
         _flyout = new FlyoutHost(this);
         _flyout.Closed += (_, _) => InvalidateVisual();
     }
+
 
     private string TextOf(object item) => DisplaySelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;
 
@@ -97,6 +91,32 @@ public class ComboBox : UnitControl, IInputElement, IBorderedElement
         float cy = content.Y + content.Height / 2f;
 
         // стрелка переворачивается, когда список раскрыт
+        ReadOnlySpan<Point> arrow = _flyout.IsOpen
+            ? [new(cx - 4.5f, cy + 2f), new(cx, cy - 3f), new(cx + 4.5f, cy + 2f)]
+            : [new(cx - 4.5f, cy - 2f), new(cx, cy + 3f), new(cx + 4.5f, cy - 2f)];
+
+        g.DrawPolyline(arrow, TextColor, 1.6f);
+    }
+
+    // рамка в фокусе — забота InteractiveControl через FocusBorderColor
+    protected override void DrawContent(Graphics g)
+    {
+        var content = ContentBounds;
+
+        var textArea = new Rectangle(
+            content.Position,
+            new Size(Math.Max(0, content.Width - ArrowWidth), content.Height));
+
+        if (SelectedItem is object item)
+            g.DrawText(TextOf(item), textArea, TextColor, EffectiveFont,
+                HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
+        else if (!string.IsNullOrEmpty(PlaceholderText))
+            g.DrawText(PlaceholderText, textArea, PlaceholderColor, EffectiveFont,
+                HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
+
+        float cx = content.X + content.Width - ArrowWidth / 2f;
+        float cy = content.Y + content.Height / 2f;
+
         ReadOnlySpan<Point> arrow = _flyout.IsOpen
             ? [new(cx - 4.5f, cy + 2f), new(cx, cy - 3f), new(cx + 4.5f, cy + 2f)]
             : [new(cx - 4.5f, cy - 2f), new(cx, cy + 3f), new(cx + 4.5f, cy - 2f)];

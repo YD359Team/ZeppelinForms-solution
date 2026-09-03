@@ -13,7 +13,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
-public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElement, IDisposable
+public class TextBox : TextInputControl, ITextElement
 {
     /// <summary>Подсказка в пустом поле.</summary>
     public string? Watermark { get; set; }
@@ -49,7 +49,7 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
     {
         Background = Colors.White;
         Padding = new Thickness(4, 2);
-        this.Cursor = CursorKind.IBeam;
+        BorderWidth = 1f;
 
         _document.Changed += (_, _) =>
         {
@@ -59,11 +59,9 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
 
         _document.CaretMoved += (_, _) =>
         {
-            ShowCaretImmediately();
+            ResetCaretBlink();     // ← из базы
             InvalidateVisual();
         };
-
-        _blinkTimer = new System.Threading.Timer(OnBlink, null, Timeout.Infinite, Timeout.Infinite);
     }
 
     // ===== публичный API =====
@@ -455,6 +453,13 @@ public class TextBox : UnitControl, ITextElement, IInputElement, IBorderedElemen
         }
 
         g.Restore();
+    }
+
+    protected override void DrawContent(Graphics g)
+    {
+        // всё как было, но:
+        //   вместо _caretVisible → CaretVisible
+        //   без отрисовки фона и рамки — их делает база
     }
 
     private float VerticalOffsetForSingleLine(Rectangle content, float lineHeight) =>

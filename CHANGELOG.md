@@ -13,6 +13,7 @@
 - StackPanel now can align children
 - Add MainAxisAlignment
 - Add CrossAxisAlignment
+- Now Grid correct work with RowSpan and ColumnSpan
 
 ### New controls
 - Add PageControl 
