@@ -27,15 +27,15 @@ public class Grid : PanelControl
         _colWidths = ResolveTracks(ColumnDefinitions, content.Width, horizontal: true);
         _rowHeights = ResolveTracks(RowDefinitions, content.Height, horizontal: false);
 
-        // окончательное измерение детей — уже по реальным размерам ячеек
-        foreach (var child in Children)
+        foreach (UIElement child in Children)
         {
             if (!child.IsVisible) continue;
-            var m = child.Margin;
+
+            Thickness m = child.Margin;
 
             child.Measure(new Size(
-                Math.Max(0, _colWidths.ElementAtOrDefault(child.Column) - m.Horizontal),
-                Math.Max(0, _rowHeights.ElementAtOrDefault(child.Row) - m.Vertical)));
+                Math.Max(0, SpanExtent(_colWidths, child.Column, child.ColumnSpan) - m.Horizontal),
+                Math.Max(0, SpanExtent(_rowHeights, child.Row, child.RowSpan) - m.Vertical)));
         }
 
         return ResolveSize(
@@ -51,15 +51,14 @@ public class Grid : PanelControl
                 Math.Max(0, finalSize.Width - Padding.Horizontal),
                 Math.Max(0, finalSize.Height - Padding.Vertical)));
 
-        // Auto-треки уже посчитаны в MeasureOverride по желаемым размерам детей;
-        // пересчитывать нельзя — Star-доли изменятся и раскладка «прыгнет»
         float[] colWidths = RedistributeStars(_colWidths, ColumnDefinitions, content.Width);
         float[] rowHeights = RedistributeStars(_rowHeights, RowDefinitions, content.Height);
 
-        foreach (var child in Children)
+        foreach (UIElement child in Children)
         {
             if (!child.IsVisible) continue;
-            var m = child.Margin;
+
+            Thickness m = child.Margin;
 
             float cellX = content.X + colWidths.Take(child.Column).Sum();
             float cellY = content.Y + rowHeights.Take(child.Row).Sum();
@@ -67,9 +66,25 @@ public class Grid : PanelControl
             child.Arrange(new Rectangle(
                 new Point(cellX + m.Left, cellY + m.Top),
                 new Size(
-                    Math.Max(0, colWidths.ElementAtOrDefault(child.Column) - m.Horizontal),
-                    Math.Max(0, rowHeights.ElementAtOrDefault(child.Row) - m.Vertical))));
+                    Math.Max(0, SpanExtent(colWidths, child.Column, child.ColumnSpan) - m.Horizontal),
+                    Math.Max(0, SpanExtent(rowHeights, child.Row, child.RowSpan) - m.Vertical))));
         }
+    }
+
+    /// <summary>Суммарный размер треков, которые занимает элемент.</summary>
+    private static float SpanExtent(float[] tracks, int start, int span)
+    {
+        if (tracks.Length == 0) return 0;
+
+        start = Math.Clamp(start, 0, tracks.Length - 1);
+        int count = Math.Clamp(span, 1, tracks.Length - start);
+
+        float total = 0;
+
+        for (int i = start; i < start + count; i++)
+            total += tracks[i];
+
+        return total;
     }
 
     private float[] ResolveTracks(List<GridLength> defs, float total, bool horizontal)
@@ -87,11 +102,13 @@ public class Grid : PanelControl
 
         if (hasAuto)
         {
-            foreach (var child in Children)
+            foreach (UIElement child in Children)
             {
                 if (!child.IsVisible) continue;
 
                 int track = horizontal ? child.Column : child.Row;
+                int span = Math.Max(1, horizontal ? child.ColumnSpan : child.RowSpan);
+
                 if (track < 0 || track >= defs.Count || !defs[track].IsAuto) continue;
 
                 child.Measure(horizontal
@@ -102,7 +119,9 @@ public class Grid : PanelControl
                     ? child.DesiredSize.Width + child.Margin.Horizontal
                     : child.DesiredSize.Height + child.Margin.Vertical;
 
-                sizes[track] = Math.Max(sizes[track], desired);
+                // растянутый на несколько треков элемент делит свои запросы
+                // между ними, иначе первый трек станет шириной всей кнопки «=»
+                sizes[track] = Math.Max(sizes[track], desired / span);
             }
         }
 
