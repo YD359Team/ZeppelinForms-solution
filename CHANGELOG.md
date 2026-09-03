@@ -14,7 +14,7 @@
 ### New controls
 - Add PageControl 
 - Add Page
-- Add PageNavigation
+- Add PageIndicator
 
 ## [0.6.0] — 2026-09-03
 
