@@ -9,6 +9,7 @@ using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Forms.Controls.Shapes;
 using ZeppelinForms.Forms.Controls.Map;
+using ZeppelinForms.Forms.Controls.Navigation;
 
 namespace ZF_SharedLib;
 
@@ -28,28 +29,46 @@ public class ExampleMainForm : Form
         this.Content = GetView();
     }
 
-    private PageControl GetView()
+    private UIElement GetView()
     {
         PageControl root = new();
         root.AddPage("home", () => GetView1(), "Home");
         root.AddPage("controls", () => GetView2(), "Controls");
-        root.Navigate("controls");
-        root.GoBack();
-        return root;
+        return new DockPanel
+        {
+            Children =
+            {
+                new Border
+                {
+                    Docking = Dock.Bottom,
+                    Padding = new Thickness(0, 6),
+                    Child = root.CreateIndicator(),
+                },
+                root
+            },
+        };
     }
 
     private UIElement GetView1()
     {
-        Page page = new Page();
         RichLabel lbl = new();
         lbl.SetText("Hi! Welcome to presentation of ", TextRun.Colored("Zeppelin Forms", Colors.Blue), " framework");
-        page.Child = lbl;
-        return page;
+        PrimaryButton btn = new()
+        {
+            Text = "Goto project GitHub",
+            Size = new(200, 80)
+        };
+        StackPanel stackPanel = new()
+        {
+            Orientation = Orientation.Vertical,
+            Docking = Dock.Fill,
+        };
+        stackPanel.Children.AddRange([lbl, btn]);
+        return stackPanel;
     }
 
     private UIElement GetView2()
     {
-        Page page = new Page();
         var grid = new UniformGrid
         {
             Padding = new Thickness(6),
@@ -101,9 +120,8 @@ public class ExampleMainForm : Form
             .. GetPlotControls()
         ];
         grid.Children.AddRange(controls);
-        page.Child = grid;
         map.GoTo(55.751244, 37.618423, zoom: 12);
-        return page;
+        return grid;
     }
 
     private UIElement[] GetPlotControls()

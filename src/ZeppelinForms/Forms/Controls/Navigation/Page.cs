@@ -1,7 +1,7 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Forms.Controls.Base;
 
-namespace ZeppelinForms.Forms.Controls;
+namespace ZeppelinForms.Forms.Controls.Navigation;
 
 /// <summary>
 /// Одно представление внутри PageControl. Содержимое создаётся один раз

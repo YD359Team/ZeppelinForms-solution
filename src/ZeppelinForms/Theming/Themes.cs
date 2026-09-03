@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Controls.Navigation;
 using ZeppelinForms.Forms.Controls.Shapes;
 using ZeppelinForms.Forms.Controls.Text;
 
@@ -310,6 +311,13 @@ public static class Themes
             {
                 splitter.LineColor = c.Border;
                 splitter.HoverColor = c.SurfaceHover;
+            })
+
+            .For<PageIndicator>((indicator, c) =>
+            {
+                indicator.ActiveColor = c.Accent;
+                indicator.InactiveColor = c.Border;
+                indicator.HoverColor = c.TextSecondary;
             });
     }
 }

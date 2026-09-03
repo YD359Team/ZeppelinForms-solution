@@ -3,7 +3,7 @@ using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 
-namespace ZeppelinForms.Forms.Controls;
+namespace ZeppelinForms.Forms.Controls.Navigation;
 
 /// <summary>
 /// Контейнер представлений с историей переходов. Скрытые страницы
@@ -16,6 +16,10 @@ public class PageControl : PanelControl
     private Page? _outgoing;
 
     private float _progress = 1f;
+
+    /// <summary>Создать индикатор, привязанный к этому контейнеру.</summary>
+    public PageIndicator CreateIndicator(PageIndicatorStyle style = PageIndicatorStyle.Dots) =>
+        new() { Target = this, Style = style };
 
     public PageTransition Transition { get; set; } = PageTransition.Fade;
     public int TransitionDurationMs { get; set; } = 220;
