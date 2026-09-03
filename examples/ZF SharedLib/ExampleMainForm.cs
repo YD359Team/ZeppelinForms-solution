@@ -34,6 +34,7 @@ public class ExampleMainForm : Form
         PageControl root = new();
         root.AddPage("home", () => GetView1(), "Home");
         root.AddPage("controls", () => GetView2(), "Controls");
+        root.AddPage("calc", () => GetView3(), "Calc");
         return new DockPanel
         {
             Children =
@@ -122,6 +123,61 @@ public class ExampleMainForm : Form
         ];
         grid.Children.AddRange(controls);
         map.GoTo(55.751244, 37.618423, zoom: 12);
+        return grid;
+    }
+
+    private UIElement GetView3()
+    {
+        Grid grid = new()
+        {
+            Columns = "Auto,Auto,Auto,Auto",
+            Rows = "Auto,Auto,Auto,Auto,Auto,Auto"
+        };
+
+        TextBox display = new()
+        {
+            Row = 0,
+            Column = 0,
+            ColumnSpan = 4
+        };
+
+        Button btn7 = new() { Text = "7", Row = 1, Column = 0 };
+        Button btn8 = new() { Text = "8", Row = 1, Column = 1 };
+        Button btn9 = new() { Text = "9", Row = 1, Column = 2 };
+        Button btnAdd = new() { Text = "+", Row = 1, Column = 3 };
+
+        Button btn4 = new() { Text = "4", Row = 2, Column = 0 };
+        Button btn5 = new() { Text = "5", Row = 2, Column = 1 };
+        Button btn6 = new() { Text = "6", Row = 2, Column = 2 };
+        Button btnSub = new() { Text = "-", Row = 2, Column = 3 };
+
+        Button btn1 = new() { Text = "1", Row = 3, Column = 0 };
+        Button btn2 = new() { Text = "2", Row = 3, Column = 1 };
+        Button btn3 = new() { Text = "3", Row = 3, Column = 2 };
+        Button btnMul = new() { Text = "*", Row = 3, Column = 3 };
+
+        Button btnClear = new() { Text = "C", Row = 4, Column = 0 };
+        Button btn0 = new() { Text = "0", Row = 4, Column = 1 };
+        Button btnDot = new() { Text = ".", Row = 4, Column = 2 };
+        Button btnDiv = new() { Text = "/", Row = 4, Column = 3 };
+
+        Button btnEquals = new()
+        {
+            Text = "=",
+            Row = 5,
+            Column = 0,
+            ColumnSpan = 4
+        };
+
+        grid.Children.AddRange([
+            display,
+        btn7, btn8, btn9, btnAdd,
+        btn4, btn5, btn6, btnSub,
+        btn1, btn2, btn3, btnMul,
+        btnClear, btn0, btnDot, btnDiv,
+        btnEquals
+        ]);
+
         return grid;
     }
 
