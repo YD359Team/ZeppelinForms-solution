@@ -3,29 +3,35 @@
 ## Feature [0.7.0]
 
 ### Breaking changes
-- Extract more base Controls:
-	- DecoratedControl
-	- DecoratedPanel
-	- DecoratedWrapPanel
-	- FocusableControl
-	- InteractiveControl
-	- TextInputControl
-- ScrollViewer marked as obsolete
+- Extract more base controls:
+	- `DecoratedControl`
+	- `DecoratedPanel`
+	- `DecoratedWrapPanel`
+	- `FocusableControl`
+	- `InteractiveControl`
+	- `TextInputControl`
+- `ScrollViewer` marked as obsolete
 
 ### Features
-- Add Ripple effect for buttons
-- Add Color.Lerp(Color,Color,float)
-- Add new colors in Colors class
-- Add constructor with single UIElement for WrapPanel
-- StackPanel now can align children
-- Add MainAxisAlignment
-- Add CrossAxisAlignment
-- Now Grid correct work with RowSpan and ColumnSpan
+- Add effects for any `UIElement`
+- Add `Ripple` effect for buttons
+- Add `GradientStop` primitive
+- Add `Color.Lerp(Color,Color,float)`
+- Add new colors in `Colors` class
+- Add `MediaColors` class
+- Add constructor with single `UIElement` for `WrapPanel`
+- `StackPanel` now can align children
+	- Add `MainAxisAlignment`
+	- Add `CrossAxisAlignment`
+- Now `Grid` correct work with `RowSpan` and `ColumnSpan`
+- Add extension method `Add(UIElement,int,int)` for `ObservableCollection<UIElement>` with `Row` and `Column` assign
+- Windows: Disabled VSync in GPU render 
 
 ### New controls
-- Add PageControl 
-- Add Page
-- Add PageIndicator
+- Add `PageControl` 
+- Add `Page`
+- Add `PageIndicator`
+- Add `GradientBorder`
 
 ## [0.6.0] — 2026-09-03
 
