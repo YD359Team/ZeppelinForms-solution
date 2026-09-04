@@ -382,15 +382,8 @@ public class TextBox : TextInputControl, ITextElement
 
     // ===== отрисовка =====
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRoundRectangle(this.LocalBounds, CornerRadius, Background);
-
-        if (BorderWidth > 0)
-            g.DrawRoundRectangle(LocalBounds, CornerRadius, CurrentBorderColor,
-                ValidationState == ValidationState.None ? BorderWidth : Math.Max(BorderWidth, 1.5f));
-
         var content = this.ContentBounds;
         float lineHeight = LineHeight;
         string[] lines = DisplayLines;
@@ -443,7 +436,7 @@ public class TextBox : TextInputControl, ITextElement
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
         }
 
-        if (IsFocused && _caretVisible)
+        if (IsFocused && CaretVisible)
         {
             g.FillRectangle(
                 new Rectangle(
@@ -453,13 +446,6 @@ public class TextBox : TextInputControl, ITextElement
         }
 
         g.Restore();
-    }
-
-    protected override void DrawContent(Graphics g)
-    {
-        // всё как было, но:
-        //   вместо _caretVisible → CaretVisible
-        //   без отрисовки фона и рамки — их делает база
     }
 
     private float VerticalOffsetForSingleLine(Rectangle content, float lineHeight) =>

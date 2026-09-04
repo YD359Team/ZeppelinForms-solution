@@ -34,15 +34,6 @@ public class MapControl : InteractiveControl
 
     private MapMarker? _hoveredMarker;
 
-    public MapControl()
-    {
-        Background = new Color(255, 0xE8, 0xE8, 0xE8);
-        Cursor = CursorKind.SizeAll;
-
-        _diskCacheDirectory = Path.Combine(Path.GetTempPath(), "ZeppelinForms", "MapTiles");
-        Directory.CreateDirectory(_diskCacheDirectory);
-    }
-
     // ===== состояние карты =====
 
     public TileSource Source { get; set; } = TileSource.OpenStreetMap;

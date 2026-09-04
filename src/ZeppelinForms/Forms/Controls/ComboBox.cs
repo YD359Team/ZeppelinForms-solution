@@ -65,39 +65,6 @@ public class ComboBox : InteractiveControl
 
     private string TextOf(object item) => DisplaySelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;
 
-    public override void Draw(Graphics g)
-    {
-        if (Background.A > 0)
-            g.FillRoundRectangle(this.LocalBounds, CornerRadius, Background);
-
-        if (BorderWidth > 0)
-            g.DrawRoundRectangle(this.LocalBounds, CornerRadius,
-                IsFocused ? App.Theme.Colors.BorderFocused : BorderColor, BorderWidth);
-
-        var content = this.ContentBounds;
-
-        var textArea = new Rectangle(
-            content.Position,
-            new Size(Math.Max(0, content.Width - ArrowWidth), content.Height));
-
-        if (SelectedItem is object item)
-            g.DrawText(TextOf(item), textArea, TextColor, EffectiveFont,
-                HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
-        else if (!string.IsNullOrEmpty(PlaceholderText))
-            g.DrawText(PlaceholderText, textArea, PlaceholderColor, EffectiveFont,
-                HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
-
-        float cx = content.X + content.Width - ArrowWidth / 2f;
-        float cy = content.Y + content.Height / 2f;
-
-        // стрелка переворачивается, когда список раскрыт
-        ReadOnlySpan<Point> arrow = _flyout.IsOpen
-            ? [new(cx - 4.5f, cy + 2f), new(cx, cy - 3f), new(cx + 4.5f, cy + 2f)]
-            : [new(cx - 4.5f, cy - 2f), new(cx, cy + 3f), new(cx + 4.5f, cy - 2f)];
-
-        g.DrawPolyline(arrow, TextColor, 1.6f);
-    }
-
     // рамка в фокусе — забота InteractiveControl через FocusBorderColor
     protected override void DrawContent(Graphics g)
     {

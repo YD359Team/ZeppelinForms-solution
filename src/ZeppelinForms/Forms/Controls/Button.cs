@@ -22,7 +22,7 @@ public class Button : ButtonBase, ITextElement
     public float IconSize { get; set; } = 16f;
     public float IconGap { get; set; } = 8f;
 
-    protected override void DrawContent(Graphics g)
+    protected override void DrawButtonContent(Graphics g)
     {
         Rectangle content = ContentBounds;
         float textLeft = content.X;
