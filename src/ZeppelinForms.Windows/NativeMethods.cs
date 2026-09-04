@@ -424,4 +424,7 @@ internal static class NativeMethods
 
     [DllImport("shcore.dll")]
     public static extern int GetDpiForMonitor(nint monitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    [DllImport("opengl32.dll")]
+    public static extern nint wglGetProcAddress(string name);
 }

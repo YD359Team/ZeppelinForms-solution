@@ -58,6 +58,17 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
 
         nint glContext = NativeMethods.wglCreateContext(hdc);
 
+        nint swapInterval = NativeMethods.wglGetProcAddress("wglSwapIntervalEXT");
+
+        if (swapInterval != 0)
+        {
+            var setSwapInterval = Marshal.GetDelegateForFunctionPointer<SwapIntervalDelegate>(swapInterval);
+
+            // без этого SwapBuffers блокирует поток до кадровой развёртки,
+            // а WM_TIMER — сообщение низшего приоритета и теряется в очереди
+            setSwapInterval(0);
+        }
+
         if (glContext == 0 || !NativeMethods.wglMakeCurrent(hdc, glContext))
         {
             if (glContext != 0)
@@ -125,4 +136,7 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
         NativeMethods.wglDeleteContext(_glContext);
         NativeMethods.ReleaseDC(_hWnd, _hdc);
     }
+
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    private delegate bool SwapIntervalDelegate(int interval);
 }
