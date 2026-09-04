@@ -13,6 +13,7 @@
 - `ScrollViewer` marked as obsolete
 
 ### Features
+- Add Drag&Drop support
 - Add effects for any `UIElement`
 - Add `Ripple` effect for buttons
 - Add `GradientStop` primitive
