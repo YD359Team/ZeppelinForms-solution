@@ -3,6 +3,13 @@
 ## Feature [0.7.0]
 
 ### Breaking changes
+- Extract more base Controls:
+	- DecoratedControl
+	- DecoratedPanel
+	- DecoratedWrapPanel
+	- FocusableControl
+	- InteractiveControl
+	- TextInputControl
 - ScrollViewer marked as obsolete
 
 ### Features
