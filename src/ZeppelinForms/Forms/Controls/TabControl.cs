@@ -8,7 +8,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class TabControl : PanelControl, IInputElement, IBorderedElement
+public class TabControl : DecoratedPanel, IInputElement
 {
     private const float HeaderPaddingX = 14f;
     private const float HeaderPaddingY = 8f;
@@ -51,12 +51,17 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
     public Color DisabledTextColor { get; set; } = new Color(255, 165, 165, 165);
     public Color AccentColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
 
-    public Color BorderColor { get; set; } = new Color(255, 205, 205, 205);
-    public float BorderWidth { get; set; } = 1f;
-
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; } = true;
     public uint TabIndex { get; set; }
+
+    protected override bool IsKeyActivatable => false;
+
+    public TabControl()
+    {
+        BorderColor = new Color(255, 205, 205, 205);
+        BorderWidth = 1f;
+    }
 
     private bool IsVertical =>
         TabStripPlacement is TabStripPlacement.Left or TabStripPlacement.Right;
@@ -91,6 +96,7 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
             return Math.Max(text.Height, IconSize) + HeaderPaddingY * 2;
 
         float width = text.Width + HeaderPaddingX * 2;
+
         if (!string.IsNullOrEmpty(tab.PathData))
             width += IconSize + IconGap;
 
@@ -101,8 +107,7 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
     {
         get
         {
-            if (IsVertical)
-                return VerticalStripWidth;
+            if (IsVertical) return VerticalStripWidth;
 
             Size probe = TextMeasurer.Current.MeasureText("Wg", EffectiveFont);
             return probe.Height + HeaderPaddingY * 2;
@@ -112,6 +117,7 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
     private Rectangle HeaderRect(int index)
     {
         float offset = 0;
+
         for (int i = 0; i < index; i++)
             offset += HeaderExtent(Tabs[i]);
 
@@ -154,11 +160,11 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
 
     // ===== отрисовка =====
 
-    public override void Draw(Graphics g)
-    {
-        if (Background.A > 0)
-            g.FillRectangle(this.LocalBounds, Background);
+    // рамку рисуем сами вокруг области содержимого, а не по границам контрола
+    protected override Color CurrentBorderColor => Colors.Transparent;
 
+    protected override void DrawContent(Graphics g)
+    {
         for (int i = 0; i < Tabs.Count; i++)
         {
             TabItem tab = Tabs[i];
@@ -196,12 +202,13 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
                 IsVertical ? HorizontalContentAlignment.Left : HorizontalContentAlignment.Center,
                 VerticalContentAlignment.Center);
         }
+    }
 
-        if (BorderWidth > 0)
-        {
-            Rectangle content = ContentArea(ActualSize);
-            g.DrawRectangle(content, BorderColor, BorderWidth);
-        }
+    protected override void DrawDecoration(Graphics g)
+    {
+        if (BorderWidth <= 0 || BorderColor.A == 0) return;
+
+        g.DrawRectangle(ContentArea(ActualSize), BorderColor, BorderWidth);
     }
 
     private void DrawSelectionMarker(Graphics g, Rectangle rect)
@@ -247,28 +254,28 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
         return -1;
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
-        int index = IndexFromPoint(args.Location);
+        int index = IndexFromPoint(e.Location);
         if (index == _hoveredIndex) return;
 
         _hoveredIndex = index;
         InvalidateVisual();
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         _hoveredIndex = -1;
+        InvalidateVisual();
     }
 
-    protected override void OnClick(MouseClickEventArgs e)
+    /// <summary>Вкладка выбирается по нажатию: содержимое заголовка
+    /// не должно перехватывать переключение.</summary>
+    protected override void OnPreviewMouseDown(Point location)
     {
-        int index = IndexFromPoint(e.Location);
-        if (index < 0) return;
+        int index = IndexFromPoint(location);
 
-        e.Handled = true;
-
-        if (Tabs[index].IsEnabled)
+        if (index >= 0 && Tabs[index].IsEnabled)
             SelectedIndex = index;
     }
 
@@ -300,6 +307,7 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
         EnsureSelection();
 
         float stripExtent = 0;
+
         foreach (TabItem tab in Tabs)
             stripExtent += HeaderExtent(tab);
 
@@ -324,17 +332,16 @@ public class TabControl : PanelControl, IInputElement, IBorderedElement
         return ResolveSize(content, availableSize);
     }
 
-    protected override void ArrangeContentOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size contentSize)
     {
-        if (Children.Count > 0)
-        {
-            Rectangle area = ContentArea(finalSize);
+        if (Children.Count == 0) return;
 
-            Children[0].Arrange(new Rectangle(
-                new Point(area.X + BorderWidth, area.Y + BorderWidth),
-                new Size(
-                    Math.Max(0, area.Width - BorderWidth * 2),
-                    Math.Max(0, area.Height - BorderWidth * 2))));
-        }
+        Rectangle area = ContentArea(contentSize);
+
+        Children[0].Arrange(new Rectangle(
+            new Point(area.X + BorderWidth, area.Y + BorderWidth),
+            new Size(
+                Math.Max(0, area.Width - BorderWidth * 2),
+                Math.Max(0, area.Height - BorderWidth * 2))));
     }
 }

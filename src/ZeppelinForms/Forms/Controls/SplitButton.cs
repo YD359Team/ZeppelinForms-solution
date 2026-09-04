@@ -10,7 +10,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class SplitButton : UnitControl, IInputElement, IBorderedElement
+public class SplitButton : ButtonBase
 {
     private const float ArrowZoneWidth = 26f;
 
@@ -24,26 +24,21 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
     /// <summary>Нажатие на основную часть повторяет последний выбранный пункт.</summary>
     public bool RepeatLastAction { get; set; } = true;
 
-    public Color BackgroundColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
-    public Color HoverBackgroundColor { get; set; } = new Color(255, 0x0B, 0x5E, 0xD7);
-    public Color TextColor { get; set; } = Colors.White;
-
-    public Color BorderColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
-    public float BorderWidth { get; set; } = 1f;
-
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
+    public Color SeparatorColor { get; set; } = new Color(120, 255, 255, 255);
 
     public bool IsMenuOpen => _flyout.IsOpen;
 
-    protected override bool IsKeyActivatable => true;
-
     public SplitButton()
     {
-        Padding = new Thickness(14, 6);
-        CornerRadius = new CornerRadius(4f);
-        Cursor = CursorKind.Hand;
+        BackgroundColor = new Color(255, 0x0D, 0x6E, 0xFD);
+        HoverBackgroundColor = new Color(255, 0x0B, 0x5E, 0xD7);
+        PressedBackgroundColor = new Color(255, 0x0A, 0x53, 0xBE);
+        TextColor = Colors.White;
+        BorderColor = new Color(255, 0x0D, 0x6E, 0xFD);
+
+        // волна на составной кнопке сбивает с толку: непонятно,
+        // сработала основная часть или стрелка
+        RippleEnabled = false;
 
         _flyout = new FlyoutHost(this);
         _flyout.Closed += (_, _) => InvalidateVisual();
@@ -53,13 +48,13 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
         new Point(ActualSize.Width - ArrowZoneWidth, 0),
         new Size(ArrowZoneWidth, ActualSize.Height));
 
-    public override void Draw(Graphics g)
+    /// <summary>Наведение на стрелку не должно подсвечивать всю кнопку —
+    /// подложка остаётся обычной, а зона стрелки красится отдельно.</summary>
+    protected override Color CurrentBackground =>
+        _arrowHovered && IsEnabled ? BackgroundColor : base.CurrentBackground;
+
+    protected override void DrawButtonContent(Graphics g)
     {
-        var bounds = this.LocalBounds;
-
-        g.FillRoundRectangle(bounds, CornerRadius,
-            IsHovered && !_arrowHovered ? HoverBackgroundColor : BackgroundColor);
-
         if (_arrowHovered || _flyout.IsOpen)
             g.FillRectangle(ArrowZone, HoverBackgroundColor);
 
@@ -69,7 +64,7 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
         g.DrawLine(
             new Point(separatorX, 4f),
             new Point(separatorX, ActualSize.Height - 4f),
-            new Color(120, 255, 255, 255), 1f);
+            SeparatorColor, 1f);
 
         if (!string.IsNullOrEmpty(Text))
         {
@@ -79,7 +74,7 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
                     Math.Max(0, ActualSize.Width - ArrowZoneWidth - Padding.Horizontal),
                     Math.Max(0, ActualSize.Height - Padding.Vertical)));
 
-            g.DrawText(Text, textRect, TextColor, EffectiveFont,
+            g.DrawText(Text, textRect, CurrentTextColor, EffectiveFont,
                 HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
         }
 
@@ -91,15 +86,12 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
             ? [new(cx - 4f, cy + 2f), new(cx, cy - 2.5f), new(cx + 4f, cy + 2f)]
             : [new(cx - 4f, cy - 2f), new(cx, cy + 2.5f), new(cx + 4f, cy - 2f)];
 
-        g.DrawPolyline(triangle, TextColor, 1.6f);
-
-        if (BorderWidth > 0)
-            g.DrawRoundRectangle(bounds, CornerRadius, BorderColor, BorderWidth);
+        g.DrawPolyline(triangle, CurrentTextColor, 1.6f);
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
-        float localX = args.Location.X - GetAbsolutePosition().X;
+        float localX = e.Location.X - GetAbsolutePosition().X;
         bool inArrow = localX >= ActualSize.Width - ArrowZoneWidth;
 
         if (inArrow == _arrowHovered) return;
@@ -108,11 +100,24 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
         InvalidateVisual();
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args) => _arrowHovered = false;
+    protected override void OnMouseExit(MouseMoveEventArgs e)
+    {
+        _arrowHovered = false;
+        InvalidateVisual();
+    }
+
+    protected override void OnMouseDown(MouseButtonEventArgs e)
+    {
+        // волна отключена, но базовый обработчик всё равно вызываем:
+        // он отвечает и за состояние нажатия
+        base.OnMouseDown(e);
+    }
 
     protected override void OnClick(MouseClickEventArgs e)
     {
         e.Handled = true;
+
+        if (!IsEnabled) return;
 
         float localX = e.Location.X - GetAbsolutePosition().X;
 
@@ -125,6 +130,11 @@ public class SplitButton : UnitControl, IInputElement, IBorderedElement
             return;
         }
 
+        OnActivated();
+    }
+
+    protected override void OnActivated()
+    {
         if (RepeatLastAction && _lastInvoked is not null)
             _lastInvoked.RaiseClick();
     }

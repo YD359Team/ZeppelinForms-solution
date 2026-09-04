@@ -73,6 +73,13 @@ public static class Themes
     private static Theme Build(ThemeColors colors, string name)
     {
         return new Theme { Name = name, Colors = colors }
+
+            .For<InteractiveControl>((control, c) =>
+            {
+                control.BorderColor = c.Border;
+                control.FocusBorderColor = c.BorderFocused;
+            })
+
             // общее для всех — фон окна и цвет полос прокрутки
             .For<PanelControl>((panel, c) =>
             {
@@ -94,7 +101,6 @@ public static class Themes
                 button.DisabledBackgroundColor = c.SurfacePressed;
                 button.TextColor = c.Text;
                 button.DisabledTextColor = c.TextDisabled;
-                button.BorderColor = c.Border;
                 button.FocusRingColor = c.Accent;
                 button.RippleColor = new Color(70, 255, 255, 255);
             })
@@ -154,7 +160,6 @@ public static class Themes
                 button.TextColor = c.Text;
                 button.CheckedTextColor = c.TextOnAccent;
                 button.DisabledTextColor = c.TextDisabled;
-                button.BorderColor = c.Border;
                 button.FocusRingColor = c.Accent;
             })
 
@@ -178,7 +183,6 @@ public static class Themes
                 box.Background = c.Surface;
                 box.TextColor = c.Text;
                 box.CaretColor = c.Text;
-                box.BorderColor = c.Border;
                 box.SelectionColor = c.Selection;
             })
 
@@ -187,32 +191,27 @@ public static class Themes
                 combo.Background = c.Surface;
                 combo.TextColor = c.Text;
                 combo.PlaceholderColor = c.TextSecondary;
-                combo.BorderColor = c.Border;
             })
 
             .For<ListBox>((list, c) =>
             {
                 list.Background = c.Surface;
-                list.BorderColor = c.Border;
                 list.SelectionColor = c.Accent;
             })
 
             .For<Panel>((panel, c) =>
             {
                 panel.Background = c.Background;
-                panel.BorderColor = c.Border;
             })
 
             .For<Border>((border, c) =>
             {
                 border.Background = c.Surface;
-                border.BorderColor = c.Border;
             })
 
             .For<GroupBox>((box, c) =>
             {
                 box.Background = Colors.Transparent;
-                box.BorderColor = c.Border;
                 box.HeaderColor = c.TextSecondary;
             })
 
@@ -221,7 +220,6 @@ public static class Themes
                 spoiler.HeaderColor = c.Surface;
                 spoiler.HeaderHoverColor = c.SurfaceHover;
                 spoiler.HeaderTextColor = c.Text;
-                spoiler.BorderColor = c.Border;
             })
 
             .For<TabControl>((tabs, c) =>
@@ -232,7 +230,6 @@ public static class Themes
                 tabs.TextColor = c.Text;
                 tabs.DisabledTextColor = c.TextDisabled;
                 tabs.AccentColor = c.Accent;
-                tabs.BorderColor = c.Border;
             })
 
             .For<MenuBar>((menu, c) =>
@@ -256,7 +253,6 @@ public static class Themes
             {
                 numeric.Background = c.Surface;
                 numeric.TextColor = c.Text;
-                numeric.BorderColor = c.Border;
                 numeric.ButtonColor = c.SurfaceHover;
                 numeric.ButtonHoverColor = c.SurfacePressed;
             })
@@ -266,7 +262,6 @@ public static class Themes
                 bar.FillColor = c.Accent;
                 bar.TrackColor = c.SurfaceHover;
                 bar.TextColor = c.Text;
-                bar.BorderColor = c.Border;
             })
 
             .For<TrackBar>((bar, c) =>

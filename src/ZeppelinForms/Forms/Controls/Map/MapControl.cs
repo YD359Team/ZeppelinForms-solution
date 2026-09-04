@@ -12,7 +12,7 @@ namespace ZeppelinForms.Forms.Controls.Map;
 /// <summary>
 /// Карта на растровых тайлах. По умолчанию OpenStreetMap.
 /// </summary>
-public class MapControl : UnitControl, IInputElement, IBorderedElement
+public class MapControl : InteractiveControl
 {
     private const int TileSize = MercatorProjection.TileSize;
 
@@ -61,15 +61,19 @@ public class MapControl : UnitControl, IInputElement, IBorderedElement
     public Color TextColor { get; set; } = new Color(255, 60, 60, 60);
     public Color TextBackground { get; set; } = new Color(190, 255, 255, 255);
 
-    public Color BorderColor { get; set; } = new Color(255, 190, 190, 190);
-    public float BorderWidth { get; set; } = 1f;
-
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
-
     public event EventHandler? ViewChanged;
     public event EventHandler<MapMarker>? MarkerClicked;
+
+    public MapControl()
+    {
+        Background = new Color(255, 0xE8, 0xE8, 0xE8);
+        Cursor = CursorKind.SizeAll;
+        BorderColor = new Color(255, 190, 190, 190);
+        BorderWidth = 1f;
+
+        _diskCacheDirectory = Path.Combine(Path.GetTempPath(), "ZeppelinForms", "MapTiles");
+        Directory.CreateDirectory(_diskCacheDirectory);
+    }
 
     public void GoTo(double latitude, double longitude, int? zoom = null)
     {
@@ -151,12 +155,9 @@ public class MapControl : UnitControl, IInputElement, IBorderedElement
 
     // ===== отрисовка =====
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
         Rectangle content = ContentBounds;
-
-        if (Background.A > 0)
-            g.FillRoundRectangle(LocalBounds, CornerRadius, Background);
 
         if (content.Width <= 0 || content.Height <= 0) return;
 
@@ -173,9 +174,6 @@ public class MapControl : UnitControl, IInputElement, IBorderedElement
 
         if (ShowAttribution)
             DrawAttribution(g, content);
-
-        if (BorderWidth > 0)
-            g.DrawRoundRectangle(LocalBounds, CornerRadius, BorderColor, BorderWidth);
     }
 
     private void DrawTiles(Graphics g, Rectangle content)

@@ -9,7 +9,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
+public class CheckedComboBox : InteractiveControl
 {
     private const float ArrowWidth = 20f;
 
@@ -29,14 +29,8 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
 
     public Color TextColor { get; set; } = Colors.Black;
     public Color PlaceholderColor { get; set; } = new Color(255, 160, 160, 160);
-    public Color BorderColor { get; set; } = Colors.Black;
-    public float BorderWidth { get; set; } = 1f;
 
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
-
-    protected override bool IsKeyActivatable => true;
+    public bool IsDropDownOpen => _flyout.IsOpen;
 
     public IEnumerable<object> CheckedItems
     {
@@ -53,6 +47,8 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
         Background = Colors.White;
         Padding = new Thickness(6, 3);
         Cursor = CursorKind.Hand;
+        BorderColor = Colors.Black;
+        BorderWidth = 1f;
 
         _flyout = new FlyoutHost(this);
         _flyout.Closed += (_, _) => InvalidateVisual();
@@ -93,21 +89,12 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
         InvalidateVisual();
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRoundRectangle(this.LocalBounds, CornerRadius, Background);
+        var content = ContentBounds;
 
-        if (BorderWidth > 0)
-            g.DrawRoundRectangle(this.LocalBounds, CornerRadius,
-                IsFocused ? App.Theme.Colors.BorderFocused : BorderColor, BorderWidth);
-
-        var content = this.ContentBounds;
-
-        var textArea = new Rectangle(
-            content.Position, new Size(Math.Max(0, content.Width - ArrowWidth), content.Height));
-
-        g.DrawText(DisplayText, textArea,
+        g.DrawText(DisplayText,
+            new Rectangle(content.Position, new Size(Math.Max(0, content.Width - ArrowWidth), content.Height)),
             _checked.Count == 0 ? PlaceholderColor : TextColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 
@@ -136,7 +123,6 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
         var list = new CheckedListBox
         {
             ToggleOnRowClick = true,
-            Size = new Size(ActualSize.Width, DropDownHeight),
             OverflowY = Overflow.Auto,
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
@@ -151,6 +137,12 @@ public class CheckedComboBox : UnitControl, IInputElement, IBorderedElement
         // флаут остаётся открытым: смысл контрола в том,
         // чтобы отметить несколько пунктов подряд
         list.ItemCheckedChanged += (_, index) => SetChecked(index, list.IsChecked(index));
+
+        // высоту подгоняем под содержимое, но не выше предела —
+        // при трёх пунктах не должно оставаться пустого места
+        list.Measure(new Size(ActualSize.Width, float.PositiveInfinity));
+
+        list.Size = new Size(ActualSize.Width, Math.Min(list.DesiredSize.Height, DropDownHeight));
 
         return list;
     }
