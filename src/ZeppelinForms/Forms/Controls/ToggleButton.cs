@@ -11,8 +11,6 @@ public class ToggleButton : Button
     /// <summary>Цвет текста во включённом состоянии.</summary>
     public Color CheckedTextColor { get; set; } = Colors.White;
 
-    public Color CheckedHoverBackgroundColor { get; set; } = Colors.Transparent;
-
     protected override Color CurrentBackground
     {
         get
