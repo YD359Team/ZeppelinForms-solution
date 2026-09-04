@@ -9,6 +9,9 @@ public static class ObservableCollectionUIElementEx
     {
         public void Add(UIElement item, int row, int column)
         {
+            ArgumentOutOfRangeException.ThrowIfLessThan(row, 0, nameof(row));
+            ArgumentOutOfRangeException.ThrowIfLessThan(column, 0, nameof(column));
+
             item.Row = row;
             item.Column = column;
             oc.Add(item);

@@ -30,6 +30,13 @@ public class GroupBox : DecoratedWrapControl
         BorderWidth = 1f;
     }
 
+    public GroupBox(UIElement child) : base(child)
+    {
+        Padding = new Thickness(10, 8);
+        BorderColor = new Color(255, 200, 200, 200);
+        BorderWidth = 1f;
+    }
+
     private float HeaderHeight
     {
         get

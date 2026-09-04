@@ -8,5 +8,13 @@ namespace ZeppelinForms.Forms.Controls;
 /// <summary>Рамка вокруг одного элемента.</summary>
 public class Border : DecoratedWrapControl
 {
+    public Border()
+    {
+        
+    }
 
+    public Border(UIElement child) : base(child)
+    {
+
+    }
 }
