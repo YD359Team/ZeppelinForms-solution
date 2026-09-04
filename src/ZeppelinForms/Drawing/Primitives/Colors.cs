@@ -54,7 +54,20 @@ public static class MediaColors
 {
     public static readonly Color Dotnet = new(0x70, 0x37, 0x82);
     public static readonly Color DotnetModern = new(0x5B, 0x37, 0xD7);
-    public static readonly Color Habrahabr = new(120, 162, 183);
+    public static readonly Color Habr = new(120, 162, 183);
     public static readonly Color Facebook = new(59, 89, 152);
     public static readonly Color Twitter = new(31, 174, 233);
+    public static readonly Color Vk = new(0x4C, 0x75, 0xA3);
+    public static readonly Color Telegram = new(0, 136, 204);
+    public static readonly Color LinkedIn = new(0x0A, 0x66, 0xC2);
+    public static readonly Color Skype = new(0x00, 0xAF, 0xF0);
+    public static readonly Color YouTube = new(0xCD, 0x20, 0x1F);
+    public static readonly Color WhatsApp = new(0x25, 0xD3, 0x66);
+    public static readonly Color Steam = new(23, 26, 33);
+    public static readonly Color Android = new(164, 198, 57);
+    public static readonly Color Discord = new(88, 101, 242);
+    public static readonly Color Spotify = new(30, 215, 96);
+    public static readonly Color Snapchat = new(255, 252, 0);
+    public static readonly Color Pinterest = new(189, 8, 28);
+    public static readonly Color SoundCloud = new(255, 85, 0);
 }
