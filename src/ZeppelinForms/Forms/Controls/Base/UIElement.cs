@@ -2,6 +2,7 @@
 using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Effects;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
@@ -323,6 +324,25 @@ public abstract class UIElement : IGridPlaceable
             Invalidate();
         }
     }
+
+    private EffectChain? _effects;
+
+    /// <summary>Визуальные эффекты. Создаётся при первом обращении:
+    /// у большинства элементов эффектов нет, и лишний объект им ни к чему.</summary>
+    public EffectChain Effects
+    {
+        get
+        {
+            if (_effects is not null) return _effects;
+
+            _effects = new EffectChain();
+            _effects.Changed += (_, _) => InvalidateVisual();
+
+            return _effects;
+        }
+    }
+
+    internal EffectChain? EffectsOrNull => _effects;
 
     /// <summary>Прямоугольник, который надо перерисовать вместе с элементом:
     /// сам элемент плюс запас на рамку и тень, вылезающие за границы.</summary>

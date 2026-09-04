@@ -43,6 +43,22 @@ public abstract class Graphics
     public abstract void SaveDisabledLayer(float opacity, float desaturation);
     /// <summary>Ограничить отрисовку кругом. Нужно для эффекта волны.</summary>
     public abstract void ClipCircle(Point center, float radius);
+    public abstract void Skew(float sx, float sy);
+
+    /// <summary>Слой, содержимое которого будет размыто при закрытии.</summary>
+    public abstract void SaveBlurLayer(float radius);
+
+    /// <summary>Размыть то, что уже нарисовано под указанной областью.</summary>
+    public abstract void BlurBackdrop(Rectangle bounds, float radius);
+
+    /// <summary>Наложить шум — фактура матового стекла.</summary>
+    public abstract void FillNoise(Rectangle bounds, float opacity);
+
+    /// <summary>Отражение содержимого области с затуханием вниз.</summary>
+    public abstract void DrawReflection(Rectangle bounds, float heightRatio, float gap, float startOpacity);
+
+    /// <summary>Заливка градиентом.</summary>
+    public abstract void FillGradient(Rectangle bounds, CornerRadius radius, GradientStop[] stops, float angle);
 
     public abstract void ClipRoundRect(Rectangle rect, CornerRadius radius);
     public abstract void Rotate(float degrees);

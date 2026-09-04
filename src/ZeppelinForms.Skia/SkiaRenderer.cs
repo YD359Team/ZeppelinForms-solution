@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Effects;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
@@ -121,6 +122,11 @@ public static class SkiaRenderer
         if (element.BoxShadow is { } shadow)
             g.DrawShadow(element.LocalBounds, shadow);
 
+        EffectChain? effects = element.EffectsOrNull;
+
+        if (effects is { IsEmpty: false })
+            effects.Begin(g, element.LocalBounds);
+
         switch (element)
         {
             case UnitControl unit:
@@ -155,6 +161,9 @@ public static class SkiaRenderer
                 panel.DrawOverlay(g);
                 break;
         }
+
+        if (effects is { IsEmpty: false })
+            effects.End(g, element.LocalBounds);
 
         if (needsLayer)
             g.Restore();

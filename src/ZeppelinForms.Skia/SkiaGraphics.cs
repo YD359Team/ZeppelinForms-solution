@@ -518,4 +518,50 @@ public sealed class SkiaGraphics : Graphics
 
         _canvas.ClipPath(path, antialias: true);
     }
+
+    public override void SaveBlurLayer(float radius)
+    {
+        using var filter = SKImageFilter.CreateBlur(radius / 2f, radius / 2f);
+        using var paint = new SKPaint { ImageFilter = filter };
+
+        _canvas.SaveLayer(paint);
+    }
+
+    public override void BlurBackdrop(Rectangle bounds, float radius)
+    {
+        var rect = new SKRect(bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height);
+
+        // снимок того, что уже на канвасе, и рисуем его обратно размытым
+        using SKSurface? snapshot = _canvas.Surface;
+        if (snapshot is null) return;
+
+        using SKImage image = snapshot.Snapshot();
+        using var filter = SKImageFilter.CreateBlur(radius / 2f, radius / 2f);
+        using var paint = new SKPaint { ImageFilter = filter };
+
+        _canvas.Save();
+        _canvas.ClipRect(rect);
+        _canvas.DrawImage(image, 0, 0, paint);
+        _canvas.Restore();
+    }
+
+    public override void Skew(float sx, float sy)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void FillNoise(Rectangle bounds, float opacity)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void DrawReflection(Rectangle bounds, float heightRatio, float gap, float startOpacity)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void FillGradient(Rectangle bounds, CornerRadius radius, GradientStop[] stops, float angle)
+    {
+        throw new NotImplementedException();
+    }
 }
