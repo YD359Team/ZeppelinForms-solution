@@ -8,7 +8,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class TrackBar : UnitControl, IInputElement
+public class TrackBar : FocusableControl, IInputElement
 {
     private const float ThumbSize = 14f;
     private const float TrackThickness = 4f;
@@ -42,10 +42,6 @@ public class TrackBar : UnitControl, IInputElement
     public Color FillColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
     public Color ThumbColor { get; set; } = Colors.White;
     public Color ThumbBorderColor { get; set; } = new Color(255, 130, 130, 130);
-
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
 
     public TrackBar()
     {

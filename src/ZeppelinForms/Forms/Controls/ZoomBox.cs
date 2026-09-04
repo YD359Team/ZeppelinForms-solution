@@ -9,7 +9,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// <summary>
 /// Allow zoom in\out for child
 /// </summary>
-public class ZoomBox : WrapControl, IInputElement
+public class ZoomBox : DecoratedWrapControl, IInputElement
 {
     public float ZoomStep { get; set; } = 0.1f;
     public float MinZoom { get; set; } = 0.1f;
@@ -29,8 +29,6 @@ public class ZoomBox : WrapControl, IInputElement
     {
 
     }
-
-    public override void Draw(Graphics g) { }
 
     public void Zoom(float factor)
     {

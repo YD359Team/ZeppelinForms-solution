@@ -74,7 +74,7 @@ public class CheckedListBox : ListBox
         return new Rectangle(new Point(4f, y), new Size(BoxSize, BoxSize));
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
         // фон, подсветка выбранной строки и рамка — из ListBox
         base.Draw(g);

@@ -16,6 +16,16 @@ public abstract class DecoratedWrapControl : WrapControl, IBorderedElement
     protected virtual Color CurrentBackground => Background;
     protected virtual Color CurrentBorderColor => BorderColor;
 
+    protected DecoratedWrapControl() : base()
+    {
+        
+    }
+
+    protected DecoratedWrapControl(UIElement child) : base(child)
+    {
+
+    }
+
     public sealed override void Draw(Graphics g)
     {
         if (CurrentBackground.A > 0)

@@ -8,7 +8,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ToggleSwitch : UnitControl, ITextElement, IInputElement
+public class ToggleSwitch : FocusableControl, ITextElement
 {
     private const float TrackWidth = 40f;
     private const float TrackHeight = 20f;
@@ -41,10 +41,6 @@ public class ToggleSwitch : UnitControl, ITextElement, IInputElement
     public Color OnColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
     public Color OffColor { get; set; } = new Color(255, 200, 200, 200);
     public Color ThumbColor { get; set; } = Colors.White;
-
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
 
     protected override bool IsKeyActivatable => true;
 

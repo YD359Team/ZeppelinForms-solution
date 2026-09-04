@@ -14,7 +14,7 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// <summary>
 /// Панель, чьи Children генерируются из коллекции данных Items.
 /// </summary>
-public class ItemsControl : PanelControl
+public class ItemsControl : DecoratedPanel
 {
     private float _contentHeight;
 
@@ -187,11 +187,5 @@ public class ItemsControl : PanelControl
 
             y += child.ActualSize.Height;
         }
-    }
-
-
-    public override void Draw(Graphics g)
-    {
-        //
     }
 }

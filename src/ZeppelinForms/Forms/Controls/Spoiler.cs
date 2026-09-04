@@ -10,7 +10,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// <summary>
 /// Control can collapse\expand child content
 /// </summary>
-public class Spoiler : WrapControl, IBorderedElement
+public class Spoiler : DecoratedWrapControl
 {
     private bool _headerHovered;
 
@@ -60,7 +60,7 @@ public class Spoiler : WrapControl, IBorderedElement
             Child.IsVisible = !IsCollapsed;
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
         var header = HeaderRect;
 

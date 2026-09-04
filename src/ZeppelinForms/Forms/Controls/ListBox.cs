@@ -7,7 +7,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ListBox : ItemsControl, IInputElement, IBorderedElement
+public class ListBox : ItemsControl, IInputElement
 {
     private int _selectedIndex = -1;
 
@@ -32,9 +32,6 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
 
     public Color SelectionColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
 
-    public Color BorderColor { get; set; } = Colors.Black;
-    public float BorderWidth { get; set; } = 1f;
-
     public Color FocusBorderColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
 
     public bool IsFocused { get; set; }
@@ -46,11 +43,8 @@ public class ListBox : ItemsControl, IInputElement, IBorderedElement
         Background = Colors.White;
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRoundRectangle(LocalBounds, CornerRadius, Background);
-
         // подсветка выделенной строки рисуется до потомков:
         // SkiaRenderer вызывает Draw, затем обходит Children
         if (_selectedIndex >= 0 && _selectedIndex < Children.Count)
