@@ -8,19 +8,13 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
-public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
+public class MaskedTextBox : TextInputControl
 {
     private const float CaretWidth = 1f;
-    private const int BlinkIntervalMs = 530;
 
     private MaskDefinition _mask = MaskDefinition.Phone;
     private char[] _buffer;
-
     private int _caretIndex;
-    private bool _caretVisible;
-    private bool _disposed;
-
-    private readonly System.Threading.Timer _blinkTimer;
 
     public MaskedTextBox()
     {
@@ -29,9 +23,8 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
 
         Background = Colors.White;
         Padding = new Thickness(6, 3);
-        Cursor = CursorKind.IBeam;
-
-        _blinkTimer = new System.Threading.Timer(OnBlink, null, Timeout.Infinite, Timeout.Infinite);
+        BorderColor = Colors.Black;
+        BorderWidth = 1f;
     }
 
     public MaskDefinition Mask
@@ -81,13 +74,6 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
     public Color PromptColor { get; set; } = new Color(255, 170, 170, 170);
     public Color CaretColor { get; set; } = Colors.Black;
 
-    public Color BorderColor { get; set; } = Colors.Black;
-    public float BorderWidth { get; set; } = 1f;
-
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
-
     public event EventHandler? TextChanged;
     public event EventHandler? Accepted;
 
@@ -97,6 +83,7 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
         _caretIndex = _mask.NextPlaceholder(0);
 
         TextChanged?.Invoke(this, EventArgs.Empty);
+        ResetCaretBlink();
         InvalidateVisual();
     }
 
@@ -121,43 +108,9 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
         _caretIndex = position;
 
         TextChanged?.Invoke(this, EventArgs.Empty);
+        ResetCaretBlink();
         InvalidateVisual();
     }
-
-    // ===== фокус и каретка =====
-
-    protected override void OnGotFocus()
-    {
-        _caretVisible = true;
-        _blinkTimer.Change(BlinkIntervalMs, BlinkIntervalMs);
-    }
-
-    protected override void OnLostFocus()
-    {
-        _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        _caretVisible = false;
-    }
-
-    private void OnBlink(object? state)
-    {
-        if (_disposed) return;
-
-        FindOwner()?.Invoke(() =>
-        {
-            _caretVisible = !_caretVisible;
-            InvalidateVisual();
-        });
-    }
-
-    private void ShowCaret()
-    {
-        _caretVisible = true;
-
-        if (IsFocused && !_disposed)
-            _blinkTimer.Change(BlinkIntervalMs, BlinkIntervalMs);
-    }
-
-    // ===== ввод =====
 
     protected override void OnTextInput(char c)
     {
@@ -176,8 +129,8 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
         _buffer[position] = c;
         _caretIndex = _mask.NextPlaceholder(position + 1);
 
-        ShowCaret();
         TextChanged?.Invoke(this, EventArgs.Empty);
+        ResetCaretBlink();
         InvalidateVisual();
     }
 
@@ -245,7 +198,7 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
         }
 
         e.Handled = true;
-        ShowCaret();
+        ResetCaretBlink();
         InvalidateVisual();
     }
 
@@ -258,9 +211,9 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
         return _mask.NextPlaceholder(0);
     }
 
-    protected override void OnMouseDown(MouseButtonEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs e)
     {
-        float localX = args.Location.X - GetAbsolutePosition().X - Padding.Left;
+        float localX = e.Location.X - GetAbsolutePosition().X - Padding.Left;
         string text = DisplayText;
 
         int index = text.Length;
@@ -277,22 +230,14 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
         // каретка встаёт только на редактируемые позиции
         _caretIndex = _mask.IsPlaceholder(index) ? index : _mask.NextPlaceholder(index);
 
-        ShowCaret();
+        ResetCaretBlink();
         InvalidateVisual();
     }
 
-    // ===== отрисовка =====
-
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRoundRectangle(LocalBounds, CornerRadius, Background);
-
-        if (BorderWidth > 0)
-            g.DrawRoundRectangle(LocalBounds, CornerRadius,
-                IsFocused ? App.Theme.Colors.BorderFocused : BorderColor, BorderWidth);
-
         Rectangle content = ContentBounds;
+
         float lineHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
         float y = content.Y + (content.Height - lineHeight) / 2f;
 
@@ -314,15 +259,14 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
             x += TextMeasurer.Current.MeasureText(symbol, EffectiveFont).Width;
         }
 
-        if (IsFocused && _caretVisible)
-        {
-            float caretX = content.X + TextMeasurer.Current.MeasureTextWidth(
-                DisplayText, Math.Min(_caretIndex, _buffer.Length), EffectiveFont);
+        if (!IsFocused || !CaretVisible) return;
 
-            g.FillRectangle(
-                new Rectangle(new Point(caretX, y), new Size(CaretWidth, lineHeight)),
-                CaretColor);
-        }
+        float caretX = content.X + TextMeasurer.Current.MeasureTextWidth(
+            DisplayText, Math.Min(_caretIndex, _buffer.Length), EffectiveFont);
+
+        g.FillRectangle(
+            new Rectangle(new Point(caretX, y), new Size(CaretWidth, lineHeight)),
+            CaretColor);
     }
 
     protected override Size MeasureOverride(Size availableSize)
@@ -330,13 +274,9 @@ public class MaskedTextBox : UnitControl, IInputElement, IBorderedElement
         Size textSize = TextMeasurer.Current.MeasureText(DisplayText, EffectiveFont);
 
         return ResolveSize(
-            new Size(textSize.Width + Padding.Horizontal + 4, textSize.Height + Padding.Vertical + 6),
+            new Size(
+                textSize.Width + Padding.Horizontal + 4,
+                textSize.Height + Padding.Vertical + 6),
             availableSize);
-    }
-
-    protected override void OnDetached()
-    {
-        _disposed = true;
-        _blinkTimer.Dispose();
     }
 }

@@ -9,7 +9,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class DateTimePicker : UnitControl, IInputElement, IBorderedElement
+public class DateTimePicker : InteractiveControl
 {
     private const float IconWidth = 18f;
 
@@ -21,20 +21,16 @@ public class DateTimePicker : UnitControl, IInputElement, IBorderedElement
     public event EventHandler? ValueChanged;
 
     public Color TextColor { get; set; } = Colors.Black;
-    public Color BorderColor { get; set; } = Colors.Black;
-    public float BorderWidth { get; set; } = 1f;
 
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
-
-    protected override bool IsKeyActivatable => true;
+    public bool IsDropDownOpen => _flyout.IsOpen;
 
     public DateTimePicker()
     {
         Background = Colors.White;
         Padding = new Thickness(6, 3);
         Cursor = CursorKind.Hand;
+        BorderColor = Colors.Black;
+        BorderWidth = 1f;
 
         _flyout = new FlyoutHost(this);
         _flyout.Closed += (_, _) => InvalidateVisual();
@@ -49,28 +45,20 @@ public class DateTimePicker : UnitControl, IInputElement, IBorderedElement
         Invalidate();
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRoundRectangle(this.LocalBounds, CornerRadius, Background);
+        var content = ContentBounds;
 
-        if (BorderWidth > 0)
-            g.DrawRoundRectangle(this.LocalBounds, CornerRadius,
-                IsFocused ? App.Theme.Colors.BorderFocused : BorderColor, BorderWidth);
-
-        var content = this.ContentBounds;
-
-        var textArea = new Rectangle(
-            content.Position, new Size(Math.Max(0, content.Width - IconWidth), content.Height));
-
-        g.DrawText(Value.ToString(Format), textArea, TextColor, EffectiveFont,
+        g.DrawText(Value.ToString(Format),
+            new Rectangle(content.Position, new Size(Math.Max(0, content.Width - IconWidth), content.Height)),
+            TextColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 
-        var iconArea = new Rectangle(
-            new Point(content.X + content.Width - IconWidth, content.Y),
-            new Size(IconWidth, content.Height));
-
-        DrawCalendarIcon(g, iconArea, TextColor);
+        DrawCalendarIcon(g,
+            new Rectangle(
+                new Point(content.X + content.Width - IconWidth, content.Y),
+                new Size(IconWidth, content.Height)),
+            TextColor);
     }
 
     private static void DrawCalendarIcon(Graphics g, Rectangle area, Color color)
@@ -148,7 +136,9 @@ public class DateTimePicker : UnitControl, IInputElement, IBorderedElement
         Size textSize = TextMeasurer.Current.MeasureText(Value.ToString(Format), EffectiveFont);
 
         return ResolveSize(
-            new Size(textSize.Width + IconWidth + Padding.Horizontal, textSize.Height + Padding.Vertical + 6),
+            new Size(
+                textSize.Width + IconWidth + Padding.Horizontal,
+                textSize.Height + Padding.Vertical + 6),
             availableSize);
     }
 }

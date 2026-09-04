@@ -9,7 +9,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class TimePicker : UnitControl, IInputElement, IBorderedElement
+public class TimePicker : InteractiveControl
 {
     private const float IconWidth = 18f;
 
@@ -22,20 +22,16 @@ public class TimePicker : UnitControl, IInputElement, IBorderedElement
     public event EventHandler? ValueChanged;
 
     public Color TextColor { get; set; } = Colors.Black;
-    public Color BorderColor { get; set; } = Colors.Black;
-    public float BorderWidth { get; set; } = 1f;
 
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
-
-    protected override bool IsKeyActivatable => true;
+    public bool IsDropDownOpen => _flyout.IsOpen;
 
     public TimePicker()
     {
         Background = Colors.White;
         Padding = new Thickness(6, 3);
         Cursor = CursorKind.Hand;
+        BorderColor = Colors.Black;
+        BorderWidth = 1f;
 
         _flyout = new FlyoutHost(this);
         _flyout.Closed += (_, _) => InvalidateVisual();
@@ -50,25 +46,20 @@ public class TimePicker : UnitControl, IInputElement, IBorderedElement
         Invalidate();
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRoundRectangle(this.LocalBounds, CornerRadius, Background);
-
-        if (BorderWidth > 0)
-            g.DrawRoundRectangle(this.LocalBounds, CornerRadius,
-                IsFocused ? App.Theme.Colors.BorderFocused : BorderColor, BorderWidth);
-
-        var content = this.ContentBounds;
+        var content = ContentBounds;
 
         g.DrawText(Value.ToString(Format),
             new Rectangle(content.Position, new Size(Math.Max(0, content.Width - IconWidth), content.Height)),
             TextColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 
-        DrawClockIcon(g, new Rectangle(
-            new Point(content.X + content.Width - IconWidth, content.Y),
-            new Size(IconWidth, content.Height)), TextColor);
+        DrawClockIcon(g,
+            new Rectangle(
+                new Point(content.X + content.Width - IconWidth, content.Y),
+                new Size(IconWidth, content.Height)),
+            TextColor);
     }
 
     private static void DrawClockIcon(Graphics g, Rectangle area, Color color)
@@ -135,8 +126,6 @@ public class TimePicker : UnitControl, IInputElement, IBorderedElement
         hours.SelectionChanged += (_, _) => Apply();
         minutes.SelectionChanged += (_, _) => Apply();
 
-        // высоту задаём панели-обёртке: списки внутри прокручиваются сами,
-        // поскольку прокрутка теперь есть у любой панели
         return new Border
         {
             Background = App.Theme.Colors.Surface,
@@ -184,7 +173,9 @@ public class TimePicker : UnitControl, IInputElement, IBorderedElement
         Size textSize = TextMeasurer.Current.MeasureText(Value.ToString(Format), EffectiveFont);
 
         return ResolveSize(
-            new Size(textSize.Width + IconWidth + Padding.Horizontal, textSize.Height + Padding.Vertical + 6),
+            new Size(
+                textSize.Width + IconWidth + Padding.Horizontal,
+                textSize.Height + Padding.Vertical + 6),
             availableSize);
     }
 }

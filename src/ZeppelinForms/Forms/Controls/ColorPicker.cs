@@ -10,7 +10,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ColorPicker : UnitControl, IInputElement, IBorderedElement
+public class ColorPicker : InteractiveControl
 {
     private readonly FlyoutHost _flyout;
     private Color _value = Colors.Black;
@@ -33,20 +33,15 @@ public class ColorPicker : UnitControl, IInputElement, IBorderedElement
     public bool ShowHex { get; set; } = true;
 
     public Color TextColor { get; set; } = Colors.Black;
-    public Color BorderColor { get; set; } = Colors.Black;
-    public float BorderWidth { get; set; } = 1f;
-
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
-
-    protected override bool IsKeyActivatable => true;
+    public Color SwatchBorderColor { get; set; } = new Color(255, 140, 140, 140);
 
     public ColorPicker()
     {
         Background = Colors.White;
         Padding = new Thickness(4, 3);
         Cursor = CursorKind.Hand;
+        BorderColor = Colors.Black;
+        BorderWidth = 1f;
 
         _flyout = new FlyoutHost(this);
         _flyout.Closed += (_, _) => InvalidateVisual();
@@ -54,31 +49,26 @@ public class ColorPicker : UnitControl, IInputElement, IBorderedElement
 
     private static string HexOf(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRoundRectangle(this.LocalBounds, CornerRadius, Background);
-
-        if (BorderWidth > 0)
-            g.DrawRoundRectangle(this.LocalBounds, CornerRadius,
-                IsFocused ? App.Theme.Colors.BorderFocused : BorderColor, BorderWidth);
-
-        var content = this.ContentBounds;
+        var content = ContentBounds;
         float swatchSize = Math.Max(0, content.Height - 2);
 
         var swatch = new Rectangle(
             new Point(content.X, content.Y + 1), new Size(swatchSize, swatchSize));
 
-        g.FillRoundRectangle(swatch, new CornerRadius(2f), _value);
-        g.DrawRoundRectangle(swatch, new CornerRadius(2f), new Color(255, 140, 140, 140), 1f);
+        var radius = new CornerRadius(2f);
+
+        g.FillRoundRectangle(swatch, radius, _value);
+        g.DrawRoundRectangle(swatch, radius, SwatchBorderColor, 1f);
 
         if (!ShowHex) return;
 
-        var textArea = new Rectangle(
-            new Point(content.X + swatchSize + 6, content.Y),
-            new Size(Math.Max(0, content.Width - swatchSize - 6), content.Height));
-
-        g.DrawText(HexOf(_value), textArea, TextColor, EffectiveFont,
+        g.DrawText(HexOf(_value),
+            new Rectangle(
+                new Point(content.X + swatchSize + 6, content.Y),
+                new Size(Math.Max(0, content.Width - swatchSize - 6), content.Height)),
+            TextColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
     }
 
@@ -94,7 +84,7 @@ public class ColorPicker : UnitControl, IInputElement, IBorderedElement
         {
             Size = new Size(float.NaN, 28),
             Background = _value,
-            BorderColor = new Color(255, 140, 140, 140),
+            BorderColor = SwatchBorderColor,
             BorderWidth = 1,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
@@ -113,6 +103,7 @@ public class ColorPicker : UnitControl, IInputElement, IBorderedElement
             slider.ValueChanged += (_, _) =>
             {
                 apply((byte)slider.Value);
+
                 preview.Background = _value;
                 preview.InvalidateVisual();
             };
@@ -124,23 +115,7 @@ public class ColorPicker : UnitControl, IInputElement, IBorderedElement
         {
             Text = text,
             TextColor = App.Theme.Colors.TextSecondary,
-            HorizontalContentAlign = HorizontalContentAlignment.Left,
-        };
-
-        var stack = new StackPanel
-        {
-            Spacing = 4,
-            Padding = new Thickness(8),
-            Children =
-            {
-                preview,
-                Caption("R"),
-                MakeChannel(_value.R, v => Value = new Color(_value.A, v, _value.G, _value.B)),
-                Caption("G"),
-                MakeChannel(_value.G, v => Value = new Color(_value.A, _value.R, v, _value.B)),
-                Caption("B"),
-                MakeChannel(_value.B, v => Value = new Color(_value.A, _value.R, _value.G, v)),
-            },
+            ContentAlign = HorizontalContentAlignment.Left,
         };
 
         return new Border
@@ -149,7 +124,21 @@ public class ColorPicker : UnitControl, IInputElement, IBorderedElement
             BorderColor = App.Theme.Colors.Border,
             BorderWidth = 1,
             CornerRadius = new CornerRadius(4f),
-            Child = stack,
+            Child = new StackPanel
+            {
+                Spacing = 4,
+                Padding = new Thickness(8),
+                Children =
+                {
+                    preview,
+                    Caption("R"),
+                    MakeChannel(_value.R, v => Value = new Color(_value.A, v, _value.G, _value.B)),
+                    Caption("G"),
+                    MakeChannel(_value.G, v => Value = new Color(_value.A, _value.R, v, _value.B)),
+                    Caption("B"),
+                    MakeChannel(_value.B, v => Value = new Color(_value.A, _value.R, _value.G, v)),
+                },
+            },
         };
     }
 
