@@ -32,6 +32,7 @@
 - Add `Page`
 - Add `PageIndicator`
 - Add `GradientBorder`
+- Add `GripBox`
 
 ## [0.6.0] — 2026-09-03
 
