@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ZeppelinForms.Animation;
+﻿namespace ZeppelinForms.Animation;
 
 /// <summary>
 /// Бесконечный цикл: отдаёт фазу от 0 до 1 и начинает заново.
