@@ -33,7 +33,18 @@ public sealed class Image
             return LoadFromFile(uri.LocalPath);
 
         throw new NotSupportedException(
-            "Для сетевых URI используйте Image.LoadFromUriAsync (TODO).");
+            "Для сетевых URI используйте Image.LoadFromUriAsync.");
+    }
+
+    public static async Task<Image> LoadFromUriAsync(Uri uri)
+    {
+        if (uri.IsFile)
+            throw new NotSupportedException("Для файлов используйте Image.LoadFromUri");
+
+        using HttpClient client = new HttpClient();
+        using var res = await client.GetAsync(uri);
+        res.EnsureSuccessStatusCode();
+        return Load(await res.Content.ReadAsStreamAsync());
     }
 
     public static Image LoadAsset(string relativePath)
