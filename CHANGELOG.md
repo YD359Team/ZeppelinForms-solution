@@ -15,7 +15,7 @@
 ### Features
 - Add Drag&Drop support
 - Add effects for any `UIElement`
-- Add `Ripple` effect for buttons
+- Add `Ripple` animation for buttons
 - Add `GradientStop` primitive
 - Add `Color.Lerp(Color,Color,float)`
 - Add new colors in `Colors` class

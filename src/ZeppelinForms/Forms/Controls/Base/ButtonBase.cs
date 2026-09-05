@@ -12,7 +12,7 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// </summary>
 public abstract class ButtonBase : InteractiveControl
 {
-    private readonly RippleEffect _ripple;
+    private readonly RippleAnimation _ripple;
 
     /// <summary>Показывать расходящуюся волну от точки нажатия.</summary>
     public bool RippleEnabled { get; set; } = true;
@@ -47,7 +47,7 @@ public abstract class ButtonBase : InteractiveControl
         CornerRadius = new CornerRadius(4f);
         BorderWidth = 1f;
 
-        _ripple = new RippleEffect(this);
+        _ripple = new RippleAnimation(this);
     }
 
     /// <summary>Цвет подложки под текущее состояние. Порядок проверок

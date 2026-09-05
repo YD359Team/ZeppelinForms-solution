@@ -9,7 +9,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// Волна, расходящаяся от точки нажатия. Держит своё состояние отдельно,
 /// чтобы любой контрол мог подмешать её в отрисовку.
 /// </summary>
-public sealed class RippleEffect
+public sealed class RippleAnimation
 {
     private readonly UIElement _owner;
 
@@ -18,7 +18,7 @@ public sealed class RippleEffect
     private float _alpha;
     private bool _active;
 
-    public RippleEffect(UIElement owner) => _owner = owner;
+    public RippleAnimation(UIElement owner) => _owner = owner;
 
     public Color Color { get; set; } = new Color(60, 255, 255, 255);
     public int DurationMs { get; set; } = 420;

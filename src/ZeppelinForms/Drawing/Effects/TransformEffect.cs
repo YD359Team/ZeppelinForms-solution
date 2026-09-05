@@ -16,6 +16,24 @@ public sealed class TransformEffect : VisualEffect
     /// <summary>Точка, вокруг которой всё происходит, в долях от размера.</summary>
     public Point Origin { get; set; } = new(0.5f, 0.5f);
 
+    /// <summary>Описанный прямоугольник вокруг преобразованного:
+    /// считаем по четырём углам, точная форма тут не нужна.</summary>
+    public override Thickness Bleed(Rectangle bounds)
+    {
+        float scaleW = bounds.Width * MathF.Max(1f, MathF.Abs(ScaleX)) - bounds.Width;
+        float scaleH = bounds.Height * MathF.Max(1f, MathF.Abs(ScaleY)) - bounds.Height;
+
+        // поворот и наклон в худшем случае уводят угол на половину диагонали
+        float spin = Rotation != 0f || SkewX != 0f || SkewY != 0f
+            ? MathF.Sqrt(bounds.Width * bounds.Width + bounds.Height * bounds.Height) / 2f
+            : 0f;
+
+        float x = MathF.Abs(TranslateX) + scaleW / 2f + spin;
+        float y = MathF.Abs(TranslateY) + scaleH / 2f + spin;
+
+        return new Thickness(x, y, x, y);
+    }
+
     public override void Begin(Graphics g, Rectangle bounds)
     {
         float cx = bounds.X + bounds.Width * Origin.X;

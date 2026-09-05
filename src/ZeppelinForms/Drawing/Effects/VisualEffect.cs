@@ -11,7 +11,9 @@ namespace ZeppelinForms.Drawing.Effects;
 /// </summary>
 public abstract class VisualEffect
 {
-    /// <summary>Насколько эффект выходит за границы элемента с каждой стороны.</summary>
+    /// <summary>Насколько эффект выходит за границы элемента с каждой стороны.
+    /// Тень, размытие и отражение обязаны это сообщать, иначе их обрежет
+    /// грязный регион при частичной перерисовке.</summary>
     public virtual Thickness Bleed(Rectangle bounds) => Thickness.Zero;
 
     /// <summary>Насколько эффект расширяет область отрисовки за границы

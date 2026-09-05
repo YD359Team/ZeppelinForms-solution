@@ -42,11 +42,9 @@ public class Spoiler : DecoratedWrapControl
         BorderWidth = 1f;
     }
 
-    public Spoiler(UIElement child) : base(child)
+    public Spoiler(UIElement child) : base()
     {
-        VerticalAlignment = VerticalAlignment.Top;
-        BorderColor = new Color(255, 200, 200, 200);
-        BorderWidth = 1f;
+        Child = child;
     }
 
     private Rectangle HeaderRect => new(Point.Empty, new Size(ActualSize.Width, HeaderHeight));

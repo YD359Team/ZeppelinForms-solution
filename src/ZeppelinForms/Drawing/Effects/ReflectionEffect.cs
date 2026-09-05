@@ -11,7 +11,9 @@ public sealed class ReflectionEffect : VisualEffect
     public float Gap { get; set; } = 2f;
     public float StartOpacity { get; set; } = 0.35f;
 
-    public override float BleedRadius => 0f;
+    // отражение уходит только вниз, вбок и вверх не вылезает
+    public override Thickness Bleed(Rectangle bounds) =>
+        new(0f, 0f, 0f, bounds.Height * Height + Gap);
 
     public override void Begin(Graphics g, Rectangle bounds) { }
 

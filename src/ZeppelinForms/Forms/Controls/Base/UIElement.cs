@@ -353,7 +353,15 @@ public abstract class UIElement : IGridPlaceable
             var bounds = new Rectangle(GetAbsolutePosition(), ActualSize);
 
             if (_effects is { IsEmpty: false })
-                bounds = bounds.Inflate(_effects.TotalBleed);
+            {
+                Thickness bleed = _effects.TotalBleed(LocalBounds);
+
+                bounds = new Rectangle(
+                    new Point(bounds.X - bleed.Left, bounds.Y - bleed.Top),
+                    new Size(
+                        bounds.Width + bleed.Horizontal,
+                        bounds.Height + bleed.Vertical));
+            }
 
             if (Rotation != 0f)
             {
@@ -366,8 +374,8 @@ public abstract class UIElement : IGridPlaceable
                 float h = ActualSize.Width * sin + ActualSize.Height * cos;
 
                 var center = new Point(
-                    bounds.X + Size.Width / 2f,
-                    bounds.Y + Size.Height / 2f);
+                    bounds.X + ActualSize.Width / 2f,
+                    bounds.Y + ActualSize.Height / 2f);
 
                 bounds = new Rectangle(
                     new Point(center.X - w / 2f, center.Y - h / 2f),

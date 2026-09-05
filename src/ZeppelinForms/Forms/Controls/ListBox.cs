@@ -63,11 +63,6 @@ public class ListBox : ItemsControl, IInputElement
     protected override Color CurrentBorderColor =>
         IsFocused && FocusBorderColor.A > 0 ? FocusBorderColor : BorderColor;
 
-    protected internal override void DrawOverlay(Graphics g)
-    {
-        base.DrawOverlay(g);
-    }
-
     /// <summary>Выбор строки по нажатию, а не по клику: содержимое строки
     /// может погасить клик, а выделение всё равно должно смениться.</summary>
     protected override void OnPreviewMouseDown(Point location)

@@ -11,17 +11,22 @@ public sealed class EffectChain
 
     public bool IsEmpty => _effects.Count == 0;
 
-    public float TotalBleed
+    /// <summary>Максимальный вылет по каждой стороне среди всех эффектов.</summary>
+    public Thickness TotalBleed(Rectangle bounds)
     {
-        get
+        float left = 0, top = 0, right = 0, bottom = 0;
+
+        foreach (VisualEffect effect in _effects)
         {
-            float bleed = 0;
+            Thickness bleed = effect.Bleed(bounds);
 
-            foreach (VisualEffect effect in _effects)
-                bleed = Math.Max(bleed, effect.BleedRadius);
-
-            return bleed;
+            left = Math.Max(left, bleed.Left);
+            top = Math.Max(top, bleed.Top);
+            right = Math.Max(right, bleed.Right);
+            bottom = Math.Max(bottom, bleed.Bottom);
         }
+
+        return new Thickness(left, top, right, bottom);
     }
 
     public event EventHandler? Changed;

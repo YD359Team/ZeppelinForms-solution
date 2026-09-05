@@ -1,14 +1,11 @@
 ﻿using SkiaSharp;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Effects;
-using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
-using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Headless;
 
 namespace ZeppelinForms.Skia;
 
@@ -53,10 +50,10 @@ public static class SkiaRenderer
         var g = new SkiaGraphics(canvas);
 
         if (form.Content is not null)
-            Draw(form.Content, g, clip);
+            ElementTreeRenderer.Draw(form.Content, g, clip);
 
         foreach (var overlay in form.Overlays)
-            Draw(overlay, g, clip);
+            ElementTreeRenderer.Draw(overlay, g, clip);
 
         if (form.IsInspectorEnabled)
             DrawInspector(form, g);
@@ -70,7 +67,7 @@ public static class SkiaRenderer
         if (target is null) return;
 
         Point absolute = target.GetAbsolutePosition();
-        var bounds = new Rectangle(absolute, target.Size);
+        var bounds = new Rectangle(absolute, target.ActualSize);
 
         // полупрозрачная подсветка + рамка поверх элемента
         g.FillRectangle(bounds, new Color(60, 80, 160, 255));
@@ -171,5 +168,5 @@ public static class SkiaRenderer
         g.Restore();
     }
 
-    public static void DrawElement(UIElement element, Graphics g) => Draw(element, g);
+    public static void DrawElement(UIElement element, Graphics g) => ElementTreeRenderer.Draw(element, g);
 }
