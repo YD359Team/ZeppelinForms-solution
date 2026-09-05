@@ -221,14 +221,6 @@ Reference snapshots are stored in:
 
 Text rendering differs between platforms, so separate snapshot sets are maintained for Windows and Linux.
 
-After making an intentional visual change:
-
-1. **Locally:** run
-   `dotnet test --settings tests/ZeppelinForms.UnitTests/updatesnapshots.runsettings`
-2. Review the PNG changes using `git diff` and commit the updated snapshots.
-3. **For Linux:** temporarily add `ZF_UPDATE_SNAPSHOTS: 'true'` to the test step in `ci.yml`, run the tests, retrieve the updated snapshots from the CI artifacts, commit them, and remove the environment variable.
-
-
 ## RUS
 
 **ZeppelinForms** (ZF) - проект-эксперимент по созданию простого UI-фреймворка без привязки к Windows, с аппаратным ускорением (для Windows), простым code-behind созданием элементов. 
@@ -432,10 +424,3 @@ public class Program
 
 Эталоны хранятся в `tests/ZeppelinForms.UnitTests/Snapshots/Expected/{win,linux}` —
 отрисовка текста между платформами различается, поэтому наборы отдельные.
-
-После осознанного изменения внешнего вида:
-
-1. Локально: `dotnet test --settings tests/ZeppelinForms.UnitTests/updatesnapshots.runsettings`
-2. Проверить `git diff` по PNG, закоммитить.
-3. Для Linux: временно добавить `ZF_UPDATE_SNAPSHOTS: 'true'` в шаг тестов `ci.yml`,
-   прогнать, забрать эталоны артефактом, закоммитить, убрать переменную.
