@@ -18,14 +18,12 @@ public class RadioButton : InteractiveControl, ITextElement
     public event EventHandler? CheckedChanged;
 
     public string? Text { get; set; }
-    public HorizontalContentAlignment ContentAlign { get; set; } = HorizontalContentAlignment.Left;
-    public VerticalContentAlignment ContentVerticalAlign { get; set; } = VerticalContentAlignment.Center;
     public Color TextColor { get; set; } = Colors.Black;
 
     public Color CircleBorderColor { get; set; } = Colors.Black;
     public Color CheckColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
-    public HorizontalContentAlignment HorizontalContentAlign { get; set; }
-    public VerticalContentAlignment VerticalContentAlign { get; set; }
+    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
+    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
 
     public RadioButton()
     {
@@ -88,7 +86,7 @@ public class RadioButton : InteractiveControl, ITextElement
             new Point(content.X + CircleSize + Gap, content.Y),
             new Size(Math.Max(0, content.Width - CircleSize - Gap), content.Height));
 
-        g.DrawText(Text, textRect, TextColor, EffectiveFont, ContentAlign, ContentVerticalAlign);
+        g.DrawText(Text, textRect, TextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
     }
 
     protected override Size MeasureOverride(Size availableSize)
