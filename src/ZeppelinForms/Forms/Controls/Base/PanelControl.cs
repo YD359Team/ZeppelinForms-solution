@@ -36,11 +36,39 @@ public abstract class PanelControl : UIElement
     protected bool ScrollsHorizontally => OverflowX is Overflow.Scroll or Overflow.Auto;
     protected bool ScrollsVertically => OverflowY is Overflow.Scroll or Overflow.Auto;
 
-    private float MaxScrollX => Math.Max(0, _contentSize.Width - ContentBounds.Width);
-    private float MaxScrollY => Math.Max(0, _contentSize.Height - ContentBounds.Height);
+    // _contentSize приходит из MeasureContentOverride вместе с отступами,
+    // поэтому вычитаем полный размер, а не ContentBounds — иначе отступ
+    // засчитается дважды и прокрутить можно будет за конец содержимого
+    private float MaxScrollX => Math.Max(0, _contentSize.Width - ActualSize.Width + ReservedWidth);
+    private float MaxScrollY => Math.Max(0, _contentSize.Height - ActualSize.Height + ReservedHeight);
 
-    private bool ShowVerticalBar => OverflowY == Overflow.Scroll || (OverflowY == Overflow.Auto && MaxScrollY > 0.5f);
-    private bool ShowHorizontalBar => OverflowX == Overflow.Scroll || (OverflowX == Overflow.Auto && MaxScrollX > 0.5f);
+    public ScrollBarMode ScrollBarMode { get; set; } = ScrollBarMode.Overlay;
+
+    // видимость считается один раз за раскладку и дальше только читается:
+    // в режиме Inline полосы отнимают место друг у друга, и пересчёт
+    // на каждом обращении давал бы разные ответы в разных местах кадра
+    private bool _verticalBar;
+    private bool _horizontalBar;
+
+    protected bool ShowVerticalBar => _verticalBar;
+    protected bool ShowHorizontalBar => _horizontalBar;
+
+    private float ReservedWidth => ScrollBarMode == ScrollBarMode.Inline && _verticalBar ? ScrollBarThickness : 0f;
+    private float ReservedHeight => ScrollBarMode == ScrollBarMode.Inline && _horizontalBar ? ScrollBarThickness : 0f;
+
+    /// <summary>Видимая область содержимого: ContentBounds за вычетом места
+    /// под полосы. В режиме Overlay совпадает с ContentBounds.</summary>
+    protected Rectangle Viewport
+    {
+        get
+        {
+            Rectangle c = ContentBounds;
+
+            return new Rectangle(c.Position, new Size(
+                Math.Max(0, c.Width - ReservedWidth),
+                Math.Max(0, c.Height - ReservedHeight)));
+        }
+    }
 
     public PanelControl()
     {
@@ -68,6 +96,32 @@ public abstract class PanelControl : UIElement
         Invalidate();
     }
 
+    /// <summary>Нужны ли полосы при такой видимой области. В режиме Inline
+    /// одна полоса может вызвать появление второй, поэтому после первой
+    /// проверяем повторно — одного повтора достаточно, дальше размер
+    /// уже не меняется.</summary>
+    private (bool Vertical, bool Horizontal) ResolveBars(Size available)
+    {
+        bool NeedsVertical(float height) =>
+            OverflowY == Overflow.Scroll ||
+            (OverflowY == Overflow.Auto && _contentSize.Height - height > 0.5f);
+
+        bool NeedsHorizontal(float width) =>
+            OverflowX == Overflow.Scroll ||
+            (OverflowX == Overflow.Auto && _contentSize.Width - width > 0.5f);
+
+        bool vertical = NeedsVertical(available.Height);
+        bool horizontal = NeedsHorizontal(available.Width);
+
+        if (ScrollBarMode != ScrollBarMode.Inline)
+            return (vertical, horizontal);
+
+        if (vertical) horizontal = NeedsHorizontal(available.Width - ScrollBarThickness);
+        if (horizontal) vertical = NeedsVertical(available.Height - ScrollBarThickness);
+
+        return (vertical, horizontal);
+    }
+
     // ===== прокрутка поверх обычной раскладки =====
 
     protected sealed override Size MeasureOverride(Size availableSize)
@@ -79,7 +133,19 @@ public abstract class PanelControl : UIElement
 
         _contentSize = MeasureContentOverride(probe);
 
-        // а сама панель за пределы выделенного не выходит — излишек уезжает в прокрутку
+        if (ScrollBarMode == ScrollBarMode.Inline)
+        {
+            var (vertical, horizontal) = ResolveBars(availableSize);
+
+            if (vertical || horizontal)
+            {
+                _contentSize = MeasureContentOverride(new Size(
+                    ScrollsHorizontally ? probe.Width : probe.Width - (vertical ? ScrollBarThickness : 0),
+                    ScrollsVertically ? probe.Height : probe.Height - (horizontal ? ScrollBarThickness : 0)));
+            }
+        }
+
+        // сама панель за пределы выделенного не выходит — излишек уезжает в прокрутку
         return new Size(
             ScrollsHorizontally ? Math.Min(_contentSize.Width, availableSize.Width) : _contentSize.Width,
             ScrollsVertically ? Math.Min(_contentSize.Height, availableSize.Height) : _contentSize.Height);
@@ -87,10 +153,22 @@ public abstract class PanelControl : UIElement
 
     protected sealed override Size ArrangeOverride(Size finalSize)
     {
+        // ContentBounds здесь ещё смотрит на прошлый ActualSize: он
+        // присваивается только после возврата отсюда. Поэтому и видимость
+        // полос, и предел прокрутки считаем от finalSize
+        (_verticalBar, _horizontalBar) = ResolveBars(finalSize);
+
+        float reservedW = ScrollBarMode == ScrollBarMode.Inline && _verticalBar ? ScrollBarThickness : 0f;
+        float reservedH = ScrollBarMode == ScrollBarMode.Inline && _horizontalBar ? ScrollBarThickness : 0f;
+
+        var viewport = new Size(
+            Math.Max(0, finalSize.Width - reservedW),
+            Math.Max(0, finalSize.Height - reservedH));
+
         // содержимое раскладывается в полный размер, даже если он больше панели
         var contentArea = new Size(
-            ScrollsHorizontally ? Math.Max(finalSize.Width, _contentSize.Width) : finalSize.Width,
-            ScrollsVertically ? Math.Max(finalSize.Height, _contentSize.Height) : finalSize.Height);
+            ScrollsHorizontally ? Math.Max(viewport.Width, _contentSize.Width) : viewport.Width,
+            ScrollsVertically ? Math.Max(viewport.Height, _contentSize.Height) : viewport.Height);
 
         ArrangeContentOverride(contentArea);
 
@@ -103,8 +181,11 @@ public abstract class PanelControl : UIElement
                     child.Position.Y);
         }
 
-        ScrollX = Math.Clamp(ScrollX, 0, MaxScrollX);
-        ScrollY = Math.Clamp(ScrollY, 0, MaxScrollY);
+        float maxX = Math.Max(0, _contentSize.Width - viewport.Width);
+        float maxY = Math.Max(0, _contentSize.Height - viewport.Height);
+
+        ScrollX = Math.Clamp(ScrollX, 0, maxX);
+        ScrollY = Math.Clamp(ScrollY, 0, maxY);
 
         if (ScrollX != 0 || ScrollY != 0)
         {
@@ -302,4 +383,15 @@ public abstract class PanelControl : UIElement
         if (Math.Abs(before - ScrollY) > 0.01f)
             e.Handled = true;
     }
+}
+
+public enum ScrollBarMode
+{
+    /// <summary>Полоса лежит поверх содержимого: места не занимает,
+    /// но перекрывает то, что под ней.</summary>
+    Overlay,
+
+    /// <summary>Место под полосу вычитается из области содержимого:
+    /// содержимое уже, зато ничего не перекрыто.</summary>
+    Inline,
 }

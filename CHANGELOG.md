@@ -10,6 +10,7 @@
 	- `UnitControl`: `Calendar`, `MenuBar`, `MenuList`, `ScrollBar`, `HintLabel`, `PageIndicator`, `GridSplitter`
 	- `InteractiveControl`: `TrackBar`, `ToggleSwitch`
 - Remove `FocusableControl`
+- Remove `ShowVerticalBar` and `ShowHorizontalBar` in `PanelControl`
 
 ### Fixes
 - `CheckBox`|`RadioButton`: `HorizontalContentAlign` and `VerticalContentAlign` don't throw `NotImplementedException` 
@@ -23,6 +24,7 @@
 - Add `Image.LoadFromUriAsync`
 - Add `LoopAnimation` class
 - Add animation extensions `AnimateLoop` and `StopAnimation` 
+- Add `PanelControl.ScrollBarMode`
 
 ### New controls
 - Add `Loader`

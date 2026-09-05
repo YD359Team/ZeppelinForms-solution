@@ -100,6 +100,7 @@ public class ExampleMainForm : Form
             OverflowY = Overflow.Auto,
             SpacingX = 5,
             SpacingY = 2,
+            ScrollBarMode = ScrollBarMode.Inline
         };
         PictureBox pBox = new() { Size = new(100, 100) };
         pBox.LoadAsset("Laughing.png");
