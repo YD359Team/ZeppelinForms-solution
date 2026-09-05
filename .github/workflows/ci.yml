@@ -45,7 +45,7 @@ jobs:
         run: xvfb-run -a --server-args="-screen 0 1024x768x24" dotnet test --no-build --configuration Release
 
       - name: Выгрузить неудачные снимки
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v5
         with:
           name: snapshots-${{ matrix.os }}
