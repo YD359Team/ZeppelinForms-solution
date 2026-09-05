@@ -13,8 +13,6 @@ public class Label : DecoratedControl, ITextElement
 {
     public string? Text { get; set; }
 
-    public HorizontalContentAlignment ContentAlign { get; set; }
-    public VerticalContentAlignment ContentVerticalAlign { get; set; }
     public Color TextColor { get; set; } = Colors.Black;
     public HorizontalContentAlignment HorizontalContentAlign { get; set; }
     public VerticalContentAlignment VerticalContentAlign { get; set; }
@@ -38,7 +36,7 @@ public class Label : DecoratedControl, ITextElement
         float lineHeight = LineHeight;
         float totalHeight = lineHeight * lines.Length;
 
-        float startY = ContentVerticalAlign switch
+        float startY = VerticalContentAlign switch
         {
             VerticalContentAlignment.Top => content.Y,
             VerticalContentAlignment.Bottom => content.Y + content.Height - totalHeight,
@@ -53,7 +51,7 @@ public class Label : DecoratedControl, ITextElement
                 new Rectangle(new Point(content.X, startY + i * lineHeight),
                     new Size(content.Width, lineHeight)),
                 TextColor, EffectiveFont,
-                ContentAlign, VerticalContentAlignment.Center);
+                this.HorizontalContentAlign, VerticalContentAlignment.Center);
         }
     }
 
