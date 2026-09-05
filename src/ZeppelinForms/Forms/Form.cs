@@ -489,6 +489,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         _toolTipOwner = null;
 
         _animations.RemoveAll(a => a.Target is UIElement e && IsInTree(root, e));
+        if (_animations.Count == 0)
+            PlatformWindow?.StopTicking();
     }
 
     private static bool IsInTree(UIElement root, UIElement candidate)
