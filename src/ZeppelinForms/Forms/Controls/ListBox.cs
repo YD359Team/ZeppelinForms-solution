@@ -59,15 +59,12 @@ public class ListBox : ItemsControl, IInputElement
         }
     }
 
+    /// <summary>В фокусе рамку подсвечиваем — база нарисует её сама.</summary>
+    protected override Color CurrentBorderColor =>
+        IsFocused && FocusBorderColor.A > 0 ? FocusBorderColor : BorderColor;
+
     protected internal override void DrawOverlay(Graphics g)
     {
-        // рамка поверх строк, но под полосами прокрутки
-        if (BorderWidth > 0)
-        {
-            Color border = IsFocused && FocusBorderColor.A > 0 ? FocusBorderColor : BorderColor;
-            g.DrawRoundRectangle(LocalBounds, CornerRadius, border, BorderWidth);
-        }
-
         base.DrawOverlay(g);
     }
 

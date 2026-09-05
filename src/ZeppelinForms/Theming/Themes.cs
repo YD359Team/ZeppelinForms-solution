@@ -197,6 +197,8 @@ public static class Themes
             {
                 list.Background = c.Surface;
                 list.SelectionColor = c.Accent;
+                list.BorderColor = c.Border;
+                list.BorderWidth = 1f;
             })
 
             .For<Panel>((panel, c) =>

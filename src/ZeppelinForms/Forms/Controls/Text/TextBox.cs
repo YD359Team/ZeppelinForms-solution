@@ -102,17 +102,8 @@ public class TextBox : TextInputControl, ITextElement
     public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
     public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Top;
 
-    public Color BorderColor { get; set; } = Colors.Black;
-    public float BorderWidth { get; set; } = 1f;
-
-    public bool IsFocused { get; set; }
-    public bool TabStop { get; set; } = true;
-    public uint TabIndex { get; set; }
-
     public event EventHandler? TextChanged;
     public event EventHandler? Accepted;
-
-    protected override bool IsKeyActivatable => true;
 
     public void SelectAll() => _document.SelectAll();
 

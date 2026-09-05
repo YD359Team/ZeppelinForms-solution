@@ -131,6 +131,7 @@ public class Form : IDisposable
 
     private UIElement? _hoveredElement;
     private UIElement? _pressedElement;
+    private CursorKind _lastCursor = CursorKind.Arrow;
     private readonly FocusDispatcher _focusDispatcher = new();
 
     // ===== ToolTip =====
@@ -181,10 +182,16 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             _hoveredElement = hit;
 
             ScheduleToolTip(hit);
-            PlatformWindow?.SetCursor(hit?.EffectiveCursor ?? CursorKind.Arrow);
         }
 
         hit?.RaiseMouseMove(point);
+        CursorKind cursor = hit?.EffectiveCursor ?? CursorKind.Arrow;
+
+        if (cursor != _lastCursor)
+        {
+            _lastCursor = cursor;
+            PlatformWindow?.SetCursor(cursor);
+        }
 
         if (IsInspectorEnabled)
         {

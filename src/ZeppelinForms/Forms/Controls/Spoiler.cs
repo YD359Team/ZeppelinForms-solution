@@ -33,20 +33,20 @@ public class Spoiler : DecoratedWrapControl
         }
     }
 
-    // IBorderedElement
-    public Color BorderColor { get; set; } = new Color(255, 200, 200, 200);
-    public float BorderWidth { get; set; } = 1f;
-
     public Spoiler()
     {
         // свёрнутый спойлер должен схлопываться до заголовка,
         // а не растягиваться на всю выделенную высоту
         VerticalAlignment = VerticalAlignment.Top;
+        BorderColor = new Color(255, 200, 200, 200);
+        BorderWidth = 1f;
     }
 
     public Spoiler(UIElement child) : base(child)
     {
         VerticalAlignment = VerticalAlignment.Top;
+        BorderColor = new Color(255, 200, 200, 200);
+        BorderWidth = 1f;
     }
 
     private Rectangle HeaderRect => new(Point.Empty, new Size(ActualSize.Width, HeaderHeight));
@@ -86,9 +86,6 @@ public class Spoiler : DecoratedWrapControl
             g.DrawText(Header, textRect, HeaderTextColor, EffectiveFont,
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
         }
-
-        if (BorderWidth > 0)
-            g.DrawRectangle(this.LocalBounds, BorderColor, BorderWidth);
     }
 
     protected override void OnMouseMove(MouseMoveEventArgs args)

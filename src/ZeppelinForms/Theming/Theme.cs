@@ -24,16 +24,19 @@ public sealed class Theme
 
     internal void Apply(UIElement element)
     {
-        // ищем оформление вверх по иерархии типов: ToggleButton
-        // получит настройки Button, если своих не задано
+        // от базового типа к производному: специализация дополняет общее
+        // оформление, а не подменяет его целиком. Раньше здесь стоял return
+        // на первом совпадении, и .For<TextBox> отменял .For<InteractiveControl>
+        var pending = new Stack<Action<UIElement>>();
+
         for (Type? type = element.GetType(); type is not null; type = type.BaseType)
         {
             if (_appliers.TryGetValue(type, out Action<UIElement>? apply))
-            {
-                apply(element);
-                return;
-            }
+                pending.Push(apply);
         }
+
+        while (pending.Count > 0)
+            pending.Pop()(element);
     }
 
     internal static void Apply(UIElement element, ControlStyle style)
