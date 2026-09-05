@@ -51,3 +51,11 @@ jobs:
           name: snapshots-${{ matrix.os }}
           path: tests/ZeppelinForms.UnitTests/Snapshots/Failed/**
           if-no-files-found: ignore
+
+      - name: Выгрузить результаты тестов
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: '**/TestResults/**'
+          if-no-files-found: ignore
