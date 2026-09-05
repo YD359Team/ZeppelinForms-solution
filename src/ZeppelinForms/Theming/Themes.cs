@@ -81,7 +81,7 @@ public static class Themes
             })
 
             // общее для всех — фон окна и цвет полос прокрутки
-            .For<PanelControl>((panel, c) =>
+            .For<DecoratedPanel>((panel, c) =>
             {
                 panel.ScrollTrackColor = c.ScrollTrack;
                 panel.ScrollThumbColor = c.ScrollThumb;

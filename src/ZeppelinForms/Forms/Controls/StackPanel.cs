@@ -1,11 +1,10 @@
-﻿using ZeppelinForms.Drawing;
-using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class StackPanel : PanelControl
+public class StackPanel : DecoratedPanel
 {
     public Orientation Orientation { get; set; } = Orientation.Vertical;
     public float Spacing { get; set; }
@@ -13,8 +12,6 @@ public class StackPanel : PanelControl
     public CrossAxisAlignment CrossAxisAlignment { get; set; } = CrossAxisAlignment.Stretch;
 
     private bool IsVertical => Orientation == Orientation.Vertical;
-
-    public override void Draw(Graphics g) { }
 
     private float MainOf(Size size) => IsVertical ? size.Height : size.Width;
     private float CrossOf(Size size) => IsVertical ? size.Width : size.Height;

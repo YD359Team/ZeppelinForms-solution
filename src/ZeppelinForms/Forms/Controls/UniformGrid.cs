@@ -1,5 +1,4 @@
-﻿using ZeppelinForms.Drawing;
-using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 
 namespace ZeppelinForms.Forms.Controls;
@@ -8,7 +7,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// Раскладывает детей по сетке одинаковых ячеек.
 /// Rows/Columns = 0 означает "посчитать автоматически".
 /// </summary>
-public class UniformGrid : PanelControl
+public class UniformGrid : DecoratedPanel
 {
     public int Rows { get; set; }
     public int Columns { get; set; }
@@ -17,12 +16,6 @@ public class UniformGrid : PanelControl
 
     public float SpacingX { get; set; }
     public float SpacingY { get; set; }
-
-    public override void Draw(Graphics g)
-    {
-        if (Background.A > 0)
-            g.FillRectangle(LocalBounds, Background);
-    }
 
     /// <summary>Раскладка по ячейкам с учётом того, что элементы могут
     /// занимать несколько клеток сразу.</summary>

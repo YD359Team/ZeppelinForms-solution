@@ -1,14 +1,11 @@
-﻿using ZeppelinForms.Drawing;
-using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class DockPanel : PanelControl
+public class DockPanel : DecoratedPanel
 {
-    public override void Draw(Graphics g) { }
-
     protected override Size MeasureContentOverride(Size availableSize)
     {
         var remaining = new Size(

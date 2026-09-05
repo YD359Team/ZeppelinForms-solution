@@ -1,5 +1,4 @@
-﻿using ZeppelinForms.Drawing;
-using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
@@ -10,7 +9,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// Создаёт контейнеры только для видимых элементов. Требует одинаковой
 /// высоты строк — иначе нельзя вычислить видимый диапазон без измерения всех.
 /// </summary>
-public class VirtualizingStackPanel : PanelControl
+public class VirtualizingStackPanel : DecoratedPanel
 {
     private readonly Dictionary<int, UIElement> _realized = [];
     private readonly Stack<UIElement> _recycled = new();
@@ -31,12 +30,6 @@ public class VirtualizingStackPanel : PanelControl
     public VirtualizingStackPanel()
     {
         OverflowY = Overflow.Auto;
-    }
-
-    public override void Draw(Graphics g)
-    {
-        if (Background.A > 0)
-            g.FillRectangle(LocalBounds, Background);
     }
 
     public void Refresh()

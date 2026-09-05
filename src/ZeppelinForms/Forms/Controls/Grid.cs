@@ -1,11 +1,9 @@
-﻿using System.Runtime.CompilerServices;
-using ZeppelinForms.Drawing;
-using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class Grid : PanelControl
+public class Grid : DecoratedPanel
 {
     private float[] _rowHeights = [];
     private float[] _colWidths = [];
@@ -15,8 +13,6 @@ public class Grid : PanelControl
 
     public List<GridLength> RowDefinitions { get; private set; } = [];
     public List<GridLength> ColumnDefinitions { get; private set; } = [];
-
-    public override void Draw(Graphics g) { }
 
     protected override Size MeasureContentOverride(Size availableSize)
     {
