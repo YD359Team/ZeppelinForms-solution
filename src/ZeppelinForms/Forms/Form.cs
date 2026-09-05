@@ -594,6 +594,15 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
     }
 
+    internal void RemoveAnimation(object target, string key)
+    {
+        _animations.RemoveAll(a => ReferenceEquals(a.Target, target) && a.Key == key);
+
+        // последняя ушла — тикать больше незачем
+        if (_animations.Count == 0)
+            PlatformWindow?.StopTicking();
+    }
+
     internal void Tick()
     {
         long now = Environment.TickCount64;

@@ -13,7 +13,8 @@
 
 ### Features
 - Add `Image.LoadFromUriAsync`
-- Add `LoopAnimation`
+- Add `LoopAnimation` class
+- Add animation extensions `AnimateLoop` and `StopAnimation` 
 
 ## [0.7.0]
 

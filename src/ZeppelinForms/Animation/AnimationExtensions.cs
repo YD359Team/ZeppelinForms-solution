@@ -21,5 +21,13 @@ public static class AnimationExtensions
 
             owner.AddAnimation(new Animation<T>(element, key, from, to, duration, interpolate, apply, easing, completed));
         }
+
+        /// <summary>Бесконечная анимация. Без формы просто не запускается:
+        /// показывать нечего и тикать некому.</summary>
+        public void AnimateLoop(string key, TimeSpan period, Action<float> apply) =>
+            element.FindOwner()?.AddAnimation(new LoopAnimation(element, key, period, apply));
+
+        public void StopAnimation(string key) =>
+            element.FindOwner()?.RemoveAnimation(element, key);
     }
 }
