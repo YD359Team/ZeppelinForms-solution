@@ -240,7 +240,7 @@ public abstract class PanelControl : UIElement
         get
         {
             Rectangle bar = VerticalBarRect;
-            float ratio = _contentSize.Height <= 0 ? 1 : ContentBounds.Height / _contentSize.Height;
+            float ratio = _contentSize.Height <= 0 ? 1 : Viewport.Height / _contentSize.Height;
             float length = Math.Max(MinThumbLength, bar.Height * Math.Min(1, ratio));
             float position = MaxScrollY <= 0 ? 0 : (bar.Height - length) * (ScrollY / MaxScrollY);
             return (position, length);
@@ -252,7 +252,7 @@ public abstract class PanelControl : UIElement
         get
         {
             Rectangle bar = HorizontalBarRect;
-            float ratio = _contentSize.Width <= 0 ? 1 : ContentBounds.Width / _contentSize.Width;
+            float ratio = _contentSize.Width <= 0 ? 1 : Viewport.Width / _contentSize.Width;
             float length = Math.Max(MinThumbLength, bar.Width * Math.Min(1, ratio));
             float position = MaxScrollX <= 0 ? 0 : (bar.Width - length) * (ScrollX / MaxScrollX);
             return (position, length);
@@ -313,7 +313,7 @@ public abstract class PanelControl : UIElement
             }
             else
             {
-                ScrollTo(ScrollX, ScrollY + (offsetInBar < pos ? -ContentBounds.Height : ContentBounds.Height));
+                ScrollTo(ScrollX, ScrollY + (offsetInBar < pos ? -Viewport.Height : Viewport.Height));
             }
 
             return;
@@ -331,7 +331,7 @@ public abstract class PanelControl : UIElement
             }
             else
             {
-                ScrollTo(ScrollX + (offsetInBar < pos ? -ContentBounds.Width : ContentBounds.Width), ScrollY);
+                ScrollTo(ScrollX + (offsetInBar < pos ? -Viewport.Width : Viewport.Width), ScrollY);
             }
         }
     }
