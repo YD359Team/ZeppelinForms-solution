@@ -8,6 +8,7 @@
 ### Fixes
 - `CheckBox`|`RadioButton`: `HorizontalContentAlign` and `VerticalContentAlign` don't throw `NotImplementedException` 
 - Remove duplicate content align properties in `Button`, `CheckBox`, `RadioButton`, `ToggleSwitch`, `Label`
+- CI: Add flag  `--report-trx`
 
 ### Features
 - Add `Image.LoadFromUriAsync`
