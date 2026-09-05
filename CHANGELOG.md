@@ -9,6 +9,7 @@
 - `CheckBox`|`RadioButton`: `HorizontalContentAlign` and `VerticalContentAlign` don't throw `NotImplementedException` 
 - Remove duplicate content align properties in `Button`, `CheckBox`, `RadioButton`, `ToggleSwitch`, `Label`
 - `UIElement` properties `Parent` and `Owner` optimized with cache value
+- Now `Form` with animations invalidate only animations targets  
 - CI: Add flag  `--report-trx`
 
 ### Features

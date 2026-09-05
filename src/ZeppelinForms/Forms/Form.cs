@@ -609,14 +609,30 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         var elapsed = TimeSpan.FromMilliseconds(now - _lastTickTicks);
         _lastTickTicks = now;
 
+        bool wholeWindow = false;
+
         for (int i = _animations.Count - 1; i >= 0; i--)
-            if (!_animations[i].Advance(elapsed))
-                _animations.RemoveAt(i);
+        {
+            IAnimation animation = _animations[i];
+            bool alive = animation.Advance(elapsed);
+
+            // перерисовываем цель независимо от того, дожила ли анимация
+            // до следующего кадра: последний её кадр тоже надо показать
+            switch (animation.Target)
+            {
+                // анимация самой формы — например, волна смены темы —
+                // выходит за пределы любого отдельного элемента
+                case Form: wholeWindow = true; break;
+                case UIElement element: element.InvalidateVisual(); break;
+            }
+
+            if (!alive) _animations.RemoveAt(i);
+        }
 
         if (_animations.Count == 0)
             PlatformWindow?.StopTicking();
 
-        InvalidateVisual();
+        if (wholeWindow) InvalidateVisual();
     }
 
     // ===== Flyout API =====
