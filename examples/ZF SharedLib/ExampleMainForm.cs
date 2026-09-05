@@ -38,7 +38,8 @@ public class ExampleMainForm : Form
         root.AddPage("home", () => GetView1(), "Home");
         root.AddPage("controls", () => GetView2(), "Controls");
         root.AddPage("calc", () => GetView3(), "Calc");
-        root.AddPage("effects", () => GetView4(), "Effects");
+        root.AddPage("map", () => GetView4(), "Map");
+        root.AddPage("effects", () => GetView5(), "Effects");
         return new DockPanel
         {
             Children =
@@ -106,12 +107,6 @@ public class ExampleMainForm : Form
         lBox.Items.AddRange([new Button() { Text = "Item1" }, new Button() { Text = "Item2" }]);
         ComboBox cBox = new();
         cBox.Items.AddRange("Item 1", "Item 2", "Item 3");
-        var map = new MapControl()
-        {
-            RowSpan = 2,
-            ColumnSpan = 2,
-            UserAgent = "ZeppelinForms/0.5.0",
-        };
         UIElement[] controls = [
             new Label() { Text = "Label" },
             new LinkLabel() { Text = "LinkLabel" },
@@ -129,7 +124,6 @@ public class ExampleMainForm : Form
             pBox,
             lBox,
             cBox,
-            map,
             new Spoiler() { Child = new Label() { Text = "Hidden label" }, IsCollapsed = true },
             new CircularProgressBar() { Maximum = 1f, Value = 0.5f },
             new SvgIcon() { PathData = "M 45 45 L 345 45 L 345 345 L 45 345 Z M 195 45 L 195 345 M 45 195 L 345 195" },
@@ -144,7 +138,6 @@ public class ExampleMainForm : Form
             .. GetPlotControls()
         ];
         grid.Children.AddRange(controls);
-        map.GoTo(55.751244, 37.618423, zoom: 12);
         return grid;
     }
 
@@ -314,6 +307,16 @@ public class ExampleMainForm : Form
     }
 
     private UIElement GetView4()
+    {
+        var map = new MapControl()
+        {
+            UserAgent = "ZeppelinForms/0.5.0",
+        };
+        map.GoTo(55.751244, 37.618423, zoom: 12);
+        return map;
+    }
+
+    private UIElement GetView5()
     {
         // подложка: на одноцветном фоне ни акрил, ни отражение не читаются
         PictureBox backdrop = new()

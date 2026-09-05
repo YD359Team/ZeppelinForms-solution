@@ -19,6 +19,9 @@
 ### New controls
 - Add `Loader`
 
+### Examples
+- Now `MapControl` moved to single page
+
 ## [0.7.0]
 
 ### Breaking changes
