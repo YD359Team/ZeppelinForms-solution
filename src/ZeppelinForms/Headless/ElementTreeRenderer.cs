@@ -78,7 +78,7 @@ public static class ElementTreeRenderer
             case PanelControl panel:
                 panel.Draw(g);
                 g.Save();
-                g.ClipRect(panel.ContentBounds);
+                g.ClipRect(panel.ClipBounds);
                 foreach (var child in panel.Children)
                     Draw(child, g, clip);
                 g.Restore();

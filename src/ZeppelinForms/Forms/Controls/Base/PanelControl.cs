@@ -22,6 +22,8 @@ public abstract class PanelControl : UIElement
 
     public ObservableCollection<UIElement> Children { get; } = [];
 
+    protected internal override Rectangle ClipBounds => Viewport;
+
     public Overflow OverflowX { get; set; } = Overflow.Visible;
     public Overflow OverflowY { get; set; } = Overflow.Visible;
 

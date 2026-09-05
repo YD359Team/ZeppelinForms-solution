@@ -244,6 +244,9 @@ public abstract class UIElement : IGridPlaceable
         new Size(
             NonNegative(SanitizedSize.Width - Padding.Horizontal),
             NonNegative(SanitizedSize.Height - Padding.Vertical)));
+    /// <summary>По какому прямоугольнику обрезать потомков. Обычно совпадает
+    /// с ContentBounds; панели сужают его на место под полосы прокрутки.</summary>
+    protected internal virtual Rectangle ClipBounds => ContentBounds;
     private Size SanitizedSize => new(
         float.IsFinite(_actualSize.Width) ? _actualSize.Width : 0f,
         float.IsFinite(_actualSize.Height) ? _actualSize.Height : 0f);
