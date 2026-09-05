@@ -93,7 +93,7 @@ Unlike WinForms, all controls support:
 
 **Unit controls** are similar to `Control` in WinForms and can be thought of as regular controls. They cannot contain child controls.
 
-|  № | Название            | Статус |  № | Название        | Статус |
+|  № | Name            | Status |  № | Name        | Status |
 | -: | ------------------- | :----: | -: | --------------- | :----: |
 |  1 | Label               |    ✅   | 21 | ToggleButton    |    ✅   |
 |  2 | Button              |    ✅   | 22 | BarChart        |    ✅   |
@@ -305,45 +305,28 @@ ZeppelinForms ничего не знает про Skia, потому что он
 
 **Единичные контролы** - похожи на Control из мира WinForms, можно назвать их обычными контролами. У них не может быть дочерних контролов.
 
-| № | Название      | Статус |
-|---|------------|---|
-| 1 | Label      | ✅ |
-| 2 | Button     | ✅ |
-| 3 | CheckBox   | ✅ |
-| 4 | PictureBox | ✅ |
-| 5 | RadioButton | ✅ |
-| 6 | TextBox | ✅* |
-| 7 | ToggleSwitch | ✅ |
-| 8 | DateTimePicker | ✅ |
-| 9 | TimePicker | ✅ |
-| 10 | ColorPicker | ✅ |
-| 11 | ScrollBar | ✅ |
-| 12 | SvgIcon | ✅ |
-| 13 | NumericUpDown | ✅ |
-| 14 | ProgressBar | ✅ |
-| 15 | CircularProgressBar | ✅ |
-| 16 | TrackBar | ✅ |
-| 17 | Calendar | ✅ |
-| 18 | MenuBar | ✅ |
-| 19 | MenuList | ✅ |
-| 20 | SplitButton | ✅ |
-| 21 | ToggleButton | ✅ |
-| 22 | BarChart | ✅ |
-| 23 | LineChart | ✅ |
-| 24 | PieChart | ✅ |
-| 25 | RichLabel | ✅ |
-| 26 | LinkLabel | ✅ |
-| 27 | ShapeLine | ✅ |
-| 28 | ShapeRectangle | ✅ |
-| 29 | ShapeEllipse | ✅ |
-| 30 | ShapePolygon | ✅ |
-| 31 | CheckedComboBox | ✅ |
-| 32 | ComboBox | ✅ |
-| 33 | GridSplitter | ✅ |
-| 34 | MaskedTextBox | ✅ |
-| 35 | HintLabel | ✅ |
-| 36 | MapControl | ✅ |
-| 37 | PropertyGrid | ✅** |
+|  № | Название            | Статус |  № | Название        | Статус |
+| -: | ------------------- | :----: | -: | --------------- | :----: |
+|  1 | Label               |    ✅   | 21 | ToggleButton    |    ✅   |
+|  2 | Button              |    ✅   | 22 | BarChart        |    ✅   |
+|  3 | CheckBox            |    ✅   | 23 | LineChart       |    ✅   |
+|  4 | PictureBox          |    ✅   | 24 | PieChart        |    ✅   |
+|  5 | RadioButton         |    ✅   | 25 | RichLabel       |    ✅   |
+|  6 | TextBox             |   ✅*   | 26 | LinkLabel       |    ✅   |
+|  7 | ToggleSwitch        |    ✅   | 27 | ShapeLine       |    ✅   |
+|  8 | DateTimePicker      |    ✅   | 28 | ShapeRectangle  |    ✅   |
+|  9 | TimePicker          |    ✅   | 29 | ShapeEllipse    |    ✅   |
+| 10 | ColorPicker         |    ✅   | 30 | ShapePolygon    |    ✅   |
+| 11 | ScrollBar           |    ✅   | 31 | CheckedComboBox |    ✅   |
+| 12 | SvgIcon             |    ✅   | 32 | ComboBox        |    ✅   |
+| 13 | NumericUpDown       |    ✅   | 33 | GridSplitter    |    ✅   |
+| 14 | ProgressBar         |    ✅   | 34 | MaskedTextBox   |    ✅   |
+| 15 | CircularProgressBar |    ✅   | 35 | HintLabel       |    ✅   |
+| 16 | TrackBar            |    ✅   | 36 | MapControl      |    ✅   |
+| 17 | Calendar            |    ✅   | 37 | PropertyGrid    |   ✅**  |
+| 18 | MenuBar             |    ✅   |    |                 |        |
+| 19 | MenuList            |    ✅   |    |                 |        |
+| 20 | SplitButton         |    ✅   |    |                 |        |
 
 \* - есть баги и отсутствует часть API \
 \** - пока работает только для некоторых контролов
