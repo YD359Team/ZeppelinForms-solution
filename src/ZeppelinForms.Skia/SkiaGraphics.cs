@@ -529,39 +529,172 @@ public sealed class SkiaGraphics : Graphics
 
     public override void BlurBackdrop(Rectangle bounds, float radius)
     {
+        if (radius <= 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        // поверхность принадлежит вызывающей стороне: захватывать её
+        // в using нельзя, иначе следующий кадр упадёт
+        SKSurface? surface = _canvas.Surface;
+        if (surface is null) return;
+
         var rect = new SKRect(bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height);
 
-        // снимок того, что уже на канвасе, и рисуем его обратно размытым
-        using SKSurface? snapshot = _canvas.Surface;
+        // область в пикселях устройства: канвас может быть отмасштабирован под DPI
+        SKMatrix matrix = _canvas.TotalMatrix;
+        SKRect deviceRect = matrix.MapRect(rect);
+
+        var subset = SKRectI.Round(deviceRect);
+        subset.Intersect(new SKRectI(0, 0, surface.Canvas.DeviceClipBounds.Right, surface.Canvas.DeviceClipBounds.Bottom));
+
+        if (subset.IsEmpty) return;
+
+        // Snapshot(subset) на GPU остаётся текстурой и не тянет данные в CPU —
+        // именно поэтому берём подобласть, а не весь кадр
+        using SKImage? snapshot = surface.Snapshot(subset);
         if (snapshot is null) return;
 
-        using SKImage image = snapshot.Snapshot();
-        using var filter = SKImageFilter.CreateBlur(radius / 2f, radius / 2f);
+        using var filter = SKImageFilter.CreateBlur(radius / 2f, radius / 2f, SKShaderTileMode.Clamp);
         using var paint = new SKPaint { ImageFilter = filter };
 
         _canvas.Save();
         _canvas.ClipRect(rect);
-        _canvas.DrawImage(image, 0, 0, paint);
+
+        // рисуем снимок обратно на его же место, но уже размытым
+        _canvas.DrawImage(snapshot, rect, SKSamplingOptions.Default, paint);
+
         _canvas.Restore();
     }
 
     public override void Skew(float sx, float sy)
     {
-        throw new NotImplementedException();
+        // SKMatrix.CreateSkew задаёт наклон относительно начала координат;
+        // точку поворота выставляет вызывающий через Translate
+        _canvas.Concat(SKMatrix.CreateSkew(sx, sy));
     }
 
     public override void FillNoise(Rectangle bounds, float opacity)
     {
-        throw new NotImplementedException();
+        if (opacity <= 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        using SKShader shader = NoiseShader;
+
+        byte alpha = (byte)Math.Clamp(opacity * 255f, 0, 255);
+
+        using var paint = new SKPaint
+        {
+            Shader = shader,
+            Color = new SKColor(255, 255, 255, alpha),
+        };
+
+        _canvas.DrawRect(
+            new SKRect(bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height),
+            paint);
     }
+
+    // шум генерируется один раз: процедурная текстура одинакова для всех
+    // элементов, а пересоздавать её на каждый кадр слишком дорого
+    private static SKShader NoiseShader =>
+        SKShader.CreatePerlinNoiseFractalNoise(0.8f, 0.8f, 2, 0f);
 
     public override void DrawReflection(Rectangle bounds, float heightRatio, float gap, float startOpacity)
     {
-        throw new NotImplementedException();
+        if (heightRatio <= 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        SKSurface? surface = _canvas.Surface;
+        if (surface is null) return;
+
+        var source = new SKRect(bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height);
+
+        SKRect deviceRect = _canvas.TotalMatrix.MapRect(source);
+        var subset = SKRectI.Round(deviceRect);
+
+        if (subset.IsEmpty) return;
+
+        using SKImage? snapshot = surface.Snapshot(subset);
+        if (snapshot is null) return;
+
+        float reflectionHeight = bounds.Height * Math.Clamp(heightRatio, 0f, 1f);
+        float top = bounds.Y + bounds.Height + gap;
+
+        var target = new SKRect(bounds.X, top, bounds.X + bounds.Width, top + reflectionHeight);
+
+        // градиент от полупрозрачного к нулю: отражение должно растворяться,
+        // а не обрываться по краю
+        using SKShader fade = SKShader.CreateLinearGradient(
+            new SKPoint(target.Left, target.Top),
+            new SKPoint(target.Left, target.Bottom),
+            [
+                new SKColor(255, 255, 255, (byte)Math.Clamp(startOpacity * 255f, 0, 255)),
+                new SKColor(255, 255, 255, 0),
+            ],
+            null,
+            SKShaderTileMode.Clamp);
+
+        using var paint = new SKPaint { Shader = fade, BlendMode = SKBlendMode.DstIn };
+
+        _canvas.Save();
+        _canvas.ClipRect(target);
+
+        // отражаем по вертикали относительно верхней границы отражения
+        _canvas.Translate(0, target.Top);
+        _canvas.Scale(1, -1);
+        _canvas.Translate(0, -target.Top - reflectionHeight);
+
+        var flipped = new SKRect(
+            bounds.X, target.Top,
+            bounds.X + bounds.Width, target.Top + reflectionHeight);
+
+        // слой нужен, чтобы затухание применилось к отражению,
+        // а не к тому, что уже нарисовано под ним
+        _canvas.SaveLayer(null);
+        _canvas.DrawImage(snapshot, flipped, SKSamplingOptions.Default);
+        _canvas.DrawRect(flipped, paint);
+        _canvas.Restore();
+
+        _canvas.Restore();
     }
 
     public override void FillGradient(Rectangle bounds, CornerRadius radius, GradientStop[] stops, float angle)
     {
-        throw new NotImplementedException();
+        if (stops.Length == 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        var rect = new SKRect(bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height);
+
+        // направление задаём углом: 0 — слева направо, 90 — сверху вниз
+        float radians = angle * MathF.PI / 180f;
+
+        float halfWidth = bounds.Width / 2f;
+        float halfHeight = bounds.Height / 2f;
+
+        float dx = MathF.Cos(radians) * halfWidth;
+        float dy = MathF.Sin(radians) * halfHeight;
+
+        float cx = bounds.X + halfWidth;
+        float cy = bounds.Y + halfHeight;
+
+        SKColor[] colors = new SKColor[stops.Length];
+        float[] positions = new float[stops.Length];
+
+        for (int i = 0; i < stops.Length; i++)
+        {
+            Color c = stops[i].Color;
+            colors[i] = new SKColor(c.R, c.G, c.B, c.A);
+            positions[i] = Math.Clamp(stops[i].Offset, 0f, 1f);
+        }
+
+        using SKShader shader = SKShader.CreateLinearGradient(
+            new SKPoint(cx - dx, cy - dy),
+            new SKPoint(cx + dx, cy + dy),
+            colors, positions, SKShaderTileMode.Clamp);
+
+        using var paint = new SKPaint { Shader = shader, IsAntialias = true };
+
+        if (radius.IsZero)
+        {
+            _canvas.DrawRect(rect, paint);
+            return;
+        }
+
+        using SKRoundRect rounded = MakeRoundRect(bounds, radius);
+        _canvas.DrawRoundRect(rounded, paint);
     }
 }

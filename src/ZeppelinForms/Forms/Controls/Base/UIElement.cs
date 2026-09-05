@@ -352,6 +352,9 @@ public abstract class UIElement : IGridPlaceable
         {
             var bounds = new Rectangle(GetAbsolutePosition(), ActualSize);
 
+            if (_effects is { IsEmpty: false })
+                bounds = bounds.Inflate(_effects.TotalBleed);
+
             if (Rotation != 0f)
             {
                 // описанный прямоугольник вокруг повёрнутого
