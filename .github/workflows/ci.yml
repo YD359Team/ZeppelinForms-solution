@@ -38,11 +38,11 @@ jobs:
 
       - name: Тесты (Windows)
         if: matrix.os == 'windows-latest'
-        run: dotnet test --no-build --configuration Release --report-trx
+        run: dotnet test --no-build --configuration Release --output Detailed
 
       - name: Тесты (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: xvfb-run -a --server-args="-screen 0 1024x768x24" dotnet test --no-build --configuration Release --report-trx
+        run: xvfb-run -a --server-args="-screen 0 1024x768x24" dotnet test --no-build --configuration Release --output Detailed
 
       - name: Выгрузить неудачные снимки
         if: always()
