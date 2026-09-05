@@ -165,7 +165,41 @@ public abstract class UIElement : IGridPlaceable
 
     // ===================
 
-    public UIElement? Parent { get; internal set; }
+    public UIElement? Parent
+    {
+        get;
+        internal set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            field = value;
+            BumpOwnerGeneration();
+        }
+    }
+
+    internal Form? Owner
+    {
+        get;
+        set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            field = value;
+            BumpOwnerGeneration();
+        }
+    }
+
+    // Общий счётчик поколений: любое изменение Parent или Owner где угодно
+    // разом обесценивает все кэши. Грубо, но структура дерева меняется
+    // на порядки реже, чем FindOwner вызывается, а промахнуться мимо
+    // инвалидации так невозможно — оба свойства объявлены здесь же.
+    private static int _ownerGeneration;
+
+    private static void BumpOwnerGeneration() => _ownerGeneration++;
+
+    private Form? _cachedOwner;
+    private int _cachedOwnerGeneration = -1;
+
     /// <summary>
     /// Доля свободного места по главной оси панели. 0 — элемент занимает
     /// желаемый размер, больше нуля — делит остаток пропорционально весу.
@@ -275,8 +309,6 @@ public abstract class UIElement : IGridPlaceable
 
     protected bool IsHovered { get; set; }
     protected bool IsPressed { get; set; }
-
-    internal Form? Owner { get; set; }
 
     /// <summary>Направление своё, а если не задано — унаследованное от предков.</summary>
     public FlowDirection EffectiveFlowDirection
@@ -518,16 +550,20 @@ public abstract class UIElement : IGridPlaceable
 
     internal void RaiseAttached() => OnAttached();
 
-    // TODO: кешировать owner
     internal Form? FindOwner()
     {
+        if (_cachedOwnerGeneration == _ownerGeneration)
+            return _cachedOwner;
+
         UIElement root = this;
         while (root.Parent is not null)
             root = root.Parent;
 
-        return root.Owner;
-    }
+        _cachedOwner = root.Owner;
+        _cachedOwnerGeneration = _ownerGeneration;
 
+        return _cachedOwner;
+    }
     protected virtual void OnGotFocus() { }
     protected virtual void OnLostFocus() { }
 
