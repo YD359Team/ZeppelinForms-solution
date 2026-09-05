@@ -115,7 +115,7 @@ public class ColorPicker : InteractiveControl
         {
             Text = text,
             TextColor = App.Theme.Colors.TextSecondary,
-            ContentAlign = HorizontalContentAlignment.Left,
+            HorizontalContentAlign = HorizontalContentAlignment.Left,
         };
 
         return new Border
