@@ -76,8 +76,9 @@ public class CheckedListBox : ListBox
 
     protected override void DrawContent(Graphics g)
     {
-        // фон, подсветка выбранной строки и рамка — из ListBox
-        base.Draw(g);
+        // подсветка выбранной строки — из ListBox. Фон и рамку рисует
+        // DecoratedPanel сам: фон до DrawContent, рамку в DrawOverlay
+        base.DrawContent(g);
 
         for (int i = 0; i < Children.Count; i++)
         {
@@ -125,11 +126,6 @@ public class CheckedListBox : ListBox
             e.Handled = true;
             return;
         }
-    }
-
-    protected override void OnPreviewMouseDown(Point args)
-    {
-        base.OnPreviewMouseDown(args);   // выбор строки из ListBox
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
