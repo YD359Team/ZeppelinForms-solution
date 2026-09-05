@@ -10,7 +10,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// Разделитель внутри Grid: перетаскивание меняет размеры соседних треков.
 /// Помещается в собственную ячейку между изменяемыми.
 /// </summary>
-public class GridSplitter : UnitControl
+public class GridSplitter : DecoratedControl
 {
     private bool _dragging;
     private float _dragStart;
@@ -38,7 +38,7 @@ public class GridSplitter : UnitControl
         Cursor = IsVertical ? CursorKind.SizeWestEast : CursorKind.SizeNorthSouth;
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
         g.FillRectangle(LocalBounds, IsHovered || _dragging ? HoverColor : LineColor);
     }

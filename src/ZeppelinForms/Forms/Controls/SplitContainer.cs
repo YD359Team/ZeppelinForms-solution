@@ -9,7 +9,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// <summary>
 /// Две области с перетаскиваемым разделителем между ними.
 /// </summary>
-public class SplitContainer : PanelControl
+public class SplitContainer : DecoratedPanel
 {
     private UIElement? _first;
     private UIElement? _second;
@@ -97,11 +97,9 @@ public class SplitContainer : PanelControl
         }
     }
 
-    public override void Draw(Graphics g)
+    // фон, рамку и скругление рисует база — здесь только сам разделитель
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRectangle(LocalBounds, Background);
-
         g.FillRectangle(SplitterRect, _splitterHovered || _dragging ? SplitterHoverColor : SplitterColor);
     }
 

@@ -6,7 +6,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ScrollBar : UnitControl
+public class ScrollBar : DecoratedControl
 {
     private const float MinThumbLength = 20f;
 
@@ -61,7 +61,8 @@ public class ScrollBar : UnitControl
 
     public bool IsScrollable => ContentSize > ViewportSize;
 
-    public override void Draw(Graphics g)
+    // фон, рамку и скругление рисует база — здесь только пункты меню
+    protected override void DrawContent(Graphics g)
     {
         g.FillRectangle(this.LocalBounds, TrackColor);
 

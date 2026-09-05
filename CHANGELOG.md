@@ -4,6 +4,10 @@
 
 ### Breaking changes
 - Removed `ScrollViewer`
+- Continue migration controls bases
+	- DecoratedPanel: SplitContainer, PropertyGrid, PageControl
+	- DecoratedWrapControl: LayoutBuilder, Page
+	- UnitControl: Calendar, MenuBar, MenuList, ScrollBar, HintLabel, PageIndicator, GridSplitter
 
 ### Fixes
 - `CheckBox`|`RadioButton`: `HorizontalContentAlign` and `VerticalContentAlign` don't throw `NotImplementedException` 

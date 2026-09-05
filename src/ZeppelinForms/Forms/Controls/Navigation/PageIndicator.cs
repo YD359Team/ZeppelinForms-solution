@@ -10,7 +10,7 @@ namespace ZeppelinForms.Forms.Controls.Navigation;
 /// Точки-переключатели страниц. Привязывается к PageControl и следит
 /// за его текущей страницей.
 /// </summary>
-public class PageIndicator : UnitControl
+public class PageIndicator : DecoratedControl
 {
     private PageControl? _target;
     private int _hoveredIndex = -1;
@@ -74,7 +74,7 @@ public class PageIndicator : UnitControl
         ? TextMeasurer.Current.MeasureText("00", EffectiveFont).Width + 10f
         : Style == PageIndicatorStyle.Dashes ? DotSize * 2.4f : ActiveDotSize;
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
         List<Page> pages = Pages;
         if (pages.Count == 0) return;

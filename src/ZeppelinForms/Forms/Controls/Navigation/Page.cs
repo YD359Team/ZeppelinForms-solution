@@ -7,7 +7,7 @@ namespace ZeppelinForms.Forms.Controls.Navigation;
 /// Одно представление внутри PageControl. Содержимое создаётся один раз
 /// и переживает переключения — введённый текст и прокрутка сохраняются.
 /// </summary>
-public class Page : WrapControl
+public class Page : DecoratedWrapControl
 {
     private Func<UIElement>? _factory;
     private bool _built;
@@ -28,8 +28,6 @@ public class Page : WrapControl
 
     public event EventHandler? Appearing;
     public event EventHandler? Disappearing;
-
-    public override void Draw(Graphics g) { }
 
     internal void EnsureBuilt()
     {

@@ -8,7 +8,7 @@ namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>Горизонтальная строка меню окна. Подменю открывает через
 /// тот же overlay-слой, что и контекстное меню.</summary>
-public class MenuBar : UnitControl
+public class MenuBar : DecoratedControl
 {
     private const float ItemPadding = 12f;
 
@@ -31,11 +31,9 @@ public class MenuBar : UnitControl
     private float WidthOf(MenuItem item) =>
         TextMeasurer.Current.MeasureText(item.Text, EffectiveFont).Width + ItemPadding * 2;
 
-    public override void Draw(Graphics g)
+    // фон, рамку и скругление рисует база — здесь только пункты меню
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRectangle(this.LocalBounds, Background);
-
         float x = 0;
 
         for (int i = 0; i < Items.Count; i++)

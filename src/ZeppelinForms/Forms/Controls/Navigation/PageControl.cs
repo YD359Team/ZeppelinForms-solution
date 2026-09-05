@@ -1,5 +1,4 @@
 ﻿using ZeppelinForms.Animation;
-using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 
@@ -9,7 +8,7 @@ namespace ZeppelinForms.Forms.Controls.Navigation;
 /// Контейнер представлений с историей переходов. Скрытые страницы
 /// остаются в дереве, но не рисуются и не получают события.
 /// </summary>
-public class PageControl : PanelControl
+public class PageControl : DecoratedPanel
 {
     private readonly List<string> _history = [];
     private Page? _current;
@@ -29,8 +28,6 @@ public class PageControl : PanelControl
     public bool CanGoBack => _history.Count > 1;
 
     public event EventHandler<Page>? Navigated;
-
-    public override void Draw(Graphics g) { }
 
     /// <summary>Добавить страницу. Первая добавленная становится текущей.</summary>
     public Page AddPage(string name, Func<UIElement> factory, string? title = null)
@@ -247,10 +244,5 @@ public class PageControl : PanelControl
         // если раскладка случилась посреди перехода, восстанавливаем смещения
         if (_progress < 1f && _outgoing is not null && _current is not null)
             ApplyTransition(_current, _outgoing);
-    }
-
-    protected internal override void DrawOverlay(Graphics g)
-    {
-        base.DrawOverlay(g);
     }
 }

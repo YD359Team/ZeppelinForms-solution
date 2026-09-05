@@ -8,7 +8,7 @@ namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>Вертикальный список пунктов меню. Рисуется целиком сам,
 /// без вложенных контролов — так проще с наведением и разделителями.</summary>
-public class MenuList : UnitControl
+public class MenuList : DecoratedControl
 {
     private const float ItemHeight = 26f;
     private const float SeparatorHeight = 7f;
@@ -33,11 +33,9 @@ public class MenuList : UnitControl
 
     private float HeightOf(MenuItem item) => item.IsSeparator ? SeparatorHeight : ItemHeight;
 
-    public override void Draw(Graphics g)
+    // фон, рамку и скругление рисует база — здесь только пункты меню
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRectangle(this.LocalBounds, Background);
-
         var content = this.ContentBounds;
         float y = content.Y;
 

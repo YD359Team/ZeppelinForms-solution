@@ -7,7 +7,7 @@ using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class PropertyGrid : PanelControl
+public class PropertyGrid : DecoratedPanel
 {
     private const float RowHeight = 26f;
     private const float LabelRatio = 0.45f;
@@ -177,11 +177,9 @@ public class PropertyGrid : PanelControl
         }
     }
 
-    public override void Draw(Graphics g)
+    // фон, рамку и скругление рисует база — здесь только подложка строк
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRectangle(this.LocalBounds, Background);
-
         // подложка чётных строк — так глаз не теряет пару «имя/значение»
         var content = this.ContentBounds;
 

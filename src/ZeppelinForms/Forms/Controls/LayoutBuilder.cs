@@ -8,7 +8,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// Строит содержимое, зная выделенный размер. Позволяет менять раскладку
 /// в зависимости от доступного места без подписки на изменение размера.
 /// </summary>
-public class LayoutBuilder : WrapControl
+public class LayoutBuilder : DecoratedWrapControl
 {
     private Size _builtFor = Size.Empty;
     private bool _hasBuilt;
@@ -33,8 +33,6 @@ public class LayoutBuilder : WrapControl
     {
 
     }
-
-    public override void Draw(Graphics g) { }
 
     /// <summary>Пересобрать содержимое принудительно — например, после
     /// изменения данных, от которых зависит раскладка.</summary>

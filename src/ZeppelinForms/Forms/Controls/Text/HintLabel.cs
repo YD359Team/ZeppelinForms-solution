@@ -10,7 +10,7 @@ namespace ZeppelinForms.Forms.Controls.Text;
 /// <summary>
 /// Текст с пунктирным подчёркиванием: по клику раскрывает пояснение.
 /// </summary>
-public class HintLabel : UnitControl
+public class HintLabel : DecoratedControl
 {
     private readonly FlyoutHost _flyout;
 
@@ -44,7 +44,7 @@ public class HintLabel : UnitControl
         _flyout.Closed += (_, _) => InvalidateVisual();
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
         if (string.IsNullOrEmpty(Text)) return;
 

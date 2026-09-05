@@ -6,7 +6,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class Calendar : UnitControl
+public class Calendar : DecoratedControl
 {
     private const float HeaderHeight = 28f;
     private const float DayOfWeekHeight = 20f;
@@ -49,11 +49,9 @@ public class Calendar : UnitControl
         ContentBounds.Width / Columns,
         (ContentBounds.Height - HeaderHeight - DayOfWeekHeight) / Rows);
 
-    public override void Draw(Graphics g)
+    // фон, рамку и скругление рисует база — здесь только сетка дат
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRectangle(this.LocalBounds, Background);
-
         var content = this.ContentBounds;
         var cell = CellSize;
         Font font = this.EffectiveFont;
