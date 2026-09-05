@@ -137,13 +137,6 @@ public class TextBox : TextInputControl, ITextElement
         InvalidateVisual();
     }
 
-    private Color CurrentBorderColor => ValidationState switch
-    {
-        ValidationState.Error => ErrorColor,
-        ValidationState.Success => SuccessColor,
-        _ => IsFocused ? App.Theme.Colors.BorderFocused : BorderColor,
-    };
-
     // ===== отображение =====
 
     private float LineHeight => TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
@@ -181,25 +174,6 @@ public class TextBox : TextInputControl, ITextElement
         // проверяем при уходе из поля, а не на каждый символ:
         // иначе половина введённого адреса будет краснеть
         Validate();
-    }
-
-    private void OnBlink(object? state)
-    {
-        if (_disposed) return;
-
-        FindOwner()?.Invoke(() =>
-        {
-            _caretVisible = !_caretVisible;
-            InvalidateVisual();
-        });
-    }
-
-    private void ShowCaretImmediately()
-    {
-        _caretVisible = true;
-
-        if (IsFocused && !_disposed)
-            _blinkTimer.Change(BlinkIntervalMs, BlinkIntervalMs);
     }
 
     // ===== ввод =====

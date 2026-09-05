@@ -12,6 +12,7 @@ using ZeppelinForms.Forms.Controls.Map;
 using ZeppelinForms.Forms.Controls.Navigation;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using ZeppelinForms.Drawing.Effects;
 
 namespace ZF_SharedLib;
 
@@ -151,7 +152,8 @@ public class ExampleMainForm : Form
         Grid grid = new()
         {
             Columns = "Auto,Auto,Auto,Auto",
-            Rows = "Auto,Auto,Auto,Auto,Auto,Auto"
+            Rows = "Auto,Auto,Auto,Auto,Auto,Auto",
+            Font = new Font("Segoe UI", 18f)
         };
 
         TextBox display = new()
