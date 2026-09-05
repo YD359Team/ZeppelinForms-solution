@@ -7,7 +7,7 @@
 
 ### Fixes
 - `CheckBox`|`RadioButton`: `HorizontalContentAlign` and `VerticalContentAlign` don't throw `NotImplementedException` 
-- `Button`: Remove duplicate content align properties 
+- `Button`|`CheckBox`: Remove duplicate content align properties 
 
 ## [0.7.0]
 
