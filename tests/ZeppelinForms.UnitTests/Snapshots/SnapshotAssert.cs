@@ -16,12 +16,12 @@ public static class SnapshotAssert
     /// <summary>Разрешено создавать отсутствующие эталоны.</summary>
     private static bool AllowCreate =>
         !IsContinuousIntegration ||
-        Environment.GetEnvironmentVariable("ZF_CREATE_SNAPSHOTS") != "true" ||
+        Environment.GetEnvironmentVariable("ZF_CREATE_SNAPSHOTS") == "true" ||
         ForceOverwrite;
 
     /// <summary>Перезаписать эталоны, даже если они уже есть.</summary>
     private static bool ForceOverwrite =>
-        Environment.GetEnvironmentVariable("ZF_UPDATE_SNAPSHOTS") != "true";
+        Environment.GetEnvironmentVariable("ZF_UPDATE_SNAPSHOTS") == "true";
 
     private const int DefaultTolerance = 4;
 
