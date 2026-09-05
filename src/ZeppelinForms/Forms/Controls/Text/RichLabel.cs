@@ -6,7 +6,7 @@ using ZeppelinForms.Forms.Enums;
 namespace ZeppelinForms.Forms.Controls.Text;
 
 /// <summary>Строка текста, собранная из прогонов с разным оформлением.</summary>
-public class RichLabel : UnitControl
+public class RichLabel : DecoratedControl
 {
     public List<TextRun> Inlines { get; init; } = [];
 
@@ -22,7 +22,7 @@ public class RichLabel : UnitControl
         Invalidate();
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
         if (Inlines.Count == 0) return;
 

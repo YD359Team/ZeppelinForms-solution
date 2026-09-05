@@ -9,7 +9,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// Полные SVG-документы со слоями/градиентами не поддерживаются —
 /// для них нужен отдельный парсер.
 /// </summary>
-public class SvgIcon : UnitControl
+public class SvgIcon : DecoratedControl
 {
     public string? PathData { get; set; }
 
@@ -20,7 +20,7 @@ public class SvgIcon : UnitControl
 
     public float IconSize { get; set; } = 24f;
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
         if (string.IsNullOrWhiteSpace(PathData)) return;
 

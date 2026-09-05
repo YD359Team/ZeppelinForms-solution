@@ -8,7 +8,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// <summary>
 /// Control for showing Image
 /// </summary>
-public class PictureBox : UnitControl
+public class PictureBox : DecoratedControl
 {
     public ImageFlip Flip { get; set; } = ImageFlip.None;
     public ImageLayout Layout { get; set; } = ImageLayout.Stretch;
@@ -37,15 +37,18 @@ public class PictureBox : UnitControl
         Invalidate();
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
         if (_image is not null)
-            g.DrawImage(this.LocalBounds, _image, Flip, Layout);
+            g.DrawImage(this.ContentBounds, _image, Flip, Layout);
     }
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size content = _image is not null ? new Size(_image.Width, _image.Height) : Size.Empty;
+        Size content = _image is not null
+            ? new Size(_image.Width + Padding.Horizontal, _image.Height + Padding.Vertical)
+            : Size.Empty;
+
         return ResolveSize(content, availableSize);
     }
 }

@@ -5,7 +5,7 @@ using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class CircularProgressBar : UnitControl
+public class CircularProgressBar : DecoratedControl
 {
     private float _value;
 
@@ -25,7 +25,7 @@ public class CircularProgressBar : UnitControl
         }
     }
 
-    public float Thickness { get; set; } = 8f;
+    public float ArcThickness { get; set; } = 8f;
     public bool ShowPercentage { get; set; } = true;
 
     /// <summary>Откуда начинать дугу: −90 — с 12 часов.</summary>
@@ -44,12 +44,12 @@ public class CircularProgressBar : UnitControl
         }
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
         var content = this.ContentBounds;
 
         // круг вписываем в квадрат по меньшей стороне, иначе получится эллипс
-        float diameter = Math.Min(content.Width, content.Height) - Thickness;
+        float diameter = Math.Min(content.Width, content.Height) - ArcThickness;
         if (diameter <= 0) return;
 
         var circle = new Rectangle(
@@ -58,11 +58,11 @@ public class CircularProgressBar : UnitControl
                 content.Y + (content.Height - diameter) / 2f),
             new Size(diameter, diameter));
 
-        g.DrawArc(circle, 0, 360, TrackColor, Thickness);
+        g.DrawArc(circle, 0, 360, TrackColor, ArcThickness);
 
         float fraction = Fraction;
         if (fraction > 0)
-            g.DrawArc(circle, StartAngle, 360f * fraction, FillColor, Thickness);
+            g.DrawArc(circle, StartAngle, 360f * fraction, FillColor, ArcThickness);
 
         if (ShowPercentage)
             g.DrawText($"{fraction * 100:0}%", content, TextColor, EffectiveFont,
