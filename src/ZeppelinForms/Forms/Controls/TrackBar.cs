@@ -2,13 +2,12 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
-using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class TrackBar : FocusableControl, IInputElement
+public class TrackBar : InteractiveControl
 {
     private const float ThumbSize = 14f;
     private const float TrackThickness = 4f;
@@ -62,7 +61,7 @@ public class TrackBar : FocusableControl, IInputElement
     private float TravelLength => Math.Max(0,
         (Orientation == Orientation.Horizontal ? ActualSize.Width : ActualSize.Height) - ThumbSize);
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
         var bounds = this.LocalBounds;
         float fraction = Fraction;
