@@ -221,6 +221,10 @@ Reference snapshots are stored in:
 
 Text rendering differs between platforms, so separate snapshot sets are maintained for Windows and Linux.
 
+Local snapshot update:
+- bash: `ZF_UPDATE_SNAPSHOTS=true dotnet test`
+- PowerShell: `$env:ZF_UPDATE_SNAPSHOTS='true'; dotnet test`
+
 ## RUS
 
 **ZeppelinForms** (ZF) - проект-эксперимент по созданию простого UI-фреймворка без привязки к Windows, с аппаратным ускорением (для Windows), простым code-behind созданием элементов. 
@@ -424,3 +428,7 @@ public class Program
 
 Эталоны хранятся в `tests/ZeppelinForms.UnitTests/Snapshots/Expected/{win,linux}` —
 отрисовка текста между платформами различается, поэтому наборы отдельные.
+
+Локальное обновление снапшотов:
+- bash: `ZF_UPDATE_SNAPSHOTS=true dotnet test`
+- PowerShell: `$env:ZF_UPDATE_SNAPSHOTS='true'; dotnet test`
