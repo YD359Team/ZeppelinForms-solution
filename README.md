@@ -111,14 +111,13 @@ Unlike WinForms, all controls support:
 | 14 | ProgressBar         |    ✅   | 34 | MaskedTextBox   |    ✅   |
 | 15 | CircularProgressBar |    ✅   | 35 | HintLabel       |    ✅   |
 | 16 | TrackBar            |    ✅   | 36 | MapControl      |    ✅   |
-| 17 | Calendar            |    ✅   | 37 | PropertyGrid    |   ✅**  |
-| 18 | MenuBar             |    ✅   | 38 | PageIndicator   |   ✅    |
+| 17 | Calendar            |    ✅   |    |                 |         |
+| 18 | MenuBar             |    ✅   |    |                 |         |
 | 19 | MenuList            |    ✅   |    |                 |         |
 | 20 | SplitButton         |    ✅   |    |                 |         |
 
 
 * — contains bugs and is missing part of its API
-** — currently works only with certain controls
 
 #### Panels
 
@@ -146,11 +145,10 @@ A specialized type of panel capable of working with collections of elements.
 
 | # | Name           | Status |
 | - | -------------- | ------ |
-| 1 | ListBox        | ✅      |
-| 2 | CheckedListBox | ✅      |
-| 3 | ScrollViewer   | ✅      |
-| 4 | TreeView       | 💡     |
-| 5 | DataGrid       | 💡     |
+| 1 | ListBox | ✅ |
+| 2 | CheckedListBox | ✅ |
+| 3 | TreeView | 💡 |
+| 4 | DataGrid | 💡 |
 
 ⭐ All panels can display a scrollbar when their content overflows.
 
@@ -169,6 +167,9 @@ A specialized type of panel capable of working with collections of elements.
 | 5 | LayoutBuilder  | ✅    |
 | 6 | Page           | ✅    |
 | 7 | GradientBorder | ✅    |
+| 8 | PropertyGrid*  | ✅    |
+
+\* — currently works only with certain controls
 
 ### 🎄 Themes
 
@@ -326,13 +327,12 @@ ZeppelinForms ничего не знает про Skia, потому что он
 | 14 | ProgressBar         |    ✅   | 34 | MaskedTextBox   |    ✅   |
 | 15 | CircularProgressBar |    ✅   | 35 | HintLabel       |    ✅   |
 | 16 | TrackBar            |    ✅   | 36 | MapControl      |    ✅   |
-| 17 | Calendar            |    ✅   | 37 | PropertyGrid    |   ✅**  |
-| 18 | MenuBar             |    ✅   |    |                 |        |
-| 19 | MenuList            |    ✅   |    |                 |        |
-| 20 | SplitButton         |    ✅   |    |                 |        |
+| 17 | Calendar            |    ✅   |    |                 |         |
+| 18 | MenuBar             |    ✅   |    |                 |         |
+| 19 | MenuList            |    ✅   |    |                 |         |
+| 20 | SplitButton         |    ✅   |    |                 |         |
 
-\* - есть баги и отсутствует часть API \
-\** - пока работает только для некоторых контролов
+\* - есть баги и отсутствует часть API
 
 #### Панели
 
@@ -361,9 +361,8 @@ ZeppelinForms ничего не знает про Skia, потому что он
 |---|------------|---|
 | 1 | ListBox | ✅ |
 | 2 | CheckedListBox | ✅ |
-| 3 | ScrollViewer | ✅ |
-| 4 | TreeView | 💡 |
-| 5 | DataGrid | 💡 |
+| 3 | TreeView | 💡 |
+| 4 | DataGrid | 💡 |
 
 ⭐ Все панели могут иметь скроллбар при переполнении.
 
@@ -373,13 +372,19 @@ ZeppelinForms ничего не знает про Skia, потому что он
 
 **Контролы-обёртки** - контролы, которые могут включать в себя один контрол. Необычная для WinForms мира идея, но знакомая в мире XAML-фреймворков.
 
-| № | Название      | Статус |
-|---|------------|---|
-| 1 | Border      | ✅ |
-| 2 | Spoiler     | ✅ |
-| 3 | ZoomBox     | ✅ |
-| 4 | GroupBox     | ✅ |
-| 5 | LayoutBuilder | ✅ |
+| # | Название       | Статус |
+| - | -------------- | ------ |
+| 1 | Border         | ✅    |
+| 2 | Spoiler        | ✅    |
+| 3 | ZoomBox        | ✅    |
+| 4 | GroupBox       | ✅    |
+| 5 | LayoutBuilder  | ✅    |
+| 6 | Page           | ✅    |
+| 7 | GradientBorder | ✅    |
+| 8 | PropertyGrid*  | ✅    |
+| 9 | PageControl    | ✅    |
+
+\* — currently works only with certain controls
 
 ### 🎄 Темы
 

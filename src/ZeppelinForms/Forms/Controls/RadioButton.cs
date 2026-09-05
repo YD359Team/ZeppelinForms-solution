@@ -24,8 +24,8 @@ public class RadioButton : InteractiveControl, ITextElement
 
     public Color CircleBorderColor { get; set; } = Colors.Black;
     public Color CheckColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
-    public HorizontalContentAlignment HorizontalContentAlign { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public VerticalContentAlignment VerticalContentAlign { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public HorizontalContentAlignment HorizontalContentAlign { get; set; }
+    public VerticalContentAlignment VerticalContentAlign { get; set; }
 
     public RadioButton()
     {

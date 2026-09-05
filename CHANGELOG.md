@@ -1,7 +1,12 @@
 # Changes
 
 ## Feature [0.8.0]
-IDK
+
+### Breaking changes
+- Removed `ScrollViewer`
+
+### Fixes
+- `CheckBox`|`RadioButton`: `HorizontalContentAlign` and `VerticalContentAlign` don't throw `NotImplementedException` 
 
 ## [0.7.0]
 
