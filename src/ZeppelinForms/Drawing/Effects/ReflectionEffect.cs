@@ -12,7 +12,6 @@ public sealed class ReflectionEffect : VisualEffect
     public float StartOpacity { get; set; } = 0.35f;
 
     public override float BleedRadius => 0f;
-    public override bool RequiresLayer => true;
 
     public override void Begin(Graphics g, Rectangle bounds) { }
 

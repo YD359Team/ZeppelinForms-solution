@@ -12,8 +12,6 @@ public sealed class AcrylicEffect : VisualEffect
     public Color TintColor { get; set; } = new Color(140, 255, 255, 255);
     public float NoiseOpacity { get; set; } = 0.03f;
 
-    public override bool RequiresLayer => true;
-
     public override void Begin(Graphics g, Rectangle bounds)
     {
         // подложка размывается до отрисовки элемента: сам элемент

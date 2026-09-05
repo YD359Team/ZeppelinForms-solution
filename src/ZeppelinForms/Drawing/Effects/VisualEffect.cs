@@ -11,13 +11,12 @@ namespace ZeppelinForms.Drawing.Effects;
 /// </summary>
 public abstract class VisualEffect
 {
+    /// <summary>Насколько эффект выходит за границы элемента с каждой стороны.</summary>
+    public virtual Thickness Bleed(Rectangle bounds) => Thickness.Zero;
+
     /// <summary>Насколько эффект расширяет область отрисовки за границы
     /// элемента: тень и размытие выходят наружу и должны попасть в dirty-регион.</summary>
     public virtual float BleedRadius => 0f;
-
-    /// <summary>Нужен ли отдельный слой. Эффекты, читающие уже
-    /// нарисованное, обязаны его требовать.</summary>
-    public virtual bool RequiresLayer => false;
 
     /// <summary>Подготовить канвас перед отрисовкой элемента.</summary>
     public abstract void Begin(Graphics g, Rectangle bounds);

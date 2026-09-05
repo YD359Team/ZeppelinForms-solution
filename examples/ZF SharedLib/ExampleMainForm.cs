@@ -10,6 +10,8 @@ using ZeppelinForms.Drawing;
 using ZeppelinForms.Forms.Controls.Shapes;
 using ZeppelinForms.Forms.Controls.Map;
 using ZeppelinForms.Forms.Controls.Navigation;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace ZF_SharedLib;
 
@@ -60,6 +62,7 @@ public class ExampleMainForm : Form
             Font = new Font("Segoe UI", 16f),
             Size = new(200, 80)
         };
+        btn.Click += (_, _) => OpenGitHub();
         StackPanel stackPanel = new()
         {
             Orientation = Orientation.Vertical,
@@ -68,6 +71,22 @@ public class ExampleMainForm : Form
         };
         stackPanel.Children.AddRange([lbl, btn]);
         return stackPanel;
+    }
+
+    private void OpenGitHub()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            _ = Process.Start(new ProcessStartInfo() 
+            {
+                FileName = "https://github.com/YD359Team/ZeppelinForms-solution/", 
+                UseShellExecute = true 
+            });
+        }
+        else
+        {
+            _ = Process.Start("https://github.com/YD359Team/ZeppelinForms-solution/");
+        }
     }
 
     private UIElement GetView2()

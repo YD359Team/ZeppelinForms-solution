@@ -76,6 +76,11 @@ public abstract class ButtonBase : InteractiveControl
         }
     }
 
+    /// <summary>Фокус у кнопки показывает кольцо в DrawDecoration.
+    /// Подменять ещё и рамку — двойной сигнал: получаются два кольца
+    /// в двух пикселях друг от друга.</summary>
+    protected override Color CurrentBorderColor => BorderColor;
+
     protected virtual Color CurrentTextColor => IsEnabled ? TextColor : DisabledTextColor;
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
@@ -111,7 +116,7 @@ public abstract class ButtonBase : InteractiveControl
             new Point(bounds.X + 2, bounds.Y + 2),
             new Size(Math.Max(0, bounds.Width - 4), Math.Max(0, bounds.Height - 4)));
 
-        g.DrawRoundRectangle(ring, CornerRadius, FocusRingColor, 1.5f);
+        g.DrawRoundRectangle(ring, CornerRadius, FocusRingColor, 1f);
     }
 
     protected override void OnClick(MouseClickEventArgs e)

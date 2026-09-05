@@ -454,6 +454,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (_pressedElement is not null && IsInTree(root, _pressedElement))
             _pressedElement = null;
 
+        if (_focusDispatcher.FocusedElement is { } focused && IsInTree(root, focused))
+            _focusDispatcher.ClearFocus();
+
         InspectedElement = null;
         _toolTipOwner = null;
 

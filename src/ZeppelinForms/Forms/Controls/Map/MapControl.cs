@@ -16,10 +16,10 @@ public class MapControl : InteractiveControl
 {
     private const int TileSize = MercatorProjection.TileSize;
 
-    private static readonly HttpClient Http = new()
+    private static readonly Lazy<HttpClient> Http = new(() => new()
     {
-        Timeout = TimeSpan.FromSeconds(15),
-    };
+        Timeout = TimeSpan.FromSeconds(15)
+    });
 
     private readonly TileCache _cache = new();
     private readonly string _diskCacheDirectory;
@@ -323,7 +323,7 @@ public class MapControl : InteractiveControl
                 using var request = new HttpRequestMessage(HttpMethod.Get, Source.BuildUrl(x, y, zoom));
                 request.Headers.Add("User-Agent", UserAgent);
 
-                using HttpResponseMessage response = await Http.SendAsync(request);
+                using HttpResponseMessage response = await Http.Value.SendAsync(request);
                 response.EnsureSuccessStatusCode();
 
                 data = await response.Content.ReadAsByteArrayAsync();

@@ -34,6 +34,16 @@ public class FocusDispatcher
         return true;
     }
 
+    /// <summary>Снять фокус без уведомлений: элемент уже вне дерева,
+    /// звать на нём RaiseLostFocus поздно и опасно.</summary>
+    public void ClearFocus()
+    {
+        if (_focused is IInputElement input)
+            input.IsFocused = false;
+
+        _focused = null;
+    }
+
     public bool MoveNext(UIElement root) => Move(root, forward: true);
 
     public bool MovePrevious(UIElement root) => Move(root, forward: false);

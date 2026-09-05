@@ -165,13 +165,17 @@ public class TextBox : TextInputControl, ITextElement
 
     protected override void OnGotFocus()
     {
+        if (_disposed) return;
+
         _caretVisible = true;
         _blinkTimer.Change(BlinkIntervalMs, BlinkIntervalMs);
     }
 
     protected override void OnLostFocus()
     {
-        _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        if (!_disposed)
+            _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
+
         _caretVisible = false;
 
         // проверяем при уходе из поля, а не на каждый символ:
@@ -501,7 +505,15 @@ public class TextBox : TextInputControl, ITextElement
 
     // ===== жизненный цикл =====
 
-    protected override void OnDetached() => Dispose();
+    protected override void OnDetached()
+    {
+        // не Dispose: контрол могут вернуть в дерево — при переключении
+        // страницы, пересборке панели, перетаскивании. Таймер просто гасим;
+        // остановленный, он не держится очередью таймеров и соберётся сам,
+        // если контрол больше никому не нужен
+        _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        _caretVisible = false;
+    }
 
     public void Dispose()
     {
