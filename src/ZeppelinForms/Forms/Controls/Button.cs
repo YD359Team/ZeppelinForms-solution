@@ -11,11 +11,8 @@ namespace ZeppelinForms.Forms.Controls;
 public class Button : ButtonBase, ITextElement
 {
     public string? Text { get; set; }
-    public HorizontalContentAlignment HorizontalContentAlign { get; set; }
-    public VerticalContentAlignment VerticalContentAlign { get; set; }
-
-    public HorizontalContentAlignment ContentAlign { get; set; } = HorizontalContentAlignment.Center;
-    public VerticalContentAlignment ContentVerticalAlign { get; set; } = VerticalContentAlignment.Center;
+    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Center;
+    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
 
     /// <summary>Иконка слева от текста — path data одиночного SVG-контура.</summary>
     public string? IconPathData { get; set; }
@@ -43,7 +40,7 @@ public class Button : ButtonBase, ITextElement
             new Point(textLeft, content.Y),
             new Size(Math.Max(0, content.X + content.Width - textLeft), content.Height));
 
-        g.DrawText(Text, textRect, CurrentTextColor, EffectiveFont, ContentAlign, ContentVerticalAlign);
+        g.DrawText(Text, textRect, CurrentTextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
     }
 
     protected override Size MeasureOverride(Size availableSize)
