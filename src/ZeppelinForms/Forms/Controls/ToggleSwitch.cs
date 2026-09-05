@@ -34,8 +34,6 @@ public class ToggleSwitch : FocusableControl, ITextElement
     public event EventHandler? Toggled;
 
     public string? Text { get; set; }
-    public HorizontalContentAlignment ContentAlign { get; set; } = HorizontalContentAlignment.Left;
-    public VerticalContentAlignment ContentVerticalAlign { get; set; } = VerticalContentAlignment.Center;
     public Color TextColor { get; set; } = Colors.Black;
 
     public Color OnColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
@@ -44,8 +42,8 @@ public class ToggleSwitch : FocusableControl, ITextElement
 
     protected override bool IsKeyActivatable => true;
 
-    public HorizontalContentAlignment HorizontalContentAlign { get; set; }
-    public VerticalContentAlignment VerticalContentAlign { get; set; }
+    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
+    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
 
     private void AnimateThumb()
     {
@@ -92,7 +90,7 @@ public class ToggleSwitch : FocusableControl, ITextElement
                 new Point(content.X + TrackWidth + Gap, content.Y),
                 new Size(Math.Max(0, content.Width - TrackWidth - Gap), content.Height));
 
-            g.DrawText(Text, textRect, TextColor, EffectiveFont, ContentAlign, ContentVerticalAlign);
+            g.DrawText(Text, textRect, TextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
         }
     }
 
