@@ -16,6 +16,9 @@
 - Add `LoopAnimation` class
 - Add animation extensions `AnimateLoop` and `StopAnimation` 
 
+### New controls
+- Add `Loader`
+
 ## [0.7.0]
 
 ### Breaking changes
