@@ -112,9 +112,9 @@ Unlike WinForms, all controls support:
 | 15 | CircularProgressBar |    ✅   | 35 | HintLabel       |    ✅   |
 | 16 | TrackBar            |    ✅   | 36 | MapControl      |    ✅   |
 | 17 | Calendar            |    ✅   | 37 | PropertyGrid    |   ✅**  |
-| 18 | MenuBar             |    ✅   |    |                 |        |
-| 19 | MenuList            |    ✅   |    |                 |        |
-| 20 | SplitButton         |    ✅   |    |                 |        |
+| 18 | MenuBar             |    ✅   | 38 | PageIndicator   |   ✅    |
+| 19 | MenuList            |    ✅   |    |                 |         |
+| 20 | SplitButton         |    ✅   |    |                 |         |
 
 
 * — contains bugs and is missing part of its API
@@ -136,6 +136,7 @@ Unlike WinForms, all controls support:
 | 6 | UniformGrid            | ✅      |
 | 7 | VirtualizingStackPanel | ✅      |
 | 8 | SplitContainer         | ✅      |
+| 9 | PageControl            | ✅      |
 
 ##### Items Panels
 
@@ -159,13 +160,15 @@ A specialized type of panel capable of working with collections of elements.
 
 **Wrapper controls** are controls that can contain a single child control. This concept is unusual in the WinForms world, but familiar from XAML-based frameworks.
 
-| # | Name          | Status |
-| - | ------------- | ------ |
-| 1 | Border        | ✅      |
-| 2 | Spoiler       | ✅      |
-| 3 | ZoomBox       | ✅      |
-| 4 | GroupBox      | ✅      |
-| 5 | LayoutBuilder | ✅      |
+| # | Name           | Status |
+| - | -------------- | ------ |
+| 1 | Border         | ✅    |
+| 2 | Spoiler        | ✅    |
+| 3 | ZoomBox        | ✅    |
+| 4 | GroupBox       | ✅    |
+| 5 | LayoutBuilder  | ✅    |
+| 6 | Page           | ✅    |
+| 7 | GradientBorder | ✅    |
 
 ### 🎄 Themes
 

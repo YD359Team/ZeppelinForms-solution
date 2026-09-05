@@ -502,6 +502,10 @@ public abstract class UIElement : IGridPlaceable
     /// <summary>Изменилась геометрия — нужен полный пересчёт и перерисовка.</summary>
     protected internal void Invalidate() => FindOwner()?.Invalidate();
 
+    protected void CaptureMouse() => FindOwner()?.CaptureMouse(this);
+
+    protected void ReleaseMouseCapture() => FindOwner()?.ReleaseMouseCapture(this);
+
     protected virtual void OnAttached()
     {
         // called when element (first time?) added to form (and\or parent?)

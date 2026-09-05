@@ -17,6 +17,15 @@ public class PictureBox : DecoratedControl
     private Image? _image;
     private static readonly Dictionary<string, Image> AssetCache = [];
 
+    /// <summary>Показать уже готовое изображение: снимок другого элемента,
+    /// результат обработки, кадр из видео.</summary>
+    public void SetImage(Image? image)
+    {
+        _image = image;
+        Source = null;
+        Invalidate();
+    }
+
     public void Load(string path)
     {
         _image = Image.LoadFromFile(path);

@@ -1,6 +1,9 @@
 # Changes
 
-## Feature [0.7.0]
+## Feature [0.8.0]
+IDK
+
+## [0.7.0]
 
 ### Breaking changes
 - Extract more base controls:
@@ -11,12 +14,17 @@
 	- `InteractiveControl`
 	- `TextInputControl`
 - `ScrollViewer` marked as obsolete
+- Tests: Add `DrawSmokeTests`
 
 ### Features
-- Add Drag&Drop support
+- Add **ENG** part og `README.md`
+- Add Drag&Drop control support
 - Add effects for any `UIElement`
 - Add `Ripple` animation for buttons
 - Add `GradientStop` primitive
+- Add `Form.CaptureMouse`
+- Add `Form.AddOverlay` 
+- Add `PictureBox.SetImage`
 - Add `Color.Lerp(Color,Color,float)`
 - Add new colors in `Colors` class
 - Add `MediaColors` class
@@ -26,7 +34,16 @@
 	- Add `CrossAxisAlignment`
 - Now `Grid` correct work with `RowSpan` and `ColumnSpan`
 - Add extension method `Add(UIElement,int,int)` for `ObservableCollection<UIElement>` with `Row` and `Column` assign
+- Add `GradientStop` primitive
+- Lazy initialization for `MapControl`
 - Windows: Disabled VSync in GPU render 
+
+### Fixes
+- Fix bounds in painting, effects etc
+- Fix more theme style applies 
+- Fix version in `Directory.Build.props`
+- CI: `Node.JS` version increased 
+- CI: Snapshot creating otherwise 
 
 ### New controls
 - Add `PageControl` 
@@ -34,7 +51,13 @@
 - Add `PageIndicator`
 - Add `GradientBorder`
 - Add `GripBox`
-- Add `DraggedList`
+- Add `DragList`
+
+### Examples
+- Now using `PageControl` for view switching
+- Now contains button with **GitHub** link
+- Add **Calc** example
+- Add **Effects** example
 
 ## [0.6.0] — 2026-09-03
 

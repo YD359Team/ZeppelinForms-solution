@@ -315,6 +315,15 @@ public static class Themes
                 indicator.ActiveColor = c.Accent;
                 indicator.InactiveColor = c.Border;
                 indicator.HoverColor = c.TextSecondary;
+            })
+
+            .For<DragList>((list, c) =>
+            {
+                list.Background = c.Surface;
+                list.BorderColor = c.Border;
+                list.BorderWidth = 1f;
+                list.DropIndicatorColor = c.Accent;
+                list.DragPreviewBackground = c.Surface;
             });
     }
 }

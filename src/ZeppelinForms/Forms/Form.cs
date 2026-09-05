@@ -131,6 +131,7 @@ public class Form : IDisposable
 
     private UIElement? _hoveredElement;
     private UIElement? _pressedElement;
+    private UIElement? _mouseCapture;
     private CursorKind _lastCursor = CursorKind.Arrow;
     private readonly FocusDispatcher _focusDispatcher = new();
 
@@ -163,6 +164,12 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     internal void OnPointerMove(Point point, KeyModifiers modifiers = KeyModifiers.None)
     {
         _lastPointerPosition = point;
+
+        if (_mouseCapture is not null)
+        {
+            _mouseCapture.RaiseMouseMove(point);
+            return;
+        }
 
         if (_pressedElement is not null)
         {
@@ -269,6 +276,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         {
             _pressedElement?.RaiseMouseUp(upArgs);
 
+            // захвативший должен узнать об отпускании, даже если нажатие
+            // пришлось на его потомка
+            if (_mouseCapture is not null && !ReferenceEquals(_mouseCapture, _pressedElement))
+                _mouseCapture.RaiseMouseUp(upArgs);
+
+            _mouseCapture = null;
+
             // клик = нажатие и отпускание на одном элементе
             if (hit is not null && ReferenceEquals(hit, _pressedElement))
                 BubbleClick(hit, button, point);
@@ -311,6 +325,17 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         _lastClickTicks = now;
         _lastClickPoint = point;
         _lastClickButton = button;
+    }
+
+    /// <summary>Забрать себе движения мыши до отпускания кнопки.
+    /// Нажатие остаётся у того, на кого попали, поэтому клик по потомку
+    /// захватившего элемента продолжает работать как обычно.</summary>
+    internal void CaptureMouse(UIElement element) => _mouseCapture = element;
+
+    internal void ReleaseMouseCapture(UIElement element)
+    {
+        if (ReferenceEquals(_mouseCapture, element))
+            _mouseCapture = null;
     }
 
     internal void OnKeyDown(Key key, KeyModifiers modifiers)
@@ -453,6 +478,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         if (_pressedElement is not null && IsInTree(root, _pressedElement))
             _pressedElement = null;
+
+        if (_mouseCapture is not null && IsInTree(root, _mouseCapture))
+            _mouseCapture = null;
 
         if (_focusDispatcher.FocusedElement is { } focused && IsInTree(root, focused))
             _focusDispatcher.ClearFocus();
@@ -637,6 +665,31 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         foreach (UIElement flyout in closing)
             FlyoutClosed?.Invoke(this, flyout);
+
+        Invalidate();
+    }
+
+    /// <summary>Положить элемент поверх содержимого. В отличие от ShowFlyout
+    /// не закрывается по клику мимо и не участвует в логике всплывашек.</summary>
+    public void AddOverlay(UIElement content)
+    {
+        if (_overlays.Contains(content)) return;
+
+        content.Owner = this;
+        _overlays.Add(content);
+
+        // без AttachTree к элементу не применится тема и не приедет шрифт
+        AttachTree(content);
+
+        Invalidate();
+    }
+
+    public void RemoveOverlay(UIElement content)
+    {
+        if (!_overlays.Remove(content)) return;
+
+        DetachTree(content);
+        content.Owner = null;
 
         Invalidate();
     }
