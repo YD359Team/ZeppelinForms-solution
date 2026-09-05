@@ -4,7 +4,7 @@ using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Forms.Controls.Charts;
 
-public class BarChart : ChartBase
+public class BarChart : CartesianChartBase
 {
     public List<string> Categories { get; init; } = [];
     public List<ChartSeries> Series { get; init; } = [];
@@ -29,11 +29,8 @@ public class BarChart : ChartBase
         }
     }
 
-    public override void Draw(Graphics g)
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRoundRectangle(LocalBounds, CornerRadius, Background);
-
         DrawTitle(g);
 
         if (Series.Count == 0 || Categories.Count == 0) return;

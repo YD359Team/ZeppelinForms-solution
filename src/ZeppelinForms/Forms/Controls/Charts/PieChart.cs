@@ -6,15 +6,11 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Charts;
 
-public class PieChart : UnitControl
+public class PieChart : ChartBase
 {
     private int _hoveredSlice = -1;
 
     public List<PieSlice> Slices { get; init; } = [];
-
-    public string? Title { get; set; }
-    public Color TitleColor { get; set; } = Colors.Black;
-    public Color LabelColor { get; set; } = new Color(255, 90, 90, 90);
 
     /// <summary>Доля радиуса, вырезаемая в центре. 0 — обычный пирог, 0.5 — кольцо.</summary>
     public float HoleRatio { get; set; }
@@ -22,10 +18,6 @@ public class PieChart : UnitControl
     public bool ShowLegend { get; set; } = true;
     public bool ShowPercentages { get; set; } = true;
     public float HoverOffset { get; set; } = 6f;
-
-    private float TitleHeight => string.IsNullOrEmpty(Title)
-        ? 0
-        : TextMeasurer.Current.MeasureText(Title, EffectiveFont).Height + 8f;
 
     private float LegendWidth
     {
@@ -54,18 +46,10 @@ public class PieChart : UnitControl
         }
     }
 
-    public override void Draw(Graphics g)
+    // фон, рамка и скругление рисует база — здесь только заголовок, секторы и легенда
+    protected override void DrawContent(Graphics g)
     {
-        if (Background.A > 0)
-            g.FillRoundRectangle(LocalBounds, CornerRadius, Background);
-
-        var content = ContentBounds;
-
-        if (!string.IsNullOrEmpty(Title))
-            g.DrawText(Title,
-                new Rectangle(content.Position, new Size(content.Width, TitleHeight)),
-                TitleColor, EffectiveFont,
-                HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
+        DrawTitle(g);
 
         float total = Total;
         if (total <= 0 || Slices.Count == 0) return;
