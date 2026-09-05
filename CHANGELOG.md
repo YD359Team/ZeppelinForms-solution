@@ -31,6 +31,7 @@
 
 ### Examples
 - Now `MapControl` moved to single page
+- Add Loader page
 
 ## [0.7.0]
 

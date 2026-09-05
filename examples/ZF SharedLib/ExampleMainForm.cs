@@ -40,6 +40,7 @@ public class ExampleMainForm : Form
         root.AddPage("calc", () => GetView3(), "Calc");
         root.AddPage("map", () => GetView4(), "Map");
         root.AddPage("effects", () => GetView5(), "Effects");
+        root.AddPage("loader", () => GetView6(), "Loader");
         return new DockPanel
         {
             Children =
@@ -243,6 +244,8 @@ public class ExampleMainForm : Form
             return true;
         }
 
+
+
         void SetOperator(char op)
         {
             // подряд нажатые операции не должны копить вычисления:
@@ -305,6 +308,75 @@ public class ExampleMainForm : Form
         ]);
 
         return grid;
+    }
+
+    private UIElement GetView6()
+    {
+        Loader ring = new() { Style = LoaderStyle.Ring };
+        Loader spinner = new() { Style = LoaderStyle.Spinner };
+        Loader dots = new() { Style = LoaderStyle.Dots, IndicatorSize = 48f };
+        Loader bar = new()
+        {
+            Style = LoaderStyle.Bar,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+
+        Loader[] all = [ring, spinner, dots, bar];
+
+        Button toggle = new()
+        {
+            Text = "Остановить все",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+
+        toggle.Click += (_, _) =>
+        {
+            bool running = !ring.IsRunning;
+
+            foreach (Loader loader in all)
+                loader.IsRunning = running;
+
+            toggle.Text = running ? "Остановить все" : "Запустить все";
+        };
+
+        StackPanel row = new()
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 32,
+            MainAxisAlignment = MainAxisAlignment.Center,
+            Margin = new Thickness(0, 24, 0, 24),
+        };
+
+        row.Children.AddRange([
+            Labelled("Ring", ring),
+            Labelled("Spinner", spinner),
+            Labelled("Dots", dots),
+        ]);
+
+        StackPanel root = new()
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 16,
+            Padding = new Thickness(16),
+        };
+
+        root.Children.AddRange([row, Labelled("Bar", bar), toggle]);
+
+        return root;
+
+        static UIElement Labelled(string caption, UIElement indicator)
+        {
+            StackPanel column = new()
+            {
+                Orientation = Orientation.Vertical,
+                Spacing = 8,
+                CrossAxisAlignment = CrossAxisAlignment.Center,
+            };
+
+            column.Children.AddRange([indicator, new Label { Text = caption }]);
+
+            return column;
+        }
     }
 
     private UIElement GetView4()
