@@ -22,15 +22,20 @@ public abstract class TextInputControl : InteractiveControl
 
     protected override void OnGotFocus()
     {
+        if (_disposed) return;
+
         CaretVisible = true;
         _blinkTimer.Change(BlinkIntervalMs, BlinkIntervalMs);
     }
 
     protected override void OnLostFocus()
     {
-        _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        if (!_disposed)
+            _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
+
         CaretVisible = false;
     }
+
 
     protected void ResetCaretBlink()
     {
@@ -53,7 +58,10 @@ public abstract class TextInputControl : InteractiveControl
 
     protected override void OnDetached()
     {
-        _disposed = true;
-        _blinkTimer.Dispose();
+        // не Dispose: контрол могут вернуть в дерево — при переключении
+        // страницы, пересборке панели, перетаскивании. Остановленный таймер
+        // не держится очередью и соберётся сам, если контрол больше не нужен
+        _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        CaretVisible = false;
     }
 }

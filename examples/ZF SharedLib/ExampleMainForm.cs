@@ -1,18 +1,18 @@
-﻿using ZeppelinForms.Drawing.Primitives;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Effects;
+using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Charts;
-using ZeppelinForms.Forms.Controls.Text;
-using ZeppelinForms.Forms.Enums;
-using ZeppelinForms.Core.Collections;
-using ZeppelinForms.Drawing;
-using ZeppelinForms.Forms.Controls.Shapes;
 using ZeppelinForms.Forms.Controls.Map;
 using ZeppelinForms.Forms.Controls.Navigation;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using ZeppelinForms.Drawing.Effects;
+using ZeppelinForms.Forms.Controls.Shapes;
+using ZeppelinForms.Forms.Controls.Text;
+using ZeppelinForms.Forms.Enums;
 
 namespace ZF_SharedLib;
 
@@ -38,6 +38,7 @@ public class ExampleMainForm : Form
         root.AddPage("home", () => GetView1(), "Home");
         root.AddPage("controls", () => GetView2(), "Controls");
         root.AddPage("calc", () => GetView3(), "Calc");
+        root.AddPage("effects", () => GetView4(), "Effects");
         return new DockPanel
         {
             Children =
@@ -151,56 +152,289 @@ public class ExampleMainForm : Form
     {
         Grid grid = new()
         {
-            Columns = "Auto,Auto,Auto,Auto",
-            Rows = "Auto,Auto,Auto,Auto,Auto,Auto",
-            Font = new Font("Segoe UI", 18f)
+            Columns = "*,*,*,*",
+            Rows = "Auto,*,*,*,*,*",
+            Padding = new Thickness(8),
+            Font = new Font("Segoe UI", 18f),
         };
 
         TextBox display = new()
         {
-            Row = 0,
-            Column = 0,
-            ColumnSpan = 4
+            Text = "0",
+            IsReadOnly = true,
+            HorizontalContentAlign = HorizontalContentAlignment.Right,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Margin = new Thickness(3),
+            ColumnSpan = 4,
         };
 
-        Button btn7 = new() { Text = "7", Row = 1, Column = 0 };
-        Button btn8 = new() { Text = "8", Row = 1, Column = 1 };
-        Button btn9 = new() { Text = "9", Row = 1, Column = 2 };
-        Button btnAdd = new() { Text = "+", Row = 1, Column = 3 };
+        // состояние живёт в замыканиях: страница пересоздаётся при переходе,
+        // и калькулятор каждый раз стартует с чистого листа
+        double accumulator = 0;
+        char pending = '\0';
+        bool startNewNumber = true;
 
-        Button btn4 = new() { Text = "4", Row = 2, Column = 0 };
-        Button btn5 = new() { Text = "5", Row = 2, Column = 1 };
-        Button btn6 = new() { Text = "6", Row = 2, Column = 2 };
-        Button btnSub = new() { Text = "-", Row = 2, Column = 3 };
+        double Current() =>
+            double.TryParse(display.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value)
+                ? value
+                : 0;
 
-        Button btn1 = new() { Text = "1", Row = 3, Column = 0 };
-        Button btn2 = new() { Text = "2", Row = 3, Column = 1 };
-        Button btn3 = new() { Text = "3", Row = 3, Column = 2 };
-        Button btnMul = new() { Text = "*", Row = 3, Column = 3 };
+        void Show(double value) =>
+            display.Text = value.ToString("0.##########", System.Globalization.CultureInfo.InvariantCulture);
 
-        Button btnClear = new() { Text = "C", Row = 4, Column = 0 };
-        Button btn0 = new() { Text = "0", Row = 4, Column = 1 };
-        Button btnDot = new() { Text = ".", Row = 4, Column = 2 };
-        Button btnDiv = new() { Text = "/", Row = 4, Column = 3 };
-
-        Button btnEquals = new()
+        void Reset()
         {
-            Text = "=",
-            Row = 5,
-            Column = 0,
-            ColumnSpan = 4
-        };
+            accumulator = 0;
+            pending = '\0';
+            startNewNumber = true;
+            display.Text = "0";
+        }
+
+        void AppendDigit(string digit)
+        {
+            if (startNewNumber)
+            {
+                display.Text = digit;
+                startNewNumber = false;
+                return;
+            }
+
+            // единственный ноль заменяем, а не дописываем к нему
+            display.Text = display.Text == "0" ? digit : display.Text + digit;
+        }
+
+        void AppendDot()
+        {
+            if (startNewNumber)
+            {
+                display.Text = "0.";
+                startNewNumber = false;
+                return;
+            }
+
+            if (!display.Text!.Contains('.'))
+                display.Text += ".";
+        }
+
+        // возвращает false, если операция невозможна — тогда дисплей уже занят ошибкой
+        bool ApplyPending()
+        {
+            if (pending == '\0')
+            {
+                accumulator = Current();
+                return true;
+            }
+
+            double right = Current();
+
+            if (pending == '/' && right == 0)
+            {
+                display.Text = "Деление на ноль";
+                pending = '\0';
+                accumulator = 0;
+                startNewNumber = true;
+                return false;
+            }
+
+            accumulator = pending switch
+            {
+                '+' => accumulator + right,
+                '-' => accumulator - right,
+                '*' => accumulator * right,
+                '/' => accumulator / right,
+                _ => right,
+            };
+
+            Show(accumulator);
+            return true;
+        }
+
+        void SetOperator(char op)
+        {
+            // подряд нажатые операции не должны копить вычисления:
+            // если число ещё не вводили, просто меняем знак операции
+            if (!startNewNumber && !ApplyPending())
+                return;
+
+            if (startNewNumber && pending == '\0')
+                accumulator = Current();
+
+            pending = op;
+            startNewNumber = true;
+        }
+
+        void Equals()
+        {
+            if (!ApplyPending()) return;
+
+            pending = '\0';
+            startNewNumber = true;
+        }
+
+        Button Key(string text, int row, int column, Action action, int columnSpan = 1)
+        {
+            Button button = new()
+            {
+                Text = text,
+                Row = row,
+                Column = column,
+                ColumnSpan = columnSpan,
+                Margin = new Thickness(3),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+            };
+
+            button.Click += (_, _) => action();
+
+            return button;
+        }
+
+        Button Digit(string text, int row, int column) =>
+            Key(text, row, column, () => AppendDigit(text));
+
+        Button Operator(string text, int row, int column) =>
+            Key(text, row, column, () => SetOperator(text[0]));
 
         grid.Children.AddRange([
             display,
-        btn7, btn8, btn9, btnAdd,
-        btn4, btn5, btn6, btnSub,
-        btn1, btn2, btn3, btnMul,
-        btnClear, btn0, btnDot, btnDiv,
-        btnEquals
+
+            Digit("7", 1, 0), Digit("8", 1, 1), Digit("9", 1, 2), Operator("+", 1, 3),
+            Digit("4", 2, 0), Digit("5", 2, 1), Digit("6", 2, 2), Operator("-", 2, 3),
+            Digit("1", 3, 0), Digit("2", 3, 1), Digit("3", 3, 2), Operator("*", 3, 3),
+
+            Key("C", 4, 0, Reset),
+            Digit("0", 4, 1),
+            Key(".", 4, 2, AppendDot),
+            Operator("/", 4, 3),
+
+            Key("=", 5, 0, Equals, columnSpan: 4),
         ]);
 
         return grid;
+    }
+
+    private UIElement GetView4()
+    {
+        // подложка: на одноцветном фоне ни акрил, ни отражение не читаются
+        PictureBox backdrop = new()
+        {
+            RowSpan = 2,
+            ColumnSpan = 2,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        };
+        backdrop.LoadAsset("Laughing.png");
+
+        Grid grid = new()
+        {
+            Columns = "*,*",
+            Rows = "*,*",
+        };
+
+        grid.Children.Add(backdrop);
+        grid.Children.Add(AcrylicCard(), 0, 0);
+        grid.Children.Add(BlurCard(), 0, 1);
+        grid.Children.Add(ReflectionCard(), 1, 0);
+        grid.Children.Add(TransformCard(), 1, 1);
+
+        return grid;
+    }
+
+    /// <summary>Матовое стекло. Фон обязан быть прозрачным, иначе
+    /// DecoratedPanel зальёт его поверх размытой подложки.</summary>
+    private static UIElement AcrylicCard()
+    {
+        StackPanel glass = new()
+        {
+            Background = Colors.Transparent,
+            CornerRadius = new CornerRadius(12f),
+            Padding = new Thickness(16),
+            Size = new Size(260, 96),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Spacing = 4,
+        };
+
+        glass.Children.AddRange([
+            new Label { Text = "AcrylicEffect" },
+            new Label { Text = "размытая подложка, тон и шум" },
+        ]);
+
+        glass.Effects.Add(new AcrylicEffect
+        {
+            BlurRadius = 24f,
+            TintColor = new Color(150, 255, 255, 255),
+            NoiseOpacity = 0.05f,
+        });
+
+        return glass;
+    }
+
+    /// <summary>Размытие самого элемента, а не подложки под ним.</summary>
+    private static UIElement BlurCard()
+    {
+        Label label = new()
+        {
+            Text = "BlurEffect",
+            Font = new Font("Segoe UI", 28f),
+            TextColor = Colors.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+
+        label.Effects.Add(new BlurEffect(3f));
+
+        return label;
+    }
+
+    /// <summary>Отражение уходит вниз, поэтому элемент прижат к верху ячейки —
+    /// снизу должно остаться место внутри ContentBounds родителя.</summary>
+    private static UIElement ReflectionCard()
+    {
+        PictureBox picture = new()
+        {
+            Size = new Size(120, 120),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, 10, 0, 0),
+        };
+
+        picture.LoadAsset("Laughing.png");
+
+        picture.Effects.Add(new ReflectionEffect
+        {
+            Height = 0.45f,
+            Gap = 3f,
+            StartOpacity = 0.4f,
+        });
+
+        return picture;
+    }
+
+    /// <summary>Поворот, наклон и масштаб одним эффектом.</summary>
+    private static UIElement TransformCard()
+    {
+        Label label = new()
+        {
+            Text = "TransformEffect",
+            Font = new Font("Segoe UI", 20f),
+            TextColor = Colors.White,
+            Background = new Color(160, 0, 0, 0),
+            Padding = new Thickness(12, 8),
+            CornerRadius = new CornerRadius(6f),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+
+        label.Effects.Add(new TransformEffect
+        {
+            Rotation = -12f,
+            ScaleX = 1.15f,
+            ScaleY = 1.15f,
+            SkewX = 0.1f,
+        });
+
+        return label;
     }
 
     private UIElement[] GetPlotControls()

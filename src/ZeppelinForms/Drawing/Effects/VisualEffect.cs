@@ -16,10 +16,6 @@ public abstract class VisualEffect
     /// грязный регион при частичной перерисовке.</summary>
     public virtual Thickness Bleed(Rectangle bounds) => Thickness.Zero;
 
-    /// <summary>Насколько эффект расширяет область отрисовки за границы
-    /// элемента: тень и размытие выходят наружу и должны попасть в dirty-регион.</summary>
-    public virtual float BleedRadius => 0f;
-
     /// <summary>Подготовить канвас перед отрисовкой элемента.</summary>
     public abstract void Begin(Graphics g, Rectangle bounds);
 

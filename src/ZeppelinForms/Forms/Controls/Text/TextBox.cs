@@ -33,17 +33,13 @@ public class TextBox : TextInputControl, ITextElement
     public event EventHandler? ValidationChanged;
 
     private const float CaretWidth = 1f;
-    private const int BlinkIntervalMs = 530;
 
     private readonly TextDocument _document = new();
-    private readonly System.Threading.Timer _blinkTimer;
 
     private float _scrollOffset;
     private float _verticalOffset;
-    private bool _caretVisible;
     private bool _isDragging;
     private char? _pendingHighSurrogate;
-    private bool _disposed;
 
     public TextBox()
     {
@@ -156,20 +152,9 @@ public class TextBox : TextInputControl, ITextElement
 
     // ===== фокус и мигание =====
 
-    protected override void OnGotFocus()
-    {
-        if (_disposed) return;
-
-        _caretVisible = true;
-        _blinkTimer.Change(BlinkIntervalMs, BlinkIntervalMs);
-    }
-
     protected override void OnLostFocus()
     {
-        if (!_disposed)
-            _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
-
-        _caretVisible = false;
+        base.OnLostFocus();
 
         // проверяем при уходе из поля, а не на каждый символ:
         // иначе половина введённого адреса будет краснеть
@@ -475,28 +460,5 @@ public class TextBox : TextInputControl, ITextElement
         return ResolveSize(
             new Size(120 + Padding.Horizontal, height + Padding.Vertical + 6),
             availableSize);
-    }
-
-    // ===== жизненный цикл =====
-
-    protected override void OnDetached()
-    {
-        // не Dispose: контрол могут вернуть в дерево — при переключении
-        // страницы, пересборке панели, перетаскивании. Таймер просто гасим;
-        // остановленный, он не держится очередью таймеров и соберётся сам,
-        // если контрол больше никому не нужен
-        _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        _caretVisible = false;
-    }
-
-    public void Dispose()
-    {
-        if (_disposed) return;
-
-        _disposed = true;
-        _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        _blinkTimer.Dispose();
-
-        GC.SuppressFinalize(this);
     }
 }
