@@ -32,7 +32,11 @@ public static class SnapshotAssert
     /// закоммитить, и каждый прогон CI создавал бы их заново.</summary>
     private static readonly string ExpectedDirectory = ResolveExpectedDirectory();
 
-    private static string FailedDirectory => Path.Combine(AppContext.BaseDirectory, "Snapshots", "Failed");
+    private static string FailedDirectory =>
+        Path.Combine(
+            Path.GetDirectoryName(ExpectedDirectory)!,
+            "..",
+            "Failed");
 
     /// <summary>Шрифт из файла — системные различаются между машинами
     /// и делают снимки невоспроизводимыми.</summary>
