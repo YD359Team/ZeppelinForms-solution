@@ -266,6 +266,12 @@ public static class Themes
                 bar.TextColor = c.Text;
             })
 
+            .For<Loader>((loader, c) =>
+            {
+                loader.Color = c.Accent;
+                loader.TrackColor = c.Border;
+            })
+
             .For<TrackBar>((bar, c) =>
             {
                 bar.TrackColor = c.SurfaceHover;
