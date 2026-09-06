@@ -286,13 +286,18 @@ public abstract class UIElement : IGridPlaceable
         else InvalidateVisual();
     }
 
-    /// <summary>Значение с учётом наследования: своё, иначе ближайшее
-    /// заданное у предков, иначе умолчание свойства.</summary>
+    /// <summary>Значение с учётом наследования.
+    /// Заданное вручную — у себя или у любого предка — важнее того, что
+    /// тема поставила этому элементу. Иначе panel.TextColor не дошёл бы
+    /// до вложенных подписей: тема задаёт им цвет каждой лично.</summary>
     public T GetInheritedValue<T>(StyledProperty<T> property)
     {
         for (UIElement? current = this; current is not null; current = current.Parent)
-            if (current.HasValue(property))
+            if (current.IsLocal(property))
                 return property.GetValue(current);
+
+        if (HasValue(property))
+            return property.GetValue(this);
 
         return property.DefaultValue;
     }
