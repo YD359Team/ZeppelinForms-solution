@@ -40,7 +40,7 @@ public class ListBox : ItemsControl, IInputElement
 
     public ListBox()
     {
-        Background = Colors.White;
+        SetControlDefault(BackgroundProperty, Colors.White);
     }
 
     protected override void DrawContent(Graphics g)

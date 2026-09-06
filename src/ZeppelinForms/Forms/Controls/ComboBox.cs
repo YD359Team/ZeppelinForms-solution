@@ -52,10 +52,10 @@ public class ComboBox : InteractiveControl
 
     public ComboBox()
     {
-        Background = Colors.White;
+        SetControlDefault(BackgroundProperty, Colors.White);
         Padding = new Thickness(6, 3);
         Cursor = CursorKind.Hand;
-        BorderWidth = 1f;
+        SetControlDefault(BorderWidthProperty, 1f);
 
         _flyout = new FlyoutHost(this);
         _flyout.Closed += (_, _) => InvalidateVisual();

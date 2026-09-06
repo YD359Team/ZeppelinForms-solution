@@ -58,8 +58,8 @@ public class TabControl : DecoratedPanel, IInputElement
 
     public TabControl()
     {
-        BorderColor = new Color(255, 205, 205, 205);
-        BorderWidth = 1f;
+        SetControlDefault(BorderColorProperty, new Color(255, 205, 205, 205));
+        SetControlDefault(BorderWidthProperty, 1f);
     }
 
     private bool IsVertical =>

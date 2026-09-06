@@ -43,8 +43,8 @@ public class ProgressBar : DecoratedControl
         HorizontalAlignment = HorizontalAlignment.Stretch;
         VerticalAlignment = VerticalAlignment.Center;
 
-        BorderColor = new Color(255, 180, 180, 180);
-        BorderWidth = 1f;
+        SetControlDefault(BorderColorProperty, new Color(255, 180, 180, 180));
+        SetControlDefault(BorderWidthProperty, 1f);
     }
 
     private float Fraction

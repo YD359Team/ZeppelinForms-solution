@@ -21,10 +21,10 @@ public class MaskedTextBox : TextInputControl
         _buffer = _mask.CreateBuffer();
         _caretIndex = _mask.NextPlaceholder(0);
 
-        Background = Colors.White;
+        SetControlDefault(BackgroundProperty, Colors.White);
         Padding = new Thickness(6, 3);
-        BorderColor = Colors.Black;
-        BorderWidth = 1f;
+        SetControlDefault(BorderColorProperty, Colors.Black);
+        SetControlDefault(BorderWidthProperty, 1f);
     }
 
     public MaskDefinition Mask

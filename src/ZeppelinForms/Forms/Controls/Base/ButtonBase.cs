@@ -43,8 +43,8 @@ public abstract class ButtonBase : InteractiveControl
     {
         Cursor = CursorKind.Hand;
         Padding = new Thickness(14, 6);
-        CornerRadius = new CornerRadius(4f);
-        BorderWidth = 1f;
+        SetControlDefault(CornerRadiusProperty, new CornerRadius(4f));
+        SetControlDefault(BorderWidthProperty, 1f);
 
         _ripple = new RippleAnimation(this);
     }

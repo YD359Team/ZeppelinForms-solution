@@ -24,13 +24,13 @@ public class GradientBorder : DecoratedWrapControl
 
     public GradientBorder()
     {
-        BorderWidth = 1f;
+        SetControlDefault(BorderWidthProperty, 1f);
         Padding = new Thickness(1f);
     }
 
     public GradientBorder(UIElement child) : base(child)
     {
-        BorderWidth = 1f;
+        SetControlDefault(BorderWidthProperty, 1f);
         Padding = new Thickness(1f);
     }
 

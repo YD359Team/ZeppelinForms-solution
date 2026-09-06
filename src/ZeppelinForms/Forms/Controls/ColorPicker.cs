@@ -36,11 +36,11 @@ public class ColorPicker : InteractiveControl
 
     public ColorPicker()
     {
-        Background = Colors.White;
+        SetControlDefault(BackgroundProperty, Colors.White);
         Padding = new Thickness(4, 3);
         Cursor = CursorKind.Hand;
-        BorderColor = Colors.Black;
-        BorderWidth = 1f;
+        SetControlDefault(BorderColorProperty, Colors.Black);
+        SetControlDefault(BorderWidthProperty, 1f);
 
         _flyout = new FlyoutHost(this);
         _flyout.Closed += (_, _) => InvalidateVisual();

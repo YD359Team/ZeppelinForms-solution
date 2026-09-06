@@ -32,7 +32,7 @@ public class PropertyGrid : DecoratedPanel
 
     public PropertyGrid()
     {
-        Background = Colors.White;
+        SetControlDefault(BackgroundProperty, Colors.White);
         IsVisible = false;
     }
 

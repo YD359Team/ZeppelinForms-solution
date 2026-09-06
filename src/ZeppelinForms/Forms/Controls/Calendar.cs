@@ -30,7 +30,7 @@ public class Calendar : DecoratedControl
 
     public Calendar()
     {
-        Background = Colors.White;
+        SetControlDefault(BackgroundProperty, Colors.White);
         Size = new Size(252, 220);
     }
 

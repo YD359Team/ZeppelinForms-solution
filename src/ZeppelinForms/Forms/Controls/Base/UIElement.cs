@@ -241,6 +241,18 @@ public abstract class UIElement : IGridPlaceable
     /// <summary>Значение задали из кода — тема его больше не тронет.</summary>
     public bool IsLocal(StyledProperty property) => GetBit(_local, property.Index);
 
+    /// <summary>Записать умолчание самого контрола. Тема такое значение
+    /// перекроет, код пользователя — тем более. Только для конструкторов:
+    /// обычное присваивание из них помечало бы свойство заданным вручную
+    /// и навсегда закрывало от темы.</summary>
+    protected void SetControlDefault<T>(StyledProperty<T> property, T value)
+    {
+        property.Write(this, value);
+
+        SetBit(ref _assigned, property.Index);
+        ClearBit(_local, property.Index);
+    }
+
     /// <summary>Записать значение с учётом источника.
     /// false — запись отклонена: пишет тема, а свойство задали вручную.</summary>
     protected bool SetValue<T>(StyledProperty<T> property, ref T storage, T value)

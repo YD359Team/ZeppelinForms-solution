@@ -26,7 +26,7 @@ public class MenuList : DecoratedControl
 
     public MenuList()
     {
-        Background = Colors.White;
+        SetControlDefault(BackgroundProperty, Colors.White);
         Padding = new Thickness(2, 4);
     }
 

@@ -56,10 +56,10 @@ public class MapControl : InteractiveControl
 
     public MapControl()
     {
-        Background = new Color(255, 0xE8, 0xE8, 0xE8);
+        SetControlDefault(BackgroundProperty, new Color(255, 0xE8, 0xE8, 0xE8));
         Cursor = CursorKind.SizeAll;
-        BorderColor = new Color(255, 190, 190, 190);
-        BorderWidth = 1f;
+        SetControlDefault(BorderColorProperty, new Color(255, 190, 190, 190));
+        SetControlDefault(BorderWidthProperty, 1f);
 
         _diskCacheDirectory = Path.Combine(Path.GetTempPath(), "ZeppelinForms", "MapTiles");
         Directory.CreateDirectory(_diskCacheDirectory);

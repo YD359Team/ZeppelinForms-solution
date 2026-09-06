@@ -64,10 +64,10 @@ public class NumericUpDown : TextInputControl
 
     public NumericUpDown()
     {
-        Background = Colors.White;
+        SetControlDefault(BackgroundProperty, Colors.White);
         Padding = new Thickness(6, 3);
-        BorderColor = Colors.Black;
-        BorderWidth = 1f;
+        SetControlDefault(BorderColorProperty, Colors.Black);
+        SetControlDefault(BorderWidthProperty, 1f);
 
         // курсор-текст от TextInputControl тут не к месту: поле в основном
         // управляется кнопками, а редактирование — вторично

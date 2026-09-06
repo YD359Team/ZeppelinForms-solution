@@ -38,8 +38,8 @@ public class Spoiler : DecoratedWrapControl
         // свёрнутый спойлер должен схлопываться до заголовка,
         // а не растягиваться на всю выделенную высоту
         VerticalAlignment = VerticalAlignment.Top;
-        BorderColor = new Color(255, 200, 200, 200);
-        BorderWidth = 1f;
+        SetControlDefault(BorderColorProperty, new Color(255, 200, 200, 200));
+        SetControlDefault(BorderWidthProperty, 1f);
     }
 
     public Spoiler(UIElement child) : base()
