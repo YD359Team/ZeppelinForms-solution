@@ -16,7 +16,7 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// <summary>
 /// Base element of any UI tree node
 /// </summary>
-public abstract class UIElement : IGridPlaceable
+public abstract class UIElement : IGridPlaceable, IBorderedElement
 {
     // ===== события =====
 
@@ -423,6 +423,44 @@ public abstract class UIElement : IGridPlaceable
         get => GetInheritedValue(TextColorProperty);
         set => SetValue(TextColorProperty, ref _textColor, value);
     }
+
+    public static readonly StyledProperty<Color> BorderColorProperty =
+    StyledProperty<Color>.Register<UIElement>(
+        nameof(BorderColor),
+        element => element._borderColor,
+        (element, value) => element._borderColor = value,
+        Colors.Transparent,
+        category: "Оформление");
+
+    public static readonly StyledProperty<float> BorderWidthProperty =
+        StyledProperty<float>.Register<UIElement>(
+            nameof(BorderWidth),
+            element => element._borderWidth,
+            (element, value) => element._borderWidth = value,
+            0f,
+            category: "Оформление");
+
+    private Color _borderColor = Colors.Transparent;
+    private float _borderWidth;
+
+    public Color BorderColor
+    {
+        get => _borderColor;
+        set => SetValue(BorderColorProperty, ref _borderColor, value);
+    }
+
+    public float BorderWidth
+    {
+        get => _borderWidth;
+        set => SetValue(BorderWidthProperty, ref _borderWidth, value);
+    }
+
+    /// <summary>Цвет подложки под текущее состояние. Переопределяйте здесь,
+    /// а не рисуйте фон вручную: рамка и скругление подхватятся сами.</summary>
+    protected virtual Color CurrentBackground => Background;
+
+    /// <summary>Цвет рамки под текущее состояние.</summary>
+    protected virtual Color CurrentBorderColor => BorderColor;
 
     public List<MenuItem>? ContextMenu { get; set; }
     // IGridPlaceable

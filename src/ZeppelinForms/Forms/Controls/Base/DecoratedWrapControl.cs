@@ -8,14 +8,8 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// Контейнер с одним ребёнком, рисующий фон, рамку и скругление.
 /// Порядок как у панели: своё оформление до потомка, рамка после.
 /// </summary>
-public abstract class DecoratedWrapControl : WrapControl, IBorderedElement
+public abstract class DecoratedWrapControl : WrapControl
 {
-    public Color BorderColor { get; set; } = Colors.Transparent;
-    public float BorderWidth { get; set; }
-
-    protected virtual Color CurrentBackground => Background;
-    protected virtual Color CurrentBorderColor => BorderColor;
-
     protected DecoratedWrapControl() : base()
     {
         

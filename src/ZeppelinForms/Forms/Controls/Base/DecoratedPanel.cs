@@ -8,14 +8,8 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// Панель с фоном, рамкой и скруглением. Оформление рисует сама,
 /// наследники добавляют только своё содержимое.
 /// </summary>
-public abstract class DecoratedPanel : PanelControl, IBorderedElement
+public abstract class DecoratedPanel : PanelControl
 {
-    public Color BorderColor { get; set; } = Colors.Transparent;
-    public float BorderWidth { get; set; }
-
-    protected virtual Color CurrentBackground => Background;
-    protected virtual Color CurrentBorderColor => BorderColor;
-
     public sealed override void Draw(Graphics g)
     {
         Rectangle bounds = LocalBounds;
