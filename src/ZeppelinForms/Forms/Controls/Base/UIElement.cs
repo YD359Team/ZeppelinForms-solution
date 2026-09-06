@@ -7,6 +7,7 @@ using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
@@ -200,6 +201,102 @@ public abstract class UIElement : IGridPlaceable
     private Form? _cachedOwner;
     private int _cachedOwnerGeneration = -1;
 
+    // ===== источник значений стилизуемых свойств =====
+
+    // Значения лежат в обычных полях, здесь только источник: два бита
+    // на свойство — «задавали вообще» и «задавали из кода пользователя».
+    // Массивы создаются при первой записи: у большинства элементов явно
+    // задано хорошо если одно свойство из пятидесяти
+    private ulong[]? _assigned;
+    private ulong[]? _local;
+
+    /// <summary>Идёт применение темы: записи помечаются как «от темы»,
+    /// а не «задано вручную». Ставится Theme.Apply на время обхода.
+    /// Дерево и тема живут в UI-потоке, поэтому статики достаточно.</summary>
+    internal static bool ApplyingTheme { get; set; }
+
+    private static bool GetBit(ulong[]? bits, int index) =>
+        bits is not null && (index >> 6) < bits.Length && (bits[index >> 6] & (1UL << index)) != 0;
+
+    private static void SetBit(ref ulong[]? bits, int index)
+    {
+        int word = index >> 6;
+
+        if (bits is null) bits = new ulong[word + 1];
+        else if (word >= bits.Length) Array.Resize(ref bits, word + 1);
+
+        bits[word] |= 1UL << index;
+    }
+
+    private static void ClearBit(ulong[]? bits, int index)
+    {
+        if (bits is null || (index >> 6) >= bits.Length) return;
+
+        bits[index >> 6] &= ~(1UL << index);
+    }
+
+    /// <summary>Значение задавали: не умолчание и не унаследованное.</summary>
+    public bool HasValue(StyledProperty property) => GetBit(_assigned, property.Index);
+
+    /// <summary>Значение задали из кода — тема его больше не тронет.</summary>
+    public bool IsLocal(StyledProperty property) => GetBit(_local, property.Index);
+
+    /// <summary>Записать значение с учётом источника.
+    /// false — запись отклонена: пишет тема, а свойство задали вручную.</summary>
+    protected bool SetValue<T>(StyledProperty<T> property, ref T storage, T value)
+    {
+        if (ApplyingTheme && IsLocal(property)) return false;
+
+        bool assigned = HasValue(property);
+
+        if (assigned && EqualityComparer<T>.Default.Equals(storage, value))
+        {
+            // значение то же, но источник мог поменяться: пользователь
+            // присвоил ровно то, что уже стояло от темы — и теперь это его
+            if (!ApplyingTheme) SetBit(ref _local, property.Index);
+
+            return false;
+        }
+
+        storage = value;
+
+        SetBit(ref _assigned, property.Index);
+
+        if (ApplyingTheme) ClearBit(_local, property.Index);
+        else SetBit(ref _local, property.Index);
+
+        if (property.AffectsLayout) Invalidate();
+        else InvalidateVisual();
+
+        return true;
+    }
+
+    /// <summary>Забыть заданное вручную и вернуть управление теме.</summary>
+    public void ClearValue<T>(StyledProperty<T> property)
+    {
+        ClearBit(_local, property.Index);
+        ClearBit(_assigned, property.Index);
+
+        property.Write(this, property.DefaultValue);
+
+        // тема могла бы задать своё — спрашиваем заново
+        App.Theme.Apply(this);
+
+        if (property.AffectsLayout) Invalidate();
+        else InvalidateVisual();
+    }
+
+    /// <summary>Значение с учётом наследования: своё, иначе ближайшее
+    /// заданное у предков, иначе умолчание свойства.</summary>
+    public T GetInheritedValue<T>(StyledProperty<T> property)
+    {
+        for (UIElement? current = this; current is not null; current = current.Parent)
+            if (current.HasValue(property))
+                return property.GetValue(current);
+
+        return property.DefaultValue;
+    }
+
     /// <summary>
     /// Доля свободного места по главной оси панели. 0 — элемент занимает
     /// желаемый размер, больше нуля — делит остаток пропорционально весу.
@@ -252,7 +349,21 @@ public abstract class UIElement : IGridPlaceable
         float.IsFinite(_actualSize.Height) ? _actualSize.Height : 0f);
     private static float NonNegative(float value) =>
         float.IsFinite(value) && value > 0f ? value : 0f;
-    public CornerRadius CornerRadius { get; set; } = CornerRadius.Zero;
+    public static readonly StyledProperty<CornerRadius> CornerRadiusProperty =
+        StyledProperty<CornerRadius>.Register<UIElement>(
+            nameof(CornerRadius),
+            element => element._cornerRadius,
+            (element, value) => element._cornerRadius = value,
+            CornerRadius.Zero,
+            category: "Оформление");
+
+    private CornerRadius _cornerRadius = CornerRadius.Zero;
+
+    public CornerRadius CornerRadius
+    {
+        get => _cornerRadius;
+        set => SetValue(CornerRadiusProperty, ref _cornerRadius, value);
+    }
     /// <summary>Поворот в градусах вокруг центра элемента.</summary>
     public float Rotation { get; set; }
     protected internal bool HasTransform => Rotation != 0f;
@@ -261,7 +372,21 @@ public abstract class UIElement : IGridPlaceable
     public bool IsVisible { get; set; } = true;
     public string? ToolTip { get; set; }
     public string Name { get; set; } = string.Empty;
-    public Color Background { get; set; } = Colors.Transparent;
+    public static readonly StyledProperty<Color> BackgroundProperty =
+        StyledProperty<Color>.Register<UIElement>(
+            nameof(Background),
+            element => element._background,
+            (element, value) => element._background = value,
+            Colors.Transparent,
+            category: "Оформление");
+
+    private Color _background = Colors.Transparent;
+
+    public Color Background
+    {
+        get => _background;
+        set => SetValue(BackgroundProperty, ref _background, value);
+    }
     public List<MenuItem>? ContextMenu { get; set; }
     // IGridPlaceable
     public int Row { get; set; }

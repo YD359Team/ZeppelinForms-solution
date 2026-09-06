@@ -25,8 +25,7 @@ public sealed class Theme
     internal void Apply(UIElement element)
     {
         // от базового типа к производному: специализация дополняет общее
-        // оформление, а не подменяет его целиком. Раньше здесь стоял return
-        // на первом совпадении, и .For<TextBox> отменял .For<InteractiveControl>
+        // оформление, а не подменяет его целиком
         var pending = new Stack<Action<UIElement>>();
 
         for (Type? type = element.GetType(); type is not null; type = type.BaseType)
@@ -35,8 +34,19 @@ public sealed class Theme
                 pending.Push(apply);
         }
 
-        while (pending.Count > 0)
-            pending.Pop()(element);
+        // на время обхода сеттеры помечают записи как «от темы».
+        // Рекурсии тут быть не может, поэтому хватает простого флага
+        UIElement.ApplyingTheme = true;
+
+        try
+        {
+            while (pending.Count > 0)
+                pending.Pop()(element);
+        }
+        finally
+        {
+            UIElement.ApplyingTheme = false;
+        }
     }
 
     internal static void Apply(UIElement element, ControlStyle style)

@@ -3,6 +3,7 @@
 ## Feature [0.8.0]
 
 ### Breaking changes
+- StyledProperties
 - Removed `ScrollViewer`
 - Continue migration controls bases
 	- `DecoratedPanel`: `SplitContainer`, `PropertyGrid`, `PageControl`
