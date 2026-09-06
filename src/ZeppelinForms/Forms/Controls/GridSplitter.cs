@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
@@ -10,7 +11,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// Разделитель внутри Grid: перетаскивание меняет размеры соседних треков.
 /// Помещается в собственную ячейку между изменяемыми.
 /// </summary>
-public class GridSplitter : DecoratedControl
+public partial class GridSplitter : DecoratedControl
 {
     private bool _dragging;
     private float _dragStart;
@@ -21,8 +22,13 @@ public class GridSplitter : DecoratedControl
 
     public float MinTrackSize { get; set; } = 30f;
 
-    public Color LineColor { get; set; } = new Color(255, 214, 214, 214);
-    public Color HoverColor { get; set; } = new Color(255, 170, 170, 170);
+    [Styled(Category = "Splitter")]
+    public partial Color LineColor { get; set; }
+    private static Color LineColorDefault => new(255, 214, 214, 214);
+
+    [Styled(Category = "Splitter")]
+    public partial Color HoverColor { get; set; }
+    private static Color HoverColorDefault => new(255, 170, 170, 170);
 
     private bool IsVertical => Orientation == Orientation.Vertical;
 

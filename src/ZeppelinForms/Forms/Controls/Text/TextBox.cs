@@ -8,12 +8,13 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
-public class TextBox : TextInputControl, ITextElement
+public partial class TextBox : TextInputControl, ITextElement
 {
     /// <summary>Подсказка в пустом поле.</summary>
     public string? Watermark { get; set; }
@@ -91,8 +92,13 @@ public class TextBox : TextInputControl, ITextElement
 
     public int CaretIndex => _document.CaretIndex;
 
-    public Color CaretColor { get; set; } = Colors.Black;
-    public Color SelectionColor { get; set; } = new Color(255, 173, 214, 255);
+    [Styled(Category = "Text")]
+    public partial Color CaretColor { get; set; }
+    private static Color CaretColorDefault => Colors.Black;
+
+    [Styled(Category = "Selection")]
+    public partial Color SelectionColor { get; set; }
+    private static Color SelectionColorDefault => new(255, 173, 214, 255);
 
     public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
     public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Top;

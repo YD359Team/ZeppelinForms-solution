@@ -4,11 +4,12 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ToggleSwitch : InteractiveControl, ITextElement
+public partial class ToggleSwitch : InteractiveControl, ITextElement
 {
     private const float TrackWidth = 40f;
     private const float TrackHeight = 20f;
@@ -35,9 +36,17 @@ public class ToggleSwitch : InteractiveControl, ITextElement
 
     public string? Text { get; set; }
 
-    public Color OnColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
-    public Color OffColor { get; set; } = new Color(255, 200, 200, 200);
-    public Color ThumbColor { get; set; } = Colors.White;
+    [Styled(Category = "States")]
+    public partial Color OnColor { get; set; }
+    private static Color OnColorDefault => new(255, 0x0D, 0x6E, 0xFD);
+
+    [Styled(Category = "States")]
+    public partial Color OffColor { get; set; }
+    private static Color OffColorDefault => new(255, 200, 200, 200);
+
+    [Styled(Category = "States")]
+    public partial Color ThumbColor { get; set; }
+    private static Color ThumbColorDefault => Colors.White;
 
     public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
     public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;

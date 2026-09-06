@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
@@ -9,7 +10,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// <summary>
 /// Две области с перетаскиваемым разделителем между ними.
 /// </summary>
-public class SplitContainer : DecoratedPanel
+public partial class SplitContainer : DecoratedPanel
 {
     private UIElement? _first;
     private UIElement? _second;
@@ -34,8 +35,13 @@ public class SplitContainer : DecoratedPanel
     /// <summary>Панель, которая сохраняет размер при изменении контейнера.</summary>
     public SplitterFixedPanel FixedPanel { get; set; } = SplitterFixedPanel.None;
 
-    public Color SplitterColor { get; set; } = new Color(255, 224, 224, 224);
-    public Color SplitterHoverColor { get; set; } = new Color(255, 190, 190, 190);
+    [Styled(Category = "Splitter")]
+    public partial Color SplitterColor { get; set; }
+    private static Color SplitterColorDefault => new(255, 224, 224, 224);
+
+    [Styled(Category = "Splitter")]
+    public partial Color SplitterHoverColor { get; set; }
+    private static Color SplitterHoverColorDefault => new(255, 190, 190, 190);
 
     public event EventHandler? SplitterMoved;
 

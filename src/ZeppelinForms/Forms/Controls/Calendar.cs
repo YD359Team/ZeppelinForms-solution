@@ -2,11 +2,12 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class Calendar : DecoratedControl
+public partial class Calendar : DecoratedControl
 {
     private const float HeaderHeight = 28f;
     private const float DayOfWeekHeight = 20f;
@@ -18,15 +19,28 @@ public class Calendar : DecoratedControl
     public DateTime? SelectedDate { get; private set; }
     public event EventHandler<DateTime>? DateSelected;
 
-    public Color MutedColor { get; set; } = new Color(255, 160, 160, 160);
-    public Color SelectionColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
-    public Color TodayColor { get; set; } = new Color(255, 220, 235, 255);
-
     private int _hoveredCell = -1;
     private int _hoveredHeaderButton;   // -1 — назад, 1 — вперёд, 0 — нет
 
-    public Color HoverColor { get; set; } = new Color(255, 235, 242, 255);
-    public Color HeaderHoverColor { get; set; } = new Color(255, 228, 228, 228);
+    [Styled(Category = "Calendar")]
+    public partial Color MutedColor { get; set; }
+    private static Color MutedColorDefault => new(255, 160, 160, 160);
+
+    [Styled(Category = "Calendar")]
+    public partial Color SelectionColor { get; set; }
+    private static Color SelectionColorDefault => new(255, 0x0D, 0x6E, 0xFD);
+
+    [Styled(Category = "Calendar")]
+    public partial Color TodayColor { get; set; }
+    private static Color TodayColorDefault => new(255, 220, 235, 255);
+
+    [Styled(Category = "Calendar")]
+    public partial Color HoverColor { get; set; }
+    private static Color HoverColorDefault => new(255, 235, 242, 255);
+
+    [Styled(Category = "Calendar")]
+    public partial Color HeaderHoverColor { get; set; }
+    private static Color HeaderHoverColorDefault => new(255, 228, 228, 228);
 
     public Calendar()
     {

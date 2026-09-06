@@ -3,12 +3,13 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class TabControl : DecoratedPanel, IInputElement
+public partial class TabControl : DecoratedPanel, IInputElement
 {
     private const float HeaderPaddingX = 14f;
     private const float HeaderPaddingY = 8f;
@@ -44,11 +45,25 @@ public class TabControl : DecoratedPanel, IInputElement
 
     public event EventHandler? SelectionChanged;
 
-    public Color HeaderColor { get; set; } = new Color(255, 244, 244, 244);
-    public Color HeaderHoverColor { get; set; } = new Color(255, 234, 234, 234);
-    public Color SelectedHeaderColor { get; set; } = Colors.White;
-    public Color DisabledTextColor { get; set; } = new Color(255, 165, 165, 165);
-    public Color AccentColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
+    [Styled(Category = "Headers")]
+    public partial Color HeaderColor { get; set; }
+    private static Color HeaderColorDefault => new(255, 244, 244, 244);
+
+    [Styled(Category = "Headers")]
+    public partial Color HeaderHoverColor { get; set; }
+    private static Color HeaderHoverColorDefault => new(255, 234, 234, 234);
+
+    [Styled(Category = "Headers")]
+    public partial Color SelectedHeaderColor { get; set; }
+    private static Color SelectedHeaderColorDefault => Colors.White;
+
+    [Styled(Category = "Headers")]
+    public partial Color AccentColor { get; set; }
+    private static Color AccentColorDefault => new(255, 0x0D, 0x6E, 0xFD);
+
+    [Styled(Category = "States")]
+    public partial Color DisabledTextColor { get; set; }
+    private static Color DisabledTextColorDefault => new(255, 165, 165, 165);
 
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; } = true;

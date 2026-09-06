@@ -2,12 +2,13 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class TrackBar : InteractiveControl
+public partial class TrackBar : InteractiveControl
 {
     private const float ThumbSize = 14f;
     private const float TrackThickness = 4f;
@@ -37,10 +38,21 @@ public class TrackBar : InteractiveControl
 
     public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
-    public Color TrackColor { get; set; } = new Color(255, 210, 210, 210);
-    public Color FillColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
-    public Color ThumbColor { get; set; } = Colors.White;
-    public Color ThumbBorderColor { get; set; } = new Color(255, 130, 130, 130);
+    [Styled(Category = "Track")]
+    public partial Color TrackColor { get; set; }
+    private static Color TrackColorDefault => new(255, 210, 210, 210);
+
+    [Styled(Category = "Track")]
+    public partial Color FillColor { get; set; }
+    private static Color FillColorDefault => new(255, 0x0D, 0x6E, 0xFD);
+
+    [Styled(Category = "Track")]
+    public partial Color ThumbColor { get; set; }
+    private static Color ThumbColorDefault => Colors.White;
+
+    [Styled(Category = "Track")]
+    public partial Color ThumbBorderColor { get; set; }
+    private static Color ThumbBorderColorDefault => new(255, 130, 130, 130);
 
     public TrackBar()
     {

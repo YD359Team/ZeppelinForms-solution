@@ -5,12 +5,13 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Layout;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class SplitButton : ButtonBase
+public partial class SplitButton : ButtonBase
 {
     private const float ArrowZoneWidth = 26f;
 
@@ -24,7 +25,9 @@ public class SplitButton : ButtonBase
     /// <summary>Нажатие на основную часть повторяет последний выбранный пункт.</summary>
     public bool RepeatLastAction { get; set; } = true;
 
-    public Color SeparatorColor { get; set; } = new Color(120, 255, 255, 255);
+    [Styled(Category = "Button")]
+    public partial Color SeparatorColor { get; set; }
+    private static Color SeparatorColorDefault => new(120, 255, 255, 255);
 
     public bool IsMenuOpen => _flyout.IsOpen;
 

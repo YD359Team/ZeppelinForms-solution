@@ -2,13 +2,14 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>Вертикальный список пунктов меню. Рисуется целиком сам,
 /// без вложенных контролов — так проще с наведением и разделителями.</summary>
-public class MenuList : DecoratedControl
+public partial class MenuList : DecoratedControl
 {
     private const float ItemHeight = 26f;
     private const float SeparatorHeight = 7f;
@@ -20,9 +21,17 @@ public class MenuList : DecoratedControl
 
     public event EventHandler<MenuItem>? ItemInvoked;
 
-    public Color DisabledColor { get; set; } = new Color(255, 160, 160, 160);
-    public Color HoverColor { get; set; } = new Color(255, 232, 240, 254);
-    public Color SeparatorColor { get; set; } = new Color(255, 220, 220, 220);
+    [Styled(Category = "Menu")]
+    public partial Color DisabledColor { get; set; }
+    private static Color DisabledColorDefault => new(255, 160, 160, 160);
+
+    [Styled(Category = "Menu")]
+    public partial Color HoverColor { get; set; }
+    private static Color HoverColorDefault => new(255, 232, 240, 254);
+
+    [Styled(Category = "Menu")]
+    public partial Color SeparatorColor { get; set; }
+    private static Color SeparatorColorDefault => new(255, 220, 220, 220);
 
     public MenuList()
     {

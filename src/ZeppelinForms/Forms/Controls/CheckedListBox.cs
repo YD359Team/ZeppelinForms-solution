@@ -1,21 +1,30 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class CheckedListBox : ListBox
+public partial class CheckedListBox : ListBox
 {
     private const float BoxSize = 15f;
     private const float BoxGap = 6f;
 
     private readonly HashSet<int> _checked = [];
 
-    public Color BoxBorderColor { get; set; } = new Color(255, 120, 120, 120);
-    public Color BoxBackground { get; set; } = Colors.White;
-    public Color CheckColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
+    [Styled(Category = "Box")]
+    public partial Color BoxBorderColor { get; set; }
+    private static Color BoxBorderColorDefault => Colors.Black;
+
+    [Styled(Category = "Box")]
+    public partial Color BoxBackground { get; set; }
+    private static Color BoxBackgroundDefault => Colors.White;
+
+    [Styled(Category = "Box")]
+    public partial Color CheckColor { get; set; }
+    private static Color CheckColorDefault => new(255, 0x0D, 0x6E, 0xFD);
 
     /// <summary>Отметка ставится по клику в любом месте строки, а не только по квадратику.</summary>
     public bool ToggleOnRowClick { get; set; }

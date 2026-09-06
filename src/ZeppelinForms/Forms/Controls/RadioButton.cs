@@ -3,11 +3,12 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class RadioButton : InteractiveControl, ITextElement
+public partial class RadioButton : InteractiveControl, ITextElement
 {
     private const float CircleSize = 16f;
     private const float Gap = 6f;
@@ -19,8 +20,14 @@ public class RadioButton : InteractiveControl, ITextElement
 
     public string? Text { get; set; }
 
-    public Color CircleBorderColor { get; set; } = Colors.Black;
-    public Color CheckColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
+    [Styled(Category = "Box")]
+    public partial Color CircleBorderColor { get; set; }
+    private static Color CircleBorderColorDefault => Colors.Black;
+
+    [Styled(Category = "Box")]
+    public partial Color CheckColor { get; set; }
+    private static Color CheckColorDefault => new(255, 0x0D, 0x6E, 0xFD);
+
     public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
     public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
 

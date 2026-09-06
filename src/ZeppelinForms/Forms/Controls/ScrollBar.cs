@@ -2,11 +2,12 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ScrollBar : DecoratedControl
+public partial class ScrollBar : DecoratedControl
 {
     private const float MinThumbLength = 20f;
 
@@ -40,8 +41,13 @@ public class ScrollBar : DecoratedControl
 
     public event EventHandler? ValueChanged;
 
-    public Color TrackColor { get; set; } = new Color(255, 240, 240, 240);
-    public Color ThumbColor { get; set; } = new Color(255, 170, 170, 170);
+    [Styled(Category = "Scrolling")]
+    public partial Color TrackColor { get; set; }
+    private static Color TrackColorDefault => new(255, 240, 240, 240);
+
+    [Styled(Category = "Scrolling")]
+    public partial Color ThumbColor { get; set; }
+    private static Color ThumbColorDefault => new(255, 170, 170, 170);
 
     public ScrollBar() => Size = new Size(12, 12);
 

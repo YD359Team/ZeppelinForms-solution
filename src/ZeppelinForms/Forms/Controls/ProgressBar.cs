@@ -3,10 +3,11 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ProgressBar : DecoratedControl
+public partial class ProgressBar : DecoratedControl
 {
     private float _value;
 
@@ -33,8 +34,14 @@ public class ProgressBar : DecoratedControl
     /// <summary>Своё форматирование подписи: доля (0..1) и текущее значение.</summary>
     public Func<float, float, string>? TextFormatter { get; set; }
 
-    public Color FillColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
-    public Color TrackColor { get; set; } = new Color(255, 230, 230, 230);
+    [Styled(Category = "Progress")]
+    public partial Color FillColor { get; set; }
+    private static Color FillColorDefault => new(255, 0x0D, 0x6E, 0xFD);
+
+    [Styled(Category = "Progress")]
+    public partial Color TrackColor { get; set; }
+    private static Color TrackColorDefault => new(255, 230, 230, 230);
+
     public Color FilledTextColor { get; set; } = Colors.White;
 
     public ProgressBar()

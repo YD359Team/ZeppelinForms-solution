@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Navigation;
@@ -10,7 +11,7 @@ namespace ZeppelinForms.Forms.Controls.Navigation;
 /// Точки-переключатели страниц. Привязывается к PageControl и следит
 /// за его текущей страницей.
 /// </summary>
-public class PageIndicator : DecoratedControl
+public partial class PageIndicator : DecoratedControl
 {
     private PageControl? _target;
     private int _hoveredIndex = -1;
@@ -21,9 +22,17 @@ public class PageIndicator : DecoratedControl
     public float ActiveDotSize { get; set; } = 11f;
     public float Spacing { get; set; } = 8f;
 
-    public Color ActiveColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
-    public Color InactiveColor { get; set; } = new Color(255, 200, 200, 200);
-    public Color HoverColor { get; set; } = new Color(255, 150, 150, 150);
+    [Styled(Category = "Navigation")]
+    public partial Color ActiveColor { get; set; }
+    private static Color ActiveColorDefault => new(255, 0x0D, 0x6E, 0xFD);
+
+    [Styled(Category = "Navigation")]
+    public partial Color InactiveColor { get; set; }
+    private static Color InactiveColorDefault => new(255, 200, 200, 200);
+
+    [Styled(Category = "Navigation")]
+    public partial Color HoverColor { get; set; }
+    private static Color HoverColorDefault => new(255, 150, 150, 150);
 
     public bool IsInteractive { get; set; } = true;
 

@@ -4,6 +4,7 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
@@ -20,7 +21,7 @@ public sealed record class DragListDropEventArgs(
 /// Список с перестановкой строк мышью. Списки с одинаковым
 /// <see cref="Group"/> обмениваются строками между собой.
 /// </summary>
-public class DragList : ItemsControl
+public partial class DragList : ItemsControl
 {
     // перетаскивание одно на всё приложение: тянуть можно только одну строку,
     // а список-приёмник должен знать, что к нему летит
@@ -68,9 +69,15 @@ public class DragList : ItemsControl
     /// перетаскиванием, а не промахом при клике.</summary>
     public float DragThreshold { get; set; } = 4f;
 
-    public Color DropIndicatorColor { get; set; } = new Color(255, 0, 120, 215);
     public float DropIndicatorHeight { get; set; } = 2f;
-    public Color DragPreviewBackground { get; set; } = Colors.White;
+
+    [Styled(Category = "Drag")]
+    public partial Color DropIndicatorColor { get; set; }
+    private static Color DropIndicatorColorDefault => new(255, 0, 120, 215);
+
+    [Styled(Category = "Drag")]
+    public partial Color DragPreviewBackground { get; set; }
+    private static Color DragPreviewBackgroundDefault => Colors.White;
 
     /// <summary>Строку унесли отсюда.</summary>
     public event EventHandler<DragListDropEventArgs>? ItemSent;

@@ -2,12 +2,13 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ListBox : ItemsControl, IInputElement
+public partial class ListBox : ItemsControl, IInputElement
 {
     private int _selectedIndex = -1;
 
@@ -30,9 +31,13 @@ public class ListBox : ItemsControl, IInputElement
 
     public event EventHandler? SelectionChanged;
 
-    public Color SelectionColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
+    [Styled(Category = "Selection")]
+    public partial Color SelectionColor { get; set; }
+    private static Color SelectionColorDefault => new(255, 0x0D, 0x6E, 0xFD);
 
-    public Color FocusBorderColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
+    [Styled(Category = "Appearance")]
+    public partial Color FocusBorderColor { get; set; }
+    private static Color FocusBorderColorDefault => new(255, 0x0D, 0x6E, 0xFD);
 
     public bool IsFocused { get; set; }
     public bool TabStop { get; set; } = true;

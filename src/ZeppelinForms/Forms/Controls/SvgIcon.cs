@@ -1,6 +1,7 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -9,11 +10,13 @@ namespace ZeppelinForms.Forms.Controls;
 /// Полные SVG-документы со слоями/градиентами не поддерживаются —
 /// для них нужен отдельный парсер.
 /// </summary>
-public class SvgIcon : DecoratedControl
+public partial class SvgIcon : DecoratedControl
 {
     public string? PathData { get; set; }
 
-    public Color Color { get; set; } = Colors.Black;
+    [Styled(Category = "Appearance")]
+    public partial Color Color { get; set; }
+    private static Color ColorDefault => Colors.Black;
 
     /// <summary>0 — заливка, больше нуля — обводка указанной толщины.</summary>
     public float StrokeWidth { get; set; }

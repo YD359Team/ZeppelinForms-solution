@@ -2,10 +2,11 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class CircularProgressBar : DecoratedControl
+public partial class CircularProgressBar : DecoratedControl
 {
     private float _value;
 
@@ -31,8 +32,13 @@ public class CircularProgressBar : DecoratedControl
     /// <summary>Откуда начинать дугу: −90 — с 12 часов.</summary>
     public float StartAngle { get; set; } = -90f;
 
-    public Color FillColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
-    public Color TrackColor { get; set; } = new Color(255, 230, 230, 230);
+    [Styled(Category = "Progress")]
+    public partial Color FillColor { get; set; }
+    private static Color FillColorDefault => new(255, 0x0D, 0x6E, 0xFD);
+
+    [Styled(Category = "Progress")]
+    public partial Color TrackColor { get; set; }
+    private static Color TrackColorDefault => new(255, 230, 230, 230);
 
     private float Fraction
     {

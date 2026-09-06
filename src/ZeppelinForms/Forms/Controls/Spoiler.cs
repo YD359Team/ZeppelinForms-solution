@@ -3,6 +3,7 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
@@ -10,16 +11,24 @@ namespace ZeppelinForms.Forms.Controls;
 /// <summary>
 /// Control can collapse\expand child content
 /// </summary>
-public class Spoiler : DecoratedWrapControl
+public partial class Spoiler : DecoratedWrapControl
 {
     private bool _headerHovered;
 
     public string? Header { get; set; }
     public float HeaderHeight { get; set; } = 26f;
 
-    public Color HeaderColor { get; set; } = new Color(255, 245, 245, 245);
-    public Color HeaderHoverColor { get; set; } = new Color(255, 232, 232, 232);
-    public Color HeaderTextColor { get; set; } = Colors.Black;
+    [Styled(Category = "Header")]
+    public partial Color HeaderColor { get; set; }
+    private static Color HeaderColorDefault => new(255, 245, 245, 245);
+
+    [Styled(Category = "Header")]
+    public partial Color HeaderHoverColor { get; set; }
+    private static Color HeaderHoverColorDefault => new(255, 232, 232, 232);
+
+    [Styled(Category = "Header")]
+    public partial Color HeaderTextColor { get; set; }
+    private static Color HeaderTextColorDefault => Colors.Black;
 
     public bool IsCollapsed
     {

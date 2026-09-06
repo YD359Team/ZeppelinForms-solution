@@ -1,11 +1,12 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
-public class LinkLabel : RichLabel
+public partial class LinkLabel : RichLabel
 {
     public string? Text
     {
@@ -23,7 +24,10 @@ public class LinkLabel : RichLabel
 
     public Color LinkColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
     public Color VisitedColor { get; set; } = new Color(255, 0x6F, 0x42, 0xC1);
-    public Color HoverColor { get; set; } = new Color(255, 0x0A, 0x58, 0xCA);
+
+    [Styled(Category = "Link")]
+    public partial Color HoverColor { get; set; }
+    private static Color HoverColorDefault => new(255, 0x0A, 0x58, 0xCA);
 
     public bool IsVisited { get; private set; }
 

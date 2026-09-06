@@ -3,12 +3,13 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
-public class MaskedTextBox : TextInputControl
+public partial class MaskedTextBox : TextInputControl
 {
     private const float CaretWidth = 1f;
 
@@ -71,7 +72,10 @@ public class MaskedTextBox : TextInputControl
     }
 
     public Color PromptColor { get; set; } = new Color(255, 170, 170, 170);
-    public Color CaretColor { get; set; } = Colors.Black;
+
+    [Styled(Category = "Text")]
+    public partial Color CaretColor { get; set; }
+    private static Color CaretColorDefault => Colors.Black;
 
     public event EventHandler? TextChanged;
     public event EventHandler? Accepted;

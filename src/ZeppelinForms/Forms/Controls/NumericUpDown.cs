@@ -4,12 +4,13 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class NumericUpDown : TextInputControl
+public partial class NumericUpDown : TextInputControl
 {
     private const float ButtonWidth = 18f;
 
@@ -58,8 +59,14 @@ public class NumericUpDown : TextInputControl
 
     public event EventHandler? ValueChanged;
 
-    public Color ButtonColor { get; set; } = new Color(255, 240, 240, 240);
-    public Color ButtonHoverColor { get; set; } = new Color(255, 220, 220, 220);
+    [Styled(Category = "Buttons")]
+    public partial Color ButtonColor { get; set; }
+    private static Color ButtonColorDefault => new(255, 240, 240, 240);
+
+    [Styled(Category = "Buttons")]
+    public partial Color ButtonHoverColor { get; set; }
+    private static Color ButtonHoverColorDefault => new(255, 220, 220, 220);
+
     public Color ArrowColor { get; set; } = Colors.Black;
 
     public NumericUpDown()

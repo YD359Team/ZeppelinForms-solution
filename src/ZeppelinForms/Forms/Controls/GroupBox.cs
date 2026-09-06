@@ -3,20 +3,23 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
 /// Рамка с заголовком, врезанным в верхнюю линию — как GroupBox в WinForms.
 /// </summary>
-public class GroupBox : DecoratedWrapControl
+public partial class GroupBox : DecoratedWrapControl
 {
     private const float HeaderSideGap = 8f;
     private const float HeaderTextPadding = 4f;
 
     public string? Header { get; set; }
 
-    public Color HeaderColor { get; set; } = Colors.Black;
+    [Styled(Category = "Header")]
+    public partial Color HeaderColor { get; set; }
+    private static Color HeaderColorDefault => Colors.Black;
 
     /// <summary>Отступ заголовка от левого края рамки.</summary>
     public float HeaderIndent { get; set; } = 10f;

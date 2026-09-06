@@ -4,12 +4,13 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Layout;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ComboBox : InteractiveControl
+public partial class ComboBox : InteractiveControl
 {
     private const float ArrowWidth = 20f;
 
@@ -46,7 +47,9 @@ public class ComboBox : InteractiveControl
     public string? PlaceholderText { get; set; }
     public float DropDownHeight { get; set; } = 180f;
 
-    public Color PlaceholderColor { get; set; } = new Color(255, 160, 160, 160);
+    [Styled(Category = "Text")]
+    public partial Color PlaceholderColor { get; set; }
+    private static Color PlaceholderColorDefault => new(255, 160, 160, 160);
 
     protected override bool IsKeyActivatable => true;
 

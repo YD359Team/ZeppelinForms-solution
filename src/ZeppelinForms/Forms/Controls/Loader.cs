@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -9,7 +10,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// Индикатор незавершённой операции. Длительность неизвестна —
 /// для известной есть ProgressBar.
 /// </summary>
-public class Loader : DecoratedControl
+public partial class Loader : DecoratedControl
 {
     private const string AnimationKey = "loader-phase";
 
@@ -17,10 +18,14 @@ public class Loader : DecoratedControl
 
     public LoaderStyle Style { get; set; } = LoaderStyle.Ring;
 
-    public Color Color { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
+    [Styled(Category = "Appearance")]
+    public partial Color Color { get; set; }
+    private static Color ColorDefault => new(255, 0x0D, 0x6E, 0xFD);
 
+    [Styled(Category = "Appearance")]
     /// <summary>Цвет дорожки под индикатором. Прозрачный — не рисовать.</summary>
-    public Color TrackColor { get; set; } = Colors.Transparent;
+    public partial Color TrackColor { get; set; }
+    private static Color TrackColorDefault => Colors.Transparent;
 
     /// <summary>Толщина линии. Не Thickness: так называется тип отступов,
     /// и внутри класса имя перекрыло бы его.</summary>
