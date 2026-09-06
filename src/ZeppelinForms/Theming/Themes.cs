@@ -74,6 +74,10 @@ public static class Themes
     {
         return new Theme { Name = name, Colors = colors }
 
+            // цвет текста наследуемый, поэтому задаём его один раз на корне:
+            // конкретные контролы переопределяют только там, где цвет другой
+            .For<UIElement>((element, c) => element.TextColor = c.Text)
+
             .For<InteractiveControl>((control, c) =>
             {
                 control.BorderColor = c.Border;
@@ -87,10 +91,6 @@ public static class Themes
                 panel.ScrollThumbColor = c.ScrollThumb;
             })
 
-            .For<Label>((label, c) => label.TextColor = c.Text)
-
-            .For<RichLabel>((label, c) => label.TextColor = c.Text)
-
             // база — нейтральная кнопка, если тип не уточнён
             .For<ButtonBase>((button, c) =>
             {
@@ -99,7 +99,6 @@ public static class Themes
                 button.PressedBackgroundColor = c.SurfacePressed;
                 button.CheckedBackgroundColor = c.Accent;
                 button.DisabledBackgroundColor = c.SurfacePressed;
-                button.TextColor = c.Text;
                 button.DisabledTextColor = c.TextDisabled;
                 button.FocusRingColor = c.Accent;
                 button.RippleColor = new Color(70, 255, 255, 255);
@@ -165,7 +164,6 @@ public static class Themes
 
             .For<CheckBox>((box, c) =>
             {
-                box.TextColor = c.Text;
                 box.BoxBackground = c.Surface;
                 box.BoxBorderColor = c.Border;
                 box.CheckColor = c.Accent;
@@ -173,7 +171,6 @@ public static class Themes
 
             .For<RadioButton>((radio, c) =>
             {
-                radio.TextColor = c.Text;
                 radio.CircleBorderColor = c.Border;
                 radio.CheckColor = c.Accent;
             })
@@ -181,7 +178,6 @@ public static class Themes
             .For<TextBox>((box, c) =>
             {
                 box.Background = c.Surface;
-                box.TextColor = c.Text;
                 box.CaretColor = c.Text;
                 box.SelectionColor = c.Selection;
             })
@@ -189,7 +185,6 @@ public static class Themes
             .For<ComboBox>((combo, c) =>
             {
                 combo.Background = c.Surface;
-                combo.TextColor = c.Text;
                 combo.PlaceholderColor = c.TextSecondary;
             })
 
@@ -229,7 +224,6 @@ public static class Themes
                 tabs.HeaderColor = c.Surface;
                 tabs.HeaderHoverColor = c.SurfaceHover;
                 tabs.SelectedHeaderColor = c.Background;
-                tabs.TextColor = c.Text;
                 tabs.DisabledTextColor = c.TextDisabled;
                 tabs.AccentColor = c.Accent;
             })
@@ -237,7 +231,6 @@ public static class Themes
             .For<MenuBar>((menu, c) =>
             {
                 menu.Background = c.Surface;
-                menu.TextColor = c.Text;
                 menu.HoverColor = c.SurfaceHover;
                 menu.OpenColor = c.SurfacePressed;
             })
@@ -245,7 +238,6 @@ public static class Themes
             .For<MenuList>((menu, c) =>
             {
                 menu.Background = c.Surface;
-                menu.TextColor = c.Text;
                 menu.DisabledColor = c.TextDisabled;
                 menu.HoverColor = c.SurfaceHover;
                 menu.SeparatorColor = c.Border;
@@ -254,7 +246,6 @@ public static class Themes
             .For<NumericUpDown>((numeric, c) =>
             {
                 numeric.Background = c.Surface;
-                numeric.TextColor = c.Text;
                 numeric.ButtonColor = c.SurfaceHover;
                 numeric.ButtonHoverColor = c.SurfacePressed;
             })
@@ -263,7 +254,6 @@ public static class Themes
             {
                 bar.FillColor = c.Accent;
                 bar.TrackColor = c.SurfaceHover;
-                bar.TextColor = c.Text;
             })
 
             .For<Loader>((loader, c) =>
@@ -282,7 +272,6 @@ public static class Themes
 
             .For<ToggleSwitch>((toggle, c) =>
             {
-                toggle.TextColor = c.Text;
                 toggle.OnColor = c.Accent;
                 toggle.OffColor = c.SurfacePressed;
                 toggle.ThumbColor = c.Surface;
@@ -291,7 +280,6 @@ public static class Themes
             .For<Calendar>((calendar, c) =>
             {
                 calendar.Background = c.Surface;
-                calendar.TextColor = c.Text;
                 calendar.MutedColor = c.TextSecondary;
                 calendar.SelectionColor = c.Accent;
                 calendar.TodayColor = c.SurfaceHover;
