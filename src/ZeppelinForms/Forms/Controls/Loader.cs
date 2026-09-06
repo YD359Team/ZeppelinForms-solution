@@ -56,7 +56,7 @@ public partial class Loader : DecoratedControl
 
     protected override void OnAttached()
     {
-        if (IsRunning) Start();
+        if (IsRunning && IsVisible) Start();
     }
 
     // снимать анимацию в OnDetached не нужно: DetachTree выкидывает
@@ -222,6 +222,16 @@ public partial class Loader : DecoratedControl
         return ResolveSize(
             new Size(content.Width + Padding.Horizontal, content.Height + Padding.Vertical),
             availableSize);
+    }
+
+    protected override void OnStyledPropertyChanged(StyledProperty property)
+    {
+        if (property != IsVisibleProperty) return;
+
+        // скрытый индикатор не должен держать тикер окна: его анимация
+        // бесконечна, и сама она никогда не завершится
+        if (IsVisible && IsRunning) Start();
+        else this.StopAnimation(AnimationKey);
     }
 }
 

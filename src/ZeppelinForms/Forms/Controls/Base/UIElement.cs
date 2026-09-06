@@ -378,6 +378,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         if (property.AffectsLayout) Invalidate();
         else InvalidateVisual();
 
+        OnStyledPropertyChanged(property);
         return true;
     }
 
@@ -406,8 +407,14 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         if (property.AffectsLayout) Invalidate();
         else InvalidateVisual();
 
+        OnStyledPropertyChanged(property);
         return true;
     }
+
+    /// <summary>Значение стилизуемого свойства изменилось. Точка для реакций,
+    /// которые не выражаются самой записью: остановить анимацию при скрытии,
+    /// согласовать зависимые значения, пересчитать кэш.</summary>
+    protected virtual void OnStyledPropertyChanged(StyledProperty property) { }
 
     /// <summary>Забыть заданное вручную и вернуть управление теме.</summary>
     public void ClearValue<T>(StyledProperty<T> property)
