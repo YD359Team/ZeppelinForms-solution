@@ -11,125 +11,25 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// Общая основа нажимаемых контролов: состояния, цвета под каждое
 /// состояние и волна нажатия. Содержимое рисуют наследники.
 /// </summary>
-public abstract class ButtonBase : InteractiveControl
+public abstract partial class ButtonBase : InteractiveControl
 {
     private readonly RippleAnimation _ripple;
 
-    public static readonly StyledProperty<bool> RippleEnabledProperty =
-    StyledProperty<bool>.Register<ButtonBase>(
-        nameof(RippleEnabled),
-        button => button._rippleEnabled,
-        (button, value) => button._rippleEnabled = value,
-        true,
-        category: "Кнопка");
+    /// <summary>Показывать расходящуюся волну от точки нажатия.</summary>
+    [Styled(Category = "Button")]
+    public partial bool RippleEnabled { get; set; }
 
-    // у волны нет своего поля на кнопке: значение хранит RippleAnimation
+    private static bool RippleEnabledDefault => true;
+
+    // у волны нет своего поля на кнопке — значение хранит RippleAnimation,
+    // поэтому здесь ручная перегрузка SetValue без ref
     public static readonly StyledProperty<Color> RippleColorProperty =
         StyledProperty<Color>.Register<ButtonBase>(
             nameof(RippleColor),
             button => button._ripple.Color,
             (button, value) => button._ripple.Color = value,
             new Color(60, 255, 255, 255),
-            category: "Кнопка");
-
-    public static readonly StyledProperty<Color> BackgroundColorProperty =
-        StyledProperty<Color>.Register<ButtonBase>(
-            nameof(BackgroundColor),
-            button => button._backgroundColor,
-            (button, value) => button._backgroundColor = value,
-            Colors.Transparent,
-            category: "Состояния");
-
-    public static readonly StyledProperty<Color> HoverBackgroundColorProperty =
-        StyledProperty<Color>.Register<ButtonBase>(
-            nameof(HoverBackgroundColor),
-            button => button._hoverBackgroundColor,
-            (button, value) => button._hoverBackgroundColor = value,
-            Colors.Transparent,
-            category: "Состояния");
-
-    public static readonly StyledProperty<Color> PressedBackgroundColorProperty =
-        StyledProperty<Color>.Register<ButtonBase>(
-            nameof(PressedBackgroundColor),
-            button => button._pressedBackgroundColor,
-            (button, value) => button._pressedBackgroundColor = value,
-            Colors.Transparent,
-            category: "Состояния");
-
-    public static readonly StyledProperty<Color> CheckedBackgroundColorProperty =
-        StyledProperty<Color>.Register<ButtonBase>(
-            nameof(CheckedBackgroundColor),
-            button => button._checkedBackgroundColor,
-            (button, value) => button._checkedBackgroundColor = value,
-            Colors.Transparent,
-            category: "Состояния");
-
-    public static readonly StyledProperty<Color> DisabledBackgroundColorProperty =
-        StyledProperty<Color>.Register<ButtonBase>(
-            nameof(DisabledBackgroundColor),
-            button => button._disabledBackgroundColor,
-            (button, value) => button._disabledBackgroundColor = value,
-            Colors.Transparent,
-            category: "Состояния");
-
-    public static readonly StyledProperty<Color> CheckedPressedBackgroundColorProperty =
-        StyledProperty<Color>.Register<ButtonBase>(
-            nameof(CheckedPressedBackgroundColor),
-            button => button._checkedPressedBackgroundColor,
-            (button, value) => button._checkedPressedBackgroundColor = value,
-            Colors.Transparent,
-            category: "Состояния");
-
-    public static readonly StyledProperty<Color> CheckedHoverBackgroundColorProperty =
-        StyledProperty<Color>.Register<ButtonBase>(
-            nameof(CheckedHoverBackgroundColor),
-            button => button._checkedHoverBackgroundColor,
-            (button, value) => button._checkedHoverBackgroundColor = value,
-            Colors.Transparent,
-            category: "Состояния");
-
-    public static readonly StyledProperty<Color> DisabledTextColorProperty =
-        StyledProperty<Color>.Register<ButtonBase>(
-            nameof(DisabledTextColor),
-            button => button._disabledTextColor,
-            (button, value) => button._disabledTextColor = value,
-            new Color(255, 160, 160, 160),
-            category: "Состояния");
-
-    public static readonly StyledProperty<Color> FocusRingColorProperty =
-        StyledProperty<Color>.Register<ButtonBase>(
-            nameof(FocusRingColor),
-            button => button._focusRingColor,
-            (button, value) => button._focusRingColor = value,
-            Colors.Transparent,
-            category: "Кнопка");
-
-    public static readonly StyledProperty<bool> ShowFocusRingProperty =
-        StyledProperty<bool>.Register<ButtonBase>(
-            nameof(ShowFocusRing),
-            button => button._showFocusRing,
-            (button, value) => button._showFocusRing = value,
-            true,
-            category: "Кнопка");
-
-    private bool _rippleEnabled = true;
-    private Color _backgroundColor = Colors.Transparent;
-    private Color _hoverBackgroundColor = Colors.Transparent;
-    private Color _pressedBackgroundColor = Colors.Transparent;
-    private Color _checkedBackgroundColor = Colors.Transparent;
-    private Color _disabledBackgroundColor = Colors.Transparent;
-    private Color _checkedPressedBackgroundColor = Colors.Transparent;
-    private Color _checkedHoverBackgroundColor = Colors.Transparent;
-    private Color _disabledTextColor = new(255, 160, 160, 160);
-    private Color _focusRingColor = Colors.Transparent;
-    private bool _showFocusRing = true;
-
-    /// <summary>Показывать расходящуюся волну от точки нажатия.</summary>
-    public bool RippleEnabled
-    {
-        get => _rippleEnabled;
-        set => SetValue(RippleEnabledProperty, ref _rippleEnabled, value);
-    }
+            category: "Button");
 
     public Color RippleColor
     {
@@ -137,65 +37,37 @@ public abstract class ButtonBase : InteractiveControl
         set => SetValue(RippleColorProperty, value);
     }
 
-    public Color BackgroundColor
-    {
-        get => _backgroundColor;
-        set => SetValue(BackgroundColorProperty, ref _backgroundColor, value);
-    }
+    [Styled(Category = "States")]
+    public partial Color BackgroundColor { get; set; }
 
-    public Color HoverBackgroundColor
-    {
-        get => _hoverBackgroundColor;
-        set => SetValue(HoverBackgroundColorProperty, ref _hoverBackgroundColor, value);
-    }
+    [Styled(Category = "States")]
+    public partial Color HoverBackgroundColor { get; set; }
 
-    public Color PressedBackgroundColor
-    {
-        get => _pressedBackgroundColor;
-        set => SetValue(PressedBackgroundColorProperty, ref _pressedBackgroundColor, value);
-    }
+    [Styled(Category = "States")]
+    public partial Color PressedBackgroundColor { get; set; }
 
-    public Color CheckedBackgroundColor
-    {
-        get => _checkedBackgroundColor;
-        set => SetValue(CheckedBackgroundColorProperty, ref _checkedBackgroundColor, value);
-    }
+    [Styled(Category = "States")]
+    public partial Color CheckedBackgroundColor { get; set; }
 
-    public Color DisabledBackgroundColor
-    {
-        get => _disabledBackgroundColor;
-        set => SetValue(DisabledBackgroundColorProperty, ref _disabledBackgroundColor, value);
-    }
+    [Styled(Category = "States")]
+    public partial Color DisabledBackgroundColor { get; set; }
 
-    public Color CheckedPressedBackgroundColor
-    {
-        get => _checkedPressedBackgroundColor;
-        set => SetValue(CheckedPressedBackgroundColorProperty, ref _checkedPressedBackgroundColor, value);
-    }
+    [Styled(Category = "States")]
+    public partial Color CheckedPressedBackgroundColor { get; set; }
 
-    public Color CheckedHoverBackgroundColor
-    {
-        get => _checkedHoverBackgroundColor;
-        set => SetValue(CheckedHoverBackgroundColorProperty, ref _checkedHoverBackgroundColor, value);
-    }
+    [Styled(Category = "States")]
+    public partial Color CheckedHoverBackgroundColor { get; set; }
 
-    public Color DisabledTextColor
-    {
-        get => _disabledTextColor;
-        set => SetValue(DisabledTextColorProperty, ref _disabledTextColor, value);
-    }
+    [Styled(Category = "States")]
+    public partial Color DisabledTextColor { get; set; }
+    private static Color DisabledTextColorDefault => new(255, 160, 160, 160);
 
-    public Color FocusRingColor
-    {
-        get => _focusRingColor;
-        set => SetValue(FocusRingColorProperty, ref _focusRingColor, value);
-    }
+    [Styled(Category = "Button")]
+    public partial Color FocusRingColor { get; set; }
 
-    public bool ShowFocusRing
-    {
-        get => _showFocusRing;
-        set => SetValue(ShowFocusRingProperty, ref _showFocusRing, value);
-    }
+    [Styled(Category = "Button")]
+    public partial bool ShowFocusRing { get; set; }
+    private static bool ShowFocusRingDefault => true;
 
     /// <summary>Залипшее состояние — для ToggleButton и подобных.</summary>
     protected virtual bool IsCheckedState => false;

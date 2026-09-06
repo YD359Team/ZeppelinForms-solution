@@ -7,24 +7,13 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ToggleButton : Button
+public partial class ToggleButton : Button
 {
-    public static readonly StyledProperty<Color> CheckedTextColorProperty =
-        StyledProperty<Color>.Register<ToggleButton>(
-            nameof(CheckedTextColor),
-            button => button._checkedTextColor,
-            (button, value) => button._checkedTextColor = value,
-            Colors.White,
-            category: "Состояния");
-
-    private Color _checkedTextColor = Colors.White;
-
     /// <summary>Цвет текста во включённом состоянии.</summary>
-    public Color CheckedTextColor
-    {
-        get => _checkedTextColor;
-        set => SetValue(CheckedTextColorProperty, ref _checkedTextColor, value);
-    }
+    [Styled(Category = "States")]
+    public partial Color CheckedTextColor { get; set; }
+
+    private static Color CheckedTextColorDefault => Colors.White;
 
     protected override Color CurrentBackground
     {

@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Base;
@@ -10,7 +11,7 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// <summary>
 /// Control with any count of children
 /// </summary>
-public abstract class PanelControl : UIElement
+public abstract partial class PanelControl : UIElement
 {
     protected const float ScrollBarThickness = 10f;
     private const float MinThumbLength = 24f;
@@ -32,8 +33,13 @@ public abstract class PanelControl : UIElement
 
     public float WheelStep { get; set; } = 48f;
 
-    public Color ScrollTrackColor { get; set; } = new Color(40, 0, 0, 0);
-    public Color ScrollThumbColor { get; set; } = new Color(120, 0, 0, 0);
+    [Styled(Category = "Scrolling")]
+    public partial Color ScrollTrackColor { get; set; }
+    private static Color ScrollTrackColorDefault => new(40, 0, 0, 0);
+
+    [Styled(Category = "Scrolling")]
+    public partial Color ScrollThumbColor { get; set; }
+    private static Color ScrollThumbColorDefault => new(120, 0, 0, 0);
 
     protected bool ScrollsHorizontally => OverflowX is Overflow.Scroll or Overflow.Auto;
     protected bool ScrollsVertically => OverflowY is Overflow.Scroll or Overflow.Auto;

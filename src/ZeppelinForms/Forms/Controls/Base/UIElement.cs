@@ -16,7 +16,7 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// <summary>
 /// Base element of any UI tree node
 /// </summary>
-public abstract class UIElement : IGridPlaceable, IBorderedElement
+public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 {
     // ===== события =====
 
@@ -394,21 +394,11 @@ public abstract class UIElement : IGridPlaceable, IBorderedElement
         float.IsFinite(_actualSize.Height) ? _actualSize.Height : 0f);
     private static float NonNegative(float value) =>
         float.IsFinite(value) && value > 0f ? value : 0f;
-    public static readonly StyledProperty<CornerRadius> CornerRadiusProperty =
-        StyledProperty<CornerRadius>.Register<UIElement>(
-            nameof(CornerRadius),
-            element => element._cornerRadius,
-            (element, value) => element._cornerRadius = value,
-            CornerRadius.Zero,
-            category: "Оформление");
 
-    private CornerRadius _cornerRadius = CornerRadius.Zero;
+    [Styled(Category = "Appearance")]
+    public partial CornerRadius CornerRadius { get; set; }
+    private static CornerRadius CornerRadiusDefault => CornerRadius.Zero;
 
-    public CornerRadius CornerRadius
-    {
-        get => _cornerRadius;
-        set => SetValue(CornerRadiusProperty, ref _cornerRadius, value);
-    }
     /// <summary>Поворот в градусах вокруг центра элемента.</summary>
     public float Rotation { get; set; }
     protected internal bool HasTransform => Rotation != 0f;
@@ -417,71 +407,23 @@ public abstract class UIElement : IGridPlaceable, IBorderedElement
     public bool IsVisible { get; set; } = true;
     public string? ToolTip { get; set; }
     public string Name { get; set; } = string.Empty;
-    public static readonly StyledProperty<Color> BackgroundProperty =
-        StyledProperty<Color>.Register<UIElement>(
-            nameof(Background),
-            element => element._background,
-            (element, value) => element._background = value,
-            Colors.Transparent,
-            category: "Оформление");
 
-    private Color _background = Colors.Transparent;
-
-    public Color Background
-    {
-        get => _background;
-        set => SetValue(BackgroundProperty, ref _background, value);
-    }
-
-    public static readonly StyledProperty<Color> TextColorProperty =
-    StyledProperty<Color>.Register<UIElement>(
-        nameof(TextColor),
-        element => element._textColor,
-        (element, value) => element._textColor = value,
-        Colors.Black,
-        category: "Текст",
-        inherits: true);
-
-    private Color _textColor = Colors.Black;
+    [Styled(Category = "Appearance")]
+    public partial Color Background { get; set; }
+    private static Color BackgroundDefault => Colors.Transparent;
 
     /// <summary>Цвет текста. Наследуется вниз: задайте его на панели —
     /// и все вложенные подписи, кнопки и поля подхватят.</summary>
-    public Color TextColor
-    {
-        get => GetInheritedValue(TextColorProperty);
-        set => SetValue(TextColorProperty, ref _textColor, value);
-    }
+    [Styled(Category = "Text", Inherits = true)]
+    public partial Color TextColor { get; set; }
+    private static Color TextColorDefault => Colors.Black;
 
-    public static readonly StyledProperty<Color> BorderColorProperty =
-    StyledProperty<Color>.Register<UIElement>(
-        nameof(BorderColor),
-        element => element._borderColor,
-        (element, value) => element._borderColor = value,
-        Colors.Transparent,
-        category: "Оформление");
+    [Styled(Category = "Appearance")]
+    public partial Color BorderColor { get; set; }
+    private static Color BorderColorDefault => Colors.Transparent;
 
-    public static readonly StyledProperty<float> BorderWidthProperty =
-        StyledProperty<float>.Register<UIElement>(
-            nameof(BorderWidth),
-            element => element._borderWidth,
-            (element, value) => element._borderWidth = value,
-            0f,
-            category: "Оформление");
-
-    private Color _borderColor = Colors.Transparent;
-    private float _borderWidth;
-
-    public Color BorderColor
-    {
-        get => _borderColor;
-        set => SetValue(BorderColorProperty, ref _borderColor, value);
-    }
-
-    public float BorderWidth
-    {
-        get => _borderWidth;
-        set => SetValue(BorderWidthProperty, ref _borderWidth, value);
-    }
+    [Styled(Category = "Appearance")]
+    public partial float BorderWidth { get; set; }
 
     /// <summary>Цвет подложки под текущее состояние. Переопределяйте здесь,
     /// а не рисуйте фон вручную: рамка и скругление подхватятся сами.</summary>
