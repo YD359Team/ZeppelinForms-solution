@@ -613,9 +613,17 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         bool wholeWindow = false;
 
-        for (int i = _animations.Count - 1; i >= 0; i--)
+        // по снимку, а не по живому списку: Advance вызывает completed
+        // прямо внутри себя, а тот может и снять анимации, и добавить —
+        // переход страницы делает ровно это. Индексы при таком раскладе
+        // разъезжаются под ногами
+        IAnimation[] running = [.. _animations];
+
+        foreach (IAnimation animation in running)
         {
-            IAnimation animation = _animations[i];
+            // могли снять из completed соседней анимации
+            if (!_animations.Contains(animation)) continue;
+
             bool alive = animation.Advance(elapsed);
 
             // перерисовываем цель независимо от того, дожила ли анимация
@@ -628,7 +636,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                 case UIElement element: element.InvalidateVisual(); break;
             }
 
-            if (!alive) _animations.RemoveAt(i);
+            if (!alive) _animations.Remove(animation);
         }
 
         if (_animations.Count == 0)
