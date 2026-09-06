@@ -109,6 +109,8 @@ public sealed class StyledProperty<T> : StyledProperty
 
     public override void SetBoxed(UIElement element, object? value)
     {
-        if (value is T typed) _set(element, typed);
+        // из PropertyGrid значение приходит от пользователя, значит должно
+        // помечаться как заданное вручную — как при обычном присваивании
+        if (value is T typed) element.SetStyledValue(this, typed);
     }
 }

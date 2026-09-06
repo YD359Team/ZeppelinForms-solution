@@ -346,6 +346,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         ClearBit(_local, property.Index);
     }
 
+    /// <summary>Мост для редакторов свойств: записать значение так же,
+    /// как это сделало бы обычное присваивание.</summary>
+    internal bool SetStyledValue<T>(StyledProperty<T> property, T value) =>
+        SetValue(property, value);
+
     /// <summary>Записать значение с учётом источника.
     /// false — запись отклонена: пишет тема, а свойство задали вручную.</summary>
     protected bool SetValue<T>(StyledProperty<T> property, ref T storage, T value)
