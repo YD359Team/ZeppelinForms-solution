@@ -19,6 +19,7 @@
 - `UIElement` properties `Parent` and `Owner` optimized with cache value
 - Now `Form` with animations invalidate only animations targets  
 - Fix `Form` animation in `DetachTree`
+- Fix `PageControl` can showing ghost pages over current page
 - CI: Add flag  `--output Detailed`
 
 ### Features
