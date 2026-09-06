@@ -92,8 +92,28 @@ public class PageControl : DecoratedPanel
 
     private Rectangle _baseSlot;
 
+    /// <summary>Довести незакрытый переход до конца. Animate заменяет
+    /// анимацию с тем же ключом, не вызывая её completed, поэтому уходящая
+    /// страница иначе осталась бы видимой и сдвинутой навсегда.</summary>
+    private void FinishTransition()
+    {
+        if (_outgoing is null) return;
+
+        this.StopAnimation("page");
+
+        _outgoing.IsVisible = false;
+        _outgoing.Opacity = 1f;
+        _outgoing.Position = _baseSlot.Position;
+
+        _outgoing = null;
+        _progress = 1f;
+        _activeTransition = PageTransition.None;
+    }
+
     private void Switch(Page target, PageTransition transition)
     {
+        FinishTransition();
+
         Page? previous = _current;
 
         previous?.RaiseDisappearing();
@@ -120,11 +140,6 @@ public class PageControl : DecoratedPanel
             }
 
             target.Opacity = 1f;
-
-            _outgoing = null;
-            _progress = 1f;
-            _activeTransition = PageTransition.None;
-
             Invalidate();
             return;
         }
@@ -150,13 +165,8 @@ public class PageControl : DecoratedPanel
             Easing.EaseInOut,
             completed: () =>
             {
-                outgoing.IsVisible = false;
-                outgoing.Opacity = 1f;
+                FinishTransition();
                 target.Opacity = 1f;
-
-                _outgoing = null;
-                _progress = 1f;
-                _activeTransition = PageTransition.None;
 
                 Invalidate();
             });
