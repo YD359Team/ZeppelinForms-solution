@@ -19,7 +19,7 @@
 - `UIElement` properties `Parent` and `Owner` optimized with cache value
 - Now `Form` with animations invalidate only animations targets  
 - Fix `Form` animation in `DetachTree`
-- Fix: `Form.Tick` behaviour with animation by index
+- Fix: `Form.Tick` behavior with animation by index
 - Fix `PageControl` can showing ghost pages over current page
 - CI: Add flag  `--output Detailed`
 
