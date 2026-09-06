@@ -2,13 +2,14 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>Горизонтальная строка меню окна. Подменю открывает через
 /// тот же overlay-слой, что и контекстное меню.</summary>
-public class MenuBar : DecoratedControl
+public partial class MenuBar : DecoratedControl
 {
     private const float ItemPadding = 12f;
 
@@ -17,8 +18,15 @@ public class MenuBar : DecoratedControl
 
     public List<MenuItem> Items { get; init; } = [];
 
-    public Color HoverColor { get; set; } = new Color(255, 232, 240, 254);
-    public Color OpenColor { get; set; } = new Color(255, 214, 228, 252);
+    [Styled(Category = "Menu")]
+    public partial Color HoverColor { get; set; }
+
+    private static Color HoverColorDefault => new(255, 232, 240, 254);
+
+    [Styled(Category = "Menu")]
+    public partial Color OpenColor { get; set; }
+
+    private static Color OpenColorDefault => new(255, 214, 228, 252);
 
     public MenuBar()
     {
