@@ -47,7 +47,6 @@ public class TabControl : DecoratedPanel, IInputElement
     public Color HeaderColor { get; set; } = new Color(255, 244, 244, 244);
     public Color HeaderHoverColor { get; set; } = new Color(255, 234, 234, 234);
     public Color SelectedHeaderColor { get; set; } = Colors.White;
-    public Color TextColor { get; set; } = Colors.Black;
     public Color DisabledTextColor { get; set; } = new Color(255, 165, 165, 165);
     public Color AccentColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
 

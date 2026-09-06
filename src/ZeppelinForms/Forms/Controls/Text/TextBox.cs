@@ -91,7 +91,6 @@ public class TextBox : TextInputControl, ITextElement
 
     public int CaretIndex => _document.CaretIndex;
 
-    public Color TextColor { get; set; } = Colors.Black;
     public Color CaretColor { get; set; } = Colors.Black;
     public Color SelectionColor { get; set; } = new Color(255, 173, 214, 255);
 

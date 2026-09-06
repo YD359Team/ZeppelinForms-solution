@@ -32,7 +32,6 @@ public class ColorPicker : InteractiveControl
 
     public bool ShowHex { get; set; } = true;
 
-    public Color TextColor { get; set; } = Colors.Black;
     public Color SwatchBorderColor { get; set; } = new Color(255, 140, 140, 140);
 
     public ColorPicker()

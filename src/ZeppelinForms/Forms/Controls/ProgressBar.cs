@@ -35,7 +35,6 @@ public class ProgressBar : DecoratedControl
 
     public Color FillColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
     public Color TrackColor { get; set; } = new Color(255, 230, 230, 230);
-    public Color TextColor { get; set; } = Colors.Black;
     public Color FilledTextColor { get; set; } = Colors.White;
 
     public ProgressBar()

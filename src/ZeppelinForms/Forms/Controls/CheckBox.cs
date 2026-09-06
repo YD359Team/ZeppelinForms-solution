@@ -52,7 +52,6 @@ public class CheckBox : InteractiveControl, ITextElement
     public event EventHandler? CheckedChanged;
 
     public string? Text { get; set; }
-    public Color TextColor { get; set; } = Colors.Black;
 
     public Color BoxBorderColor { get; set; } = Colors.Black;
     public Color BoxBackground { get; set; } = Colors.White;

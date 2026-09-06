@@ -49,7 +49,6 @@ public class MapControl : InteractiveControl
     public bool ShowCoordinates { get; set; }
     public bool ShowAttribution { get; set; } = true;
 
-    public Color TextColor { get; set; } = new Color(255, 60, 60, 60);
     public Color TextBackground { get; set; } = new Color(190, 255, 255, 255);
 
     public event EventHandler? ViewChanged;

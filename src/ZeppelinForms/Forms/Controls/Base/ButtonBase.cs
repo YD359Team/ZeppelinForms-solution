@@ -31,7 +31,6 @@ public abstract class ButtonBase : InteractiveControl
     public Color CheckedPressedBackgroundColor { get; set; } = Colors.Transparent;
     public Color CheckedHoverBackgroundColor { get; set; } = Colors.Transparent;
 
-    public Color TextColor { get; set; } = Colors.Black;
     public Color DisabledTextColor { get; set; } = new Color(255, 160, 160, 160);
 
     public Color FocusRingColor { get; set; } = Colors.Transparent;

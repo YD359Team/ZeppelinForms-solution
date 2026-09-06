@@ -18,7 +18,6 @@ public class Calendar : DecoratedControl
     public DateTime? SelectedDate { get; private set; }
     public event EventHandler<DateTime>? DateSelected;
 
-    public Color TextColor { get; set; } = Colors.Black;
     public Color MutedColor { get; set; } = new Color(255, 160, 160, 160);
     public Color SelectionColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
     public Color TodayColor { get; set; } = new Color(255, 220, 235, 255);

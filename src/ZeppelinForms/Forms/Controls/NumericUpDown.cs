@@ -58,7 +58,6 @@ public class NumericUpDown : TextInputControl
 
     public event EventHandler? ValueChanged;
 
-    public Color TextColor { get; set; } = Colors.Black;
     public Color ButtonColor { get; set; } = new Color(255, 240, 240, 240);
     public Color ButtonHoverColor { get; set; } = new Color(255, 220, 220, 220);
     public Color ArrowColor { get; set; } = Colors.Black;

@@ -27,7 +27,6 @@ public class CheckedComboBox : InteractiveControl
 
     public event EventHandler? SelectionChanged;
 
-    public Color TextColor { get; set; } = Colors.Black;
     public Color PlaceholderColor { get; set; } = new Color(255, 160, 160, 160);
 
     public bool IsDropDownOpen => _flyout.IsOpen;

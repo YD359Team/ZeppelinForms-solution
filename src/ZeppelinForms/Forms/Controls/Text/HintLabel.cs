@@ -24,7 +24,6 @@ public class HintLabel : DecoratedControl
 
     public float MaxHintWidth { get; set; } = 320f;
 
-    public Color TextColor { get; set; } = Colors.Black;
     public Color HoverTextColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
     public Color UnderlineColor { get; set; } = new Color(255, 150, 150, 150);
 

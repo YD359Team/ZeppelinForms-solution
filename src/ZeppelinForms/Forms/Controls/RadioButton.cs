@@ -18,7 +18,6 @@ public class RadioButton : InteractiveControl, ITextElement
     public event EventHandler? CheckedChanged;
 
     public string? Text { get; set; }
-    public Color TextColor { get; set; } = Colors.Black;
 
     public Color CircleBorderColor { get; set; } = Colors.Black;
     public Color CheckColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);

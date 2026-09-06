@@ -70,7 +70,6 @@ public class MaskedTextBox : TextInputControl
         }
     }
 
-    public Color TextColor { get; set; } = Colors.Black;
     public Color PromptColor { get; set; } = new Color(255, 170, 170, 170);
     public Color CaretColor { get; set; } = Colors.Black;
 

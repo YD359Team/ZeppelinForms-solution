@@ -10,8 +10,6 @@ public class RichLabel : DecoratedControl
 {
     public List<TextRun> Inlines { get; init; } = [];
 
-    public Color TextColor { get; set; } = Colors.Black;
-
     public HorizontalContentAlignment ContentAlign { get; set; } = HorizontalContentAlignment.Left;
     public VerticalContentAlignment ContentVerticalAlign { get; set; } = VerticalContentAlignment.Center;
 

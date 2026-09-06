@@ -21,8 +21,6 @@ public class TimePicker : InteractiveControl
 
     public event EventHandler? ValueChanged;
 
-    public Color TextColor { get; set; } = Colors.Black;
-
     public bool IsDropDownOpen => _flyout.IsOpen;
 
     public TimePicker()

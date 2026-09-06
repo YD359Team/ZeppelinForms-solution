@@ -20,7 +20,6 @@ public class MenuList : DecoratedControl
 
     public event EventHandler<MenuItem>? ItemInvoked;
 
-    public Color TextColor { get; set; } = Colors.Black;
     public Color DisabledColor { get; set; } = new Color(255, 160, 160, 160);
     public Color HoverColor { get; set; } = new Color(255, 232, 240, 254);
     public Color SeparatorColor { get; set; } = new Color(255, 220, 220, 220);

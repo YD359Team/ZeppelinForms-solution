@@ -46,7 +46,6 @@ public class ComboBox : InteractiveControl
     public string? PlaceholderText { get; set; }
     public float DropDownHeight { get; set; } = 180f;
 
-    public Color TextColor { get; set; } = Colors.Black;
     public Color PlaceholderColor { get; set; } = new Color(255, 160, 160, 160);
 
     protected override bool IsKeyActivatable => true;

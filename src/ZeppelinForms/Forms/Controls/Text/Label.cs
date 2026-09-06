@@ -13,7 +13,6 @@ public class Label : DecoratedControl, ITextElement
 {
     public string? Text { get; set; }
 
-    public Color TextColor { get; set; } = Colors.Black;
     public HorizontalContentAlignment HorizontalContentAlign { get; set; }
     public VerticalContentAlignment VerticalContentAlign { get; set; }
 

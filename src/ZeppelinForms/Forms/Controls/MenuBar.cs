@@ -17,7 +17,6 @@ public class MenuBar : DecoratedControl
 
     public List<MenuItem> Items { get; init; } = [];
 
-    public Color TextColor { get; set; } = Colors.Black;
     public Color HoverColor { get; set; } = new Color(255, 232, 240, 254);
     public Color OpenColor { get; set; } = new Color(255, 214, 228, 252);
 

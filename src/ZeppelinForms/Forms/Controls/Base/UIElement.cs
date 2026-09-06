@@ -392,6 +392,26 @@ public abstract class UIElement : IGridPlaceable
         get => _background;
         set => SetValue(BackgroundProperty, ref _background, value);
     }
+
+    public static readonly StyledProperty<Color> TextColorProperty =
+    StyledProperty<Color>.Register<UIElement>(
+        nameof(TextColor),
+        element => element._textColor,
+        (element, value) => element._textColor = value,
+        Colors.Black,
+        category: "Текст",
+        inherits: true);
+
+    private Color _textColor = Colors.Black;
+
+    /// <summary>Цвет текста. Наследуется вниз: задайте его на панели —
+    /// и все вложенные подписи, кнопки и поля подхватят.</summary>
+    public Color TextColor
+    {
+        get => GetInheritedValue(TextColorProperty);
+        set => SetValue(TextColorProperty, ref _textColor, value);
+    }
+
     public List<MenuItem>? ContextMenu { get; set; }
     // IGridPlaceable
     public int Row { get; set; }
