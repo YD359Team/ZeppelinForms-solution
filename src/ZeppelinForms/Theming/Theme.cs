@@ -12,7 +12,6 @@ public sealed class Theme
     public required string Name { get; init; }
     public required ThemeColors Colors { get; init; }
     public Font BaseFont { get; init; } = Font.Default;
-    public CornerRadius DefaultCornerRadius { get; init; } = new(4f);
 
     /// <summary>Как оформить контрол этого типа. Наследники подхватят
     /// оформление предка, если своего нет.</summary>
