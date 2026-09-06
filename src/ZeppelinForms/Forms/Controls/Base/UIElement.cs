@@ -34,6 +34,99 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     public event EventHandler<KeyEventArgs>? KeyDown;
     public event EventHandler<KeyEventArgs>? KeyUp;
 
+    // ===
+    [Styled(Category = "Appearance")]
+    public partial Color Background { get; set; }
+    private static Color BackgroundDefault => Colors.Transparent;
+
+    /// <summary>Цвет текста. Наследуется вниз: задайте его на панели —
+    /// и все вложенные подписи, кнопки и поля подхватят.</summary>
+    [Styled(Category = "Text", Inherits = true)]
+    public partial Color TextColor { get; set; }
+    private static Color TextColorDefault => Colors.Black;
+
+    [Styled(Category = "Appearance")]
+    public partial Color BorderColor { get; set; }
+    private static Color BorderColorDefault => Colors.Transparent;
+
+    [Styled(Category = "Appearance")]
+    public partial float BorderWidth { get; set; }
+    // ===
+
+    [Styled(Category = "Layout", AffectsLayout = true)]
+    public partial float FlexGrow { get; set; }
+
+    [Styled(Category = "Layout", AffectsLayout = true)]
+    public partial Dock Docking { get; set; }
+
+    [Styled(Category = "Layout", AffectsLayout = true)]
+    public partial HorizontalAlignment HorizontalAlignment { get; set; }
+
+    private static HorizontalAlignment HorizontalAlignmentDefault => HorizontalAlignment.Stretch;
+
+    [Styled(Category = "Layout", AffectsLayout = true)]
+    public partial VerticalAlignment VerticalAlignment { get; set; }
+
+    private static VerticalAlignment VerticalAlignmentDefault => VerticalAlignment.Stretch;
+
+    [Styled(Category = "Layout", AffectsLayout = true)]
+    public partial FlowDirection? FlowDirection { get; set; }
+
+    [Styled(Category = "Layout", AffectsLayout = true)]
+    public partial Thickness Margin { get; set; }
+
+    private static Thickness MarginDefault => Thickness.Zero;
+
+    [Styled(Category = "Layout", AffectsLayout = true)]
+    public partial Thickness Padding { get; set; }
+    private static Thickness PaddingDefault => Thickness.Zero;
+
+    [Styled(Category = "Grid", AffectsLayout = true)]
+    public partial int Row { get; set; }
+
+    [Styled(Category = "Grid", AffectsLayout = true)]
+    public partial int Column { get; set; }
+
+    [Styled(Category = "Grid", AffectsLayout = true)]
+    public partial int RowSpan { get; set; }
+
+    private static int RowSpanDefault => 1;
+
+    [Styled(Category = "Grid", AffectsLayout = true)]
+    public partial int ColumnSpan { get; set; }
+
+    private static int ColumnSpanDefault => 1;
+
+    [Styled(Category = "Layout", AffectsLayout = true)]
+    public partial bool IsVisible { get; set; }
+
+    private static bool IsVisibleDefault => true;
+
+    [Styled(Category = "Text", AffectsLayout = true)]
+    public partial Font? Font { get; set; }
+    //
+    /// <summary>Поворот в градусах вокруг центра элемента.</summary>
+    [Styled(Category = "Appearance")]
+    public partial float Rotation { get; set; }
+
+    [Styled(Category = "Behavior")]
+    public partial bool IsEnabled { get; set; }
+
+    private static bool IsEnabledDefault => true;
+
+    [Styled(Category = "Appearance")]
+    public partial float DisabledOpacity { get; set; }
+
+    private static float DisabledOpacityDefault => 0.5f;
+
+    [Styled(Category = "Appearance")]
+    public partial float DisabledDesaturation { get; set; }
+
+    private static float DisabledDesaturationDefault => 0.6f;
+
+    [Styled(Category = "Appearance")]
+    public partial BoxShadow? BoxShadow { get; set; }
+
     // ===== хуки для наследников =====
 
     protected virtual void OnMouseEnter(MouseMoveEventArgs e) { }
@@ -342,24 +435,10 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         return property.DefaultValue;
     }
 
-    /// <summary>
-    /// Доля свободного места по главной оси панели. 0 — элемент занимает
-    /// желаемый размер, больше нуля — делит остаток пропорционально весу.
-    /// Учитывается только панелями с главной осью (StackPanel, DockPanel).
-    /// </summary>
-    public float FlexGrow { get; set; }
-    public Dock Docking { get; set; }
-    public HorizontalAlignment HorizontalAlignment { get; set; } = HorizontalAlignment.Stretch;
-    public VerticalAlignment VerticalAlignment { get; set; } = VerticalAlignment.Stretch;
-    public FlowDirection? FlowDirection { get; set; }
     public Point Position { get; set; }
     // Auto по умолчанию — авторазмер по контенту, пока явно не задан Size
     private Size _explicitSize = Size.Auto;
     private Size _actualSize = Size.Empty;
-
-    /// <summary>Насколько приглушать выключенный элемент.</summary>
-    public float DisabledOpacity { get; set; } = 0.5f;
-    public float DisabledDesaturation { get; set; } = 0.6f;
 
     /// <summary>Явно заданный размер. Size.Auto означает «подобрать по содержимому».</summary>
     public Size Size
@@ -377,8 +456,6 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     /// <summary>Фактический размер после раскладки. Именно им рисуемся.</summary>
     public Size ActualSize => _actualSize;
-    public Thickness Margin { get; set; } = Thickness.Zero;
-    public Thickness Padding { get; set; } = Thickness.Zero;
     public Rectangle Rectangle => new(Position, _actualSize);
     public Rectangle LocalBounds => new(Point.Empty, SanitizedSize);
     public Rectangle ContentBounds => new(
@@ -399,31 +476,10 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     public partial CornerRadius CornerRadius { get; set; }
     private static CornerRadius CornerRadiusDefault => CornerRadius.Zero;
 
-    /// <summary>Поворот в градусах вокруг центра элемента.</summary>
-    public float Rotation { get; set; }
     protected internal bool HasTransform => Rotation != 0f;
     internal Point Center => new(ActualSize.Width / 2f, ActualSize.Height / 2f);
-    public bool IsEnabled { get; set; } = true;
-    public bool IsVisible { get; set; } = true;
     public string? ToolTip { get; set; }
     public string Name { get; set; } = string.Empty;
-
-    [Styled(Category = "Appearance")]
-    public partial Color Background { get; set; }
-    private static Color BackgroundDefault => Colors.Transparent;
-
-    /// <summary>Цвет текста. Наследуется вниз: задайте его на панели —
-    /// и все вложенные подписи, кнопки и поля подхватят.</summary>
-    [Styled(Category = "Text", Inherits = true)]
-    public partial Color TextColor { get; set; }
-    private static Color TextColorDefault => Colors.Black;
-
-    [Styled(Category = "Appearance")]
-    public partial Color BorderColor { get; set; }
-    private static Color BorderColorDefault => Colors.Transparent;
-
-    [Styled(Category = "Appearance")]
-    public partial float BorderWidth { get; set; }
 
     /// <summary>Цвет подложки под текущее состояние. Переопределяйте здесь,
     /// а не рисуйте фон вручную: рамка и скругление подхватятся сами.</summary>
@@ -434,13 +490,6 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     public List<MenuItem>? ContextMenu { get; set; }
     // IGridPlaceable
-    public int Row { get; set; }
-    public int Column { get; set; }
-    /// <summary>Сколько ячеек занимает элемент по горизонтали в UniformGrid.</summary>
-    public int ColumnSpan { get; set; } = 1;
-
-    /// <summary>Сколько ячеек занимает элемент по вертикали в UniformGrid.</summary>
-    public int RowSpan { get; set; } = 1;
 
     public Size DesiredSize { get; private set; }
     public bool IsHitTestVisible { get; set; } = true;
@@ -460,46 +509,20 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         }
     }
 
-    public Font? Font { get; set; }
-
-    /// <summary>Свой шрифт, а если не задан — ближайший заданный у предков, иначе Font.Default.</summary>
-    public Font EffectiveFont
-    {
-        get
-        {
-            for (UIElement? current = this; current is not null; current = current.Parent)
-            {
-                if (current.Font is not null)
-                    return current.Font;
-
-                if (current.Parent is null)
-                    return current.Owner?.Font ?? Font.Default;
-            }
-
-            return Font.Default;
-        }
-    }
+    /// <summary>Свой шрифт, а если не задан — ближайший заданный у предков,
+    /// затем шрифт формы, иначе Font.Default.</summary>
+    public Font EffectiveFont =>
+        GetInheritedValue(FontProperty) ?? FindOwner()?.Font ?? Font.Default;
 
     protected bool IsHovered { get; set; }
     protected bool IsPressed { get; set; }
 
-    /// <summary>Направление своё, а если не задано — унаследованное от предков.</summary>
-    public FlowDirection EffectiveFlowDirection
-    {
-        get
-        {
-            for (UIElement? current = this; current is not null; current = current.Parent)
-            {
-                if (current.FlowDirection is FlowDirection direction)
-                    return direction;
-
-                if (current.Parent is null)
-                    return current.Owner?.FlowDirection ?? Core.Text.FlowDirection.LeftToRight;
-            }
-
-            return Core.Text.FlowDirection.LeftToRight;
-        }
-    }
+    /// <summary>Направление своё, а если не задано — унаследованное от предков,
+    /// затем от формы.</summary>
+    public FlowDirection EffectiveFlowDirection =>
+        GetInheritedValue(FlowDirectionProperty)
+        ?? FindOwner()?.FlowDirection
+        ?? Core.Text.FlowDirection.LeftToRight;
 
     public bool IsRightToLeft => EffectiveFlowDirection == Core.Text.FlowDirection.RightToLeft;
 
@@ -598,8 +621,6 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
             return bounds.Inflate(2f);   // запас на сглаживание и рамку
         }
     }
-
-    public BoxShadow? BoxShadow { get; set; }
 
     public abstract void Draw(Graphics g);
 
