@@ -283,6 +283,34 @@ public abstract class UIElement : IGridPlaceable, IBorderedElement
         return true;
     }
 
+    /// <summary>Для свойств без собственного поля: значение живёт в другом
+    /// объекте, а сюда мы только маршрутизируем. Запись идёт через делегат
+    /// свойства, поэтому ref-хранилище не нужно.</summary>
+    protected bool SetValue<T>(StyledProperty<T> property, T value)
+    {
+        if (ApplyingTheme && IsLocal(property)) return false;
+
+        bool assigned = HasValue(property);
+
+        if (assigned && EqualityComparer<T>.Default.Equals(property.GetValue(this), value))
+        {
+            if (!ApplyingTheme) SetBit(ref _local, property.Index);
+            return false;
+        }
+
+        property.Write(this, value);
+
+        SetBit(ref _assigned, property.Index);
+
+        if (ApplyingTheme) ClearBit(_local, property.Index);
+        else SetBit(ref _local, property.Index);
+
+        if (property.AffectsLayout) Invalidate();
+        else InvalidateVisual();
+
+        return true;
+    }
+
     /// <summary>Забыть заданное вручную и вернуть управление теме.</summary>
     public void ClearValue<T>(StyledProperty<T> property)
     {
