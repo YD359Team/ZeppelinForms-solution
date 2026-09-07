@@ -60,8 +60,8 @@ If hardware acceleration is unavailable, the framework falls back to software re
 | 8 | InputBox              | ✅      |
 | 9 | Clipboard             | ✅      |
 
-* — the inspector currently works only with certain types
-** — the API will be extended further
+* — the inspector currently works only with certain types \
+** — the API will be extended further \
 *** — some limitations and unfinished parts remain
 
 ### 🛣️ Layout
