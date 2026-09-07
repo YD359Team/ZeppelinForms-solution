@@ -9,6 +9,8 @@ public sealed class HeadlessWindow : IPlatformWindow
     private readonly HeadlessPlatform _platform;
     private readonly Form _form;
 
+    public void SetDragDropEnabled(bool enabled) { }
+
     public bool IsShown { get; private set; }
     public bool IsClosed { get; private set; }
     public string? Title { get; private set; }

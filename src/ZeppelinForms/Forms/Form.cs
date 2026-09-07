@@ -12,6 +12,7 @@ using ZeppelinForms.Forms.Dispatchers;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Layout;
+using ZeppelinForms.Input.DragDrop;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 using ZeppelinForms.Theming;
@@ -28,6 +29,21 @@ public class Form : IDisposable
     internal IPlatformWindow? PlatformWindow { get; set; }
 
     public WindowStartupLocation WindowStartupLocation { get; set; }
+
+    /// <summary>Принимать ли перетаскивание из системы в это окно.
+    /// Без этого AllowDrop у элементов не сработает: окно не зарегистрировано
+    /// приёмником, и система о нём не знает.</summary>
+    public bool AllowDrop
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            PlatformWindow?.SetDragDropEnabled(value);
+        }
+    }
 
     private Point _themeRippleOrigin;
     private float _themeRippleRadius;
@@ -129,6 +145,7 @@ public class Form : IDisposable
     private readonly List<UIElement> _flyouts = [];
     private readonly List<UIElement> _toasts = [];
 
+    private UIElement? _dropTarget;
     private UIElement? _hoveredElement;
     private UIElement? _pressedElement;
     private UIElement? _mouseCapture;
@@ -546,6 +563,12 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         if (_mouseCapture is not null && IsInTree(root, _mouseCapture))
             _mouseCapture = null;
+
+        if (_dropTarget is not null && IsInTree(root, _dropTarget))
+        {
+            _dropTarget = null;
+            _dropEffect = DragDropEffect.None;
+        }
 
         if (_focusDispatcher.FocusedElement is { } focused && IsInTree(root, focused))
             _focusDispatcher.ClearFocus();
@@ -1127,6 +1150,96 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         _flyouts.Add(menu);   // закроется кликом мимо — как и положено меню
 
         Invalidate();
+    }
+
+    private DragDropEffect _dropEffect;
+
+    /// <summary>Перетаскивание вошло в окно. Возвращённый эффект источник
+    /// показывает курсором.</summary>
+    internal DragDropEffect OnDragEnterWindow(DragDropData data, Point point, KeyModifiers modifiers) =>
+        UpdateDropTarget(data, point, modifiers);
+
+    internal DragDropEffect OnDragOverWindow(DragDropData data, Point point, KeyModifiers modifiers) =>
+        UpdateDropTarget(data, point, modifiers);
+
+    /// <summary>Перетаскивание ушло из окна или было отменено.</summary>
+    internal void OnDragLeaveWindow()
+    {
+        _dropTarget?.RaiseDragLeave();
+        _dropTarget = null;
+    }
+
+    internal DragDropEffect OnDropWindow(DragDropData data, Point point, KeyModifiers modifiers)
+    {
+        // приёмник пересчитываем: бросок может прийти без предшествующего
+        // over — например, если источник дал только enter и сразу drop
+        DragDropEffect effect = UpdateDropTarget(data, point, modifiers);
+
+        UIElement? target = _dropTarget;
+        _dropTarget = null;
+
+        if (target is null || effect == DragDropEffect.None)
+        {
+            target?.RaiseDragLeave();
+
+            return DragDropEffect.None;
+        }
+
+        var args = new DragDropEventArgs(data, point, modifiers) { Effect = effect };
+
+        target.RaiseDrop(args);
+
+        // DragLeave после броска обязателен: приёмник подсветился на enter,
+        // и снять подсветку ему больше негде
+        target.RaiseDragLeave();
+
+        return args.Effect;
+    }
+
+    /// <summary>Найти приёмник под курсором, разослать enter и leave при
+    /// смене и спросить эффект.</summary>
+    private DragDropEffect UpdateDropTarget(DragDropData data, Point point, KeyModifiers modifiers)
+    {
+        _lastPointerPosition = point;
+
+        UIElement? target = FindDropTarget(HitTestAll(point));
+
+        if (!ReferenceEquals(target, _dropTarget))
+        {
+            _dropTarget?.RaiseDragLeave();
+            _dropTarget = target;
+
+            if (target is not null)
+            {
+                var enterArgs = new DragDropEventArgs(data, point, modifiers);
+
+                target.RaiseDragEnter(enterArgs);
+
+                // эффект, выставленный на входе, — начальное значение
+                // для последующих over: приёмнику не нужно повторять его
+                _dropEffect = enterArgs.Effect;
+            }
+        }
+
+        if (_dropTarget is null) return DragDropEffect.None;
+
+        var args = new DragDropEventArgs(data, point, modifiers) { Effect = _dropEffect };
+
+        _dropTarget.RaiseDragOver(args);
+        _dropEffect = args.Effect;
+
+        return _dropEffect;
+    }
+
+    /// <summary>Ближайший элемент с AllowDrop, начиная с попавшего.
+    /// Так подсветку можно включить на панели, не размечая каждую строку.</summary>
+    private static UIElement? FindDropTarget(UIElement? hit)
+    {
+        for (UIElement? current = hit; current is not null; current = current.Parent)
+            if (current is { AllowDrop: true, IsEnabled: true })
+                return current;
+
+        return null;
     }
 
     public void Dispose()

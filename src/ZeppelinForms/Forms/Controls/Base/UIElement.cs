@@ -8,6 +8,7 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Styling;
+using ZeppelinForms.Input.DragDrop;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
@@ -22,6 +23,10 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     public event EventHandler<char>? TextInput;
     public event EventHandler? GotFocus;
     public event EventHandler? LostFocus;
+    public event EventHandler<DragDropEventArgs>? DragEnter;
+    public event EventHandler<DragDropEventArgs>? DragOver;
+    public event EventHandler? DragLeave;
+    public event EventHandler<DragDropEventArgs>? Drop;
     public event EventHandler<MouseClickEventArgs>? Click;
     public event EventHandler<MouseClickEventArgs>? DoubleClick;
     public event EventHandler<MouseClickEventArgs>? RightClick;
@@ -165,7 +170,18 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     public partial BoxShadow? BoxShadow { get; set; }
 
     // ===== хуки для наследников =====
+    /// <summary>Перетаскивание вошло в границы элемента.
+    /// Здесь обычно включают подсветку и выставляют Effect.</summary>
+    protected virtual void OnDragEnter(DragDropEventArgs e) { }
 
+    /// <summary>Курсор двигается внутри элемента. Вызывается часто,
+    /// поэтому тяжёлую работу здесь делать не стоит.</summary>
+    protected virtual void OnDragOver(DragDropEventArgs e) { }
+
+    /// <summary>Перетаскивание ушло или было отменено. Вызывается всегда,
+    /// если был DragEnter, — в том числе когда бросок не состоялся.</summary>
+    protected virtual void OnDragLeave() { }
+    protected virtual void OnDrop(DragDropEventArgs e) { }
     protected virtual void OnMouseEnter(MouseMoveEventArgs e) { }
     protected virtual void OnMouseExit(MouseMoveEventArgs e) { }
     protected virtual void OnMouseMove(MouseMoveEventArgs e) { }
@@ -191,6 +207,30 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     protected virtual void OnPreviewMouseMove(MouseMoveEventArgs e) { }
 
     // ===== подъём событий =====
+    internal void RaiseDragEnter(DragDropEventArgs e)
+    {
+        OnDragEnter(e);
+        DragEnter?.Invoke(this, e);
+    }
+
+    internal void RaiseDragOver(DragDropEventArgs e)
+    {
+        OnDragOver(e);
+        DragOver?.Invoke(this, e);
+    }
+
+    internal void RaiseDragLeave()
+    {
+        OnDragLeave();
+        DragLeave?.Invoke(this, EventArgs.Empty);
+    }
+
+    internal void RaiseDrop(DragDropEventArgs e)
+    {
+        OnDrop(e);
+        Drop?.Invoke(this, e);
+    }
+
     internal void RaisePreviewMouseMove(MouseMoveEventArgs e) => OnPreviewMouseMove(e);
 
     internal void RaisePreviewMouseUp(MouseButtonEventArgs e) => OnPreviewMouseUp(e);
@@ -570,6 +610,10 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     public Size DesiredSize { get; private set; }
     public bool IsHitTestVisible { get; set; } = true;
+    /// <summary>Принимать ли перетаскивание из системы. Приёмник ищется
+    /// от попавшего элемента вверх, так что достаточно включить его
+    /// на панели, а не на каждом потомке.</summary>
+    public bool AllowDrop { get; set; }
 
     /// <summary>Курсор над элементом. Default — наследуется от предков.</summary>
     public CursorKind Cursor { get; set; } = CursorKind.Default;

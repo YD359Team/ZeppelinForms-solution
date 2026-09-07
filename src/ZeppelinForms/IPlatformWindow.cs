@@ -20,4 +20,8 @@ public interface IPlatformWindow
     /// Без этого отпускание кнопки снаружи до окна не доходит.</summary>
     void CaptureMouse();
     void ReleaseMouseCapture();
+    /// <summary>Разрешить приём перетаскивания из системы. Регистрация
+    /// платформенного приёмника стоит недёшево, поэтому включается по запросу,
+    /// а не всегда.</summary>
+    void SetDragDropEnabled(bool enabled);
 }
