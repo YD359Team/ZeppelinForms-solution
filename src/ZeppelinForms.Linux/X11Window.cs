@@ -28,6 +28,9 @@ internal sealed class X11Window : IPlatformWindow
 
     public float Scale => _scale;
 
+    // TODO: свойство XdndAware
+    public void SetDragDropEnabled(bool enabled) { }
+
     public X11Window(X11Platform platform, Form form)
     {
         _platform = platform;

@@ -866,6 +866,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         Platform = platform;
         platform.CreateWindow(this);
 
+        // AllowDrop могли выставить до показа, когда PlatformWindow был null
+        if (AllowDrop) PlatformWindow?.SetDragDropEnabled(true);
+
         _dialogAccepted = false;
         _dialogValue = null;
 

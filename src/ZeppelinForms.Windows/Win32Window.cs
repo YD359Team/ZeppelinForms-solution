@@ -9,6 +9,7 @@ using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 using ZeppelinForms.Windows.Rendering;
+using static ZeppelinForms.Windows.NativeMethods;
 
 namespace ZeppelinForms.Windows;
 
@@ -212,7 +213,10 @@ internal sealed class Win32Window : IPlatformWindow
     public void Close()
     {
         if (_handle != 0)
+        {
+            NativeMethods.RevokeDragDrop();
             NativeMethods.DestroyWindow(_handle);
+        }
     }
 
     public void SetTitle(string? title)
@@ -778,4 +782,36 @@ internal sealed class Win32Window : IPlatformWindow
     public void CaptureMouse() => NativeMethods.SetCapture(_handle);
 
     public void ReleaseMouseCapture() => NativeMethods.ReleaseCapture();
+
+    private Win32DropTarget? _dropTarget;
+
+    public void SetDragDropEnabled(bool enabled)
+    {
+        if (enabled == (_dropTarget is not null)) return;
+
+        if (enabled)
+        {
+            // OLE нужен именно в UI-потоке и именно до RegisterDragDrop
+            Ole32.OleInitialize(0);
+
+            _dropTarget = new Win32DropTarget(_form, ToClient);
+            Ole32.RegisterDragDrop(_handle, _dropTarget);
+
+            return;
+        }
+
+        Ole32.RevokeDragDrop(_handle);
+        _dropTarget = null;
+    }
+
+    /// <summary>Экранные координаты в клиентские с поправкой на масштаб.
+    /// IDropTarget, в отличие от сообщений мыши, отдаёт экранные.</summary>
+    private Point ToClient(Point screen)
+    {
+        var p = new POINT { X = (int)screen.X, Y = (int)screen.Y };
+
+        NativeMethods.ScreenToClient(_handle, ref p);
+
+        return new Point(p.X / _scale, p.Y / _scale);
+    }
 }
