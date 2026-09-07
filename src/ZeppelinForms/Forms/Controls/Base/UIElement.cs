@@ -180,6 +180,9 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     /// Вызывается от корня к нему, поэтому предок может вмешаться раньше.</summary>
     protected virtual void OnPreviewMouseDown(MouseButtonEventArgs e) { }
     protected virtual void OnPreviewKeyDown(KeyEventArgs e) { }
+    /// <summary>Отпускание до того, как оно дойдёт до нажатого элемента.
+    /// Нужно предкам, которые следили за нажатием через предпросмотр.</summary>
+    protected virtual void OnPreviewMouseUp(MouseButtonEventArgs e) { }
     protected virtual void OnKeyUp(KeyEventArgs e) { }
     protected virtual void OnTextInput(char c) { }
     /// <summary>Движение мыши до того, как оно дойдёт до попавшего элемента.
@@ -189,6 +192,8 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     // ===== подъём событий =====
     internal void RaisePreviewMouseMove(MouseMoveEventArgs e) => OnPreviewMouseMove(e);
+
+    internal void RaisePreviewMouseUp(MouseButtonEventArgs e) => OnPreviewMouseUp(e);
 
     internal void RaiseTextInput(char c)
     {

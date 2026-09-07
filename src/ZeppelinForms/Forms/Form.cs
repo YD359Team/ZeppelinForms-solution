@@ -165,6 +165,28 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     {
         _lastPointerPosition = point;
 
+        // при захвате цепочка строится от захватившего, а не от того, над кем
+        // курсор: иначе предпросмотр посыпался бы в чужое поддерево
+        UIElement? target = _mouseCapture ?? _pressedElement ?? HitTestAll(point);
+
+        var moveArgs = new MouseMoveEventArgs(point);
+
+        // предпросмотр от корня к цели, до того как движение получит она сама.
+        // Работает и с зажатой кнопкой — именно там он и нужен, чтобы предок
+        // мог следить за перетаскиванием над своими потомками
+        if (target is not null)
+        {
+            List<UIElement> chain = [];
+
+            for (UIElement? current = target; current is not null; current = current.Parent)
+                chain.Add(current);
+
+            chain.Reverse();
+
+            foreach (UIElement element in chain)
+                element.RaisePreviewMouseMove(moveArgs);
+        }
+
         if (_mouseCapture is not null)
         {
             _mouseCapture.RaiseMouseMove(point);
@@ -177,22 +199,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             return;
         }
 
-        UIElement? hit = HitTestAll(point);
+        UIElement? hit = target;
 
-        var moveArgs = new MouseMoveEventArgs(point);
-
-        if (hit is not null)
-        {
-            List<UIElement> chain = [];
-
-            for (UIElement? current = hit; current is not null; current = current.Parent)
-                chain.Add(current);
-
-            chain.Reverse();
-
-            foreach (UIElement element in chain)
-                element.RaisePreviewMouseMove(moveArgs);
-        }
         if (hit != _hoveredElement)
         {
             // в аргументах указываем «откуда» и «куда», чтобы обработчик
@@ -206,6 +214,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
 
         hit?.RaiseMouseMove(point);
+
         CursorKind cursor = hit?.EffectiveCursor ?? CursorKind.Arrow;
 
         if (cursor != _lastCursor)
@@ -290,6 +299,11 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         if (button == MouseButton.Left)
         {
+            // цепочка та же, что при нажатии: кто следил за press через
+            // предпросмотр, должен узнать и об отпускании
+            for (UIElement? current = _pressedElement; current is not null; current = current.Parent)
+                current.RaisePreviewMouseUp(upArgs);
+
             _pressedElement?.RaiseMouseUp(upArgs);
 
             // захвативший должен узнать об отпускании, даже если нажатие

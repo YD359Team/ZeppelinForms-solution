@@ -141,8 +141,9 @@ public partial class DragList : ItemsControl
 
     // ===== мышь =====
 
-    /// <summary>Нажатие ловим предпросмотром: попадание достаётся строке,
-    /// а список должен узнать о нажатии раньше неё.</summary>
+    /// <summary>Нажатие только запоминаем. Захват брать рано: пока это может
+    /// оказаться обычным кликом, а захват на время клика замораживает
+    /// наведение и курсор для всей формы.</summary>
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
         if (!CanSendItem || Children.Count == 0) return;
@@ -153,32 +154,35 @@ public partial class DragList : ItemsControl
         _pressOrigin = e.Location;
         _pressIndex = index;
         _dragging = false;
-
-        CaptureMouse();
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    /// <summary>Движение приходит предпросмотром, потому что попадание
+    /// досталось строке: перехватывать его мы не хотим — кнопки внутри
+    /// строк должны продолжать работать.</summary>
+    protected override void OnPreviewMouseMove(MouseMoveEventArgs e)
     {
         if (_pressIndex < 0) return;
 
         if (!_dragging)
         {
-            // порог: без него любой клик дрожащей рукой превращается в перенос
-            if (Point.DistanceBetween(args.Location, _pressOrigin) < DragThreshold) return;
+            // порог: без него любой клик дрожащей рукой станет переносом
+            if (Point.DistanceBetween(e.Location, _pressOrigin) < DragThreshold) return;
 
             BeginDrag();
         }
 
-        UpdateDrag(args.Location);
+        UpdateDrag(e.Location);
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs args)
+    protected override void OnPreviewMouseUp(MouseButtonEventArgs e)
     {
-        if (args.Button != MouseButton.Left) return;
+        if (e.Button != MouseButton.Left) return;
 
-        if (_dragging) Drop();
-
-        ReleaseMouseCapture();
+        if (_dragging)
+        {
+            Drop();
+            ReleaseMouseCapture();
+        }
 
         _pressIndex = -1;
         _dragging = false;
@@ -189,8 +193,7 @@ public partial class DragList : ItemsControl
     private void BeginDrag()
     {
         // предыдущее перетаскивание могло не завершиться — например,
-        // если элемент убрали из дерева на полпути. Иначе его превью
-        // останется висеть на оверлеях
+        // если элемент убрали из дерева на полпути
         CancelDrag();
 
         _dragging = true;
@@ -201,6 +204,10 @@ public partial class DragList : ItemsControl
         _preview = CreatePreview(Children[_pressIndex], _item);
 
         FindOwner()?.AddOverlay(_preview);
+
+        // захват — с этого момента: отпускание кнопки за пределами окна
+        // должно дойти до нас, иначе перетаскивание залипнет
+        CaptureMouse();
     }
 
     private void UpdateDrag(Point location)
