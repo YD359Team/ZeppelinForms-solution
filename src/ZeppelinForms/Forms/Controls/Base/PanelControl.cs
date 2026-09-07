@@ -383,6 +383,14 @@ public abstract partial class PanelControl : UIElement
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
+        if (e.HorizontalDelta != 0 && ScrollsHorizontally)
+        {
+            ScrollTo(ScrollX - e.HorizontalDelta / 120f * WheelStep, ScrollY);
+            e.Handled = true;
+
+            return;
+        }
+
         if (!ScrollsVertically || MaxScrollY <= 0) return;
 
         float before = ScrollY;

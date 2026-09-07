@@ -211,6 +211,9 @@ public sealed class X11Platform : IPlatform
                         case 3: window.Form.OnPointerDown(point, MouseButton.Right, modifiers); break;
                         case 4: window.Form.OnMouseWheel(point, 120); break;
                         case 5: window.Form.OnMouseWheel(point, -120); break;
+                        // горизонтальное колесо X11 отдаёт как нажатия кнопок
+                        case 6: window.Form.OnMouseWheel(point, 0, -120); break;
+                        case 7: window.Form.OnMouseWheel(point, 0, 120); break;
                     }
 
                     break;

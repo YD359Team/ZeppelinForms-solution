@@ -387,7 +387,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     internal void OnKeyDown(Key key, KeyModifiers modifiers, bool isRepeat)
     {
-        if (key == Key.F12 || (key == (Key)0x49 && modifiers.HasFlag(KeyModifiers.Control) && modifiers.HasFlag(KeyModifiers.Shift)))
+        if (key == Key.F12 || (key == Key.I && modifiers.HasFlag(KeyModifiers.Control) && modifiers.HasFlag(KeyModifiers.Shift)))
         {
             ToggleInspector();
             return;
@@ -1046,12 +1046,12 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         return false;
     }
 
-    internal void OnMouseWheel(Point point, int delta)
+    internal void OnMouseWheel(Point point, int delta, int horizontalDelta = 0)
     {
         UIElement? hit = HitTestAll(point);
         if (hit is null) return;
 
-        var args = new MouseWheelEventArgs(point, delta);
+        var args = new MouseWheelEventArgs(point, delta, horizontalDelta);
 
         for (UIElement? current = hit; current is not null; current = current.Parent)
         {

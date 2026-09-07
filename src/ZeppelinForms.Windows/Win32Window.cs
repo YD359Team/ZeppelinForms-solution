@@ -430,6 +430,21 @@ internal sealed class Win32Window : IPlatformWindow
                     return 0;
                 }
 
+            case NativeConstants.WM_MOUSEHWHEEL:
+                {
+                    short delta = (short)((long)wParam >> 16);
+                    // координаты у колеса экранные, в отличие от остальных
+                    // сообщений мыши, — приводим так же, как для WM_MOUSEWHEEL
+                    var screenPoint = PointFromLParam(lParam);
+
+                    _form.OnMouseWheel(
+                        new Point(screenPoint.X / _scale, screenPoint.Y / _scale),
+                        delta: 0,
+                        horizontalDelta: delta);
+
+                    return 0;
+                }
+
             case NativeConstants.WM_DPICHANGED:
                 {
                     _scale = (ushort)(wParam.ToInt64() & 0xFFFF) / 96f;

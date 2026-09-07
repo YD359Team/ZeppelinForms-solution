@@ -187,11 +187,11 @@ public partial class MaskedTextBox : TextInputControl
                 _caretIndex = LastFilledPlaceholder();
                 break;
 
-            case (Key)0x43 when e.Modifiers.HasFlag(KeyModifiers.Control):   // Ctrl+C
+            case Key.C when e.Modifiers.HasFlag(KeyModifiers.Control):   // Ctrl+C
                 Clipboard.Current.SetText(DisplayText);
                 break;
 
-            case (Key)0x56 when e.Modifiers.HasFlag(KeyModifiers.Control):   // Ctrl+V
+            case Key.V when e.Modifiers.HasFlag(KeyModifiers.Control):   // Ctrl+V
                 if (Clipboard.Current.GetText() is string pasted)
                     SetRawText(pasted);
                 break;
