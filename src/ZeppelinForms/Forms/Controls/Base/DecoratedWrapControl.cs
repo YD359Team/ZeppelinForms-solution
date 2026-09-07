@@ -22,8 +22,7 @@ public abstract class DecoratedWrapControl : WrapControl
 
     public sealed override void Draw(Graphics g)
     {
-        if (CurrentBackground.A > 0)
-            g.FillRoundRectangle(LocalBounds, CornerRadius, CurrentBackground);
+        FillBackground(g, LocalBounds);
 
         DrawContent(g);
     }

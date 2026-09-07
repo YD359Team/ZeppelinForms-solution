@@ -39,6 +39,41 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     public partial Color Background { get; set; }
     private static Color BackgroundDefault => Colors.Transparent;
 
+    /// <summary>Градиентная заливка фона. Меньше двух точек — рисуется
+    /// обычный <see cref="Background"/>.
+    /// Список считается неизменяемым: чтобы поменять градиент, присвойте
+    /// новый, а не правьте существующий — иначе перерисовки не будет.</summary>
+    [Styled(Category = "Appearance")]
+    public partial IReadOnlyList<GradientStop>? BackgroundGradient { get; set; }
+
+    /// <summary>Направление градиента в градусах: 0 — слева направо.</summary>
+    [Styled(Category = "Appearance")]
+    public partial float BackgroundGradientAngle { get; set; }
+
+    /// <summary>Есть ли что заливать градиентом.</summary>
+    protected bool HasBackgroundGradient => BackgroundGradient is { Count: >= 2 };
+
+    /// <summary>Залить фон: градиентом, если он задан, иначе сплошным цветом.
+    /// Общий код для всех трёх Decorated*-баз.</summary>
+    protected void FillBackground(Graphics g, Rectangle bounds)
+    {
+        if (HasBackgroundGradient)
+        {
+            g.FillGradient(bounds, CornerRadius, [.. BackgroundGradient!], BackgroundGradientAngle);
+            return;
+        }
+
+        if (CurrentBackground.A > 0)
+            g.FillRoundRectangle(bounds, CornerRadius, CurrentBackground);
+    }
+
+    /// <summary>Задать градиент из отдельных точек.</summary>
+    public void SetBackgroundGradient(params GradientStop[] stops) => BackgroundGradient = stops;
+
+    /// <summary>Ровный переход между двумя цветами.</summary>
+    public void SetBackgroundGradient(Color from, Color to) =>
+        BackgroundGradient = [new GradientStop(from, 0f), new GradientStop(to, 1f)];
+
     /// <summary>Цвет текста. Наследуется вниз: задайте его на панели —
     /// и все вложенные подписи, кнопки и поля подхватят.</summary>
     [Styled(Category = "Text", Inherits = true)]
@@ -683,6 +718,8 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         else
             _hasBeenArranged = true;
     }
+
+    public void Arrange(Point point, Size size) => Arrange(new Rectangle(point, size));
 
     public Point GetAbsolutePosition()
     {

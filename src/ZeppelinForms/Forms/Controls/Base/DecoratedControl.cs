@@ -13,8 +13,7 @@ public abstract class DecoratedControl : UnitControl
     {
         Rectangle bounds = LocalBounds;
 
-        if (CurrentBackground.A > 0)
-            g.FillRoundRectangle(bounds, CornerRadius, CurrentBackground);
+        FillBackground(g, bounds);
 
         DrawContent(g);
 

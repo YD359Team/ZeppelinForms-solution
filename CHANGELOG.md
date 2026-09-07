@@ -12,6 +12,7 @@
 	- `InteractiveControl`: `TrackBar`, `ToggleSwitch`
 - Remove `FocusableControl`
 - Remove `ShowVerticalBar` and `ShowHorizontalBar` in `PanelControl`
+- `RippleEffect` renamed to `RippleAnimation`
 
 ### Fixes
 - `CheckBox`|`RadioButton`: `HorizontalContentAlign` and `VerticalContentAlign` don't throw `NotImplementedException` 
@@ -21,6 +22,7 @@
 - Fix `Form` animation in `DetachTree`
 - Fix: `Form.Tick` behavior with animation by index
 - Fix `PageControl` can showing ghost pages over current page
+- Fix mouse capture
 - CI: Add flag  `--output Detailed`
 
 ### Features
@@ -28,13 +30,16 @@
 - Add `LoopAnimation` class
 - Add animation extensions `AnimateLoop` and `StopAnimation` 
 - Add `PanelControl.ScrollBarMode`
+- Add gradient background support
 
 ### New controls
 - Add `Loader`
+- Add `WrapPanel`
 
 ### Examples
 - Now `MapControl` moved to single page
-- Add Loader page
+- Add `Loader` page
+- Add `DragList` page
 
 ## [0.7.0]
 

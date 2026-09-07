@@ -70,6 +70,8 @@ public class GradientBorder : DecoratedWrapControl
 
         if (inner.Width <= 0 || inner.Height <= 0) return;
 
+        FillBackground(g, inner);
+
         g.FillRoundRectangle(inner, Deflate(CornerRadius, HasGradient ? BorderWidth : 0f), Background);
     }
 

@@ -14,10 +14,9 @@ public abstract class DecoratedPanel : PanelControl
     {
         Rectangle bounds = LocalBounds;
 
-        if (CurrentBackground.A > 0)
-            g.FillRoundRectangle(bounds, CornerRadius, CurrentBackground);
+        FillBackground(g, bounds);
 
-        // содержимое панели рисуется до потомков: SkiaRenderer вызывает
+        // содержимое панели рисуется до потомков: рендерер вызывает
         // Draw, а затем обходит Children
         DrawContent(g);
     }
