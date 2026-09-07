@@ -387,6 +387,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     internal void OnKeyDown(Key key, KeyModifiers modifiers, bool isRepeat)
     {
+        Keyboard.OnDown(key, modifiers);
+
         if (key == Key.F12 || (key == Key.I && modifiers.HasFlag(KeyModifiers.Control) && modifiers.HasFlag(KeyModifiers.Shift)))
         {
             ToggleInspector();
@@ -431,6 +433,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     internal void OnKeyUp(Key key, KeyModifiers modifiers)
     {
+        Keyboard.OnUp(key, modifiers);
+
         var args = new KeyEventArgs(key, modifiers);
 
         for (UIElement? current = _focusDispatcher.FocusedElement; current is not null; current = current.Parent)
@@ -1060,6 +1064,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                 break;
         }
     }
+
+    /// <summary>Окно потеряло фокус: об отпусканиях клавиш мы больше
+    /// не узнаем, поэтому считаем, что не нажато ничего.</summary>
+    internal void OnWindowFocusLost() => Keyboard.Reset();
 
     // вызывается платформой, когда состояние сменил сам пользователь —
     // без обратного вызова в SetWindowState, иначе получим петлю

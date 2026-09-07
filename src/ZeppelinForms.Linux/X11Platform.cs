@@ -346,6 +346,12 @@ public sealed class X11Platform : IPlatform
                     _clipboard?.HandleSelectionClear();
                     break;
                 }
+
+            case X11.FocusOut:
+                {
+                    
+                    break;
+                }
         }
     }
 

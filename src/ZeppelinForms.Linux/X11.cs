@@ -185,6 +185,7 @@ internal static class X11
     public const int SelectionNotify = 31;
     public const int SelectionClear = 29;
     public const int PropertyNotify = 28;
+    public const int FocusOut = 10;
 
     public const int PropModeReplace = 0;
     public const long PropertyChangeMask = 1L << 22;

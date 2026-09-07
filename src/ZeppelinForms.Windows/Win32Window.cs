@@ -445,6 +445,10 @@ internal sealed class Win32Window : IPlatformWindow
                     return 0;
                 }
 
+            case NativeConstants.WM_KILLFOCUS:
+                _form.OnWindowFocusLost();
+                return 0;
+
             case NativeConstants.WM_DPICHANGED:
                 {
                     _scale = (ushort)(wParam.ToInt64() & 0xFFFF) / 96f;
