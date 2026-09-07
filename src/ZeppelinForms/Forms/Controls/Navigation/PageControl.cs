@@ -101,13 +101,17 @@ public class PageControl : DecoratedPanel
 
         this.StopAnimation("page");
 
-        _outgoing.IsVisible = false;
-        _outgoing.Opacity = 1f;
-        _outgoing.Position = _baseSlot.Position;
+        Page outgoing = _outgoing;
 
+        // сбрасываем состояние перехода прежде, чем менять видимость:
+        // её сеттер вызовет раскладку, и та не должна снова двигать страницы
         _outgoing = null;
         _progress = 1f;
         _activeTransition = PageTransition.None;
+
+        outgoing.IsVisible = false;
+        outgoing.Opacity = 1f;
+        outgoing.Position = _baseSlot.Position;
     }
 
     private void Switch(Page target, PageTransition transition)
