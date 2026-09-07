@@ -2,10 +2,6 @@
 
 ![Logo](ZF_medium.png)
 
-[🇬🇧 English](#eng) | [🇷🇺 Русский](#rus)
-
-## ENG
-
 **ZeppelinForms** (ZF) is an experimental project aimed at creating a simple, platform-independent UI framework with hardware acceleration (on Windows) and straightforward code-behind UI development.
 
 ### ⚙️ Current Status
@@ -18,9 +14,12 @@ The project is under active development.
 | - | ----------- | ------ |
 | 1 | Headless    | ✅      |
 | 2 | Windows     | ✅      |
-| 3 | Linux (X11) | ✅      |
+| 3 | Linux (X11) | ✅*     |
 | 4 | WebAssembly | 💡     |
 | 5 | macOS       | 💡     |
+
+\* — `SetOpacity` and `SetWindowState` are not implemented yet: they need
+`_NET_WM_WINDOW_OPACITY` and `_NET_WM_STATE`.
 
 ### 🧠 Philosophy
 
@@ -55,14 +54,17 @@ If hardware acceleration is unavailable, the framework falls back to software re
 | 3 | Toast Notifications   | ✅***   |
 | 4 | ToolTips              | ✅      |
 | 5 | Dialog Windows        | ✅      |
-| 6 | Open/Save File Dialog | 💡     |
+| 6 | Open/Save File Dialog | ✅****  |
 | 7 | MessageBox            | ✅      |
 | 8 | InputBox              | ✅      |
 | 9 | Clipboard             | ✅      |
+| 10 | Folder Dialog        | ✅****  |
+| 11 | Drag&Drop (internal) | ✅      |
 
-* — the inspector currently works only with certain types \
-** — the API will be extended further \
-*** — some limitations and unfinished parts remain
+\* — the inspector currently works only with certain types \
+\*\* — the API will be extended further \
+\*\*\* — some limitations and unfinished parts remain \
+\*\*\*\* - only managed (not system) implementation
 
 ### 🛣️ Layout
 
@@ -87,6 +89,66 @@ Unlike WinForms, all controls support:
 * Shadows (`box-shadow`)
 * Scaling
 
+#### Base class hierarchy
+
+`UIElement` defines geometry, input and painting entry points. Decoration —
+background, corner radius, border — lives one level down. Inherit the closest
+base that already does what you need:
+
+
+`Draw` is sealed in every `Decorated*` class: it fills the background, calls
+your content, then draws the border. Override these instead:
+
+| Base | Override | Sealed |
+| ---- | -------- | ------ |
+| `DecoratedControl` | `DrawContent` (required), `DrawDecoration` | `Draw` |
+| `DecoratedPanel` | `DrawContent`, `DrawDecoration`, `MeasureContentOverride`, `ArrangeContentOverride` | `Draw`, `MeasureOverride`, `ArrangeOverride` |
+| `DecoratedWrapControl` | `DrawContent`, `DrawDecoration` | `Draw` |
+
+`DrawContent` runs before children, `DrawDecoration` after them and outside
+their clip — that is where selection outlines, resize handles and drop
+indicators go. For state-dependent colors override `CurrentBackground` and
+`CurrentBorderColor` rather than painting the background yourself.
+
+`Shape` is the one deliberate exception: shapes have their own `Fill` and
+`Stroke`, so an inherited `Background` would only confuse.
+
+#### Styled Properties
+
+Any property a theme may set must be declared as a styled property. A plain
+auto-property gets overwritten by the theme, is invisible to `PropertyGrid`
+and does not trigger a repaint. A source generator expands three lines into
+the registration, the backing field and the accessors:
+
+```csharp
+[Styled(Category = "Menu")]
+public partial Color HoverColor { get; set; }
+
+private static Color HoverColorDefault => new(255, 232, 240, 254);
+```
+
+Requirements: the property is `partial` with a getter and a setter, its type
+is a `partial` descendant of `UIElement`. The default comes from a static
+property named `<Name>Default`; omit it when `default(T)` will do. It must be
+a property, not a field: static field initializers run in declaration order,
+and partial declarations are split across files, so a field could be read
+before it is computed.
+
+Flags: `AffectsLayout = true` when the value changes measurement — the setter
+then invalidates layout instead of only repainting. `Inherits = true` when the
+value cascades down the tree, as `TextColor` does.
+
+Value precedence, highest first:
+
+1. set from user code
+2. set from user code on any ancestor, for inherited properties
+3. theme or style
+4. control default — `SetControlDefault` from a constructor
+5. `DefaultValue` from the registration
+
+A constructor must use `SetControlDefault`: a plain assignment there would mark
+the value as user-set and lock the theme out for good.
+
 #### Unit Controls
 
 `UIElement` → `UnitControl`
@@ -101,18 +163,18 @@ Unlike WinForms, all controls support:
 |  4 | PictureBox          |    ✅   | 24 | PieChart        |    ✅   |
 |  5 | RadioButton         |    ✅   | 25 | RichLabel       |    ✅   |
 |  6 | TextBox             |   ✅*   | 26 | LinkLabel       |    ✅   |
-|  7 | ToggleSwitch        |    ✅   | 27 | ShapeLine       |    ✅   |
-|  8 | DateTimePicker      |    ✅   | 28 | ShapeRectangle  |    ✅   |
-|  9 | TimePicker          |    ✅   | 29 | ShapeEllipse    |    ✅   |
-| 10 | ColorPicker         |    ✅   | 30 | ShapePolygon    |    ✅   |
+|  7 | ToggleSwitch        |    ✅   | 27 | LineShape       |    ✅   |
+|  8 | DateTimePicker      |    ✅   | 28 | RectangleShape  |    ✅   |
+|  9 | TimePicker          |    ✅   | 29 | EllipseShape    |    ✅   |
+| 10 | ColorPicker         |    ✅   | 30 | PolygonShape    |    ✅   |
 | 11 | ScrollBar           |    ✅   | 31 | CheckedComboBox |    ✅   |
 | 12 | SvgIcon             |    ✅   | 32 | ComboBox        |    ✅   |
 | 13 | NumericUpDown       |    ✅   | 33 | GridSplitter    |    ✅   |
 | 14 | ProgressBar         |    ✅   | 34 | MaskedTextBox   |    ✅   |
 | 15 | CircularProgressBar |    ✅   | 35 | HintLabel       |    ✅   |
 | 16 | TrackBar            |    ✅   | 36 | MapControl      |    ✅   |
-| 17 | Calendar            |    ✅   |    |                 |         |
-| 18 | MenuBar             |    ✅   |    |                 |         |
+| 17 | Calendar            |    ✅   | 37 | Loader          |    ✅   |
+| 18 | MenuBar             |    ✅   | 38 | PageIndicator   |    ✅   |
 | 19 | MenuList            |    ✅   |    |                 |         |
 | 20 | SplitButton         |    ✅   |    |                 |         |
 
@@ -136,6 +198,10 @@ Unlike WinForms, all controls support:
 | 7 | VirtualizingStackPanel | ✅      |
 | 8 | SplitContainer         | ✅      |
 | 9 | PageControl            | ✅      |
+| 10 | WrapPanel             | ✅      |
+| 11 | Table                 | ✅      |
+| 12 | AttachButton          | ✅      |
+| 13 | PropertyGrid          | ✅      |
 
 ##### Items Panels
 
@@ -147,8 +213,9 @@ A specialized type of panel capable of working with collections of elements.
 | - | -------------- | ------ |
 | 1 | ListBox | ✅ |
 | 2 | CheckedListBox | ✅ |
-| 3 | TreeView | 💡 |
-| 4 | DataGrid | 💡 |
+| 3 | DragList | ✅ |
+| 4 | TreeView | 💡 |
+| 5 | DataGrid | 💡 |
 
 ⭐ All panels can display a scrollbar when their content overflows.
 
@@ -167,13 +234,16 @@ A specialized type of panel capable of working with collections of elements.
 | 5 | LayoutBuilder  | ✅    |
 | 6 | Page           | ✅    |
 | 7 | GradientBorder | ✅    |
-| 8 | PropertyGrid*  | ✅    |
-
-\* — currently works only with certain controls
+| 8 | GripBox        | ✅    |
 
 ### 🎄 Themes
 
-The framework supports themes and currently includes built-in light and dark themes.
+Built-in light and dark themes are included. A theme is a set of appliers
+matched by control type; they are applied from the base type down, so a
+specific applier extends the base one instead of replacing it.
+
+A theme never overwrites a value set from user code — see Styled Properties
+above for the full precedence. `ClearValue` gives a property back to the theme.
 
 ### 🛠️ Code Examples
 
@@ -222,213 +292,5 @@ Reference snapshots are stored in:
 Text rendering differs between platforms, so separate snapshot sets are maintained for Windows and Linux.
 
 Local snapshot update:
-- bash: `ZF_UPDATE_SNAPSHOTS=true dotnet test`
-- PowerShell: `$env:ZF_UPDATE_SNAPSHOTS='true'; dotnet test`
-
-## RUS
-
-**ZeppelinForms** (ZF) - проект-эксперимент по созданию простого UI-фреймворка без привязки к Windows, с аппаратным ускорением (для Windows), простым code-behind созданием элементов. 
-
-### ⚙️ Текущий статус
-
-![CI](https://github.com/YD359Team/ZeppelinForms-solution/actions/workflows/ci.yml/badge.svg)
-
-Проект находится в активной разработке.
-
-| № | Название | Статус |
-|---|------------|---|
-| 1 | Headless | ✅ |
-| 2 | Windows | ✅ |
-| 3 | Linux (X11) | ✅ |
-| 4 | WebAssembly | 💡 |
-| 5 | MacOS | 💡 |
-
-### 🧠 Философия
-
-Если коротко: объединить простоту WinForms с некоторыми идеями WPF и Flutter, кроссплатформенностью Avalonia, и выкинув тонны легаси в процессе.
-
-- Не привязываться к конкретной платформе
-- Не привязываться к конкретному графическому стеку
-
-А если проект современный, то почему бы не использовать все богатые возможности .NET 10 и C# 14?
-
-### 🖌️ Рендеринг
-
-| № | Название | Статус |
-|---|------------|---|
-| 1 | SkiaSharp | ✅ |
-| 2 | DirectX | 💡 |
-
-ZeppelinForms ничего не знает про Skia, потому что он существует в отдельном проекте ZeppelinForms.Skia, то есть графика полностью абстрагирована от логики. \
-Из этого следует, что фреймворк можно встроить в DirectX или вообще любой графический стек! \
-Если аппаратное ускорение недоступно, то идет откат на программный рендер.
-
-### 📟 Формы
-
-**Формы** - это единственный вид окон, как и в WinForms.
-
-| № | Название | Статус |
-|---|------------|---|
-| 1 | Отладчик | ✅* |
-| 2 | Наложения | ✅** |
-| 3 | Всплывающие сообщения | ✅*** |
-| 4 | ToolTips | ✅ |
-| 5 | Диалоговые окна | ✅ |
-| 6 | Open\SaveFileDialog | 💡 |
-| 7 | MessageBox | ✅ |
-| 8 | InputBox | ✅ |
-| 9 | Буфер обмена | ✅ |
-
-\* - инспектор работает только для некоторых типов \
-\** - API еще будет дополняться \
-\*** - есть недоработки
-
-### 🛣️ Компоновка
-
-- Поддержка Measure и Arrange
-- Все контролы имеют Docking
-- Горизонтальное и вертикальное выравнивание (в том числе контента)
-
-### 🧩 Контролы
-
-Все контролы должны являться наследниками `UIElement` явно или неявно - наследуя `UnitControl`, `PanelControl` или `WrapControl`. \
-Никаких компонентов из WinForms, не являющихся контролами в полном смысле (например, Timer или BackgroundWorker), не предусмотрено.
-
-#### UIElement
-
-Общий предок для всех контролов. Форма не является UIElement, но ее `Content` может быть любым UIElement. \
-В отличии от WinForms, все контролы поддерживают внутренние отступы, прозрачность, тень (boxshadow), могут масштабироваться.
-
-#### Единичные контролы
-
-`UIElement` -> `UnitControl`
-
-**Единичные контролы** - похожи на Control из мира WinForms, можно назвать их обычными контролами. У них не может быть дочерних контролов.
-
-|  № | Название            | Статус |  № | Название        | Статус |
-| -: | ------------------- | :----: | -: | --------------- | :----: |
-|  1 | Label               |    ✅   | 21 | ToggleButton    |    ✅   |
-|  2 | Button              |    ✅   | 22 | BarChart        |    ✅   |
-|  3 | CheckBox            |    ✅   | 23 | LineChart       |    ✅   |
-|  4 | PictureBox          |    ✅   | 24 | PieChart        |    ✅   |
-|  5 | RadioButton         |    ✅   | 25 | RichLabel       |    ✅   |
-|  6 | TextBox             |   ✅*   | 26 | LinkLabel       |    ✅   |
-|  7 | ToggleSwitch        |    ✅   | 27 | ShapeLine       |    ✅   |
-|  8 | DateTimePicker      |    ✅   | 28 | ShapeRectangle  |    ✅   |
-|  9 | TimePicker          |    ✅   | 29 | ShapeEllipse    |    ✅   |
-| 10 | ColorPicker         |    ✅   | 30 | ShapePolygon    |    ✅   |
-| 11 | ScrollBar           |    ✅   | 31 | CheckedComboBox |    ✅   |
-| 12 | SvgIcon             |    ✅   | 32 | ComboBox        |    ✅   |
-| 13 | NumericUpDown       |    ✅   | 33 | GridSplitter    |    ✅   |
-| 14 | ProgressBar         |    ✅   | 34 | MaskedTextBox   |    ✅   |
-| 15 | CircularProgressBar |    ✅   | 35 | HintLabel       |    ✅   |
-| 16 | TrackBar            |    ✅   | 36 | MapControl      |    ✅   |
-| 17 | Calendar            |    ✅   |    |                 |         |
-| 18 | MenuBar             |    ✅   |    |                 |         |
-| 19 | MenuList            |    ✅   |    |                 |         |
-| 20 | SplitButton         |    ✅   |    |                 |         |
-
-\* - есть баги и отсутствует часть API
-
-#### Панели
-
-`UIElement` -> `PanelControl`
-
-**Панели** - контролы, которые могут включать в себя другие контролы (в том числе другие панели).
-
-| № | Название      | Статус |
-|---|------------|---|
-| 1 | Panel | ✅ |
-| 2 | StackPanel | ✅ |
-| 3 | Grid | ✅ |
-| 4 | DockPanel | ✅ |
-| 5 | TabControl | ✅ |
-| 6 | UniformGrid | ✅ |
-| 7 | VirtualizingStackPanel | ✅ |
-| 8 | SplitContainer | ✅ |
-
-##### Панели элементов
-
-`UIElement` -> `PanelControl` -> `ItemsControl`
-
-Подвид панели, способный работать с коллекциями элементов.
-
-| № | Название | Статус |
-|---|------------|---|
-| 1 | ListBox | ✅ |
-| 2 | CheckedListBox | ✅ |
-| 3 | TreeView | 💡 |
-| 4 | DataGrid | 💡 |
-
-⭐ Все панели могут иметь скроллбар при переполнении.
-
-#### Контролы-обёртки
-
-`UIElement` -> `WrapControl`
-
-**Контролы-обёртки** - контролы, которые могут включать в себя один контрол. Необычная для WinForms мира идея, но знакомая в мире XAML-фреймворков.
-
-| # | Название       | Статус |
-| - | -------------- | ------ |
-| 1 | Border         | ✅    |
-| 2 | Spoiler        | ✅    |
-| 3 | ZoomBox        | ✅    |
-| 4 | GroupBox       | ✅    |
-| 5 | LayoutBuilder  | ✅    |
-| 6 | Page           | ✅    |
-| 7 | GradientBorder | ✅    |
-| 8 | PropertyGrid*  | ✅    |
-| 9 | PageControl    | ✅    |
-
-\* — currently works only with certain controls
-
-### 🎄 Темы
-
-Имеется поддержка тем, есть предустановленные светлая и тёмная темы.
-
-### 🛠️ Примеры кода
-
-Создание приложения в Windows
-
-```csharp
-public class Program
-{
-    static void Main()
-    {
-        WindowsPlatform windowsPlatform = new();
-        App myApp = new(windowsPlatform)
-        {
-            MainForm = new MainForm()
-        };
-        myApp.Run();
-    }
-}
-```
-
-Создание приложения в Linux (X11)
-
-```csharp
-public class Program
-{
-    static void Main()
-    {
-        X11Platform linuxPlatform = new();
-        App myApp = new(linuxPlatform)
-        {
-            MainForm = new MainForm()
-        };
-        myApp.Run();
-    }
-}
-```
-
-Смотрите проекты в папке `examples/`, чтобы узнать больше.
-
-### 🧪 Снимковые тесты
-
-Эталоны хранятся в `tests/ZeppelinForms.UnitTests/Snapshots/Expected/{win,linux}` —
-отрисовка текста между платформами различается, поэтому наборы отдельные.
-
-Локальное обновление снапшотов:
 - bash: `ZF_UPDATE_SNAPSHOTS=true dotnet test`
 - PowerShell: `$env:ZF_UPDATE_SNAPSHOTS='true'; dotnet test`
