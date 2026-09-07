@@ -42,6 +42,7 @@ public class ExampleMainForm : Form
         root.AddPage("effects", () => GetView5(), "Effects");
         root.AddPage("loader", () => GetView6(), "Loader");
         root.AddPage("dnd", () => GetView7(), "Drag&Drop");
+        root.AddPage("table", () => GetView8(), "Table");
         return new DockPanel
         {
             Children =
@@ -510,6 +511,20 @@ public class ExampleMainForm : Form
 
         static UIElement Header(string text) =>
             new Label { Text = text, Margin = new Thickness(4) };
+    }
+
+    private UIElement GetView8()
+    {
+        Table table = new()
+        {
+            Columns = [ new() { Header = "№"}, new() { Header = "Name" }, new() { Header = "Price" },]
+        };
+        table.AddRow("1", "Apple", "0.5$");
+        table.AddRow("2", "Tomato", "0.35$");
+        table.AddRow("3", "Bread", "1$");
+        table.AddRow("4", "Juice", "2$");
+        table.AddRow("5", "Cola", "1$");
+        return table;
     }
 
     /// <summary>Матовое стекло. Фон обязан быть прозрачным, иначе

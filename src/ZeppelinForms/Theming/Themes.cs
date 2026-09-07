@@ -196,6 +196,16 @@ public static class Themes
                 list.BorderWidth = 1f;
             })
 
+            .For<Table>((table, c) =>
+            {
+                table.Background = c.Surface;
+                table.BorderColor = c.Border;
+                table.BorderWidth = 1f;
+                table.HeaderColor = c.Background;
+                table.HeaderTextColor = c.Text;
+                table.GridLineColor = c.Border;
+            })
+
             .For<Panel>((panel, c) =>
             {
                 panel.Background = c.Background;
