@@ -188,6 +188,11 @@ public partial class DragList : ItemsControl
 
     private void BeginDrag()
     {
+        // предыдущее перетаскивание могло не завершиться — например,
+        // если элемент убрали из дерева на полпути. Иначе его превью
+        // останется висеть на оверлеях
+        CancelDrag();
+
         _dragging = true;
         _source = this;
         _sourceIndex = _pressIndex;

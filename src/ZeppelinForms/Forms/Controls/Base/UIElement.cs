@@ -198,16 +198,16 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     internal void RaiseMouseUp(MouseButtonEventArgs e)
     {
+        // без проверки IsPressed: отпускание получают только тот, на кого
+        // нажали, и тот, кто захватил мышь — маршрутизация в Form это уже
+        // гарантирует. А у захватившего нажатия могло и не быть: DragList
+        // берёт захват из OnPreviewMouseDown, когда попадание досталось
+        // строке, и раньше просто не узнавал об отпускании
         if (e.Button == MouseButton.Left)
-        {
-            if (!IsPressed) return;
             IsPressed = false;
-        }
 
         OnMouseUp(e);
         MouseUp?.Invoke(this, e);
-
-        InvalidateVisual();
     }
 
     internal void RaiseClick(MouseClickEventArgs args)
