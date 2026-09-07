@@ -28,7 +28,7 @@ public static class HeadlessInput
 
     public static void PressKey(Form form, Key key, KeyModifiers modifiers = KeyModifiers.None)
     {
-        form.OnKeyDown(key, modifiers);
+        form.OnKeyDown(key, modifiers, false);
         form.OnKeyUp(key, modifiers);
     }
 

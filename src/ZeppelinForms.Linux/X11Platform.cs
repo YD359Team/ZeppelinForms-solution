@@ -296,7 +296,9 @@ public sealed class X11Platform : IPlatform
                     if ((key.state & X11.Mod1Mask) != 0) modifiers |= KeyModifiers.Alt;
 
                     nuint keysym = X11.XLookupKeysym(eventPtr, 0);
-                    window.Form.OnKeyDown(X11KeyMap.ToKey(keysym), modifiers);
+                    // X11 присылает автоповтор как обычную пару release+press;
+                    // различить их можно только через XkbSetDetectableAutoRepeat — TODO
+                    window.Form.OnKeyDown(X11KeyMap.ToKey(keysym), modifiers, isRepeat: false);
 
                     // печатные символы отдельным вызовом
                     byte[] buffer = new byte[8];

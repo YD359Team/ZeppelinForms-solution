@@ -375,7 +375,8 @@ internal sealed class Win32Window : IPlatformWindow
                 return 0;
 
             case NativeConstants.WM_KEYDOWN:
-                _form.OnKeyDown((Key)(int)wParam, GetModifiers());
+                _form.OnKeyDown((Key)(int)wParam, GetModifiers(),
+                   isRepeat: ((long)lParam & (1L << 30)) != 0);
                 return 0;
 
             case NativeConstants.WM_KEYUP:

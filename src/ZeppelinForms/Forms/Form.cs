@@ -371,7 +371,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             captured.RaiseMouseUp(args);
     }
 
-    internal void OnKeyDown(Key key, KeyModifiers modifiers)
+    internal void OnKeyDown(Key key, KeyModifiers modifiers, bool isRepeat)
     {
         if (key == Key.F12 || (key == (Key)0x49 && modifiers.HasFlag(KeyModifiers.Control) && modifiers.HasFlag(KeyModifiers.Shift)))
         {
