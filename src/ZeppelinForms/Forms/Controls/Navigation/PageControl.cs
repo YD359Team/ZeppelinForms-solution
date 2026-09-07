@@ -116,14 +116,17 @@ public class PageControl : DecoratedPanel
 
         Page? previous = _current;
 
+        // без окна тик кадра не идёт: анимация не завершится
+        // и уходящая страница останется висеть поверх новой
         bool canAnimate = transition != PageTransition.None
             && TransitionDurationMs > 0
             && previous is not null
             && FindOwner()?.PlatformWindow is not null;
 
-        // состояние перехода — до IsVisible: его сеттер запускает
-        // раскладку синхронно, и она обязана уже знать про смещения,
-        // иначе обе страницы окажутся в одном слоте на один кадр
+        // состояние перехода выставляем до IsVisible. Его сеттер запускает
+        // раскладку синхронно, а ArrangeContentOverride восстанавливает
+        // смещения только при заполненных _outgoing и _progress — иначе обе
+        // страницы окажутся в одном слоте, и этот кадр успеет отрисоваться
         if (canAnimate)
         {
             _outgoing = previous;
@@ -149,17 +152,12 @@ public class PageControl : DecoratedPanel
 
             target.Opacity = 1f;
             Invalidate();
+
             return;
         }
 
-        _outgoing = previous;
-        _progress = 0f;
-        _activeTransition = transition;
-
-        // пересчитываем раскладку один раз, чтобы обе страницы получили
-        // базовые позиции; дальше двигаем их напрямую, без Arrange
-        Invalidate();
-
+        // раскладку уже сделал сеттер IsVisible, и сделал её правильно —
+        // повторный Invalidate здесь был бы лишним проходом
         Page outgoing = previous!;
 
         this.Animate("page", 0f, 1f, TimeSpan.FromMilliseconds(TransitionDurationMs),
