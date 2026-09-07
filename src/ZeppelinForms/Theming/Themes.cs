@@ -201,9 +201,7 @@ public static class Themes
                 table.Background = c.Surface;
                 table.BorderColor = c.Border;
                 table.BorderWidth = 1f;
-                table.HeaderColor = c.Background;
                 table.HeaderTextColor = c.Text;
-                table.GridLineColor = c.Border;
             })
 
             .For<Panel>((panel, c) =>

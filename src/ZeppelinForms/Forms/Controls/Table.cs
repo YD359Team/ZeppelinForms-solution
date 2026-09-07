@@ -42,27 +42,47 @@ public partial class Table : DecoratedPanel
     public partial float RowHeight { get; set; }
 
     [Styled(Category = "Table")]
+    public partial Color GridLineColor { get; set; }
+
+    [Styled(Category = "Table")]
     public partial Color HeaderColor { get; set; }
 
     private static Color HeaderColorDefault => new(255, 244, 244, 244);
 
     [Styled(Category = "Table")]
     public partial Color HeaderTextColor { get; set; }
-
     private static Color HeaderTextColorDefault => Colors.Black;
-
-    [Styled(Category = "Table")]
-    public partial Color GridLineColor { get; set; }
 
     private static Color GridLineColorDefault => new(255, 224, 224, 224);
 
-    /// <summary>Подложка чётных строк. Прозрачная — не чередовать.</summary>
+    /// <summary>Подсвечивать каждую вторую строку.</summary>
+    [Styled(Category = "Table")]
+    public partial bool ShowAlternateRows { get; set; }
+
+    private static bool ShowAlternateRowsDefault => true;
+
+    /// <summary>Цвет подложки чётных строк. Прозрачный — вывести
+    /// из цвета текста, чтобы работало в любой теме.</summary>
     [Styled(Category = "Table")]
     public partial Color AlternateRowColor { get; set; }
 
-    private static Color AlternateRowColorDefault => Colors.Transparent;
-
     public void AddRow(params string?[] cells) => Rows.Add(cells);
+
+    /// <summary>Полупрозрачный оттенок цвета текста. Подложки и линии,
+    /// построенные так, одинаково читаются и на светлой, и на тёмной теме:
+    /// на светлой это лёгкое затемнение, на тёмной — осветление.</summary>
+    private Color Tint(byte alpha) => new(alpha, TextColor.R, TextColor.G, TextColor.B);
+
+    /// <summary>Шрифт заголовка: как у содержимого, но жирный.</summary>
+    private Font HeaderFont => EffectiveFont.Bold();
+
+    public Table()
+    {
+        // таблица — по содержимому, как в Markdown. Растянуть можно вручную,
+        // и тогда столбцы со звёздочкой поделят лишнюю ширину
+        SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Left);
+        SetControlDefault(VerticalAlignmentProperty, VerticalAlignment.Top);
+    }
 
     // ===== раскладка =====
 
@@ -131,7 +151,7 @@ public partial class Table : DecoratedPanel
     private float ContentWidth(int column)
     {
         float widest = ShowHeader && Columns[column].Header is { } header
-            ? TextMeasurer.Current.MeasureText(header, EffectiveFont).Width
+            ? TextMeasurer.Current.MeasureText(header, HeaderFont).Width
             : 0;
 
         foreach (string?[] row in Rows)
@@ -185,14 +205,15 @@ public partial class Table : DecoratedPanel
             new Point(Viewport.X - ScrollX, top),
             new Size(width + ScrollX, _rowHeight));
 
-        if (index % 2 == 1 && AlternateRowColor.A > 0)
-            g.FillRectangle(bounds, AlternateRowColor);
+        if (ShowAlternateRows && index % 2 == 1)
+            g.FillRectangle(bounds, AlternateRowColor.A > 0 ? AlternateRowColor : Tint(12));
 
+        Color line = GridLineColor.A > 0 ? GridLineColor : Tint(30);
         if (ShowGridLines)
             g.DrawLine(
                 new Point(bounds.X, top + _rowHeight),
                 new Point(bounds.X + bounds.Width, top + _rowHeight),
-                GridLineColor, 1f);
+                line, 1f);
 
         string?[] row = Rows[index];
         float x = Viewport.X - ScrollX;
@@ -210,18 +231,19 @@ public partial class Table : DecoratedPanel
 
     private void DrawCell(
         Graphics g, string text, float x, float top, float width,
-        HorizontalContentAlignment align, Color color)
+        HorizontalContentAlignment align, Color color, Font? font = null)
     {
         var cell = new Rectangle(
             new Point(x + CellPadding.Left, top),
             new Size(Math.Max(0, width - CellPadding.Horizontal), _rowHeight));
 
-        g.DrawText(text, cell, color, EffectiveFont, align, VerticalContentAlignment.Center);
+        g.DrawText(text, cell, color, font ?? EffectiveFont, align, VerticalContentAlignment.Center);
     }
 
     private void DrawVerticalLines(Graphics g, Rectangle band)
     {
         float x = Viewport.X - ScrollX;
+        Color line = GridLineColor.A > 0 ? GridLineColor : Tint(30);
 
         // последнюю границу не рисуем: она совпала бы с рамкой таблицы
         for (int c = 0; c < Columns.Count - 1; c++)
@@ -231,7 +253,7 @@ public partial class Table : DecoratedPanel
             g.DrawLine(
                 new Point(x, band.Y),
                 new Point(x, band.Y + band.Height),
-                GridLineColor, 1f);
+                line, 1f);
         }
     }
 
@@ -250,7 +272,25 @@ public partial class Table : DecoratedPanel
 
         g.FillRectangle(bounds, HeaderColor);
 
+        if (HeaderColor.A > 0)
+            g.FillRectangle(bounds, HeaderColor);
+
         float x = view.X - ScrollX;
+
+        for (int c = 0; c < Columns.Count; c++)
+        {
+            if (Columns[c].Header is { } header && header.Length > 0)
+                DrawCell(g, header, x, view.Y, _widths[c], Columns[c].Align, HeaderTextColor, HeaderFont);
+
+            x += _widths[c];
+        }
+
+        // линейка под заголовком заметно толще сетки — это её роль
+        // в Markdown-таблице, отделять шапку от данных
+        g.DrawLine(
+            new Point(bounds.X, bounds.Y + _headerHeight),
+            new Point(bounds.X + bounds.Width, bounds.Y + _headerHeight),
+            Tint(110), 2f);
 
         for (int c = 0; c < Columns.Count; c++)
         {
