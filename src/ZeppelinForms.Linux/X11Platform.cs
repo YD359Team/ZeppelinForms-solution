@@ -317,23 +317,6 @@ public sealed class X11Platform : IPlatform
                     break;
                 }
 
-            case X11.ClientMessage:
-                {
-                    var message = Marshal.PtrToStructure<X11.XClientMessageEvent>(eventPtr);
-                    if (!_windows.TryGetValue(message.window, out X11Window? window)) break;
-
-                    if (message.message_type == window.InvokeAtom)
-                    {
-                        window.DrainInvokeQueue();
-                    }
-                    else if (window.IsDeleteMessage((nuint)message.data0))
-                    {
-                        window.Close();
-                    }
-
-                    break;
-                }
-
             case X11.SelectionRequest:
                 {
                     var request = Marshal.PtrToStructure<X11.XSelectionRequestEvent>(eventPtr);
@@ -349,7 +332,41 @@ public sealed class X11Platform : IPlatform
 
             case X11.FocusOut:
                 {
-                    
+
+                    break;
+                }
+
+            case X11.SelectionNotify:
+                {
+                    var selection = Marshal.PtrToStructure<X11.XSelectionEvent>(eventPtr);
+                    if (!_windows.TryGetValue(selection.requestor, out X11Window? window)) break;
+
+                    // XDND забирает только своё свойство переноса; буфер обмена
+                    // ждёт своё событие собственным циклом и сюда не приходит
+                    window.DropTarget?.HandleSelection(selection.property);
+
+                    break;
+                }
+
+            case X11.ClientMessage:
+                {
+                    var message = Marshal.PtrToStructure<X11.XClientMessageEvent>(eventPtr);
+                    if (!_windows.TryGetValue(message.window, out X11Window? window)) break;
+
+                    // XDND проверяем первым: его сообщений больше всех,
+                    // и они не пересекаются ни с очередью вызовов, ни с закрытием
+                    if (window.DropTarget?.Handle(message) == true)
+                        break;
+
+                    if (message.message_type == window.InvokeAtom)
+                    {
+                        window.DrainInvokeQueue();
+                    }
+                    else if (window.IsDeleteMessage((nuint)message.data0))
+                    {
+                        window.Close();
+                    }
+
                     break;
                 }
         }

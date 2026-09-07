@@ -1,12 +1,22 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Linux;
 
 internal static class X11
 {
     private const string Lib = "libX11.so.6";
+
+    [DllImport(Lib)]
+    public static extern int XTranslateCoordinates(
+      nint display, nuint srcWindow, nuint destWindow,
+      int srcX, int srcY, out int destX, out int destY, out nuint child);
+
+    public const nuint None = 0;
+
+    public const nuint XA_ATOM = 4;
+
+    [DllImport(Lib)] public static extern int XDeleteProperty(nint display, nuint window, nuint property);
 
     // режимы захвата и специальные значения
     public const int GrabModeSync = 0;

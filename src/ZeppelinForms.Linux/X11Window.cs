@@ -28,8 +28,38 @@ internal sealed class X11Window : IPlatformWindow
 
     public float Scale => _scale;
 
-    // TODO: свойство XdndAware
-    public void SetDragDropEnabled(bool enabled) { }
+    private X11DropTarget? _dropTarget;
+
+    public void SetDragDropEnabled(bool enabled)
+    {
+        if (enabled == (_dropTarget is not null)) return;
+
+        if (enabled)
+        {
+            _dropTarget = new X11DropTarget(_display, _window, _form, ToClient);
+            _dropTarget.Register();
+
+            return;
+        }
+
+        _dropTarget.Unregister();
+        _dropTarget = null;
+    }
+
+    internal X11DropTarget? DropTarget => _dropTarget;
+
+    /// <summary>XDND отдаёт экранные координаты, а маршрутизация в Form
+    /// работает в клиентских и уже поделённых на масштаб. Пересчёт делаем
+    /// через сервер: он знает и положение окна, и текущие декорации.</summary>
+    private Point ToClient(Point screen)
+    {
+        nuint root = X11.XRootWindow(_display, X11.XDefaultScreen(_display));
+
+        X11.XTranslateCoordinates(_display, root, _window,
+            (int)screen.X, (int)screen.Y, out int x, out int y, out _);
+
+        return new Point(x / Scale, y / Scale);
+    }
 
     public X11Window(X11Platform platform, Form form)
     {
