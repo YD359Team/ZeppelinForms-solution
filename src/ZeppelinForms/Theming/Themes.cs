@@ -222,6 +222,13 @@ public static class Themes
                 box.HeaderColor = c.TextSecondary;
             })
 
+            .For<GripBox>((grip, c) => 
+            {
+                grip.HandleColor = c.Background;
+                grip.HandleBorderColor = c.Accent;
+                grip.OutlineColor = c.Accent;
+            })
+
             .For<Spoiler>((spoiler, c) =>
             {
                 spoiler.HeaderColor = c.Surface;

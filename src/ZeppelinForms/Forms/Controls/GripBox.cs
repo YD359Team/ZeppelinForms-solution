@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
@@ -13,7 +14,7 @@ namespace ZeppelinForms.Forms.Controls;
 /// <see cref="UIElement.Rotation"/>; и то, и другое рендер и хит-тест
 /// уже понимают, своих трансформаций GripBox не заводит.
 /// </summary>
-public class GripBox : DecoratedWrapControl
+public partial class GripBox : DecoratedWrapControl
 {
     private static readonly GripKind[] ResizeGrips =
     [
@@ -35,9 +36,13 @@ public class GripBox : DecoratedWrapControl
     /// <summary>Насколько ручка поворота вынесена над верхним краем.</summary>
     public float RotateHandleOffset { get; set; } = 24f;
 
-    public Color HandleColor { get; set; } = Colors.White;
-    public Color HandleBorderColor { get; set; } = new Color(255, 0, 120, 215);
-    public Color OutlineColor { get; set; } = new Color(255, 0, 120, 215);
+    [Styled]
+    public partial Color HandleColor { get; set; }
+    [Styled]
+    public partial Color HandleBorderColor { get; set; }
+    [Styled]
+    public partial Color OutlineColor { get; set; }
+
     public float OutlineWidth { get; set; } = 1f;
 
     public bool AllowResize { get; set; } = true;
