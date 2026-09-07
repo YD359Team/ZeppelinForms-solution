@@ -36,6 +36,10 @@ internal sealed class FileDialogForm : Form
         _options = options;
         _mode = mode;
 
+        _list.SelectionMode = options.AllowMultiple && mode == FileDialogMode.Open
+              ? SelectionMode.Extended
+              : SelectionMode.Single;
+
         Title = options.Title ?? mode switch
         {
             FileDialogMode.Save => "Сохранить файл",
@@ -239,6 +243,15 @@ internal sealed class FileDialogForm : Form
             !MessageBox.Confirm(this, $"Файл «{name}» уже есть. Заменить?"))
             return;
 
-        Accept(new[] { full });
+        if (_mode == FileDialogMode.Open && _options.AllowMultiple && _list.SelectedIndices.Count > 1)
+        {
+            string[] files = [.. _list.SelectedIndices
+                .Where(i => i < _entries.Count && !_entries[i].IsDirectory)
+                .Select(i => _entries[i].Path)];
+
+            if (files.Length > 0) Accept(files);
+
+            return;
+        }
     }
 }
