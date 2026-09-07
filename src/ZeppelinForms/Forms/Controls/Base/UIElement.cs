@@ -19,7 +19,9 @@ namespace ZeppelinForms.Forms.Controls.Base;
 public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 {
     // ===== события =====
-
+    public event EventHandler<char>? TextInput;
+    public event EventHandler? GotFocus;
+    public event EventHandler? LostFocus;
     public event EventHandler<MouseClickEventArgs>? Click;
     public event EventHandler<MouseClickEventArgs>? DoubleClick;
     public event EventHandler<MouseClickEventArgs>? RightClick;
@@ -180,10 +182,31 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     protected virtual void OnPreviewKeyDown(KeyEventArgs e) { }
     protected virtual void OnKeyUp(KeyEventArgs e) { }
     protected virtual void OnTextInput(char c) { }
-
-    internal void RaiseTextInput(char c) => OnTextInput(c);
+    /// <summary>Движение мыши до того, как оно дойдёт до попавшего элемента.
+    /// Вызывается от корня к нему — предок может следить за перетаскиванием
+    /// над своими потомками, не перехватывая ни попадание, ни захват.</summary>
+    protected virtual void OnPreviewMouseMove(MouseMoveEventArgs e) { }
 
     // ===== подъём событий =====
+    internal void RaisePreviewMouseMove(MouseMoveEventArgs e) => OnPreviewMouseMove(e);
+
+    internal void RaiseTextInput(char c)
+    {
+        OnTextInput(c);
+        TextInput?.Invoke(this, c);
+    }
+
+    internal void RaiseGotFocus()
+    {
+        OnGotFocus();
+        GotFocus?.Invoke(this, EventArgs.Empty);
+    }
+
+    internal void RaiseLostFocus()
+    {
+        OnLostFocus();
+        LostFocus?.Invoke(this, EventArgs.Empty);
+    }
 
     internal void RaiseMouseEnter(Point location, UIElement? from)
     {
@@ -811,9 +834,6 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     }
     protected virtual void OnGotFocus() { }
     protected virtual void OnLostFocus() { }
-
-    internal void RaiseGotFocus() => OnGotFocus();
-    internal void RaiseLostFocus() => OnLostFocus();
 
     internal void RaisePreviewMouseDown(MouseButtonEventArgs e) => OnPreviewMouseDown(e);
 

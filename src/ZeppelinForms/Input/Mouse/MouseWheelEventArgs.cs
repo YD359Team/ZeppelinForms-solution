@@ -5,7 +5,8 @@ namespace ZeppelinForms.Input.Mouse;
 
 public sealed record class MouseWheelEventArgs(
     Point Location,
-    int Delta) : ZfEventArgs
+    int Delta,
+    int HorizontalDelta = 0) : ZfEventArgs
 {
     public bool Handled { get; set; }
 }

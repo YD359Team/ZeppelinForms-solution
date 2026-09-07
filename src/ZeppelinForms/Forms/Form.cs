@@ -179,6 +179,20 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         UIElement? hit = HitTestAll(point);
 
+        var moveArgs = new MouseMoveEventArgs(point);
+
+        if (hit is not null)
+        {
+            List<UIElement> chain = [];
+
+            for (UIElement? current = hit; current is not null; current = current.Parent)
+                chain.Add(current);
+
+            chain.Reverse();
+
+            foreach (UIElement element in chain)
+                element.RaisePreviewMouseMove(moveArgs);
+        }
         if (hit != _hoveredElement)
         {
             // в аргументах указываем «откуда» и «куда», чтобы обработчик
