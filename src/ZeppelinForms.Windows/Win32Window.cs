@@ -212,11 +212,14 @@ internal sealed class Win32Window : IPlatformWindow
 
     public void Close()
     {
-        if (_handle != 0)
-        {
-            NativeMethods.RevokeDragDrop();
-            NativeMethods.DestroyWindow(_handle);
-        }
+        if (_handle == 0) return;
+
+        // снимаем приёмник до разрушения окна: RevokeDragDrop работает
+        // с дескриптором, и после DestroyWindow он уже недействителен
+        SetDragDropEnabled(false);
+
+        NativeMethods.DestroyWindow(_handle);
+        _handle = 0;
     }
 
     public void SetTitle(string? title)
@@ -794,6 +797,9 @@ internal sealed class Win32Window : IPlatformWindow
             // OLE нужен именно в UI-потоке и именно до RegisterDragDrop
             Ole32.OleInitialize(0);
 
+            // ссылку держим полем: RegisterDragDrop не удерживает
+            // управляемый объект от сборки, и без этого система рано или
+            // поздно обратится по освобождённой памяти
             _dropTarget = new Win32DropTarget(_form, ToClient);
             Ole32.RegisterDragDrop(_handle, _dropTarget);
 
@@ -802,6 +808,8 @@ internal sealed class Win32Window : IPlatformWindow
 
         Ole32.RevokeDragDrop(_handle);
         _dropTarget = null;
+
+        Ole32.OleUninitialize();
     }
 
     /// <summary>Экранные координаты в клиентские с поправкой на масштаб.

@@ -427,4 +427,15 @@ internal static class NativeMethods
 
     [DllImport("opengl32.dll")]
     public static extern nint wglGetProcAddress(string name);
+
+    // shell32: разбор HDROP из перетаскивания файлов.
+    // buffer помечен как nullable — с null функция возвращает нужную длину,
+    // а с массивом заполняет его. Разделять на две перегрузки незачем
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    public static extern uint DragQueryFile(nint hDrop, uint index, char[]? buffer, uint bufferLength);
+
+    // ole32: освобождение носителя данных, полученного из IDataObject.GetData.
+    // Вызывать обязательно, иначе на каждый бросок утекает память источника
+    [DllImport("ole32.dll")]
+    internal static extern void ReleaseStgMedium(ref STGMEDIUM medium);
 }
