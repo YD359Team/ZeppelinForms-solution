@@ -45,6 +45,8 @@ internal sealed class Win32Window : IPlatformWindow
 
     public nint Handle => _handle;
 
+    public bool SupportsTransparency => true;
+
     public void Create()
     {
         if (_handle != 0)

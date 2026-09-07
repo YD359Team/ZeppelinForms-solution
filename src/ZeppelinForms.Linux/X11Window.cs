@@ -1,6 +1,7 @@
 ﻿using SkiaSharp;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
@@ -27,6 +28,18 @@ internal sealed class X11Window : IPlatformWindow
     private float _scale = 1f;
 
     public float Scale => _scale;
+
+    public bool SupportsTransparency
+    {
+        get
+        {
+            int screen = X11.XDefaultScreen(_display);
+            nuint selection = X11.XInternAtom(_display, $"_NET_WM_CM_S{screen}", false);
+
+            // владелец выделения есть — значит композитор запущен
+            return X11.XGetSelectionOwner(_display, selection) != 0;
+        }
+    }
 
     private X11DropTarget? _dropTarget;
 
@@ -174,12 +187,92 @@ internal sealed class X11Window : IPlatformWindow
 
     public void SetOpacity(float opacity)
     {
-        // требует _NET_WM_WINDOW_OPACITY и работающего композитора — TODO
+        if (_window == 0) return;
+
+        nuint property = X11.XInternAtom(_display, "_NET_WM_WINDOW_OPACITY", false);
+
+        // полностью непрозрачное окно — это отсутствие свойства, а не
+        // максимальное значение: так композитор не тратит проход на окно,
+        // которому смешивание не нужно
+        if (opacity >= 1f)
+        {
+            X11.XDeleteProperty(_display, _window, property);
+            X11.XFlush(_display);
+
+            return;
+        }
+
+        uint value = (uint)(Math.Clamp(opacity, 0f, 1f) * uint.MaxValue);
+
+        X11.XChangeProperty(_display, _window, property, X11.XA_CARDINAL, 32,
+            X11.PropModeReplace, BitConverter.GetBytes(value), 1);
+
+        X11.XFlush(_display);
     }
 
     public void SetWindowState(WindowState state)
     {
-        // требует _NET_WM_STATE / XIconifyWindow — TODO
+        nuint netWmState = X11.XInternAtom(_display, "_NET_WM_STATE", false);
+        nuint maxHorz = X11.XInternAtom(_display, "_NET_WM_STATE_MAXIMIZED_HORZ", false);
+        nuint maxVert = X11.XInternAtom(_display, "_NET_WM_STATE_MAXIMIZED_VERT", false);
+
+        switch (state)
+        {
+            case WindowState.Minimized:
+                // свернуть — единственное, что делается вызовом,
+                // а не сообщением менеджеру
+                X11.XIconifyWindow(_display, _window, X11.XDefaultScreen(_display));
+                break;
+
+            case WindowState.Maximized:
+                SendState(X11.NetWmStateAdd, maxHorz, maxVert);
+                break;
+
+            case WindowState.Normal:
+                // из свёрнутого возвращает XMapWindow, из развёрнутого —
+                // снятие обоих флагов. Делаем и то, и другое: в каком
+                // состоянии окно было, мы не знаем
+                X11.XMapWindow(_display, _window);
+                SendState(X11.NetWmStateRemove, maxHorz, maxVert);
+                break;
+        }
+
+        X11.XFlush(_display);
+
+        void SendState(int action, nuint first, nuint second)
+        {
+            var message = new X11.XClientMessageEvent
+            {
+                type = X11.ClientMessage,
+                display = _display,
+                window = _window,
+                message_type = netWmState,
+                format = 32,
+                data0 = action,
+                data1 = (nint)first,
+                data2 = (nint)second,
+                // источник — обычное приложение, а не панель или пейджер
+                data3 = 1,
+            };
+
+            nint buffer = Marshal.AllocHGlobal(Marshal.SizeOf<X11.XClientMessageEvent>());
+
+            try
+            {
+                Marshal.StructureToPtr(message, buffer, false);
+
+                // сообщение адресуется корневому окну: разворачивает не мы,
+                // а оконный менеджер, и слушает он именно корень
+                nuint root = X11.XRootWindow(_display, X11.XDefaultScreen(_display));
+
+                X11.XSendEvent(_display, root, false,
+                    X11.SubstructureNotifyMask | X11.SubstructureRedirectMask, buffer);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
     }
 
     private readonly Dictionary<CursorKind, nuint> _cursorCache = [];

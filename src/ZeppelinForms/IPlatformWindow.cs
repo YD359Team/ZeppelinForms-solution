@@ -24,4 +24,7 @@ public interface IPlatformWindow
     /// платформенного приёмника стоит недёшево, поэтому включается по запросу,
     /// а не всегда.</summary>
     void SetDragDropEnabled(bool enabled);
+    /// <summary>Поддерживает ли окружение прозрачность окна. На Windows
+    /// всегда true, на Linux зависит от наличия композитора.</summary>
+    bool SupportsTransparency { get; }
 }

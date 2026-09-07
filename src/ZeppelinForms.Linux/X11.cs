@@ -7,6 +7,18 @@ internal static class X11
 {
     private const string Lib = "libX11.so.6";
 
+    // управление состоянием окна через менеджер: свои свойства мы менять
+    // не вправе, о желаемом состоянии сообщаем сообщением
+    public const int NetWmStateRemove = 0;
+    public const int NetWmStateAdd = 1;
+
+    public const nuint XA_CARDINAL = 6;
+
+    public const long SubstructureNotifyMask = 1L << 19;
+    public const long SubstructureRedirectMask = 1L << 20;
+
+    [DllImport(Lib)] public static extern int XIconifyWindow(nint display, nuint window, int screen);
+
     [DllImport(Lib)]
     public static extern int XTranslateCoordinates(
       nint display, nuint srcWindow, nuint destWindow,

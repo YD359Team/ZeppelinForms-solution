@@ -25,6 +25,8 @@ public sealed class HeadlessWindow : IPlatformWindow
 
     public Rectangle? LastInvalidatedRect { get; private set; }
 
+    public bool SupportsTransparency => true;
+
     internal HeadlessWindow(HeadlessPlatform platform, Form form)
     {
         _platform = platform;
