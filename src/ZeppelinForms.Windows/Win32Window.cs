@@ -796,14 +796,30 @@ internal sealed class Win32Window : IPlatformWindow
 
         if (enabled)
         {
-            // OLE нужен именно в UI-потоке и именно до RegisterDragDrop
-            Ole32.OleInitialize(0);
+            int ole = Ole32.OleInitialize(0);
+
+            // RPC_E_CHANGED_MODE: поток в MTA. Чаще всего это забытый
+            // [STAThread] на Main — и без него перетаскивание невозможно
+            if (ole == unchecked((int)0x80010106))
+                throw new InvalidOperationException(
+                    "Перетаскивание из системы требует STA-потока. " +
+                    "Поставьте [STAThread] на метод Main.");
+
+            var target = new Win32DropTarget(_form, ToClient);
+
+            int result = Ole32.RegisterDragDrop(_handle, target);
+
+            if (result != 0)
+            {
+                Ole32.OleUninitialize();
+
+                throw new InvalidOperationException(
+                    $"RegisterDragDrop вернул 0x{result:X8}.");
+            }
 
             // ссылку держим полем: RegisterDragDrop не удерживает
-            // управляемый объект от сборки, и без этого система рано или
-            // поздно обратится по освобождённой памяти
-            _dropTarget = new Win32DropTarget(_form, ToClient);
-            Ole32.RegisterDragDrop(_handle, _dropTarget);
+            // управляемый объект от сборки
+            _dropTarget = target;
 
             return;
         }

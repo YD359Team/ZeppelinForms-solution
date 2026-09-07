@@ -6,6 +6,7 @@ namespace ZF_Win;
 
 public class Program
 {
+    [STAThread]
     static void Main()
     {
         WindowsPlatform windowsPlatform = new();
