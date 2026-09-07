@@ -116,6 +116,21 @@ public class PageControl : DecoratedPanel
 
         Page? previous = _current;
 
+        bool canAnimate = transition != PageTransition.None
+            && TransitionDurationMs > 0
+            && previous is not null
+            && FindOwner()?.PlatformWindow is not null;
+
+        // состояние перехода — до IsVisible: его сеттер запускает
+        // раскладку синхронно, и она обязана уже знать про смещения,
+        // иначе обе страницы окажутся в одном слоте на один кадр
+        if (canAnimate)
+        {
+            _outgoing = previous;
+            _progress = 0f;
+            _activeTransition = transition;
+        }
+
         previous?.RaiseDisappearing();
 
         _current = target;
@@ -123,13 +138,6 @@ public class PageControl : DecoratedPanel
         target.IsVisible = true;
 
         Navigated?.Invoke(this, target);
-
-        // без окна тик кадра не идёт: анимация не завершится
-        // и уходящая страница останется висеть поверх новой
-        bool canAnimate = transition != PageTransition.None
-            && TransitionDurationMs > 0
-            && previous is not null
-            && FindOwner()?.PlatformWindow is not null;
 
         if (!canAnimate)
         {

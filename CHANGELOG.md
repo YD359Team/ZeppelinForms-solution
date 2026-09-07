@@ -3,6 +3,9 @@
 ## Feature [0.9.0]
 IDK
 
+## [0.8.1]
+- Fix `PageControl` glitch
+
 ## [0.8.0]
 
 ### Breaking changes
@@ -38,6 +41,7 @@ IDK
 - Add `PanelControl.ScrollBarMode`
 - Add gradient background support
 - `SplitButton` change button text when value selected
+- Add multiselect for `ListBox`
 
 ### New controls
 - Add `Loader`
