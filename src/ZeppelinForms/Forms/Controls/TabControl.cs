@@ -285,9 +285,9 @@ public partial class TabControl : DecoratedPanel, IInputElement
 
     /// <summary>Вкладка выбирается по нажатию: содержимое заголовка
     /// не должно перехватывать переключение.</summary>
-    protected override void OnPreviewMouseDown(Point location)
+    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
-        int index = IndexFromPoint(location);
+        int index = IndexFromPoint(e.Location);
 
         if (index >= 0 && Tabs[index].IsEnabled)
             SelectedIndex = index;

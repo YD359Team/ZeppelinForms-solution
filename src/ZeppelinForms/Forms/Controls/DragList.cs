@@ -143,14 +143,14 @@ public partial class DragList : ItemsControl
 
     /// <summary>Нажатие ловим предпросмотром: попадание достаётся строке,
     /// а список должен узнать о нажатии раньше неё.</summary>
-    protected override void OnPreviewMouseDown(Point location)
+    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
         if (!CanSendItem || Children.Count == 0) return;
 
-        int index = IndexAt(ToLocal(location));
+        int index = IndexAt(ToLocal(e.Location));
         if (index < 0) return;
 
-        _pressOrigin = location;
+        _pressOrigin = e.Location;
         _pressIndex = index;
         _dragging = false;
 

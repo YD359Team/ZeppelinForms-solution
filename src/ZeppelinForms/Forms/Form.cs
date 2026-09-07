@@ -244,6 +244,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             }
         }
 
+        var downArgs = new MouseButtonEventArgs(button, MouseButtonState.Down, point, modifiers);
+
         if (hit is not null)
         {
             List<UIElement> chain = [];
@@ -254,13 +256,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             chain.Reverse();
 
             foreach (UIElement element in chain)
-                element.RaisePreviewMouseDown(point);
+                element.RaisePreviewMouseDown(downArgs);
         }
 
         if (button == MouseButton.Left)
             _pressedElement = hit;
 
-        hit?.RaiseMouseDown(new MouseButtonEventArgs(button, MouseButtonState.Down, point, modifiers));
+        hit?.RaiseMouseDown(downArgs);
 
         if (button == MouseButton.Left && hit is not null)
             _focusDispatcher.FocusElement(hit);

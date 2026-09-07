@@ -174,7 +174,9 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     protected virtual void OnRightClick(MouseClickEventArgs e) { }
     protected virtual void OnMiddleClick(MouseClickEventArgs e) { }
     protected virtual void OnMouseWheel(MouseWheelEventArgs e) { }
-    protected virtual void OnPreviewMouseDown(Point location) { }
+    /// <summary>Нажатие ещё до того, как оно дойдёт до попавшего элемента.
+    /// Вызывается от корня к нему, поэтому предок может вмешаться раньше.</summary>
+    protected virtual void OnPreviewMouseDown(MouseButtonEventArgs e) { }
     protected virtual void OnPreviewKeyDown(KeyEventArgs e) { }
     protected virtual void OnKeyUp(KeyEventArgs e) { }
     protected virtual void OnTextInput(char c) { }
@@ -813,7 +815,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     internal void RaiseGotFocus() => OnGotFocus();
     internal void RaiseLostFocus() => OnLostFocus();
 
-    internal void RaisePreviewMouseDown(Point location) => OnPreviewMouseDown(location);
+    internal void RaisePreviewMouseDown(MouseButtonEventArgs e) => OnPreviewMouseDown(e);
 
     internal void RaisePreviewKeyDown(KeyEventArgs e)
     {
