@@ -24,6 +24,7 @@
 - Fix `PageControl` can showing ghost pages over current page
 - Fix mouse capture
 - Fix `GradientBorder` filled all background by default
+- Fix `SplitButton` width changed when value selected
 - CI: Add flag  `--output Detailed`
 
 ### Features
@@ -33,10 +34,13 @@
 - Add animation extensions `AnimateLoop` and `StopAnimation` 
 - Add `PanelControl.ScrollBarMode`
 - Add gradient background support
+- `SplitButton` change button text when value selected
 
 ### New controls
 - Add `Loader`
 - Add `WrapPanel`
+- Add `Table`
+- Add `AttachButton`
 
 ### Examples
 - Now `MapControl` moved to single page
