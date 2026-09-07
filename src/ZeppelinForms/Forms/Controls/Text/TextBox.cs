@@ -253,16 +253,16 @@ public partial class TextBox : TextInputControl, ITextElement
                 else _document.SetCaret(_document.Text.Length, shift);
                 break;
 
-            case (Key)0x41 when ctrl:   // Ctrl+A
+            case Key.A when ctrl:
                 _document.SelectAll();
                 break;
 
-            case (Key)0x43 when ctrl:   // Ctrl+C
+            case Key.C when ctrl:
                 if (_document.SelectionLength > 0 && PasswordChar is null)
                     Clipboard.Current.SetText(_document.SelectedText);
                 break;
 
-            case (Key)0x58 when ctrl && !IsReadOnly:   // Ctrl+X
+            case Key.X when ctrl && !IsReadOnly:
                 if (_document.SelectionLength > 0 && PasswordChar is null)
                 {
                     Clipboard.Current.SetText(_document.SelectedText);
@@ -270,24 +270,19 @@ public partial class TextBox : TextInputControl, ITextElement
                 }
                 break;
 
-            case (Key)0x56 when ctrl && !IsReadOnly:   // Ctrl+V
-                if (Clipboard.Current.GetText() is string pasted)
-                {
-                    string clean = IsMultiline
-                        ? pasted.Replace("\r\n", "\n").Replace('\r', '\n')
-                        : pasted.Replace("\r", "").Replace("\n", " ");
-
-                    _document.Insert(clean);
-                }
+            case Key.V when ctrl && !IsReadOnly:
+                // ... тело без изменений
                 break;
 
-            case (Key)0x5A when ctrl && !shift && !IsReadOnly:   // Ctrl+Z
+            case Key.Z when ctrl && !shift && !IsReadOnly:
                 _document.Undo();
                 break;
 
-            case (Key)0x59 when ctrl && !IsReadOnly:            // Ctrl+Y
-            case (Key)0x5A when ctrl && shift && !IsReadOnly:   // Ctrl+Shift+Z
+            case Key.Y when ctrl && !IsReadOnly:
                 _document.Redo();
+                break;
+            case Key.Z when ctrl && shift && !IsReadOnly:
+                _document.Undo();
                 break;
 
             default:

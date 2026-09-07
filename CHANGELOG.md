@@ -7,6 +7,7 @@
 
 ### Features
 - Add `IAnimation.Cancel(bool)`
+- Add all keys 
 
 ## [0.8.1]
 - Fix `PageControl` glitch
