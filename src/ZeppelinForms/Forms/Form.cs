@@ -26,7 +26,19 @@ public class Form : IDisposable
     public event EventHandler<UIElement>? FlyoutClosed;
     public event EventHandler? Shown;
 
-    internal IPlatformWindow? PlatformWindow { get; set; }
+    internal IPlatformWindow? PlatformWindow
+    {
+        get;
+        set
+        {
+            field = value;
+
+            // окно только что появилось: если приём перетаскивания включили
+            // до показа, платформа об этом ещё не знает
+            if (value is not null && AllowDrop)
+                value.SetDragDropEnabled(true);
+        }
+    }
 
     public WindowStartupLocation WindowStartupLocation { get; set; }
 
@@ -865,9 +877,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         Platform = platform;
         platform.CreateWindow(this);
-
-        // AllowDrop могли выставить до показа, когда PlatformWindow был null
-        if (AllowDrop) PlatformWindow?.SetDragDropEnabled(true);
 
         _dialogAccepted = false;
         _dialogValue = null;
