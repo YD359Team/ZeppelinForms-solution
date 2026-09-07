@@ -1,10 +1,24 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
+using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Linux;
 
 internal static class X11
 {
     private const string Lib = "libX11.so.6";
+
+    // режимы захвата и специальные значения
+    public const int GrabModeSync = 0;
+    public const int GrabModeAsync = 1;
+
+    public const int GrabSuccess = 0;
+
+    /// <summary>CurrentTime: сервер подставит своё текущее время.</summary>
+    public const nint CurrentTime = 0;
+
+    /// <summary>None: «курсор не менять», «окно не задано».</summary>
+    public const nint NoneHandle = 0;
 
     // маски событий
     public const long KeyPressMask = 1L << 0;
@@ -323,6 +337,19 @@ internal static class X11
     nint display, nint window, bool ownerEvents, long eventMask,
     int pointerMode, int keyboardMode, nint confineTo, nint cursor, nint time);
 
-    [DllImport("libX11.so.6")]
+
+    [DllImport(Lib)]
+    public static extern int XGrabPointer(
+    nint display,
+    nuint window,
+    bool ownerEvents,
+    long eventMask,
+    int pointerMode,
+    int keyboardMode,
+    nuint confineTo,
+    nuint cursor,
+    nint time);
+
+    [DllImport(Lib)]
     public static extern int XUngrabPointer(nint display, nint time);
 }

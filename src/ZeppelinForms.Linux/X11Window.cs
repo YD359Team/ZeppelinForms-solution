@@ -1,5 +1,6 @@
 ﻿using SkiaSharp;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
@@ -209,12 +210,26 @@ internal sealed class X11Window : IPlatformWindow
 
     internal void RaiseTick() => _form.Tick();
 
-    public void CaptureMouse() =>
-    X11.XGrabPointer(_display, _window, false,
-        EventMaskButtonRelease | EventMaskButtonPress | EventMaskPointerMotion,
-        GrabModeAsync, GrabModeAsync, 0, 0, 0);
-
-    public void ReleaseMouseCapture() => X11.XUngrabPointer(_display, 0);
-
     internal Form Form => _form;
+
+    public void CaptureMouse()
+    {
+        int result = X11.XGrabPointer(
+            _display,
+            (nint)_window,
+            ownerEvents: false,
+            X11.ButtonPressMask | X11.ButtonReleaseMask | X11.PointerMotionMask,
+            X11.GrabModeAsync,
+            X11.GrabModeAsync,
+            confineTo: X11.NoneHandle,
+            cursor: X11.NoneHandle,
+            X11.CurrentTime);
+
+        // захват может быть уже занят другим клиентом — например, открытым
+        // меню оконного менеджера. Тогда перетаскивание пойдёт как раньше:
+        // до выхода курсора за окно оно работает, дальше кнопка залипнет
+        Debug.Assert(result == X11.GrabSuccess, $"XGrabPointer вернул {result}");
+    }
+
+    public void ReleaseMouseCapture() => X11.XUngrabPointer(_display, X11.CurrentTime);
 }
