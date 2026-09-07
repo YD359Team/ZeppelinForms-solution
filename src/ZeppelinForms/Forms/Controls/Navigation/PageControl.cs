@@ -97,17 +97,17 @@ public class PageControl : DecoratedPanel
     /// страница иначе осталась бы видимой и сдвинутой навсегда.</summary>
     private void FinishTransition()
     {
-        if (_outgoing is null) return;
+        if (_outgoing is not Page outgoing) return;
 
-        this.StopAnimation("page");
-
-        Page outgoing = _outgoing;
-
-        // сбрасываем состояние перехода прежде, чем менять видимость:
-        // её сеттер вызовет раскладку, и та не должна снова двигать страницы
+        // состояние сбрасываем первым делом: StopAnimation вызовет Cancel,
+        // тот — completed, а он снова зайдёт сюда. Обнулённое _outgoing
+        // обрывает повторный вход на первой строке, а захваченная
+        // сопоставлением ссылка от этого не страдает
         _outgoing = null;
         _progress = 1f;
         _activeTransition = PageTransition.None;
+
+        this.StopAnimation("page");
 
         outgoing.IsVisible = false;
         outgoing.Opacity = 1f;
