@@ -209,49 +209,51 @@ internal sealed class FileDialogForm : Form
     /// <summary>Двойной клик или кнопка: в папку — войти, файл — вернуть.</summary>
     private void Activate()
     {
-        if (_list.SelectedIndex >= 0 && _list.SelectedIndex < _entries.Count)
-        {
-            Entry entry = _entries[_list.SelectedIndex];
+        Entry? current = _list.SelectedIndex >= 0 && _list.SelectedIndex < _entries.Count
+            ? _entries[_list.SelectedIndex]
+            : null;
 
-            if (entry.IsDirectory && _mode != FileDialogMode.Folder)
-            {
-                Navigate(entry.Path);
-                return;
-            }
-
-            if (_mode == FileDialogMode.Folder)
-            {
-                Accept(new[] { entry.IsDirectory ? entry.Path : _directory });
-                return;
-            }
-        }
-
+        // выбор папки: берём выделенную, а если ничего не выделено — текущую
         if (_mode == FileDialogMode.Folder)
         {
-            Accept(new[] { _directory });
+            Accept(new[] { current?.Path ?? _directory });
             return;
+        }
+
+        // вход в папку важнее всего остального: двойной клик по ней
+        // не должен пытаться что-то вернуть
+        if (current is { IsDirectory: true } directory)
+        {
+            Navigate(directory.Path);
+            return;
+        }
+
+        // несколько файлов проверяем до работы с _name: там лежит только
+        // последний выбранный, и к остальным он отношения не имеет
+        if (_mode == FileDialogMode.Open && _options.AllowMultiple)
+        {
+            string[] files = [.. _list.SelectedIndices
+                .Where(i => i < _entries.Count && !_entries[i].IsDirectory)
+                .Select(i => _entries[i].Path)];
+
+            if (files.Length > 1)
+            {
+                Accept(files);
+                return;
+            }
         }
 
         if (_name.Text is not { Length: > 0 } name) return;
 
         string full = Path.Combine(_directory, name);
 
-        // открывать несуществующее нечего, а сохранять — как раз обычный случай
+        // открывать несуществующее нечего, а сохранять — обычный случай
         if (_mode == FileDialogMode.Open && !File.Exists(full)) return;
 
         if (_mode == FileDialogMode.Save && File.Exists(full) &&
             !MessageBox.Confirm(this, $"Файл «{name}» уже есть. Заменить?"))
             return;
 
-        if (_mode == FileDialogMode.Open && _options.AllowMultiple && _list.SelectedIndices.Count > 1)
-        {
-            string[] files = [.. _list.SelectedIndices
-                .Where(i => i < _entries.Count && !_entries[i].IsDirectory)
-                .Select(i => _entries[i].Path)];
-
-            if (files.Length > 0) Accept(files);
-
-            return;
-        }
+        Accept(new[] { full });
     }
 }
