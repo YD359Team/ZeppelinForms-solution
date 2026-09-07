@@ -34,4 +34,6 @@ public enum Key : int
     Back = 0x08,
     Home = 0x24,
     End = 0x23,
+
+    A = 0x41,
 }

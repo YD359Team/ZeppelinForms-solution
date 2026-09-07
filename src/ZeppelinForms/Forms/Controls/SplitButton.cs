@@ -29,6 +29,43 @@ public partial class SplitButton : ButtonBase
     public partial Color SeparatorColor { get; set; }
     private static Color SeparatorColorDefault => new(120, 255, 255, 255);
 
+    /// <summary>Заменять подпись на выбранный пункт. Выключено —
+    /// кнопка всегда показывает Text, как обычная кнопка с меню.</summary>
+    [Styled(Category = "Button", AffectsLayout = true)]
+    public partial bool ShowSelectedItem { get; set; }
+
+    private static bool ShowSelectedItemDefault => true;
+
+    /// <summary>Держать ширину по самому длинному пункту меню, а не по
+    /// текущей подписи. Иначе кнопка прыгает при каждом выборе — это
+    /// главная неприятность подхода с заменой текста.</summary>
+    [Styled(Category = "Button", AffectsLayout = true)]
+    public partial bool StableWidth { get; set; }
+
+    private static bool StableWidthDefault => true;
+
+    /// <summary>Последний выбранный пункт. Его же повторяет
+    /// <see cref="RepeatLastAction"/>, и его подпись видна на кнопке.</summary>
+    public MenuItem? SelectedItem
+    {
+        get => _lastInvoked;
+        set
+        {
+            if (ReferenceEquals(_lastInvoked, value)) return;
+
+            _lastInvoked = value;
+
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+            Invalidate();
+        }
+    }
+
+    public event EventHandler? SelectionChanged;
+
+    /// <summary>Что реально написано на кнопке.</summary>
+    private string? DisplayText =>
+        ShowSelectedItem && _lastInvoked?.Text is { Length: > 0 } header ? header : Text;
+
     public bool IsMenuOpen => _flyout.IsOpen;
 
     public SplitButton()
@@ -69,7 +106,7 @@ public partial class SplitButton : ButtonBase
             new Point(separatorX, ActualSize.Height - 4f),
             SeparatorColor, 1f);
 
-        if (!string.IsNullOrEmpty(Text))
+        if (DisplayText is { Length: > 0 } caption)
         {
             var textRect = new Rectangle(
                 new Point(Padding.Left, Padding.Top),
@@ -77,7 +114,7 @@ public partial class SplitButton : ButtonBase
                     Math.Max(0, ActualSize.Width - ArrowZoneWidth - Padding.Horizontal),
                     Math.Max(0, ActualSize.Height - Padding.Vertical)));
 
-            g.DrawText(Text, textRect, CurrentTextColor, EffectiveFont,
+            g.DrawText(caption, textRect, CurrentTextColor, EffectiveFont,
                 HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
         }
 
@@ -148,7 +185,7 @@ public partial class SplitButton : ButtonBase
 
         menu.ItemInvoked += (_, item) =>
         {
-            _lastInvoked = item;
+            SelectedItem = item;
             _flyout.Close();
         };
 
@@ -178,14 +215,36 @@ public partial class SplitButton : ButtonBase
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = string.IsNullOrEmpty(Text)
-            ? Size.Empty
-            : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
+        Size content = StableWidth ? WidestCaption() : Measure(DisplayText);
 
         return ResolveSize(
             new Size(
-                textSize.Width + ArrowZoneWidth + Padding.Horizontal,
-                textSize.Height + Padding.Vertical),
+                content.Width + ArrowZoneWidth + Padding.Horizontal,
+                content.Height + Padding.Vertical),
             availableSize);
+    }
+
+    private Size Measure(string? text) => string.IsNullOrEmpty(text)
+        ? Size.Empty
+        : TextMeasurer.Current.MeasureText(text, EffectiveFont);
+
+    /// <summary>Самая широкая из возможных подписей: начальная и все пункты
+    /// меню. Так ширина кнопки не меняется при выборе.</summary>
+    private Size WidestCaption()
+    {
+        Size widest = Measure(Text);
+
+        if (!ShowSelectedItem) return widest;
+
+        foreach (MenuItem item in Items)
+        {
+            Size size = Measure(item.Text);
+
+            widest = new Size(
+                Math.Max(widest.Width, size.Width),
+                Math.Max(widest.Height, size.Height));
+        }
+
+        return widest;
     }
 }
