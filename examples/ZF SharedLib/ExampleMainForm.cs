@@ -76,7 +76,10 @@ public class ExampleMainForm : Form
             Spacing = 6,
         };
         stackPanel.Children.AddRange([lbl, btn]);
-        return new GradientBorder(stackPanel) { Stops = [new(MediaColors.DotnetModern, 0), new(MediaColors.Dotnet, 1)], BorderWidth = 2f  };
+        return new GradientBorder(stackPanel) 
+        { 
+            Stops = [new(MediaColors.DotnetModern, 0), new(MediaColors.Dotnet, 1)], BorderWidth = 2f  
+        };
     }
 
     private void OpenGitHub()

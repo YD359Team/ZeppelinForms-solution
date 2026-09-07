@@ -214,6 +214,8 @@ public static class Themes
                 border.Background = c.Surface;
             })
 
+            .For<GradientBorder>((border, c) => border.Background = c.Surface)
+
             .For<GroupBox>((box, c) =>
             {
                 box.Background = Colors.Transparent;
