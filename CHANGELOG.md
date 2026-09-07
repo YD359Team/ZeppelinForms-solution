@@ -27,6 +27,7 @@
 - CI: Add flag  `--output Detailed`
 
 ### Features
+- Add managed file dialogs
 - Add `Image.LoadFromUriAsync`
 - Add `LoopAnimation` class
 - Add animation extensions `AnimateLoop` and `StopAnimation` 
