@@ -317,4 +317,12 @@ internal static class X11
         public int npossible;
         public nint possible;
     }
+
+    [DllImport("libX11.so.6")]
+    public static extern int XGrabPointer(
+    nint display, nint window, bool ownerEvents, long eventMask,
+    int pointerMode, int keyboardMode, nint confineTo, nint cursor, nint time);
+
+    [DllImport("libX11.so.6")]
+    public static extern int XUngrabPointer(nint display, nint time);
 }

@@ -41,6 +41,7 @@ public class ExampleMainForm : Form
         root.AddPage("map", () => GetView4(), "Map");
         root.AddPage("effects", () => GetView5(), "Effects");
         root.AddPage("loader", () => GetView6(), "Loader");
+        root.AddPage("dnd", () => GetView7(), "Drag&Drop");
         return new DockPanel
         {
             Children =
@@ -414,6 +415,101 @@ public class ExampleMainForm : Form
         grid.Children.Add(TransformCard(), 1, 1);
 
         return grid;
+    }
+
+    private UIElement GetView7()
+    {
+        Label log = new()
+        {
+            Text = "Перетащи карточку внутри списка или в соседний",
+            Margin = new Thickness(4, 8),
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+
+        DragList backlog = Column("tasks");
+        backlog.Items.AddRange<object>([
+            Card("Смигрировать Calendar"),
+            Card("Дописать README"),
+            Card("WrapPanel"),
+            Card("Table"),
+        ]);
+
+        DragList progress = Column("tasks");
+        progress.Items.Add(Card("Drag&Drop"));
+
+        // предел незавершённой работы — ровно тот случай,
+        // ради которого в DragList есть ReceivePredicate
+        progress.ReceivePredicate = (_, _) => progress.Items.Count < 3;
+
+        // из готового обратно не забрать: CanSendItem гасит захват на нажатии
+        DragList done = Column("tasks");
+        done.CanSendItem = false;
+        done.Items.Add(Card("StyledProperty"));
+
+        // другая группа: сюда из "tasks" уронить нельзя, хотя список рядом
+        DragList notes = Column("notes");
+        notes.Items.AddRange<object>([
+            Card("Проверить XDND"),
+            Card("Спросить про кисти"),
+        ]);
+
+        foreach (DragList list in (DragList[])[backlog, progress, done, notes])
+        {
+            list.ItemSent += (_, args) =>
+                log.Text = ReferenceEquals(args.Source, args.Target)
+                    ? $"переставлено: {args.SourceIndex} → {args.TargetIndex}"
+                    : "карточка ушла из списка";
+
+            list.ItemReceived += (_, args) => log.Text = $"принято на позицию {args.TargetIndex}";
+        }
+
+        Grid grid = new()
+        {
+            Columns = "*,*,*,*",
+            Rows = "Auto,*,Auto",
+            Padding = new Thickness(8),
+        };
+
+        grid.Children.Add(Header("Backlog"), 0, 0);
+        grid.Children.Add(Header("In progress (макс. 3)"), 0, 1);
+        grid.Children.Add(Header("Done (только приём)"), 0, 2);
+        grid.Children.Add(Header("Notes (другая группа)"), 0, 3);
+
+        grid.Children.Add(backlog, 1, 0);
+        grid.Children.Add(progress, 1, 1);
+        grid.Children.Add(done, 1, 2);
+        grid.Children.Add(notes, 1, 3);
+
+        log.Row = 2;
+        log.ColumnSpan = 4;
+        grid.Children.Add(log);
+
+        return grid;
+
+        // карточка сама становится контейнером строки: ItemsControl
+        // оборачивает в Label только те данные, что не являются UIElement
+        static UIElement Card(string text) => new Border
+        {
+            CornerRadius = new CornerRadius(4f),
+            BorderWidth = 1f,
+            Padding = new Thickness(10, 8),
+            Margin = new Thickness(0, 0, 0, 6),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Child = new Label { Text = text },
+        };
+
+        static DragList Column(string group) => new()
+        {
+            Group = group,
+            Padding = new Thickness(6),
+            OverflowY = Overflow.Auto,
+            Margin = new Thickness(4),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        };
+
+        static UIElement Header(string text) =>
+            new Label { Text = text, Margin = new Thickness(4) };
     }
 
     /// <summary>Матовое стекло. Фон обязан быть прозрачным, иначе

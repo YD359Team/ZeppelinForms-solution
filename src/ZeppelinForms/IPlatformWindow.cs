@@ -16,4 +16,8 @@ public interface IPlatformWindow
     void StartTicking(int intervalMs);
     void StopTicking();
     void SetCursor(CursorKind cursor);
+    /// <summary>Забрать сообщения мыши себе, даже когда курсор ушёл за окно.
+    /// Без этого отпускание кнопки снаружи до окна не доходит.</summary>
+    void CaptureMouse();
+    void ReleaseMouseCapture();
 }

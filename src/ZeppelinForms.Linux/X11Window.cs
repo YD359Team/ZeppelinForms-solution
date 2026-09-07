@@ -209,5 +209,12 @@ internal sealed class X11Window : IPlatformWindow
 
     internal void RaiseTick() => _form.Tick();
 
+    public void CaptureMouse() =>
+    X11.XGrabPointer(_display, _window, false,
+        EventMaskButtonRelease | EventMaskButtonPress | EventMaskPointerMotion,
+        GrabModeAsync, GrabModeAsync, 0, 0, 0);
+
+    public void ReleaseMouseCapture() => X11.XUngrabPointer(_display, 0);
+
     internal Form Form => _form;
 }

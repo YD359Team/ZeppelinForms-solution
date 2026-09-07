@@ -281,7 +281,11 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             if (_mouseCapture is not null && !ReferenceEquals(_mouseCapture, _pressedElement))
                 _mouseCapture.RaiseMouseUp(upArgs);
 
-            _mouseCapture = null;
+            if (_mouseCapture is not null)
+            {
+                _mouseCapture = null;
+                PlatformWindow?.ReleaseMouseCapture();
+            }
 
             // клик = нажатие и отпускание на одном элементе
             if (hit is not null && ReferenceEquals(hit, _pressedElement))
@@ -330,12 +334,39 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     /// <summary>Забрать себе движения мыши до отпускания кнопки.
     /// Нажатие остаётся у того, на кого попали, поэтому клик по потомку
     /// захватившего элемента продолжает работать как обычно.</summary>
-    internal void CaptureMouse(UIElement element) => _mouseCapture = element;
+    internal void CaptureMouse(UIElement element)
+    {
+        if (ReferenceEquals(_mouseCapture, element)) return;
+
+        _mouseCapture = element;
+        PlatformWindow?.CaptureMouse();
+    }
 
     internal void ReleaseMouseCapture(UIElement element)
     {
-        if (ReferenceEquals(_mouseCapture, element))
-            _mouseCapture = null;
+        if (!ReferenceEquals(_mouseCapture, element)) return;
+
+        _mouseCapture = null;
+        PlatformWindow?.ReleaseMouseCapture();
+    }
+
+    /// <summary>Захват отобрала система. Своё состояние сбрасываем как при
+    /// отпускании кнопки, иначе перетаскивание не завершится никогда.</summary>
+    internal void OnCaptureLost()
+    {
+        UIElement? captured = _mouseCapture;
+        UIElement? pressed = _pressedElement;
+
+        _mouseCapture = null;
+        _pressedElement = null;
+
+        var args = new MouseButtonEventArgs(
+            MouseButton.Left, MouseButtonState.Up, _lastPointerPosition, KeyModifiers.None);
+
+        pressed?.RaiseMouseUp(args);
+
+        if (captured is not null && !ReferenceEquals(captured, pressed))
+            captured.RaiseMouseUp(args);
     }
 
     internal void OnKeyDown(Key key, KeyModifiers modifiers)

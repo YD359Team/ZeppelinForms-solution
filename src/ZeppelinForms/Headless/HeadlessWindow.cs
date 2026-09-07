@@ -77,4 +77,8 @@ public sealed class HeadlessWindow : IPlatformWindow
         _form.ClientSize = new Size(width, height);
         _form.PerformLayout();
     }
+
+    public void CaptureMouse() { }
+
+    public void ReleaseMouseCapture() { }
 }

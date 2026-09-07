@@ -2,6 +2,7 @@
 
 internal static class NativeConstants
 {
+    public const uint WM_CAPTURECHANGED = 0x0215;
     public const uint WM_KEYUP = 0x0101;
     public const uint WM_MBUTTONDOWN = 0x0207;
     public const uint WM_MBUTTONUP = 0x0208;

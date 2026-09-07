@@ -339,6 +339,12 @@ internal sealed class Win32Window : IPlatformWindow
     {
         switch (message)
         {
+            case NativeConstants.WM_CAPTURECHANGED:
+                // захват отобрали извне: своё состояние надо сбросить,
+                // иначе перетаскивание останется висеть
+                _form.OnCaptureLost();
+                return 0;
+
             case NativeConstants.WM_LBUTTONDOWN:
                 _form.OnPointerDown(PointFromLParam(lParam), MouseButton.Left, GetModifiers());
                 return 0;
@@ -748,4 +754,8 @@ internal sealed class Win32Window : IPlatformWindow
 
         return new Point(x / _scale, y / _scale);
     }
+
+    public void CaptureMouse() => NativeMethods.SetCapture(_handle);
+
+    public void ReleaseMouseCapture() => NativeMethods.ReleaseCapture();
 }
