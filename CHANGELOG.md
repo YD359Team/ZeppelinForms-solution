@@ -1,7 +1,12 @@
 # Changes
 
 ## Feature [0.9.0]
-IDK
+
+### Fixes
+- Fix `PageControl` page transition
+
+### Features
+- Add `IAnimation.Cancel(bool)`
 
 ## [0.8.1]
 - Fix `PageControl` glitch

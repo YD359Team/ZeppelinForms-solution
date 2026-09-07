@@ -35,4 +35,8 @@ public sealed class LoopAnimation : IAnimation
 
         return true;
     }
+
+    /// <summary>У бесконечной анимации нет конечного значения и нет
+    /// обработчика завершения — снятие для неё просто остановка.</summary>
+    public void Cancel(bool applyFinalValue) { }
 }

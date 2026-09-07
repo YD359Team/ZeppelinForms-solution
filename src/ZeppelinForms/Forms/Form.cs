@@ -521,7 +521,19 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         InspectedElement = null;
         _toolTipOwner = null;
 
-        _animations.RemoveAll(a => a.Target is UIElement e && IsInTree(root, e));
+        for (int i = _animations.Count - 1; i >= 0; i--)
+        {
+            if (_animations[i].Target is not UIElement element || !IsInTree(root, element))
+                continue;
+
+            IAnimation animation = _animations[i];
+            _animations.RemoveAt(i);
+
+            // цель уходит из дерева: ни значение доводить, ни completed
+            // звать не нужно — приводить в порядок больше нечего
+            animation.Cancel(applyFinalValue: false);
+        }
+
         if (_animations.Count == 0)
             PlatformWindow?.StopTicking();
     }
@@ -618,8 +630,25 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     internal void AddAnimation(IAnimation animation)
     {
-        // одна анимация на связку «объект + свойство»
-        _animations.RemoveAll(a => ReferenceEquals(a.Target, animation.Target) && a.Key == animation.Key);
+        // одна анимация на связку «объект + свойство».
+        // Вытесняемую снимаем с вызовом её completed, иначе состояние,
+        // которое она должна была привести в порядок, останется в середине —
+        // именно из-за этого PageControl оставлял страницы висеть
+        for (int i = _animations.Count - 1; i >= 0; i--)
+        {
+            IAnimation existing = _animations[i];
+
+            if (!ReferenceEquals(existing.Target, animation.Target) ||
+                existing.Key != animation.Key)
+                continue;
+
+            _animations.RemoveAt(i);
+
+            // без доведения значения: новая анимация начнёт со своего from,
+            // и прыжок в конец дал бы мелькание
+            existing.Cancel(applyFinalValue: false);
+        }
+
         _animations.Add(animation);
 
         if (_animations.Count == 1)
@@ -631,9 +660,17 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     internal void RemoveAnimation(object target, string key)
     {
-        _animations.RemoveAll(a => ReferenceEquals(a.Target, target) && a.Key == key);
+        for (int i = _animations.Count - 1; i >= 0; i--)
+        {
+            IAnimation existing = _animations[i];
 
-        // последняя ушла — тикать больше незачем
+            if (!ReferenceEquals(existing.Target, target) || existing.Key != key)
+                continue;
+
+            _animations.RemoveAt(i);
+            existing.Cancel(applyFinalValue: false);
+        }
+
         if (_animations.Count == 0)
             PlatformWindow?.StopTicking();
     }

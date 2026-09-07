@@ -52,4 +52,15 @@ public sealed class Animation<T> : IAnimation
         _completed?.Invoke();
         return false;
     }
+
+    public void Cancel(bool applyFinalValue)
+    {
+        if (applyFinalValue)
+            _apply(_to);
+
+        // completed вызываем всегда: он не про значение, а про состояние —
+        // спрятать уходящую страницу, снять флаг, вернуть фокус. Без него
+        // тот, кто запускал анимацию, останется на полпути навсегда
+        _completed?.Invoke();
+    }
 }
