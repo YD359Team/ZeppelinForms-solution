@@ -13,6 +13,7 @@ using ZeppelinForms.Forms.Controls.Navigation;
 using ZeppelinForms.Forms.Controls.Shapes;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.DragDrop;
 
 namespace ZF_SharedLib;
 
@@ -28,6 +29,7 @@ public class ExampleMainForm : Form
         this.Title = "Form 1";
         this.Size = new Size(1024, 768);
         this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        this.AllowDrop = true;
 
         this.Content = GetView();
     }
@@ -43,6 +45,7 @@ public class ExampleMainForm : Form
         root.AddPage("loader", () => GetView6(), "Loader");
         root.AddPage("dnd", () => GetView7(), "Drag&Drop");
         root.AddPage("table", () => GetView8(), "Table");
+        root.AddPage("sysdnd", () => GetView9(), "System Drag&Drop");
         return new DockPanel
         {
             Children =
@@ -528,6 +531,79 @@ public class ExampleMainForm : Form
         table.AddRow("4", "Juice", "2$");
         table.AddRow("5", "Cola", "1$");
         return table;
+    }
+
+    private UIElement GetView9()
+    {
+        Label hint = new()
+        {
+            Text = "Брось сюда файлы из проводника",
+            HorizontalContentAlign = HorizontalContentAlignment.Center,
+            VerticalContentAlign = VerticalContentAlignment.Center,
+        };
+
+        ListBox dropped = new()
+        {
+            OverflowY = Overflow.Auto,
+            SelectionMode = SelectionMode.Extended,
+            Margin = new Thickness(0, 8, 0, 0),
+        };
+
+        Border zone = new()
+        {
+            AllowDrop = true,
+            BorderWidth = 2f,
+            CornerRadius = new CornerRadius(8f),
+            Padding = new Thickness(24),
+            Size = new Size(float.NaN, 120),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Child = hint,
+        };
+
+        // цвет рамки в покое запомним: тема задаст его при добавлении в форму,
+        // так что снимать значение надо позже, в первом DragEnter
+        Color idleBorder = Colors.Transparent;
+
+        zone.DragEnter += (_, args) =>
+        {
+            if (idleBorder.A == 0) idleBorder = zone.BorderColor;
+
+            // эффект обязателен: без него источник покажет «нельзя»
+            // и до Drop дело не дойдёт
+            args.Effect = args.Data.HasFiles ? DragDropEffect.Copy : DragDropEffect.None;
+
+            if (args.Effect == DragDropEffect.None) return;
+
+            zone.BorderColor = new Color(255, 0, 120, 215);
+            hint.Text = "Отпускай";
+        };
+
+        zone.DragLeave += (_, _) =>
+        {
+            zone.BorderColor = idleBorder;
+            hint.Text = "Брось сюда файлы из проводника";
+        };
+
+        zone.Drop += (_, args) =>
+        {
+            dropped.Items.Clear();
+
+            foreach (string path in args.Data.Files)
+                dropped.Items.Add(path);
+
+            hint.Text = $"Принято: {args.Data.Files.Count}";
+        };
+
+        StackPanel root = new()
+        {
+            Orientation = Orientation.Vertical,
+            Padding = new Thickness(16),
+            Spacing = 8,
+        };
+
+        root.Children.AddRange([zone, dropped]);
+
+        return root;
     }
 
     /// <summary>Матовое стекло. Фон обязан быть прозрачным, иначе
