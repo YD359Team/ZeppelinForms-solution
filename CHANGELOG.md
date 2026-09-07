@@ -23,6 +23,7 @@
 - Fix: `Form.Tick` behavior with animation by index
 - Fix `PageControl` can showing ghost pages over current page
 - Fix mouse capture
+- Fix `GradientBorder` filled all background by default
 - CI: Add flag  `--output Detailed`
 
 ### Features
