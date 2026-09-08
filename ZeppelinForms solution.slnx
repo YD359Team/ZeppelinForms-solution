@@ -7,10 +7,12 @@
   <Folder Name="/examples/">
     <Project Path="examples/ZF Linux/ZF Linux.csproj" />
     <Project Path="examples/ZF SharedLib/ZF SharedLib.csproj" />
+    <Project Path="examples/ZF Wasm/ZF Wasm.csproj" />
     <Project Path="examples/ZF Win/ZF Win.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/ZeppelinForms.Analyzers/ZeppelinForms.Analyzers.csproj" />
+    <Project Path="src/ZeppelinForms.Browser/ZeppelinForms.Browser.csproj" />
     <Project Path="src/ZeppelinForms.Linux/ZeppelinForms.Linux.csproj" />
     <Project Path="src/ZeppelinForms.Skia/ZeppelinForms.Skia.csproj" />
     <Project Path="src/ZeppelinForms.Windows/ZeppelinForms.Windows.csproj" />

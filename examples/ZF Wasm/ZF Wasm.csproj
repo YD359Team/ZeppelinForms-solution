@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <RootNamespace>ZF_Wasm</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ZeppelinForms.Browser\ZeppelinForms.Browser.csproj" />
+    <ProjectReference Include="..\ZF SharedLib\ZF SharedLib.csproj" />
+  </ItemGroup>
+
+</Project>
