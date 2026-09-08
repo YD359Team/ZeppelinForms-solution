@@ -602,7 +602,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
 
         if (_animations.Count == 0)
-            PlatformWindow?.StopTicking();
+            PlatformWindow?.Frames.Stop();
     }
 
     private static bool IsInTree(UIElement root, UIElement candidate)
@@ -721,7 +721,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (_animations.Count == 1)
         {
             _lastTickTicks = Environment.TickCount64;
-            PlatformWindow?.StartTicking(FrameIntervalMs);
+            PlatformWindow?.Frames.Start(FrameIntervalMs);
         }
     }
 
@@ -739,7 +739,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
 
         if (_animations.Count == 0)
-            PlatformWindow?.StopTicking();
+            PlatformWindow?.Frames.Stop();
     }
 
     internal void Tick()
@@ -777,7 +777,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
 
         if (_animations.Count == 0)
-            PlatformWindow?.StopTicking();
+            PlatformWindow?.Frames.Stop();
 
         if (wholeWindow) InvalidateVisual();
     }

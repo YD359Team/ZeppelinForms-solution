@@ -68,9 +68,18 @@ public sealed class HeadlessWindow : IPlatformWindow
 
     public void SetWindowState(WindowState state) => WindowState = state;
 
-    public void StartTicking(int intervalMs) { }
+    /// <summary>Кадры в headless не идут сами: тест прокручивает их
+    /// вызовом Tick, чтобы анимации двигались предсказуемо, а не по часам.</summary>
+    private sealed class NoFrames : IFrameDriver
+    {
+        public bool IsRunning { get; private set; }
 
-    public void StopTicking() { }
+        public void Start(int intervalMs) => IsRunning = true;
+        public void Stop() => IsRunning = false;
+        public void RequestFrame() { }
+    }
+
+    public IFrameDriver Frames { get; } = new NoFrames();
 
     /// <summary>Продвинуть анимации на заданное время без ожидания реального таймера.</summary>
     public void Tick() => _form.Tick();

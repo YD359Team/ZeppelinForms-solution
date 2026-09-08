@@ -330,10 +330,6 @@ internal sealed class X11Window : IPlatformWindow
 
     internal bool IsDeleteMessage(nuint atom) => atom == _wmDeleteWindow;
 
-    public void StartTicking(int intervalMs) => _platform.StartTicking(this, intervalMs);
-
-    public void StopTicking() => _platform.StopTicking(this);
-
     internal void RaiseTick() => _form.Tick();
 
     internal Form Form => _form;

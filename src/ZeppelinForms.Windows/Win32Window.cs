@@ -697,22 +697,6 @@ internal sealed class Win32Window : IPlatformWindow
 
     private bool _ticking;
 
-    public void StartTicking(int intervalMs)
-    {
-        if (_ticking || _handle == 0) return;
-
-        NativeMethods.SetTimer(_handle, NativeConstants.AnimationTimerId, (uint)intervalMs, 0);
-        _ticking = true;
-    }
-
-    public void StopTicking()
-    {
-        if (!_ticking || _handle == 0) return;
-
-        NativeMethods.KillTimer(_handle, NativeConstants.AnimationTimerId);
-        _ticking = false;
-    }
-
     public void SetImePosition(Point caret)
     {
         nint context = NativeMethods.ImmGetContext(_handle);
