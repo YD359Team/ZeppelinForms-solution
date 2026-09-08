@@ -792,6 +792,9 @@ internal sealed class Win32Window : IPlatformWindow
 
     public void SetDragDropEnabled(bool enabled)
     {
+        Debug.WriteLine($"SetDragDropEnabled({enabled}) handle=0x{_handle:X} " +
+    $"apartment={Thread.CurrentThread.GetApartmentState()}");
+
         if (enabled == (_dropTarget is not null)) return;
 
         if (enabled)

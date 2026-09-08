@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Input.DragDrop;
@@ -11,41 +12,89 @@ namespace ZeppelinForms.Windows;
 /// RegisterDragDrop держит ссылку на стороне COM, и если объект соберут
 /// сборщиком, система обратится по мёртвому указателю.
 /// </summary>
+/// [ComVisible(true)]
+[ClassInterface(ClassInterfaceType.None)]
 internal sealed class Win32DropTarget(Form form, Func<Point, Point> toClient) : IDropTarget
 {
     private DragDropData _data = new();
 
     public int DragEnter(IDataObject data, uint keyState, POINTL point, ref int effect)
     {
-        _data = Read(data);
+        try
+        {
+            _data = Read(data);
 
-        effect = ToNative(form.OnDragEnterWindow(_data, toClient(new Point(point.x, point.y)), ToModifiers(keyState)));
+            effect = ToNative(form.OnDragEnterWindow(
+                _data, toClient(new Point(point.x, point.y)), ToModifiers(keyState)));
 
-        return 0;
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            return Fail(exception, ref effect);
+        }
     }
 
     public int DragOver(uint keyState, POINTL point, ref int effect)
     {
-        effect = ToNative(form.OnDragOverWindow(_data, toClient(new Point(point.x, point.y)), ToModifiers(keyState)));
+        try
+        {
+            effect = ToNative(form.OnDragOverWindow(
+                _data, toClient(new Point(point.x, point.y)), ToModifiers(keyState)));
 
-        return 0;
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            return Fail(exception, ref effect);
+        }
     }
 
     public int DragLeave()
     {
-        form.OnDragLeaveWindow();
-        _data = new DragDropData();
+        try
+        {
+            form.OnDragLeaveWindow();
+            _data = new DragDropData();
 
-        return 0;
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            int ignored = 0;
+
+            return Fail(exception, ref ignored);
+        }
     }
 
     public int Drop(IDataObject data, uint keyState, POINTL point, ref int effect)
     {
-        // данные читаем заново: между enter и drop источник мог их поменять
-        _data = Read(data);
+        try
+        {
+            // данные читаем заново: между enter и drop источник мог их поменять
+            _data = Read(data);
 
-        effect = ToNative(form.OnDropWindow(_data, toClient(new Point(point.x, point.y)), ToModifiers(keyState)));
-        _data = new DragDropData();
+            effect = ToNative(form.OnDropWindow(
+                _data, toClient(new Point(point.x, point.y)), ToModifiers(keyState)));
+
+            _data = new DragDropData();
+
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            return Fail(exception, ref effect);
+        }
+    }
+
+    /// <summary>Исключение не имеет права выйти за границу COM: при PreserveSig
+    /// runtime его не преобразует, источник увидит сбой и покажет запрет,
+    /// а сам текст ошибки потеряется. Поэтому гасим здесь и пишем в отладку.</summary>
+    private static int Fail(Exception exception, ref int effect)
+    {
+        effect = Ole32.DROPEFFECT_NONE;
+
+        Debug.WriteLine($"ZeppelinForms: сбой в IDropTarget — {exception}");
 
         return 0;
     }
