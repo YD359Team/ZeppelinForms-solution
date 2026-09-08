@@ -57,7 +57,7 @@ internal struct POINTL
 }
 
 [ComImport]
-[Guid("00000103-0000-0000-C000-000000000046")]
+[Guid("0000010E-0000-0000-C000-000000000046")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 internal interface IDataObject
 {
