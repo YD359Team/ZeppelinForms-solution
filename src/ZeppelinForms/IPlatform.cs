@@ -13,8 +13,4 @@ public interface IPlatform
     void Start();
 
     void Exit();
-
-    /// <summary>Владеет ли платформа собственным циклом. false означает,
-    /// что после Start приложение продолжает жить на вызовах извне.</summary>
-    bool OwnsEventLoop { get; }
 }

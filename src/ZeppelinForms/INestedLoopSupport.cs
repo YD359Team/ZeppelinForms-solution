@@ -1,8 +1,13 @@
 ﻿namespace ZeppelinForms;
 
-/// <summary>Вложенный цикл для синхронной модальности. Есть только там,
-/// где платформа владеет циклом; в браузере невозможен в принципе.</summary>
+/// <summary>
+/// Вложенный цикл событий. Есть только там, где циклом владеет платформа:
+/// в браузере заблокировать поток и продолжать получать события невозможно,
+/// поэтому синхронная модальность там не поддерживается в принципе.
+/// </summary>
 public interface INestedLoopSupport
 {
-    void RunModal(IPlatformWindow dialog, IPlatformWindow? owner);
+    /// <summary>Крутить события, пока окно живо. Возвращает управление
+    /// после его закрытия.</summary>
+    void RunNestedLoop(IPlatformWindow until);
 }

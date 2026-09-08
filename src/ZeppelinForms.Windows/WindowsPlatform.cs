@@ -56,33 +56,16 @@ public class WindowsPlatform : IPlatform
         }
     }
 
-    public void RunModal(IPlatformWindow dialog, IPlatformWindow? owner)
+    public void RunNestedLoop(IPlatformWindow until)
     {
-        var dialogWindow = (Win32Window)dialog;
-        nint ownerHandle = (owner as Win32Window)?.Handle ?? 0;
+        var window = (Win32Window)until;
 
-        // блокируем владельца — в этом и состоит модальность
-        if (ownerHandle != 0)
-            NativeMethods.EnableWindow(ownerHandle, false);
-
-        try
+        // WM_NCDESTROY обнулит Handle, и следующая проверка выпустит нас наружу
+        while (window.Handle != 0 &&
+               NativeMethods.GetMessage(out NativeMethods.MSG message, 0, 0, 0) > 0)
         {
-            // вложенный цикл сообщений: крутится, пока живо окно диалога.
-            // WM_NCDESTROY обнулит Handle, и следующая проверка выпустит нас наружу
-            while (dialogWindow.Handle != 0 &&
-                   NativeMethods.GetMessage(out NativeMethods.MSG message, 0, 0, 0) > 0)
-            {
-                NativeMethods.TranslateMessage(ref message);
-                NativeMethods.DispatchMessage(ref message);
-            }
-        }
-        finally
-        {
-            if (ownerHandle != 0)
-            {
-                NativeMethods.EnableWindow(ownerHandle, true);
-                NativeMethods.SetActiveWindow(ownerHandle);
-            }
+            NativeMethods.TranslateMessage(ref message);
+            NativeMethods.DispatchMessage(ref message);
         }
     }
 }

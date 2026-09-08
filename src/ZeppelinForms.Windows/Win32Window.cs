@@ -47,6 +47,10 @@ internal sealed class Win32Window : IPlatformWindow
 
     public bool SupportsTransparency => true;
 
+    public void SetEnabled(bool enabled) => NativeMethods.EnableWindow(_handle, enabled);
+
+    public void Activate() => NativeMethods.SetActiveWindow(_handle);
+
     public void Create()
     {
         if (_handle != 0)

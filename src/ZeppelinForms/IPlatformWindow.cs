@@ -16,6 +16,13 @@ public interface IPlatformWindow
     void ReleaseMouseCapture();
     void SetCursor(CursorKind cursor);
 
+    /// <summary>Запретить или разрешить ввод в это окно. Так делается
+    /// модальность: владелец диалога глохнет, пока диалог открыт.</summary>
+    void SetEnabled(bool enabled);
+
+    /// <summary>Сделать окно активным.</summary>
+    void Activate();
+
     IFrameDriver Frames { get; }
 }
 

@@ -868,26 +868,91 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     // ==== Dialog ====
 
+    /// <summary>Показать диалог и дождаться результата. Требует платформы
+    /// с вложенным циклом; там, где его нет, используйте ShowDialogAsync.</summary>
     public DialogResult<T> ShowDialog<T>(Form owner)
     {
-        IsDialog = true;
-
         IPlatform platform = owner.Platform
             ?? throw new InvalidOperationException("Владелец диалога ещё не привязан к платформе.");
 
+        if (platform is not INestedLoopSupport loop)
+            throw new NotSupportedException(
+                $"Платформа {platform.GetType().Name} не поддерживает вложенный цикл. " +
+                "Используйте ShowDialogAsync.");
+
+        BeginDialog(owner, platform);
+
+        try
+        {
+            loop.RunNestedLoop(PlatformWindow!);
+        }
+        finally
+        {
+            EndDialog(owner);
+        }
+
+        return Result<T>();
+    }
+
+    /// <summary>Показать диалог, не блокируя вызывающий код. Работает
+    /// на любой платформе, в том числе там, где вложенного цикла нет.</summary>
+    public async Task<DialogResult<T>> ShowDialogAsync<T>(Form owner)
+    {
+        IPlatform platform = owner.Platform
+            ?? throw new InvalidOperationException("Владелец диалога ещё не привязан к платформе.");
+
+        BeginDialog(owner, platform);
+
+        try
+        {
+            await _dialogClosed!.Task;
+        }
+        finally
+        {
+            EndDialog(owner);
+        }
+
+        return Result<T>();
+    }
+
+    private TaskCompletionSource? _dialogClosed;
+
+    private void BeginDialog(Form owner, IPlatform platform)
+    {
+        IsDialog = true;
         Platform = platform;
-        platform.CreateWindow(this);
 
         _dialogAccepted = false;
         _dialogValue = null;
 
-        Show();
-        platform.RunModal(PlatformWindow!, owner.PlatformWindow);
+        // завершения ждём и синхронно, и асинхронно: источник один —
+        // закрытие окна, откуда бы оно ни пришло
+        _dialogClosed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        return _dialogAccepted && _dialogValue is T typed
+        platform.CreateWindow(this);
+
+        // модальность — это заглушённый владелец, а не вложенный цикл:
+        // первое нужно везде, второе только на настольных платформах
+        owner.PlatformWindow?.SetEnabled(false);
+
+        Show();
+    }
+
+    private void EndDialog(Form owner)
+    {
+        if (owner.PlatformWindow is { } ownerWindow)
+        {
+            ownerWindow.SetEnabled(true);
+            ownerWindow.Activate();
+        }
+
+        _dialogClosed = null;
+    }
+
+    private DialogResult<T> Result<T>() =>
+        _dialogAccepted && _dialogValue is T typed
             ? new DialogResult<T>(true, typed)
             : DialogResult<T>.Cancelled();
-    }
 
     /// <summary>Закрыть диалог с результатом.</summary>
     public void Accept(object? value = null)
