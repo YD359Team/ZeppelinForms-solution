@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Input.DragDrop;
@@ -69,6 +70,10 @@ internal sealed class X11DropTarget
 
         X11.XChangeProperty(_display, _window, _aware, X11.XA_ATOM, 32,
             X11.PropModeReplace, version, 1);
+
+        // без сброса буфера свойство может не успеть до сервера раньше,
+        // чем источник начнёт читать наше окно
+        X11.XFlush(_display);
     }
 
     public void Unregister() => X11.XDeleteProperty(_display, _window, _aware);
@@ -76,6 +81,9 @@ internal sealed class X11DropTarget
     /// <summary>Обработать сообщение протокола. false — сообщение не наше.</summary>
     public bool Handle(in X11.XClientMessageEvent message)
     {
+        Debug.WriteLine($"ClientMessage type={message.message_type} " +
+            $"(enter={_enter} position={_position} leave={_leave} drop={_drop})");
+
         if (message.message_type == _enter) { OnEnter(message); return true; }
         if (message.message_type == _position) { OnPosition(message); return true; }
         if (message.message_type == _leave) { OnLeave(); return true; }
