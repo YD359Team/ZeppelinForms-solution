@@ -43,6 +43,12 @@ public sealed class HeadlessTextMeasurer : ITextMeasurer
         return Math.Min(length, text.Length) * font.Size * CharWidthRatio;
     }
 
+    /// <summary>Шрифтов нет вовсе, поэтому готово всегда: тесты не должны
+    /// зависеть от загрузки, которой здесь не происходит.</summary>
+    public bool IsReady(Font font) => true;
+
+    public Task PrepareAsync(Font font) => Task.CompletedTask;
+
     public Size MeasureRuns(IReadOnlyList<TextRun> runs, Font baseFont)
     {
         float width = 0;

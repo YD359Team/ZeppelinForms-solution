@@ -35,6 +35,12 @@ public sealed class SkiaTextMeasurer : ITextMeasurer
         return MeasureText(text[..length], font).Width;
     }
 
+    /// <summary>На настольных платформах шрифты берутся из системы
+    /// синхронно — ждать нечего.</summary>
+    public bool IsReady(Font font) => true;
+
+    public Task PrepareAsync(Font font) => Task.CompletedTask;
+
     public Size MeasureRuns(IReadOnlyList<TextRun> runs, Font baseFont)
     {
         float width = 0;

@@ -3,38 +3,60 @@
 public static class FileDialog
 {
     public static string? OpenFile(Form owner, FileDialogOptions? options = null) =>
-        Open(owner, options, multiple: false) is [string single, ..] ? single : null;
+        First(Open(owner, options, multiple: false));
+
+    public static async Task<string?> OpenFileAsync(Form owner, FileDialogOptions? options = null) =>
+        First(await OpenAsync(owner, options, multiple: false));
 
     public static string[] OpenFiles(Form owner, FileDialogOptions? options = null) =>
         Open(owner, options, multiple: true);
 
-    public static string? SaveFile(Form owner, FileDialogOptions? options = null)
+    public static Task<string[]> OpenFilesAsync(Form owner, FileDialogOptions? options = null) =>
+        OpenAsync(owner, options, multiple: true);
+
+    public static string? SaveFile(Form owner, FileDialogOptions? options = null) =>
+        First(Run(owner, options, FileDialogMode.Save));
+
+    public static async Task<string?> SaveFileAsync(Form owner, FileDialogOptions? options = null) =>
+        First(await RunAsync(owner, options, FileDialogMode.Save));
+
+    public static string? SelectFolder(Form owner, FileDialogOptions? options = null) =>
+        First(Run(owner, options, FileDialogMode.Folder));
+
+    public static async Task<string?> SelectFolderAsync(Form owner, FileDialogOptions? options = null) =>
+        First(await RunAsync(owner, options, FileDialogMode.Folder));
+
+    private static string[] Open(Form owner, FileDialogOptions? options, bool multiple) =>
+        Run(owner, WithMultiple(options, multiple), FileDialogMode.Open);
+
+    private static Task<string[]> OpenAsync(Form owner, FileDialogOptions? options, bool multiple) =>
+        RunAsync(owner, WithMultiple(options, multiple), FileDialogMode.Open);
+
+    private static string[] Run(Form owner, FileDialogOptions? options, FileDialogMode mode)
     {
-        var dialog = new FileDialogForm(options ?? new FileDialogOptions(), FileDialogMode.Save);
+        var dialog = new FileDialogForm(options ?? new FileDialogOptions(), mode);
 
-        DialogResult<string[]> result = dialog.ShowDialog<string[]>(owner);
-
-        return result.IsAccepted && result.Value is [string single, ..] ? single : null;
+        return Unwrap(dialog.ShowDialog<string[]>(owner));
     }
 
-    public static string? SelectFolder(Form owner, FileDialogOptions? options = null)
+    private static async Task<string[]> RunAsync(Form owner, FileDialogOptions? options, FileDialogMode mode)
     {
-        var dialog = new FileDialogForm(options ?? new FileDialogOptions(), FileDialogMode.Folder);
+        var dialog = new FileDialogForm(options ?? new FileDialogOptions(), mode);
 
-        DialogResult<string[]> result = dialog.ShowDialog<string[]>(owner);
-
-        return result.IsAccepted && result.Value is [string single, ..] ? single : null;
+        return Unwrap(await dialog.ShowDialogAsync<string[]>(owner));
     }
 
-    private static string[] Open(Form owner, FileDialogOptions? options, bool multiple)
+    private static FileDialogOptions WithMultiple(FileDialogOptions? options, bool multiple)
     {
         FileDialogOptions settings = options ?? new FileDialogOptions();
         settings.AllowMultiple = multiple;
-
-        var dialog = new FileDialogForm(settings, FileDialogMode.Open);
-
-        DialogResult<string[]> result = dialog.ShowDialog<string[]>(owner);
-
-        return result.IsAccepted ? result.Value : [];
+        return settings;
     }
+
+    // пустой массив вместо null: «отменили» и «ничего не выбрали» —
+    // для вызывающего кода одно и то же
+    private static string[] Unwrap(DialogResult<string[]> result) =>
+        result.IsAccepted && result.Value is { } files ? files : [];
+
+    private static string? First(string[] files) => files is [string single, ..] ? single : null;
 }

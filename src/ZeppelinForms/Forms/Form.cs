@@ -37,21 +37,32 @@ public class Form : IDisposable
         {
             field = value;
 
-            if (value is not null)
-                _isClosed = false;
+            if (value is null) return;
+
+            // новое окно — новая жизнь: форму могли закрыть и показать заново
+            _isClosed = false;
+
+            if (!s_openForms.Contains(this))
+                s_openForms.Add(this);
 
             // окно только что появилось: если приём перетаскивания включили
             // до показа, платформа об этом ещё не знает
-            if (value is not null && AllowDrop)
+            if (AllowDrop)
                 value.SetDragDropEnabled(true);
         }
     }
+
+    private static readonly List<Form> s_openForms = [];
+
+    /// <summary>Формы с живым окном. Нужен жизненному циклу приложения:
+    /// уход в фон касается всех окон, а не только главного.</summary>
+    public static IReadOnlyList<Form> OpenForms => s_openForms;
 
     /// <summary>Окно как объект рабочего стола. null там, где рабочего стола
     /// нет: в браузере и на Android заголовка, прозрачности и состояния
     /// окна не существует, и молча ничего не делать — правильное поведение.</summary>
     internal IDesktopWindow? DesktopWindow => PlatformWindow as IDesktopWindow;
- 
+
     public WindowStartupLocation WindowStartupLocation { get; set; }
 
     /// <summary>Принимать ли перетаскивание из системы в это окно.
@@ -758,6 +769,18 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             PlatformWindow?.Frames.Stop();
     }
 
+    /// <summary>Снова выдавать кадры, если анимации ещё не закончились.
+    /// Вызывается при возврате приложения из фона.</summary>
+    internal void ResumeFrames()
+    {
+        if (_animations.Count == 0) return;
+
+        // за время в фоне прошло сколько угодно времени; без сброса первая же
+        // итерация продвинула бы анимации сразу до конца
+        _lastTickTicks = Environment.TickCount64;
+        PlatformWindow?.Frames.Start(FrameIntervalMs);
+    }
+
     internal void Tick()
     {
         long now = Environment.TickCount64;
@@ -895,6 +918,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         // на X11 Close() может прийти и от нас, и от WM_DELETE_WINDOW
         if (_isClosed) return;
         _isClosed = true;
+
+        s_openForms.Remove(this);
 
         // таймер кадров живёт в окне, которого больше нет
         PlatformWindow?.Frames.Stop();

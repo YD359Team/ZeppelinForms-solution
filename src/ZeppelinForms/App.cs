@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using ZeppelinForms.Core;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Forms;
