@@ -9,6 +9,11 @@ namespace ZeppelinForms.Drawing;
 public interface ITextMeasurer
 {
     Size MeasureText(string text, Font font);
-    float MeasureTextWidth(string text, int length, Font font);
-    Size MeasureRuns(IReadOnlyList<TextRun> runs, Font baseFont);
+
+    /// <summary>Готов ли шрифт к измерению. Там, где шрифты грузятся
+    /// асинхронно, до готовности возвращаются метрики запасного.</summary>
+    bool IsReady(Font font);
+
+    /// <summary>Загрузить шрифт. На настольных платформах завершается сразу.</summary>
+    Task PrepareAsync(Font font);
 }
