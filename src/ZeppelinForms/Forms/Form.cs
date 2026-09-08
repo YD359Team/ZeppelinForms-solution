@@ -87,6 +87,9 @@ public class Form : IDisposable
     public Icon? Icon { get; set; }
     public Point Position { get; set; }
     public Size Size { get; set; }
+    // TODO: add min\max size support
+    public Size MinimumSize { get; set; } = Size.Auto;
+    public Size MaximumSize { get; set; } = Size.Auto;
 
     /// <summary>Форма показана как модальный диалог.</summary>
     public bool IsDialog { get; private set; }

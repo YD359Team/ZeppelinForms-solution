@@ -1,13 +1,30 @@
 # Changes
 
-## Feature [0.9.0]
+## Feature [0.9.0] - Antarctica
+
+### Breaking changes
+- Platform rework
+	- Laying the foundation for new platforms
+	- Lifetime abstraction
+	- Transition to async dialog model
 
 ### Fixes
 - Fix `PageControl` page transition
 
 ### Features
+- Drag&Drop improvements
+	- Add platform specific Drag&Drop support for Windows and Linux
+	- `UIElement` have `DragEnter`, `DragOver`, `Drag` events
+	- `UIElement` have `AllowDrop` property
+- Add Linux opacity window support
+- Input improvements
+	- Add `Keyboard` class
+	- Add all key codes to enum 
+	- Add more mouse events
 - Add `IAnimation.Cancel(bool)`
-- Add all keys 
+
+### Controls
+- Add `AttachButton`
 
 ## [0.8.1]
 - Fix `PageControl` glitch
