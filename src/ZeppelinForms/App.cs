@@ -43,10 +43,33 @@ public class App
             typeof(App).Assembly.GetManifestResourceStream(
                 "ZeppelinForms.Resources.ZF.ico")!);
 
-        _platform.CreateWindow(this.MainForm);
+        IPlatformWindow window = _platform.CreateWindow(this.MainForm);
+
+        // продолжения await должны возвращаться в поток UI: на этом держится
+        // ShowDialogAsync и вообще весь async-код в обработчиках
+        SynchronizationContext.SetSynchronizationContext(
+        new ZfSynchronizationContext(window));
+
+        if (_platform is IAppLifecycle lifecycle)
+            AttachLifecycle(lifecycle);
 
         this.MainForm.Show();
 
         _platform.Start();
+    }
+
+    private static void AttachLifecycle(IAppLifecycle lifecycle)
+    {
+        lifecycle.Paused += (_, _) =>
+        {
+            foreach (Form form in Form.OpenForms)
+                form.PlatformWindow?.Frames.Stop();
+        };
+
+        lifecycle.Resumed += (_, _) =>
+        {
+            foreach (Form form in Form.OpenForms)
+                form.ResumeFrames();
+        };
     }
 }
