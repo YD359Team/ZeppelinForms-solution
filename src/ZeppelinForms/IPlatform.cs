@@ -1,7 +1,5 @@
-﻿using ZeppelinForms.Forms;
-using ZeppelinForms.Forms.Enums;
-
-namespace ZeppelinForms;
+﻿using ZeppelinForms;
+using ZeppelinForms.Forms;
 
 public interface IPlatform
 {

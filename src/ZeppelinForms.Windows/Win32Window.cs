@@ -13,7 +13,7 @@ using static ZeppelinForms.Windows.NativeMethods;
 
 namespace ZeppelinForms.Windows;
 
-internal sealed class Win32Window : IPlatformWindow
+internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 {
     private const string ClassName = "ZeppelinForms.Window";
 
@@ -41,7 +41,13 @@ internal sealed class Win32Window : IPlatformWindow
     {
         _platform = platform;
         _form = form;
+
+        // драйверу нужен дескриптор, которого на этот момент ещё нет —
+        // поэтому не значение, а способ его получить
+        Frames = new Win32FrameDriver(() => _handle);
     }
+
+    public IFrameDriver Frames { get; }
 
     public nint Handle => _handle;
 
@@ -518,6 +524,7 @@ internal sealed class Win32Window : IPlatformWindow
                 }
 
             case NativeConstants.WM_DESTROY:
+                _form.OnWindowClosed();
                 _platform.WindowDestroyed();
                 return 0;
 

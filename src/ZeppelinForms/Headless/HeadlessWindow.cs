@@ -4,7 +4,7 @@ using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Headless;
 
-public sealed class HeadlessWindow : IPlatformWindow
+public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow
 {
     private readonly HeadlessPlatform _platform;
     private readonly Form _form;
@@ -27,6 +27,16 @@ public sealed class HeadlessWindow : IPlatformWindow
 
     public bool SupportsTransparency => true;
 
+    public float Scale => 1f;
+
+    /// <summary>Проверяется в тестах модальности: заглушённый владелец —
+    /// это и есть модальность на платформах без вложенного цикла.</summary>
+    public bool IsEnabled { get; private set; } = true;
+    public bool IsActive { get; private set; }
+
+    public void SetEnabled(bool enabled) => IsEnabled = enabled;
+    public void Activate() => IsActive = true;
+
     internal HeadlessWindow(HeadlessPlatform platform, Form form)
     {
         _platform = platform;
@@ -46,6 +56,8 @@ public sealed class HeadlessWindow : IPlatformWindow
         IsClosed = true;
         IsShown = false;
         _platform.Remove(this);
+
+        _form.OnWindowClosed();
     }
 
     public void SetTitle(string? title) => Title = title;

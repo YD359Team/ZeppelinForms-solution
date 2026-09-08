@@ -6,7 +6,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Linux;
 
-public sealed class X11Platform : IPlatform
+public sealed class X11Platform : IPlatform, INestedLoopSupport
 {
     private readonly Dictionary<nuint, X11Window> _windows = [];
     private bool _running;
@@ -58,9 +58,9 @@ public sealed class X11Platform : IPlatform
         return window;
     }
 
-    public void RunModal(IPlatformWindow dialog, IPlatformWindow? owner)
+    public void RunNestedLoop(IPlatformWindow until)
     {
-        var dialogWindow = (X11Window)dialog;
+        var dialogWindow = (X11Window)until;
 
         // вложенный цикл: крутится, пока живо окно диалога
         while (dialogWindow.Handle != 0 && _windows.ContainsKey(dialogWindow.Handle))
@@ -83,7 +83,7 @@ public sealed class X11Platform : IPlatform
 
     internal void StopTicking(X11Window window) => _tickingWindows.Remove(window);
 
-    public void Run()
+    public void Start()
     {
         _running = true;
 
@@ -200,6 +200,10 @@ public sealed class X11Platform : IPlatform
                 {
                     var button = Marshal.PtrToStructure<X11.XButtonEvent>(eventPtr);
                     if (!_windows.TryGetValue(button.window, out X11Window? window)) break;
+
+                    // X11 не умеет «выключить» окно, как EnableWindow в Win32:
+                    // модальность приходится делать отбрасыванием ввода
+                    if (!window.IsInputEnabled) break;
 
                     var point = new Point(button.x / window.Scale, button.y / window.Scale);
                     KeyModifiers modifiers = ToModifiers(button.state);

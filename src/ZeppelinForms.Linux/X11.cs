@@ -7,6 +7,8 @@ internal static class X11
 {
     private const string Lib = "libX11.so.6";
 
+    public const int RevertToParent = 2;
+
     // управление состоянием окна через менеджер: свои свойства мы менять
     // не вправе, о желаемом состоянии сообщаем сообщением
     public const int NetWmStateRemove = 0;
@@ -85,6 +87,8 @@ internal static class X11
 
     [DllImport(Lib)] public static extern int XDestroyWindow(nint display, nuint window);
     [DllImport(Lib)] public static extern int XMapWindow(nint display, nuint window);
+    [DllImport(Lib)] public static extern int XRaiseWindow(nint display, nuint window);
+    [DllImport(Lib)] public static extern int XSetInputFocus(nint display, nuint focus, int revertTo, nuint time);
     [DllImport(Lib)] public static extern int XUnmapWindow(nint display, nuint window);
     [DllImport(Lib)] public static extern int XSelectInput(nint display, nuint window, long mask);
     [DllImport(Lib)] public static extern int XStoreName(nint display, nuint window, string name);

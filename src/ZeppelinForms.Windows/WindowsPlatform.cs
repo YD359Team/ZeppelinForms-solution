@@ -2,7 +2,7 @@
 
 namespace ZeppelinForms.Windows;
 
-public class WindowsPlatform : IPlatform
+public class WindowsPlatform : IPlatform, INestedLoopSupport
 {
     private int _windowCount = 0;
 
@@ -10,14 +10,10 @@ public class WindowsPlatform : IPlatform
     {
         NativeMethods.SetProcessDpiAwarenessContext(NativeConstants.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
-        Skia.SkiaImageDecoder.Register();
-        Skia.SkiaTextMeasurer.Register();
-        Skia.SkiaOffscreenRenderer.Register();
-        Win32Clipboard.Register();
-
         ZeppelinForms.Skia.SkiaImageDecoder.Register();
         ZeppelinForms.Skia.SkiaTextMeasurer.Register();
         ZeppelinForms.Skia.SkiaOffscreenRenderer.Register();
+        Win32Clipboard.Register();
     }
 
     public IPlatformWindow CreateWindow(Form form)
@@ -43,7 +39,7 @@ public class WindowsPlatform : IPlatform
 
     public void Exit() => NativeMethods.PostQuitMessage(0);
 
-    public void Run()
+    public void Start()
     {
         while (NativeMethods.GetMessage(
             out NativeMethods.MSG message,

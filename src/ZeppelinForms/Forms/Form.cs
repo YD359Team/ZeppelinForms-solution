@@ -26,12 +26,19 @@ public class Form : IDisposable
     public event EventHandler<UIElement>? FlyoutClosed;
     public event EventHandler? Shown;
 
+    /// <summary>Окно разрушено. Приходит независимо от того, откуда пришло
+    /// закрытие: Accept, Cancel, крестик в заголовке или сама система.</summary>
+    public event EventHandler? Closed;
+
     internal IPlatformWindow? PlatformWindow
     {
         get;
         set
         {
             field = value;
+
+            if (value is not null)
+                _isClosed = false;
 
             // окно только что появилось: если приём перетаскивания включили
             // до показа, платформа об этом ещё не знает
@@ -40,6 +47,11 @@ public class Form : IDisposable
         }
     }
 
+    /// <summary>Окно как объект рабочего стола. null там, где рабочего стола
+    /// нет: в браузере и на Android заголовка, прозрачности и состояния
+    /// окна не существует, и молча ничего не делать — правильное поведение.</summary>
+    internal IDesktopWindow? DesktopWindow => PlatformWindow as IDesktopWindow;
+ 
     public WindowStartupLocation WindowStartupLocation { get; set; }
 
     /// <summary>Принимать ли перетаскивание из системы в это окно.
@@ -78,7 +90,7 @@ public class Form : IDisposable
         set
         {
             _opacity = Math.Clamp(value, 0f, 1f);
-            PlatformWindow?.SetOpacity(_opacity);
+            DesktopWindow?.SetOpacity(_opacity);
         }
     }
 
@@ -115,7 +127,7 @@ public class Form : IDisposable
             if (_windowState == value) return;
 
             _windowState = value;
-            PlatformWindow?.SetWindowState(value);
+            DesktopWindow?.SetWindowState(value);
             WindowStateChanged?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -533,7 +545,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     public void Show()
     {
-        PlatformWindow?.SetOpacity(_opacity);
+        DesktopWindow?.SetOpacity(_opacity);
+        DesktopWindow?.SetTitle(Title);
         PlatformWindow?.Show();
         Shown?.Invoke(this, EventArgs.Empty);
     }
@@ -870,6 +883,26 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     }
 
     // ==== Dialog ====
+
+    private bool _isClosed;
+
+    /// <summary>Платформа разрушила окно. Единственная точка, где завершается
+    /// ожидание диалога: различать источник закрытия незачем, а вот пропустить
+    /// его нельзя — ShowDialogAsync повиснет навсегда.</summary>
+    internal void OnWindowClosed()
+    {
+        // DestroyWindow в Win32 шлёт и WM_DESTROY, и WM_NCDESTROY;
+        // на X11 Close() может прийти и от нас, и от WM_DELETE_WINDOW
+        if (_isClosed) return;
+        _isClosed = true;
+
+        // таймер кадров живёт в окне, которого больше нет
+        PlatformWindow?.Frames.Stop();
+
+        _dialogClosed?.TrySetResult();
+
+        Closed?.Invoke(this, EventArgs.Empty);
+    }
 
     /// <summary>Показать диалог и дождаться результата. Требует платформы
     /// с вложенным циклом; там, где его нет, используйте ShowDialogAsync.</summary>

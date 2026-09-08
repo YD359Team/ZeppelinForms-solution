@@ -8,7 +8,7 @@ using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Linux;
 
-internal sealed class X11Window : IPlatformWindow
+internal sealed class X11Window : IPlatformWindow, IDesktopWindow
 {
     private readonly X11Platform _platform;
     private readonly Form _form;
@@ -78,6 +78,22 @@ internal sealed class X11Window : IPlatformWindow
     {
         _platform = platform;
         _form = form;
+        Frames = new X11FrameDriver(platform, this);
+    }
+
+    public IFrameDriver Frames { get; }
+
+    internal bool IsInputEnabled { get; private set; } = true;
+
+    public void SetEnabled(bool enabled) => IsInputEnabled = enabled;
+
+    public void Activate()
+    {
+        if (_window == 0) return;
+
+        X11.XRaiseWindow(_display, _window);
+        X11.XSetInputFocus(_display, _window, X11.RevertToParent, (nuint)X11.CurrentTime);
+        X11.XFlush(_display);
     }
 
     public void Create()
@@ -139,6 +155,8 @@ internal sealed class X11Window : IPlatformWindow
 
         _platform.Unregister(this);
         _window = 0;
+
+        _form.OnWindowClosed();
     }
 
     public void SetTitle(string? title)

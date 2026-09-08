@@ -47,6 +47,6 @@ public class App
 
         this.MainForm.Show();
 
-        _platform.Run();
+        _platform.Start();
     }
 }

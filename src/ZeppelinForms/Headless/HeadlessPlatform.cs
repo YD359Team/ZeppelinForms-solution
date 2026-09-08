@@ -10,7 +10,7 @@ namespace ZeppelinForms.Headless;
 /// Платформа без окон: раскладка и ввод работают, отрисовки нет.
 /// Нужна для тестов и для запуска в среде без графики.
 /// </summary>
-public sealed class HeadlessPlatform : IPlatform
+public sealed class HeadlessPlatform : IPlatform, INestedLoopSupport
 {
     private readonly List<HeadlessWindow> _windows = [];
     private readonly Queue<Action> _pending = new();
@@ -42,9 +42,9 @@ public sealed class HeadlessPlatform : IPlatform
         return window;
     }
 
-    public void RunModal(IPlatformWindow dialog, IPlatformWindow? owner)
+    public void RunNestedLoop(IPlatformWindow until)
     {
-        var window = (HeadlessWindow)dialog;
+        var window = (HeadlessWindow)until;
 
         while (!window.IsClosed && Pump()) { }
     }
@@ -99,5 +99,10 @@ public sealed class HeadlessPlatform : IPlatform
 
         if (_windows.Count == 0)
             _running = false;
+    }
+
+    public void Start()
+    {
+        throw new NotImplementedException();
     }
 }
