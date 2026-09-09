@@ -1,16 +1,28 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net10.0-browser</TargetFramework>
     <RootNamespace>ZF_Wasm</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <OutputType>WinExe</OutputType>
+	<!-- Exe, а не WinExe: подсистемы Windows в браузере нет.
+         RuntimeIdentifier не пишем — SDK сам ставит browser-wasm -->
+    <OutputType>Exe</OutputType>
+	<WasmMainJSPath>wwwroot\main.js</WasmMainJSPath>
+	<!-- нативный Skia нужно перелинковать в модуль приложения;
+         требует workload wasm-tools и Emscripten -->
+	<WasmBuildNative>true</WasmBuildNative>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ZeppelinForms.Browser\ZeppelinForms.Browser.csproj" />
     <ProjectReference Include="..\ZF SharedLib\ZF SharedLib.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+	<!-- шрифт нужен в виртуальной ФС: по этому пути его найдёт
+    SKTypeface.FromFile внутри SkiaFontCache -->
+	<WasmFilesToIncludeInFileSystem Include="wwwroot\fonts\Inter-Regular.ttf" TargetPath="/fonts/Inter-Regular.ttf" />
   </ItemGroup>
 
 </Project>
