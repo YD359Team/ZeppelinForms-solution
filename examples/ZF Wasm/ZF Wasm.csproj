@@ -15,6 +15,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Content Include="fonts\Inter-Regular.ttf" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\..\src\ZeppelinForms.Browser\ZeppelinForms.Browser.csproj" />
 		<ProjectReference Include="..\ZF SharedLib\ZF SharedLib.csproj" />
 	</ItemGroup>
@@ -29,6 +33,13 @@
 		<!-- шрифт в виртуальную ФС: по этому пути его найдёт
          SKTypeface.FromFile внутри SkiaFontCache -->
 		<WasmFilesToIncludeInFileSystem Include="fonts\Inter-Regular.ttf" TargetPath="/fonts/Inter-Regular.ttf" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- ImportAsync ищет модуль в _framework, а туда файлы кладёт
+         только это. Путь берём из библиотеки: в bin на чистой
+         сборке zf.js ещё не появился -->
+		<Content Include="..\..\src\ZeppelinForms.Browser\zf.js" Link="wwwroot\zf.js" />
 	</ItemGroup>
 
 </Project>

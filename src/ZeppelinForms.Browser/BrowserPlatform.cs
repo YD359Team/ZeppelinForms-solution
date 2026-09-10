@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices.JavaScript;
-using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 
 namespace ZeppelinForms.Browser;
@@ -26,13 +25,12 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
     }
 
     /// <summary>
-    /// Единственный способ создать платформу: модуль JS подгружается
-    /// асинхронно, а конструктор ждать не умеет. Вызывать из Main до App.Run.
+    /// Модуль zf регистрирует загрузчик страницы через setModuleImports —
+    /// так путь к нему остаётся в main.js, а не зависит от того, куда
+    /// SDK решит положить дополнительные файлы.
     /// </summary>
-    public static async Task<BrowserPlatform> CreateAsync(string canvasId = "zf-canvas")
+    public static BrowserPlatform Create(string canvasId = "zf-canvas")
     {
-        await JSHost.ImportAsync(Interop.ModuleName, "./zf.js");
-
         Skia.SkiaImageDecoder.Register();
         Skia.SkiaTextMeasurer.Register();
         Skia.SkiaOffscreenRenderer.Register();
