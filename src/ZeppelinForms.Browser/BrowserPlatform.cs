@@ -34,6 +34,7 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
     private int _physicalWidth;
     private int _physicalHeight;
     private bool _initialized;
+    private bool _paintPending;
 
     private BrowserPlatform(string canvasId)
     {
@@ -171,7 +172,20 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
         window.Form.PerformLayout();
     }
 
-    internal void Paint()
+    /// <summary>Пометить холст устаревшим. Рисовать прямо здесь нельзя:
+    /// за одно действие пользователя Invalidate прилетает десятки раз —
+    /// от раскладки, от загрузки картинки, от каждого контрола, — а кадр
+    /// в браузере полный, с копированием всего буфера в ImageData.
+    /// Поэтому копим и рисуем один раз в rAF.</summary>
+    internal void Invalidate()
+    {
+        if (_paintPending) return;
+
+        _paintPending = true;
+        Interop.RequestFrame();
+    }
+
+    private void Paint()
     {
         if (_surface.BeginFrame() is not SKSurface surface) return;
 
@@ -217,6 +231,12 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
         // копия: тик может открыть или закрыть окно
         foreach (BrowserWindow window in _windows.ToArray())
             window.HandleFrame(timestampMs);
+
+        // тик анимации помечает холст устаревшим — проверяем после него
+        if (!_paintPending) return;
+
+        _paintPending = false;
+        Paint();
     }
 
     internal void Enqueue(Action action)

@@ -20,12 +20,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- шрифт в виртуальную ФС: по этому пути его найдёт
-         SKTypeface.FromFile внутри SkiaFontCache.
-         zf.js лежит в wwwroot обычным файлом и подхватывается сам —
-         объявлять его отдельно нельзя, получится второй ресурс
-         с тем же маршрутом -->
+		<!-- шрифт и ресурсы в виртуальную ФС: Image.LoadAsset ищет их
+         в Assets относительно AppContext.BaseDirectory -->
 		<WasmFilesToIncludeInFileSystem Include="fonts\Inter-Regular.ttf" TargetPath="/fonts/Inter-Regular.ttf" />
+		<WasmFilesToIncludeInFileSystem Include="..\ZF SharedLib\Assets\**\*" TargetPath="/Assets/%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
 </Project>

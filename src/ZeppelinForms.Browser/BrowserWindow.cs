@@ -25,7 +25,7 @@ internal sealed class BrowserWindow : IPlatformWindow
     {
         _platform = platform;
         _form = form;
-        _frames = new BrowserFrameDriver(Interop.RequestFrame, platform.Paint);
+        _frames = new BrowserFrameDriver(Interop.RequestFrame, platform.Invalidate);
     }
 
     internal Form Form => _form;
@@ -40,7 +40,7 @@ internal sealed class BrowserWindow : IPlatformWindow
 
     public float Scale => _platform.Scale;
 
-    public void Show() => _platform.Paint();
+    public void Show() => _platform.Invalidate();
 
     public void Close()
     {
@@ -54,8 +54,9 @@ internal sealed class BrowserWindow : IPlatformWindow
     }
 
     /// <summary>Область игнорируется: кадр всё равно уходит на canvas целиком,
-    /// да и слои поверх пришлось бы перерисовывать вместе с ним.</summary>
-    public void Invalidate(Rectangle? rect) => _platform.Paint();
+    /// да и слои поверх пришлось бы перерисовывать вместе с ним. Сама
+    /// отрисовка откладывается до ближайшего кадра — см. BrowserPlatform.Invalidate.</summary>
+    public void Invalidate(Rectangle? rect) => _platform.Invalidate();
 
     public void Invoke(Action action) => _platform.Enqueue(action);
 
