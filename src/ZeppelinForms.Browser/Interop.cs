@@ -11,6 +11,51 @@ internal static partial class Interop
 {
     internal const string ModuleName = "zf";
 
+    // ==== C# -> JS ====
+
+    /// <summary>Привязаться к canvas и развесить обработчики событий.</summary>
+    [JSImport("init", ModuleName)]
+    internal static partial void Init(string canvasId);
+
+    /// <summary>Скопировать готовый кадр на canvas. Span приходит в JS
+    /// как представление прямо на память WASM, без копии на этой стороне.</summary>
+    [JSImport("present", ModuleName)]
+    internal static partial void Present(
+        [JSMarshalAs<JSType.MemoryView>] Span<byte> pixels,
+        int width,
+        int height);
+
+    /// <summary>Запросить один кадр через requestAnimationFrame.</summary>
+    [JSImport("requestFrame", ModuleName)]
+    internal static partial void RequestFrame();
+
+    /// <summary>Поставить в очередь микрозадачу для разбора очереди Invoke.
+    /// Через кадр нельзя: Invoke обязан сработать и когда кадров не просят.</summary>
+    [JSImport("scheduleDrain", ModuleName)]
+    internal static partial void ScheduleDrain();
+
+    [JSImport("setCursor", ModuleName)]
+    internal static partial void SetCursor(string cssCursor);
+
+    [JSImport("setTitle", ModuleName)]
+    internal static partial void SetTitle(string title);
+
+    /// <summary>Размер области просмотра в физических пикселях и devicePixelRatio.</summary>
+    [JSImport("viewportWidth", ModuleName)]
+    internal static partial int ViewportWidth();
+
+    [JSImport("viewportHeight", ModuleName)]
+    internal static partial int ViewportHeight();
+
+    [JSImport("devicePixelRatio", ModuleName)]
+    internal static partial double DevicePixelRatio();
+
+    [JSImport("readClipboard", ModuleName)]
+    internal static partial Task<string> ReadClipboardAsync();
+
+    [JSImport("writeClipboard", ModuleName)]
+    internal static partial void WriteClipboard(string text);
+
     // ==== JS -> C# ====
     // Canvas один, платформа тоже, поэтому идентификатор окна из JS
     // не приходит: кому отдать ввод, решает сама платформа.
