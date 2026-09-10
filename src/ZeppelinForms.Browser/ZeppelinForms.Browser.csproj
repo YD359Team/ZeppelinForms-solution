@@ -15,8 +15,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- модуль подтягивается через JSHost.ImportAsync при инициализации -->
-		<Content Include="zf.js" CopyToOutputDirectory="PreserveNewest" />
+		<!-- эталон модуля. В приложение не копируется: там лежит своя копия
+         в wwwroot, а этот файл здесь как исходник -->
+		<None Include="zf.js" />
 	</ItemGroup>
 
 	<ItemGroup>

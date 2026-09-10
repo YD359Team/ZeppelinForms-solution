@@ -20,16 +20,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- Link кладёт файл в wwwroot, откуда он попадает в манифест
-         статики с типом text/javascript. Сырая копия через
-         WasmExtraFilesToDeploy в манифест не попадает и отдаётся
-         вовсе без Content-Type — модулем такое не загрузить -->
-		<Content Include="..\..\src\ZeppelinForms.Browser\zf.js" Link="wwwroot\zf.js" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<!-- шрифт в виртуальную ФС: по этому пути его найдёт
-         SKTypeface.FromFile внутри SkiaFontCache -->
+         SKTypeface.FromFile внутри SkiaFontCache.
+         zf.js лежит в wwwroot обычным файлом и подхватывается сам —
+         объявлять его отдельно нельзя, получится второй ресурс
+         с тем же маршрутом -->
 		<WasmFilesToIncludeInFileSystem Include="fonts\Inter-Regular.ttf" TargetPath="/fonts/Inter-Regular.ttf" />
 	</ItemGroup>
 
