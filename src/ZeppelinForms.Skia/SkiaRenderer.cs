@@ -11,19 +11,41 @@ namespace ZeppelinForms.Skia;
 
 public static class SkiaRenderer
 {
-    public static void Render(Form form, SKCanvas canvas, float scale = 1f, Rectangle? clip = null)
+    /// <param name="clearBackground">Чистить весь холст перед отрисовкой.
+    /// false нужен там, где несколько форм делят одну поверхность: диалог
+    /// не имеет права стирать то, что под ним нарисовало окно-владелец.</param>
+    /// <param name="origin">Смещение формы на поверхности в логических
+    /// единицах. По умолчанию ноль — форма занимает поверхность целиком.</param>
+    public static void Render(
+        Form form,
+        SKCanvas canvas,
+        float scale = 1f,
+        Rectangle? clip = null,
+        bool clearBackground = true,
+        Point origin = default)
     {
         canvas.Save();
         canvas.Scale(scale, scale);
+        canvas.Translate(origin.X, origin.Y);
 
         if (clip is { } dirty)
-        {
             canvas.ClipRect(new SKRect(dirty.X, dirty.Y, dirty.X + dirty.Width, dirty.Y + dirty.Height));
+
+        var formRect = new SKRect(0, 0, form.ClientSize.Width, form.ClientSize.Height);
+
+        if (clearBackground)
+        {
             canvas.Clear(SKColors.White);   // Clear уважает клип
         }
         else
         {
-            canvas.Clear(SKColors.White);
+            // за пределы своей области форма не рисует и просвечивать
+            // не должна: холст чужой, чистить его нельзя, поэтому
+            // закрашиваем ровно то, что занимаем
+            canvas.ClipRect(formRect);
+
+            using var background = new SKPaint { Color = SKColors.White };
+            canvas.DrawRect(formRect, background);
         }
 
         var (rippleActive, rippleOrigin, rippleRadius, rippleColor) = form.ThemeRipple;

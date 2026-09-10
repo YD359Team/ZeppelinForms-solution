@@ -1,6 +1,4 @@
-﻿using System.Collections.Concurrent;
-using SkiaSharp;
-using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Keyboard;
@@ -9,33 +7,40 @@ using ZeppelinForms.Input.Mouse;
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// Форма поверх одного canvas. IDesktopWindow не реализует намеренно:
-/// заголовка, прозрачности и состояния окна в браузере нет, и Form
-/// сам пропустит эти вызовы, увидев null.
+/// Форма как слой на общем canvas. Поверхностью и раздачей ввода владеет
+/// платформа — окно знает только своё место на холсте. IDesktopWindow
+/// не реализует намеренно: заголовка, прозрачности и состояния окна
+/// в браузере нет, и Form сам пропустит эти вызовы, увидев null.
 /// </summary>
 internal sealed class BrowserWindow : IPlatformWindow
 {
+    private readonly BrowserPlatform _platform;
     private readonly Form _form;
-    private readonly BrowserSkiaSurface _surface = new();
     private readonly BrowserFrameDriver _frames;
-    private readonly ConcurrentQueue<Action> _invokeQueue = new();
 
-    private float _scale = 1f;
-    private bool _inputEnabled = true;
     private bool _captured;
     private bool _closed;
 
-    public BrowserWindow(Form form)
+    public BrowserWindow(BrowserPlatform platform, Form form)
     {
+        _platform = platform;
         _form = form;
-        _frames = new BrowserFrameDriver(Interop.RequestFrame, Paint);
+        _frames = new BrowserFrameDriver(Interop.RequestFrame, platform.Paint);
     }
+
+    internal Form Form => _form;
+
+    /// <summary>Левый верхний угол формы на холсте в логических единицах.
+    /// У нижней формы всегда ноль, у диалогов ставится платформой.</summary>
+    internal Point Origin { get; set; }
+
+    internal bool IsInputEnabled { get; private set; } = true;
 
     public IFrameDriver Frames => _frames;
 
-    public float Scale => _scale;
+    public float Scale => _platform.Scale;
 
-    public void Show() => Invalidate(null);
+    public void Show() => _platform.Paint();
 
     public void Close()
     {
@@ -43,42 +48,16 @@ internal sealed class BrowserWindow : IPlatformWindow
         _closed = true;
 
         _frames.Stop();
-        _surface.Dispose();
+        _platform.Remove(this);
 
         _form.OnWindowClosed();
     }
 
-    /// <summary>Область игнорируется: кадр всё равно уходит на canvas целиком.
-    /// Перерисовка немедленная — отложить её нечем, отдельного цикла событий
-    /// у нас нет, а rAF пришлось бы ждать до следующего кадра.</summary>
-    public void Invalidate(Rectangle? rect) => Paint();
+    /// <summary>Область игнорируется: кадр всё равно уходит на canvas целиком,
+    /// да и слои поверх пришлось бы перерисовывать вместе с ним.</summary>
+    public void Invalidate(Rectangle? rect) => _platform.Paint();
 
-    private void Paint()
-    {
-        if (_closed) return;
-
-        if (_surface.BeginFrame() is SKSurface skSurface)
-        {
-            Skia.SkiaRenderer.Render(_form, skSurface.Canvas, _scale);
-            _surface.EndFrame();
-        }
-
-        _form.TakeDirtyRegion();
-    }
-
-    public void Invoke(Action action)
-    {
-        _invokeQueue.Enqueue(action);
-        Interop.ScheduleDrain();
-    }
-
-    internal void DrainInvokes()
-    {
-        while (_invokeQueue.TryDequeue(out Action? action))
-            action();
-    }
-
-    // ==== кадры ====
+    public void Invoke(Action action) => _platform.Enqueue(action);
 
     internal void HandleFrame(double timestampMs)
     {
@@ -87,70 +66,39 @@ internal sealed class BrowserWindow : IPlatformWindow
         _form.Tick();
     }
 
-    internal void HandleResize(int physicalWidth, int physicalHeight, float scale)
-    {
-        _scale = scale <= 0 ? 1f : scale;
-
-        _surface.Resize(physicalWidth, physicalHeight);
-        _form.ClientSize = new Size(physicalWidth / _scale, physicalHeight / _scale);
-        _form.PerformLayout();
-
-        Paint();
-    }
-
     // ==== ввод ====
-    // Координаты из JS приходят в CSS-пикселях, то есть уже логические:
-    // масштаб заложен в размер canvas, а не в события мыши.
+    // Точки приходят в координатах холста; форма ждёт свои, поэтому
+    // из каждой вычитается Origin. У нижней формы он нулевой.
 
-    internal void HandlePointerMove(double x, double y, int modifiers)
-    {
-        if (!_inputEnabled) return;
+    private Point ToLocal(double x, double y) =>
+        new((float)x - Origin.X, (float)y - Origin.Y);
 
-        _form.OnPointerMove(new Point((float)x, (float)y), (KeyModifiers)modifiers);
-    }
+    internal void HandlePointerMove(double x, double y, int modifiers) =>
+        _form.OnPointerMove(ToLocal(x, y), (KeyModifiers)modifiers);
 
-    internal void HandlePointerDown(double x, double y, int button, int modifiers)
-    {
-        if (!_inputEnabled) return;
+    internal void HandlePointerDown(double x, double y, int button, int modifiers) =>
+        _form.OnPointerDown(ToLocal(x, y), ToButton(button), (KeyModifiers)modifiers);
 
-        _form.OnPointerDown(new Point((float)x, (float)y), ToButton(button), (KeyModifiers)modifiers);
-    }
-
-    internal void HandlePointerUp(double x, double y, int button, int modifiers)
-    {
-        if (!_inputEnabled) return;
-
-        _form.OnPointerUp(new Point((float)x, (float)y), ToButton(button), (KeyModifiers)modifiers);
-    }
+    internal void HandlePointerUp(double x, double y, int button, int modifiers) =>
+        _form.OnPointerUp(ToLocal(x, y), ToButton(button), (KeyModifiers)modifiers);
 
     internal void HandlePointerLeave()
     {
         // при захвате указателя браузер продолжает присылать события
         // за пределами canvas — уход курсора тогда не считается уходом
-        if (!_inputEnabled || _captured) return;
+        if (_captured) return;
 
         _form.OnPointerLeaveWindow();
     }
 
-    internal void HandleWheel(double x, double y, double deltaY, double deltaX)
-    {
-        if (!_inputEnabled) return;
-
+    internal void HandleWheel(double x, double y, double deltaY, double deltaX) =>
         // в Win32 положительная дельта — прокрутка вверх, в браузере наоборот
-        _form.OnMouseWheel(new Point((float)x, (float)y), -(int)deltaY, -(int)deltaX);
-    }
+        _form.OnMouseWheel(ToLocal(x, y), -(int)deltaY, -(int)deltaX);
 
-    internal void HandleContextMenu(double x, double y)
-    {
-        if (!_inputEnabled) return;
-
-        _form.OnContextMenu(new Point((float)x, (float)y));
-    }
+    internal void HandleContextMenu(double x, double y) => _form.OnContextMenu(ToLocal(x, y));
 
     internal void HandleKeyDown(string code, string key, int modifiers, bool isRepeat)
     {
-        if (!_inputEnabled) return;
-
         var mods = (KeyModifiers)modifiers;
         _form.OnKeyDown(BrowserKeyMap.FromCode(code), mods, isRepeat);
 
@@ -190,10 +138,9 @@ internal sealed class BrowserWindow : IPlatformWindow
     /// HTML5 drag-and-drop — отдельная работа, а не переключатель.</summary>
     public void SetDragDropEnabled(bool enabled) { }
 
-    public void SetEnabled(bool enabled) => _inputEnabled = enabled;
+    public void SetEnabled(bool enabled) => IsInputEnabled = enabled;
 
-    /// <summary>Окно ровно одно и оно всегда активно.</summary>
-    public void Activate() { }
-
-    internal Form Form => _form;
+    /// <summary>Поднять слой наверх. Так диалог оказывается над владельцем
+    /// независимо от того, в каком порядке их создали.</summary>
+    public void Activate() => _platform.BringToFront(this);
 }

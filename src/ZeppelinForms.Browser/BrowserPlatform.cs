@@ -1,15 +1,25 @@
-﻿using ZeppelinForms.Drawing.Primitives;
+﻿using SkiaSharp;
+using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// Платформа браузера. INestedLoopSupport не реализует: заблокировать поток
-/// и продолжать получать события в браузере невозможно, поэтому Form.ShowDialog
-/// здесь честно бросит исключение — работает только ShowDialogAsync.
+/// Платформа браузера. Canvas один на всё приложение, поэтому окна здесь —
+/// слои на общей поверхности, а не отдельные окна системы: поверхность,
+/// очередь Invoke и раздача ввода живут в платформе, окна только знают
+/// своё место на ней.
+///
+/// INestedLoopSupport не реализует: заблокировать поток и продолжать
+/// получать события в браузере невозможно, поэтому Form.ShowDialog честно
+/// бросит исключение — работает только ShowDialogAsync.
 /// </summary>
 public sealed class BrowserPlatform : IPlatform, IAppLifecycle
 {
+    /// <summary>Затемнение под модальным диалогом. Своих окон у браузера нет,
+    /// и без этого непонятно, что нижняя форма перестала принимать ввод.</summary>
+    private static readonly SKColor s_scrim = new(0, 0, 0, 96);
+
     public event EventHandler? Paused;
     public event EventHandler? Resumed;
     public event EventHandler? Saving;
@@ -17,7 +27,13 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
     internal static BrowserPlatform? Current { get; private set; }
 
     private readonly string _canvasId;
-    private BrowserWindow? _window;
+    private readonly BrowserSkiaSurface _surface = new();
+    private readonly List<BrowserWindow> _windows = [];
+    private readonly Queue<Action> _invokeQueue = new();
+
+    private int _physicalWidth;
+    private int _physicalHeight;
+    private bool _initialized;
 
     private BrowserPlatform(string canvasId)
     {
@@ -43,33 +59,197 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
         return platform;
     }
 
+    internal float Scale { get; private set; } = 1f;
+
+    /// <summary>Размер холста в логических единицах.</summary>
+    internal Size CanvasSize => new(_physicalWidth / Scale, _physicalHeight / Scale);
+
+    /// <summary>Нижняя форма занимает холст целиком; всё, что поверх неё —
+    /// диалоги.</summary>
+    private BrowserWindow? Root => _windows.Count > 0 ? _windows[0] : null;
+
     public IPlatformWindow CreateWindow(Form form)
     {
-        // canvas один, наложением форм друг на друга никто пока не занимается.
-        // Пока это так, диалоги в браузере не работают — ни синхронные,
-        // ни асинхронные: ShowDialogAsync тоже идёт через CreateWindow
-        if (_window is not null)
-            throw new NotSupportedException(
-                "В браузере поддержано одно окно. Наложение форм на общий canvas ещё не сделано.");
+        var window = new BrowserWindow(this, form);
 
-        var window = new BrowserWindow(form);
-
-        _window = window;
-        Interop.Window = window;
+        _windows.Add(window);
         form.PlatformWindow = window;
         form.Platform = this;
 
-        Interop.Init(_canvasId);
-        Interop.SetTitle(form.Title ?? string.Empty);
+        if (!_initialized)
+        {
+            _initialized = true;
+            Interop.Platform = this;
+
+            // init сам вызовет resize, а тот — HandleResize: размер холста
+            // до этого момента неизвестен, раскладывать нечего
+            Interop.Init(_canvasId);
+            Interop.SetTitle(form.Title ?? string.Empty);
+        }
+        else
+        {
+            LayoutOverlay(window);
+            Paint();
+        }
 
         return window;
+    }
+
+    internal void BringToFront(BrowserWindow window)
+    {
+        // нижнюю форму наверх не поднимаем: она растянута на холст,
+        // и диалоги под ней стали бы невидимыми
+        if (_windows.Count < 2 || _windows[0] == window) return;
+        if (_windows[^1] == window) return;
+
+        _windows.Remove(window);
+        _windows.Add(window);
+
+        Paint();
+    }
+
+    internal void Remove(BrowserWindow window)
+    {
+        if (!_windows.Remove(window)) return;
+
+        Paint();
     }
 
     /// <summary>Циклом владеет браузер, поэтому возвращает управление сразу.
     /// Дальше всё происходит в обработчиках событий и rAF.</summary>
     public void Start() { }
 
-    public void Exit() => _window?.Close();
+    public void Exit()
+    {
+        // с конца: закрытие снимает окно со списка
+        for (int i = _windows.Count - 1; i >= 0; i--)
+            _windows[i].Close();
+    }
+
+    // ==== поверхность ====
+
+    internal void HandleResize(int physicalWidth, int physicalHeight, float scale)
+    {
+        Scale = scale <= 0 ? 1f : scale;
+        _physicalWidth = physicalWidth;
+        _physicalHeight = physicalHeight;
+
+        _surface.Resize(physicalWidth, physicalHeight);
+
+        if (Root is { } root)
+        {
+            root.Form.ClientSize = CanvasSize;
+            root.Form.PerformLayout();
+        }
+
+        // диалоги привязаны к центру холста, а он только что переехал
+        for (int i = 1; i < _windows.Count; i++)
+            LayoutOverlay(_windows[i]);
+
+        Paint();
+    }
+
+    /// <summary>Диалог держит собственный размер и встаёт по центру.
+    /// Если он не помещается, ужимается до холста: деваться ему некуда,
+    /// за края canvas ничего не видно.</summary>
+    private void LayoutOverlay(BrowserWindow window)
+    {
+        Size canvas = CanvasSize;
+        Size requested = window.Form.Size;
+
+        float width = requested.IsWidthAuto || requested.Width <= 0
+            ? canvas.Width * 0.6f
+            : Math.Min(requested.Width, canvas.Width);
+
+        float height = requested.IsHeightAuto || requested.Height <= 0
+            ? canvas.Height * 0.4f
+            : Math.Min(requested.Height, canvas.Height);
+
+        window.Form.ClientSize = new Size(width, height);
+        window.Origin = new Point((canvas.Width - width) / 2f, (canvas.Height - height) / 2f);
+
+        window.Form.PerformLayout();
+    }
+
+    internal void Paint()
+    {
+        if (_surface.BeginFrame() is not SKSurface surface) return;
+
+        SKCanvas canvas = surface.Canvas;
+
+        for (int i = 0; i < _windows.Count; i++)
+        {
+            BrowserWindow window = _windows[i];
+            bool isRoot = i == 0;
+
+            if (!isRoot)
+                DimBelow(canvas);
+
+            Skia.SkiaRenderer.Render(
+                window.Form,
+                canvas,
+                Scale,
+                clip: null,
+                clearBackground: isRoot,
+                origin: window.Origin);
+
+            window.Form.TakeDirtyRegion();
+        }
+
+        _surface.EndFrame();
+    }
+
+    private void DimBelow(SKCanvas canvas)
+    {
+        canvas.Save();
+        canvas.Scale(Scale, Scale);
+
+        using var paint = new SKPaint { Color = s_scrim };
+        canvas.DrawRect(new SKRect(0, 0, CanvasSize.Width, CanvasSize.Height), paint);
+
+        canvas.Restore();
+    }
+
+    // ==== кадры и очередь ====
+
+    internal void HandleFrame(double timestampMs)
+    {
+        // копия: тик может открыть или закрыть окно
+        foreach (BrowserWindow window in _windows.ToArray())
+            window.HandleFrame(timestampMs);
+    }
+
+    internal void Enqueue(Action action)
+    {
+        _invokeQueue.Enqueue(action);
+        Interop.ScheduleDrain();
+    }
+
+    internal void DrainInvokes()
+    {
+        // Count фиксируем заранее: действие может поставить в очередь новое,
+        // и без этого разбор очереди мог бы не кончиться никогда
+        int pending = _invokeQueue.Count;
+
+        for (int i = 0; i < pending; i++)
+            _invokeQueue.Dequeue()();
+    }
+
+    // ==== ввод ====
+
+    /// <summary>Ввод получает верхнее окно, принимающее его. Владелец диалога
+    /// в это время заглушён через SetEnabled, поэтому отдельной проверки
+    /// на модальность не нужно.</summary>
+    internal BrowserWindow? InputTarget()
+    {
+        for (int i = _windows.Count - 1; i >= 0; i--)
+        {
+            if (_windows[i].IsInputEnabled)
+                return _windows[i];
+        }
+
+        return null;
+    }
 
     internal void HandleVisibilityChange(bool visible)
     {
