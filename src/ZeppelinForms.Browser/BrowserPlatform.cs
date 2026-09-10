@@ -60,6 +60,31 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
         return platform;
     }
 
+    /// <summary>
+    /// Забрать файлы с сервера и положить в виртуальную ФС по тем же путям.
+    /// Нужно всему, что читает с диска синхронно — Image.LoadAsset,
+    /// Font.WithFile, — потому что в браузере скачать по ходу дела нельзя:
+    /// fetch асинхронный, а эти вызовы ждать не умеют.
+    ///
+    /// Пути абсолютные и совпадают с адресами на сервере: "/Assets/x.png"
+    /// скачивается из wwwroot/Assets/x.png и туда же ложится в ФС.
+    /// </summary>
+    public static async Task PreloadAsync(params string[] paths)
+    {
+        using HttpClient http = new() { BaseAddress = new Uri(Interop.BaseUri()) };
+
+        foreach (string path in paths)
+        {
+            // ведущий слэш увёл бы запрос в корень сайта мимо базового адреса
+            byte[] bytes = await http.GetByteArrayAsync(path.TrimStart('/'));
+
+            if (Path.GetDirectoryName(path) is { Length: > 0 } directory)
+                Directory.CreateDirectory(directory);
+
+            File.WriteAllBytes(path, bytes);
+        }
+    }
+
     internal float Scale { get; private set; } = 1f;
 
     /// <summary>Размер холста в логических единицах.</summary>

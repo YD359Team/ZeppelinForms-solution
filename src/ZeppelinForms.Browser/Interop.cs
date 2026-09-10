@@ -13,6 +13,11 @@ internal static partial class Interop
 
     // ==== C# -> JS ====
 
+    /// <summary>Адрес страницы. HttpClient в браузере не знает происхождения
+    /// сам, а относительные адреса без BaseAddress он не принимает.</summary>
+    [JSImport("baseUri", ModuleName)]
+    internal static partial string BaseUri();
+
     /// <summary>Привязаться к canvas и развесить обработчики событий.</summary>
     [JSImport("init", ModuleName)]
     internal static partial void Init(string canvasId);

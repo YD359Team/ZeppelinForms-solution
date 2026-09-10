@@ -7,19 +7,22 @@ namespace ZF_Wasm;
 
 public class Program
 {
-    static void Main()
+    static async Task Main()
     {
+        // без перехвата сбой в инициализации виден только в Console браузера,
+        // а страница остаётся белой и не намекает, что вообще случилось
         try
         {
-            BrowserPlatform browserPlatform = BrowserPlatform.Create();
-            // системных шрифтов в браузере нет: SKFontManager.Default ничего
-            // не найдёт, поэтому шрифт берётся из виртуальной ФС по пути.
-            // Начертания раздельные — при заданном FilePath вес и наклон
-            // в SkiaFontCache не учитываются
-            Font.Default = new Font("Inter", 14).WithFile("/fonts/Inter-Regular.ttf");
+            // скачиваем до создания форм: дальше всё читается синхронно
+            await BrowserPlatform.PreloadAsync(
+                "/fonts/Inter-Regular.ttf",
+                "/Assets/Laughing.png");
 
-            if (!File.Exists("/fonts/Inter-Regular.ttf"))
-                Console.WriteLine("Шрифт не найден в виртуальной ФС — проверь WasmFilesToIncludeInFileSystem");
+            BrowserPlatform browserPlatform = BrowserPlatform.Create();
+
+            // системных шрифтов в браузере нет: SKFontManager.Default ничего
+            // не найдёт, поэтому шрифт берётся из виртуальной ФС по пути
+            Font.Default = new Font("Inter", 14).WithFile("/fonts/Inter-Regular.ttf");
 
             App myApp = new(browserPlatform)
             {
@@ -28,7 +31,7 @@ public class Program
 
             myApp.Run();
 
-            Console.WriteLine("ZeppelinForms запущен");
+            Console.WriteLine($"ZeppelinForms запущен, шрифт на месте: {File.Exists("/fonts/Inter-Regular.ttf")}");
         }
         catch (Exception exception)
         {

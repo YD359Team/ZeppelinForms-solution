@@ -176,6 +176,10 @@ export function devicePixelRatio() {
     return window.devicePixelRatio || 1;
 }
 
+export function baseUri() {
+    return document.baseURI;
+}
+
 export async function readClipboard() {
     return await navigator.clipboard.readText();
 }

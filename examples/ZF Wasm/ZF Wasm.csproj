@@ -19,11 +19,9 @@
 		<ProjectReference Include="..\ZF SharedLib\ZF SharedLib.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<!-- шрифт и ресурсы в виртуальную ФС: Image.LoadAsset ищет их
-         в Assets относительно AppContext.BaseDirectory -->
-		<WasmFilesToIncludeInFileSystem Include="fonts\Inter-Regular.ttf" TargetPath="/fonts/Inter-Regular.ttf" />
-		<WasmFilesToIncludeInFileSystem Include="..\ZF SharedLib\Assets\**\*" TargetPath="/Assets/%(RecursiveDir)%(Filename)%(Extension)" />
-	</ItemGroup>
+	<!-- шрифт и ресурсы лежат в wwwroot и раздаются как обычная статика;
+       в файловую систему их кладёт BrowserPlatform.PreloadAsync при старте.
+       Объявлять их элементами нельзя: wwwroot подхватывается сам,
+       и второе объявление даст два ресурса с одним маршрутом -->
 
 </Project>
