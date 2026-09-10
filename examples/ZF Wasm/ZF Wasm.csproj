@@ -1,28 +1,34 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0-browser</TargetFramework>
-    <RootNamespace>ZF_Wasm</RootNamespace>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-	<!-- Exe, а не WinExe: подсистемы Windows в браузере нет.
+	<PropertyGroup>
+		<TargetFramework>net10.0-browser</TargetFramework>
+		<RootNamespace>ZF_Wasm</RootNamespace>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<!-- Exe, а не WinExe: подсистемы Windows в браузере нет.
          RuntimeIdentifier не пишем — SDK сам ставит browser-wasm -->
-    <OutputType>Exe</OutputType>
-	<WasmMainJSPath>wwwroot\main.js</WasmMainJSPath>
-	<!-- нативный Skia нужно перелинковать в модуль приложения;
+		<OutputType>Exe</OutputType>
+		<WasmMainJSPath>wwwroot\main.js</WasmMainJSPath>
+		<!-- нативный Skia перелинковывается в модуль приложения;
          требует workload wasm-tools и Emscripten -->
-	<WasmBuildNative>true</WasmBuildNative>
-  </PropertyGroup>
+		<WasmBuildNative>true</WasmBuildNative>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\ZeppelinForms.Browser\ZeppelinForms.Browser.csproj" />
-    <ProjectReference Include="..\ZF SharedLib\ZF SharedLib.csproj" />
-  </ItemGroup>
-  
-  <ItemGroup>
-	<!-- шрифт нужен в виртуальной ФС: по этому пути его найдёт
-    SKTypeface.FromFile внутри SkiaFontCache -->
-	<WasmFilesToIncludeInFileSystem Include="wwwroot\fonts\Inter-Regular.ttf" TargetPath="/fonts/Inter-Regular.ttf" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\ZeppelinForms.Browser\ZeppelinForms.Browser.csproj" />
+		<ProjectReference Include="..\ZF SharedLib\ZF SharedLib.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- zf.js лежит в библиотеке и попадает лишь в bin рядом с dll.
+         Браузеру нужен корень wwwroot, а туда его кладёт только это -->
+		<WasmExtraFilesToDeploy Include="$(OutputPath)zf.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- шрифт в виртуальную ФС: по этому пути его найдёт
+         SKTypeface.FromFile внутри SkiaFontCache -->
+		<WasmFilesToIncludeInFileSystem Include="fonts\Inter-Regular.ttf" TargetPath="/fonts/Inter-Regular.ttf" />
+	</ItemGroup>
 
 </Project>

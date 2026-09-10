@@ -26,6 +26,8 @@ function localX(e) { return e.clientX - canvas.getBoundingClientRect().left; }
 function localY(e) { return e.clientY - canvas.getBoundingClientRect().top; }
 
 export function init(canvasId) {
+    console.log("zf.js: init", canvasId);
+
     canvas = document.getElementById(canvasId);
     if (!canvas) {
         throw new Error(`canvas #${canvasId} не найден`);
@@ -118,9 +120,9 @@ export function present(pixels, width, height) {
         imageData = ctx.createImageData(width, height);
     }
 
-    // copyTo пишет прямо в буфер ImageData: pixels — представление
-    // на память WASM, живое только до конца этого вызова
-    pixels.copyTo(imageData.data);
+    // slice() отдаёт Uint8Array-копию, set() принимает её без проверки типа.
+    // copyTo напрямую в imageData.data не годится: там Uint8ClampedArray
+    imageData.data.set(pixels.slice());
     ctx.putImageData(imageData, 0, 0);
 }
 
