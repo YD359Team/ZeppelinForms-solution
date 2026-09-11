@@ -2,7 +2,7 @@
 
 # Changes
 
-## Feature [0.9.0] - Antarctica
+## [0.9.0] - Antarctica
 
 ![Antarctica](assets/Logo-0.9.0.png)
 
