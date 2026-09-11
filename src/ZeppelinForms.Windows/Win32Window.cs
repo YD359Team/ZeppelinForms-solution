@@ -347,9 +347,6 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
             NativeMethods.PostMessage(_handle, NativeConstants.WM_INVOKE, 0, 0);
     }
 
-    // debug
-    private bool _dumped;
-
     private nint ProcessMessage(
         nint hWnd,
         uint message,
@@ -705,8 +702,6 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 
         return handle.Target as Win32Window;
     }
-
-    private bool _ticking;
 
     public void SetImePosition(Point caret)
     {

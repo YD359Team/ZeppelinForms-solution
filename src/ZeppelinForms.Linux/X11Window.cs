@@ -55,7 +55,8 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
             return;
         }
 
-        _dropTarget.Unregister();
+        // приём могли и не включать: тогда отключать нечего
+        _dropTarget?.Unregister();
         _dropTarget = null;
     }
 
