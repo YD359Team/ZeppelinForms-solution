@@ -15,22 +15,19 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Include="wwwroot\fonts\Inter-Regular.ttf" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\..\src\ZeppelinForms.Browser\ZeppelinForms.Browser.csproj" />
 		<ProjectReference Include="..\ZF SharedLib\ZF SharedLib.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- общая с остальными примерами картинка: Link кладёт её в wwwroot,
+         откуда PreloadAsync скачивает её в файловую систему -->
 		<Content Include="..\ZF SharedLib\Assets\**\*"
 		         Link="wwwroot\Assets\%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
-	<!-- шрифт и ресурсы лежат в wwwroot и раздаются как обычная статика;
-       в файловую систему их кладёт BrowserPlatform.PreloadAsync при старте.
-       Объявлять их элементами нельзя: wwwroot подхватывается сам,
-       и второе объявление даст два ресурса с одним маршрутом -->
+	<!-- шрифт лежит в wwwroot и подхватывается сам; zf.js приезжает
+       из ZeppelinForms.Browser. Объявлять их нельзя: второе объявление
+       даст два ресурса с одним маршрутом и уронит сборку -->
 
 </Project>
