@@ -133,8 +133,8 @@ public partial class WrapPanel : DecoratedPanel
                 advance = main;
             }
 
-            child.Arrange(Position(mainOffset + (IsHorizontal ? m.Left : m.Top),
-                                   crossOffset + (IsHorizontal ? m.Top : m.Left)),
+            child.Arrange(ToPoint(mainOffset + (IsHorizontal ? m.Left : m.Top),
+                          crossOffset + (IsHorizontal ? m.Top : m.Left)),
                           child.DesiredSize);
 
             line.Add(child);
@@ -147,7 +147,10 @@ public partial class WrapPanel : DecoratedPanel
         PlaceLine(line, crossOffset, lineCross);
     }
 
-    private Point Position(float main, float cross) => IsHorizontal
+    /// <summary>Собрать точку из продольной и поперечной координат.
+    /// Имя не Position: так называется свойство UIElement, и совпадение
+    /// перекрывало бы его внутри этого класса.</summary>
+    private Point ToPoint(float main, float cross) => IsHorizontal
         ? new Point(Padding.Left + main, Padding.Top + cross)
         : new Point(Padding.Left + cross, Padding.Top + main);
 

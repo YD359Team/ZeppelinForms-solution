@@ -12,6 +12,13 @@ namespace ZeppelinForms.Forms.Controls.Tools;
 /// </summary>
 internal static class BuiltInProperties
 {
+    // CA2255: инициализатор модуля здесь намеренный. Каталог свойств должен
+    // быть заполнен до первого обращения к любому контролу, а точки входа,
+    // где это можно сделать явно, у библиотеки нет. Уйдёт вместе с переходом
+    // на генератор, который выпустит регистрацию по месту объявления свойств
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Usage", "CA2255:The 'ModuleInitializer' attribute should not be used in libraries",
+        Justification = "Каталог свойств должен быть готов до первого контрола")]
     [ModuleInitializer]
     internal static void Register()
     {

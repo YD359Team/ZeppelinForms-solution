@@ -180,7 +180,7 @@ public partial class DragList : ItemsControl
 
         if (_dragging)
         {
-            Drop();
+            CompleteDrop();
             ReleaseMouseCapture();
         }
 
@@ -265,7 +265,9 @@ public partial class DragList : ItemsControl
         !string.IsNullOrEmpty(_group) &&
         string.Equals(_group, other._group, StringComparison.Ordinal);
 
-    private void Drop()
+    /// <summary>Завершить перетаскивание переносом строки. Имя не Drop:
+    /// так называется событие UIElement, и совпадение перекрывало бы его.</summary>
+    private void CompleteDrop()
     {
         DragList? target = _target;
         object? item = _item;

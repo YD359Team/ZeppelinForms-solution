@@ -10,7 +10,6 @@ public abstract class TextInputControl : InteractiveControl
     private const int BlinkIntervalMs = 530;
 
     private readonly System.Threading.Timer _blinkTimer;
-    private bool _disposed;
 
     protected bool CaretVisible { get; private set; }
 
@@ -22,17 +21,13 @@ public abstract class TextInputControl : InteractiveControl
 
     protected override void OnGotFocus()
     {
-        if (_disposed) return;
-
         CaretVisible = true;
         _blinkTimer.Change(BlinkIntervalMs, BlinkIntervalMs);
     }
 
     protected override void OnLostFocus()
     {
-        if (!_disposed)
-            _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
-
+        _blinkTimer.Change(Timeout.Infinite, Timeout.Infinite);
         CaretVisible = false;
     }
 
@@ -41,14 +36,14 @@ public abstract class TextInputControl : InteractiveControl
     {
         CaretVisible = true;
 
-        if (IsFocused && !_disposed)
+        if (IsFocused)
             _blinkTimer.Change(BlinkIntervalMs, BlinkIntervalMs);
     }
 
     private void OnBlink(object? state)
     {
-        if (_disposed) return;
-
+        // контрол мог уйти из дерева между срабатыванием таймера и этой
+        // строкой — тогда владельца нет, и мигать уже некуда
         FindOwner()?.Invoke(() =>
         {
             CaretVisible = !CaretVisible;
