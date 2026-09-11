@@ -22,8 +22,15 @@
 	<ItemGroup>
 		<!-- общая с остальными примерами картинка: Link кладёт её в wwwroot,
          откуда PreloadAsync скачивает её в файловую систему -->
-		<Content Include="..\ZF SharedLib\Assets\**\*"
-		         Link="wwwroot\Assets\%(RecursiveDir)%(Filename)%(Extension)" />
+		<Content Include="..\ZF SharedLib\Assets\**\*" Link="wwwroot\Assets\%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Remove="wwwroot\zf.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="wwwroot\zf.js" />
 	</ItemGroup>
 
 	<!-- шрифт лежит в wwwroot и подхватывается сам; zf.js приезжает
