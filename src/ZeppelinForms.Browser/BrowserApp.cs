@@ -11,6 +11,9 @@ namespace ZeppelinForms.Browser;
 /// </summary>
 public static class BrowserApp
 {
+    /// <param name="mainForm">Именно фабрика, а не готовая форма: конструктор
+    /// формы уже меряет текст, а измеритель появляется только после создания
+    /// платформы. Готовый объект был бы построен до вызова — в аргументах.</param>
     /// <param name="font">Путь к файлу шрифта — он же адрес на сервере.
     /// null оставляет Font.Default как есть, и текст будет нарисован
     /// запасным начертанием: своих шрифтов у браузера для Skia нет.</param>
@@ -19,7 +22,7 @@ public static class BrowserApp
     /// <param name="fontFamily">Имя семейства. По умолчанию берётся
     /// из имени файла — "Inter-Regular.ttf" даёт "Inter".</param>
     public static async Task RunAsync(
-        Form mainForm,
+        Func<Form> mainForm,
         string? font = null,
         IEnumerable<string>? preload = null,
         string? fontFamily = null,
@@ -49,7 +52,9 @@ public static class BrowserApp
                     .WithFile(font);
             }
 
-            App app = new(platform) { MainForm = mainForm };
+            // форма строится только теперь: измеритель текста
+            // и шрифт по умолчанию уже на месте
+            App app = new(platform) { MainForm = mainForm() };
             app.Run();
         }
         catch (Exception exception)
