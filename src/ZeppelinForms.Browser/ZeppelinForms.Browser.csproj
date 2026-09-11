@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<!-- суффикс -browser обязателен: без него нет JSImport/JSExport -->
@@ -14,9 +14,11 @@
 		<ProjectReference Include="..\ZeppelinForms.Skia\ZeppelinForms.Skia.csproj" />
 	</ItemGroup>
 
-	<!-- wwwroot\zf.js объявлять не надо: Razor SDK сам раздаёт его
-       потребителям по адресу _content/ZeppelinForms.Browser/zf.js,
-       и копия в каждом приложении больше не нужна -->
+	<ItemGroup>
+		<!-- эталон модуля. В приложение не копируется: там лежит своя копия
+         в wwwroot, а этот файл здесь как исходник -->
+		<None Include="zf.js" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="SkiaSharp" Version="4.151.2" />
