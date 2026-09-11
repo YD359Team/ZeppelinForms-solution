@@ -184,6 +184,18 @@ export async function readClipboard() {
     return await navigator.clipboard.readText();
 }
 
+export function setFavicon(dataUrl) {
+    let link = document.querySelector("link[rel='icon']");
+
+    if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.head.appendChild(link);
+    }
+
+    link.href = dataUrl;
+}
+
 export function writeClipboard(text) {
     // промах игнорируем: запись без жеста пользователя запрещена,
     // и падать из-за отказа в разрешении неправильно

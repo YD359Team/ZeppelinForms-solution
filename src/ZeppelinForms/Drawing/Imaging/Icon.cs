@@ -110,6 +110,11 @@ public sealed class Icon
             image.Size);
     }
 
+    /// <summary>Содержимое ICO целиком. Нужно там, где иконку принимает
+    /// не система, а что-то другое — например favicon страницы: браузер
+    /// хочет весь файл, а не отдельное изображение из него.</summary>
+    public ReadOnlySpan<byte> GetRawData() => _data;
+
     private ImageEntry SelectImage(
         int requestedWidth,
         int requestedHeight)

@@ -15,13 +15,17 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Include="wwwroot\Assets\Laughing.png" />
 	  <None Include="wwwroot\fonts\Inter-Regular.ttf" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\ZeppelinForms.Browser\ZeppelinForms.Browser.csproj" />
 		<ProjectReference Include="..\ZF SharedLib\ZF SharedLib.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="..\ZF SharedLib\Assets\**\*"
+		         Link="wwwroot\Assets\%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
 	<!-- шрифт и ресурсы лежат в wwwroot и раздаются как обычная статика;

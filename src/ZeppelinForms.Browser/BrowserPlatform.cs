@@ -111,6 +111,13 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
             // до этого момента неизвестен, раскладывать нечего
             Interop.Init(_canvasId);
             Interop.SetTitle(form.Title ?? string.Empty);
+            if (form.Icon is { } icon)
+            {
+                // ICO браузеры принимают, и data-адрес избавляет от отдельного
+                // файла в wwwroot — источник иконки остаётся один
+                string base64 = Convert.ToBase64String(icon.GetRawData());
+                Interop.SetFavicon($"data:image/x-icon;base64,{base64}");
+            }
         }
         else
         {

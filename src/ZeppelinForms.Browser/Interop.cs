@@ -45,6 +45,9 @@ internal static partial class Interop
     [JSImport("setTitle", ModuleName)]
     internal static partial void SetTitle(string title);
 
+    [JSImport("setFavicon", ModuleName)]
+    internal static partial void SetFavicon(string dataUrl);
+
     /// <summary>Размер области просмотра в физических пикселях и devicePixelRatio.</summary>
     [JSImport("viewportWidth", ModuleName)]
     internal static partial int ViewportWidth();

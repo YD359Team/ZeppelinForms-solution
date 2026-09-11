@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
 	<PropertyGroup>
 		<!-- суффикс -browser обязателен: без него нет JSImport/JSExport -->
@@ -12,12 +12,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\ZeppelinForms\ZeppelinForms.csproj" />
 		<ProjectReference Include="..\ZeppelinForms.Skia\ZeppelinForms.Skia.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<!-- эталон модуля. В приложение не копируется: там лежит своя копия
-         в wwwroot, а этот файл здесь как исходник -->
-		<None Include="zf.js" />
 	</ItemGroup>
 
 	<ItemGroup>

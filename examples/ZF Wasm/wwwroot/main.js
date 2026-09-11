@@ -1,5 +1,5 @@
 ﻿import { dotnet } from "./_framework/dotnet.js";
-import * as zf from "./zf.js";
+import * as zf from "./_content/ZeppelinForms.Browser/zf.js";
 
 const runtime = await dotnet.create();
 
