@@ -201,3 +201,58 @@ export function writeClipboard(text) {
     // и падать из-за отказа в разрешении неправильно
     navigator.clipboard.writeText(text).catch(() => { });
 }
+
+export function pickFiles(accept, multiple) {
+    return new Promise(resolve => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.multiple = multiple;
+
+        if (accept) {
+            input.accept = accept;
+        }
+
+        // отмену браузер не сообщает событием: cancel поддержан не везде,
+        // поэтому полагаемся на него, а при его отсутствии — на пустой выбор
+        input.addEventListener("cancel", () => resolve(""));
+
+        input.addEventListener("change", async () => {
+            const files = Array.from(input.files ?? []);
+
+            if (files.length === 0) {
+                resolve("");
+                return;
+            }
+
+            const payload = await Promise.all(files.map(async file => {
+                const buffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(buffer);
+
+                // base64 по частям: apply на всём массиве переполняет стек
+                let binary = "";
+                for (let i = 0; i < bytes.length; i += 0x8000) {
+                    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+                }
+
+                return { name: file.name, data: btoa(binary) };
+            }));
+
+            zf().OnFilesPicked(JSON.stringify(payload));
+            resolve(payload.map(p => p.name).join("\n"));
+        });
+
+        input.click();
+    });
+}
+
+export function downloadFile(fileName, base64) {
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes]));
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.click();
+
+    URL.revokeObjectURL(url);
+}

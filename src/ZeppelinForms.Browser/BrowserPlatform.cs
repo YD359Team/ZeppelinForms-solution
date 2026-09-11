@@ -52,6 +52,7 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
         Skia.SkiaTextMeasurer.Register();
         Skia.SkiaOffscreenRenderer.Register();
         BrowserClipboard.Register();
+        BrowserFilePicker.Register();
         Displays.Current = new BrowserDisplayProvider();
 
         var platform = new BrowserPlatform(canvasId);

@@ -58,11 +58,26 @@ internal static partial class Interop
     [JSImport("devicePixelRatio", ModuleName)]
     internal static partial double DevicePixelRatio();
 
+    /// <summary>Открыть системный выбор файлов. Возвращает имена через
+    /// перевод строки, а сами файлы кладёт в /uploads виртуальной ФС.
+    /// Пустая строка — отменили.</summary>
+    [JSImport("pickFiles", ModuleName)]
+    internal static partial Task<string> PickFilesAsync(string accept, bool multiple);
+
+    /// <summary>Отдать файл пользователю как скачивание.</summary>
+    [JSImport("downloadFile", ModuleName)]
+    internal static partial void DownloadFile(string fileName, string base64);
+
     [JSImport("readClipboard", ModuleName)]
     internal static partial Task<string> ReadClipboardAsync();
 
     [JSImport("writeClipboard", ModuleName)]
     internal static partial void WriteClipboard(string text);
+
+    /// <summary>Содержимое выбранных файлов: JSON вида [{name, data}],
+    /// data в base64. Записываем в /uploads, откуда их читает обычный File.</summary>
+    [JSExport]
+    internal static void OnFilesPicked(string json) => BrowserFilePicker.Save(json);
 
     // ==== JS -> C# ====
     // Canvas один, платформа тоже, поэтому идентификатор окна из JS
