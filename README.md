@@ -15,11 +15,13 @@ The project is under active development.
 | 1 | Headless    | ✅      |
 | 2 | Windows     | ✅      |
 | 3 | Linux (X11) | ✅*     |
-| 4 | WebAssembly | 💡     |
+| 4 | WebAssembly | ✅**    |
 | 5 | macOS       | 💡     |
 
-\* — `SetOpacity` and `SetWindowState` are not implemented yet: they need
-`_NET_WM_WINDOW_OPACITY` and `_NET_WM_STATE`.
+\* — Linux: `SetOpacity` and `SetWindowState` are not implemented yet: they need
+`_NET_WM_WINDOW_OPACITY` and `_NET_WM_STATE`. 
+\*\* - WebAssembly: dialogs are async-only,
+and system drag and drop is not supported — see the browser section below.
 
 ### 🧠 Philosophy
 
@@ -64,7 +66,7 @@ If hardware acceleration is unavailable, the framework falls back to software re
 \* — the inspector currently works only with certain types \
 \*\* — the API will be extended further \
 \*\*\* — some limitations and unfinished parts remain \
-\*\*\*\* - only managed (not system) implementation
+\*\*\*\* - managed implementation by default; a platform may supply a system picker through `IFilePicker`, as the browser backend does
 
 ### 🛣️ Layout
 
@@ -247,41 +249,52 @@ above for the full precedence. `ClearValue` gives a property back to the theme.
 
 ### 🛠️ Code Examples
 
-Creating an application on Windows:
+Creating an application in the browser (WebAssembly):
 
 ```csharp
 public class Program
 {
-    static void Main()
-    {
-        WindowsPlatform windowsPlatform = new();
-        App myApp = new(windowsPlatform)
-        {
-            MainForm = new MainForm()
-        };
-        myApp.Run();
-    }
+    static Task Main() => BrowserApp.RunAsync(
+        () => new MainForm(),
+        font: "/fonts/Inter-Regular.ttf",
+        preload: ["/Assets/Logo.png"]);
 }
 ```
 
-Creating an application on Linux (X11):
+A factory is passed rather than a form instance: a form measures text in its
+constructor, and the text measurer only exists once the platform has been created.
 
-```csharp
-public class Program
-{
-    static void Main()
-    {
-        X11Platform linuxPlatform = new();
-        App myApp = new(linuxPlatform)
-        {
-            MainForm = new MainForm()
-        };
-        myApp.Run();
-    }
-}
+The browser has no system fonts and no local file system, so `font` and `preload`
+name files served from `wwwroot`. `BrowserApp` downloads them into the virtual
+file system before the first form is built, after which `Image.LoadAsset` and
+`Font.WithFile` work exactly as they do on the desktop.
+
+Two host files are needed alongside the application. `wwwroot/index.html`:
+
+```html
+<body>
+    <canvas id="zf-canvas"></canvas>
+    <script type="module" src="main.js"></script>
+</body>
 ```
 
-See the projects in the `examples/` directory for more examples.
+and `wwwroot/main.js`, which loads the runtime and wires up the JavaScript module:
+
+```javascript
+import { dotnet } from "./_framework/dotnet.js";
+import * as zf from "./zf.js";
+
+const runtime = await dotnet.create();
+runtime.setModuleImports("zf", { ...zf });
+
+const exports = await runtime.getAssemblyExports("ZeppelinForms.Browser");
+globalThis.zfExports = exports.ZeppelinForms.Browser.Interop;
+
+await runtime.runMain();
+```
+
+`zf.js` ships with `ZeppelinForms.Browser` and has to be copied into the
+application's `wwwroot`. See `examples/ZF Wasm` for a complete project.
 
 ### 🧪 Snapshot Tests
 

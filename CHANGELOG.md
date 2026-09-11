@@ -1,15 +1,42 @@
 # Changes
 
+# Changes
+
 ## Feature [0.9.0] - Antarctica
+
+![Antarctica](assets/Logo-0.9.0.png)
 
 ### Breaking changes
 - Platform rework
-	- Laying the foundation for new platforms
-	- Lifetime abstraction
-	- Transition to async dialog model
+	- `IPlatformWindow` is now the minimum every platform can implement. Desktop-only members — title, opacity, window state, bounds — moved to the new `IDesktopWindow`, which the browser does not implement
+	- `IPlatform.Run` renamed to `Start`: where the host owns the loop, it returns immediately
+	- `INestedLoopSupport` split off from `IFrameDriver`. Platforms without a nested event loop do not implement it, and `Form.ShowDialog` throws there
+	- `IPlatform` moved from the global namespace into `ZeppelinForms`
+	- `ITextMeasurer` gained `IsReady` and `PrepareAsync` for platforms that load fonts asynchronously
+	- `SkiaRenderer.Render` takes `clearBackground` and `origin` so several forms can share one surface
+- Transition to async dialog model
+- Package versions are now managed centrally in `Directory.Packages.props`
+- Dropped the unused `SkiaSharp.HarfBuzz` dependency
+
+### WebAssembly
+- New `ZeppelinForms.Browser` backend targeting `net10.0-browser`
+	- Skia renders into a buffer that is copied to a `<canvas>` with `putImageData`
+	- Frames come from `requestAnimationFrame`; repaints are coalesced into one per frame
+	- Input through Pointer and Keyboard Events, with `KeyboardEvent.code` mapped to `Key`
+	- Page lifecycle — `visibilitychange` and `pagehide` — surfaced through `IAppLifecycle`
+	- Clipboard, cursors, document title and tab icon
+- `BrowserApp.RunAsync` starts an application in one call: asset preload, platform, font, `App.Run`
+- Several forms share one canvas: dialogs stack on top of the main form over a dimmed background
+- `BrowserFilePicker` implements file selection with `<input type=file>`; picked files land in `/uploads` of the virtual file system
 
 ### Fixes
 - Fix `PageControl` page transition
+- `Form.Closed` and `Form.OnWindowClosed` give dialogs a single completion point, whichever way the window was closed. `ShowDialogAsync` previously never returned
+- `ZfSynchronizationContext` returns `await` continuations to the UI thread
+- Changing the theme no longer strips `FilePath` from `Font.Default`
+- Removed a dead `_disposed` field in `TextInputControl` and two unused fields in `Win32Window`
+- `WrapPanel.Position` and `DragList.Drop` renamed to `ToPoint` and `CompleteDrop`: both hid members of `UIElement`
+- `X11Window.SetDragDropEnabled(false)` no longer dereferences a null drop target
 
 ### Features
 - Drag&Drop improvements
@@ -22,12 +49,19 @@
 	- Add all key codes to enum 
 	- Add more mouse events
 - Add `IAnimation.Cancel(bool)`
+- Async dialogs: `MessageBox.ShowAsync`, `ConfirmAsync`, `ErrorAsync`; `InputBox.ShowAsync`, `ShowNumberAsync`; `FileDialog.OpenFileAsync`, `OpenFilesAsync`, `SaveFileAsync`, `SelectFolderAsync`
+- `IFilePicker` lets a platform replace the managed file browser with a system picker
+- `Form.OpenForms` lists forms that currently have a window
 
 ### Controls
 - Add `AttachButton`
 
-## [0.8.1]
-- Fix `PageControl` glitch
+### Known limitations in the browser
+- Synchronous `Form.ShowDialog`, `MessageBox.Show` and friends throw `NotSupportedException`. Blocking the thread while still receiving events is impossible in a browser — use the `*Async` variants
+- System drag and drop is not supported
+- Folder selection is not supported: the concept does not exist in a browser
+- Repaints are always full-surface
+- With `Font.FilePath` set, weight and style are ignored — `SkiaFontCache` keys typefaces by path alone. Bold needs its own file
 
 ## [0.8.0]
 
