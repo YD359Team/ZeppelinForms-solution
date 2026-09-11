@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Forms.Dialogs;
+﻿using System.Text.Json;
+using ZeppelinForms.Forms.Dialogs;
 
 namespace ZeppelinForms.Browser;
 
@@ -42,6 +43,37 @@ public sealed class BrowserFilePicker : IFilePicker
     /// <summary>Выбора папки в браузере нет и обойти это нечем.</summary>
     public Task<string?> SelectFolderAsync(FileDialogOptions options) =>
         Task.FromResult<string?>(null);
+
+    /// <summary>
+    /// Записать выбранное в виртуальную ФС. Вызывается из JS до того, как
+    /// pickFiles вернёт управление, поэтому к моменту выхода из OpenAsync
+    /// файлы уже на месте и читаются обычным File.OpenRead.
+    /// </summary>
+    /// <param name="json">Массив вида [{"name": "...", "data": "base64"}].</param>
+    internal static void Save(string json)
+    {
+        Directory.CreateDirectory(UploadDirectory);
+
+        // JsonDocument, а не десериализация в тип: обход отражения
+        // переживает обрезку сборки, которую WASM включает по умолчанию
+        using JsonDocument document = JsonDocument.Parse(json);
+
+        foreach (JsonElement file in document.RootElement.EnumerateArray())
+        {
+            if (!file.TryGetProperty("name", out JsonElement name)) continue;
+            if (!file.TryGetProperty("data", out JsonElement data)) continue;
+
+            // только имя: браузер путей не отдаёт, но в имени может
+            // оказаться разделитель — тогда запись ушла бы мимо /uploads
+            string fileName = Path.GetFileName(name.GetString() ?? string.Empty);
+
+            if (fileName.Length == 0) continue;
+
+            File.WriteAllBytes(
+                Path.Combine(UploadDirectory, fileName),
+                Convert.FromBase64String(data.GetString() ?? string.Empty));
+        }
+    }
 
     /// <summary>Отдать файл пользователю как скачивание. Единственный способ
     /// «сохранить» из браузера: записи по произвольному пути у нас нет.</summary>
