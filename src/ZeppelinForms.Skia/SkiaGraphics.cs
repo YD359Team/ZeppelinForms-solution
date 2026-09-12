@@ -4,12 +4,9 @@ using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 
-namespace ZeppelinForms.Skia;
-
 public sealed class SkiaGraphics : Graphics
 {
     private readonly SKCanvas _canvas;
-    private static readonly SKFont DefaultFont = new(SKTypeface.Default, 16);
 
     // Кэш "наш Image -> уже загруженный в Skia SKImage", чтобы не
     // перезаливать пиксели на каждый WM_PAINT. ConditionalWeakTable
@@ -579,7 +576,8 @@ public sealed class SkiaGraphics : Graphics
     {
         if (opacity <= 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
 
-        using SKShader shader = NoiseShader;
+        // шейдер общий и живёт до конца процесса — в using его брать нельзя
+        SKShader shader = NoiseShader;
 
         byte alpha = (byte)Math.Clamp(opacity * 255f, 0, 255);
 
@@ -595,8 +593,13 @@ public sealed class SkiaGraphics : Graphics
     }
 
     // шум генерируется один раз: процедурная текстура одинакова для всех
-    // элементов, а пересоздавать её на каждый кадр слишком дорого
-    private static SKShader NoiseShader =>
+    // элементов, а пересоздавать её на каждый кадр слишком дорого.
+    //
+    // Именно поле, а не свойство-выражение: со стрелкой каждое обращение
+    // создавало новый шейдер, то есть код делал ровно то, что запрещает
+    // строчка выше. Общий экземпляр безопасен и между потоками —
+    // шейдеры в Skia неизменяемы.
+    private static readonly SKShader NoiseShader =
         SKShader.CreatePerlinNoiseFractalNoise(0.8f, 0.8f, 2, 0f);
 
     public override void DrawReflection(Rectangle bounds, float heightRatio, float gap, float startOpacity)
