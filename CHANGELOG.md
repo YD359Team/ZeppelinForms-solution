@@ -1,6 +1,40 @@
 # Changes
 
-# Changes
+## [0.10.0] - Hyperborea
+
+### Performance
+
+- Fixed an image memory leak. `SkiaGraphics` pinned the pixel buffer of every
+  decoded image with a `GCHandle` that was never released: `ConditionalWeakTable`
+  does not dispose its values, so the handle outlived the image and rooted the
+  array for the lifetime of the process. Images are now uploaded with
+  `SKImage.FromPixelCopy` and released together with their cache entry. This also
+  fixes unbounded growth in `MapControl`, whose LRU evicted tiles that stayed pinned.
+- Added a text cache keyed by string and font. One entry holds the split into
+  font runs, the run advances, the line metrics and the `SKTextBlob` for each run.
+  Measuring a string no longer walks it rune by rune, and drawing no longer
+  rebuilds the glyph run on every frame.
+- `SkiaGraphics` reuses pooled `SKPaint` instances for fills and strokes instead
+  of allocating one per primitive.
+- `Label` caches its split into lines instead of recomputing it on every measure
+  and every draw.
+- Replaced deprecated `SKPath` mutation and `SKTypeface.ContainsGlyph` with
+  `SKPathBuilder` and `SKFont`.
+
+Measured on a 1280x800 offscreen surface, Windows, workstation GC:
+
+| Scenario | Before | After |
+| -------- | ------ | ----- |
+| 300-label form, one frame | 26.2 ms, 7.06 MB allocated | 2.9 ms, 9.4 KB |
+| Business form, one frame | 3.2 ms, 398 KB allocated | 0.9 ms, 3.4 KB |
+| 1000 repeated text measurements | 33.8 ms, 11.5 MB allocated | 0.06 ms, 8 B |
+| Full layout pass | 0.55 ms, 112 KB allocated | 0.13 ms, 15.9 KB |
+
+### Added
+
+- `bench/ZeppelinForms.Benchmarks`: a headless benchmark suite with a committed
+  per-platform baseline. `--check` fails the build on regressions in frame time,
+  allocations or retained memory.
 
 ## [0.9.0] - Antarctica
 
