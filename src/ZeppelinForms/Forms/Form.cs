@@ -617,8 +617,16 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (_focusDispatcher.FocusedElement is { } focused && IsInTree(root, focused))
             _focusDispatcher.ClearFocus();
 
-        InspectedElement = null;
-        _toolTipOwner = null;
+        // как и остальные ссылки выше — только если сбрасываемый элемент
+        // действительно в отсоединяемом поддереве. Безусловный сброс стал
+        // заметен, когда через DetachTree пошло скрытие подсказки:
+        // оно случается на каждом движении мыши и гасило бы выбор
+        // инспектора вместе с ним
+        if (InspectedElement is not null && IsInTree(root, InspectedElement))
+            InspectedElement = null;
+
+        if (_toolTipOwner is not null && IsInTree(root, _toolTipOwner))
+            _toolTipOwner = null;
 
         for (int i = _animations.Count - 1; i >= 0; i--)
         {
