@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>ZeppelinForms.Benchmarks</RootNamespace>
+
+		<!-- Воспроизводимость важнее скорости: серверный и фоновый GC
+         дают разброс между прогонами, из-за которого CI-гейт
+         начал бы срабатывать на шуме, а не на регрессиях. -->
+		<ServerGarbageCollection>false</ServerGarbageCollection>
+		<ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+
+		<!-- Пакет не собираем: это внутренний инструмент. -->
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\ZeppelinForms\ZeppelinForms.csproj" />
+		<ProjectReference Include="..\..\src\ZeppelinForms.Skia\ZeppelinForms.Skia.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="SkiaSharp" />
+	</ItemGroup>
+
+	<!-- Нативные модули Skia нужны те, что соответствуют хосту:
+       бенчмарк всегда запускается локально, без RID-публикации. -->
+	<ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+		<PackageReference Include="SkiaSharp.NativeAssets.Win32" />
+	</ItemGroup>
+
+	<ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+		<PackageReference Include="SkiaSharp.NativeAssets.Linux" />
+	</ItemGroup>
+
+</Project>

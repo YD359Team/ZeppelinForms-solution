@@ -1,0 +1,84 @@
+{
+  "Platform": "win",
+  "CreatedUtc": "2026-09-12T11:39:12.3790374+00:00",
+  "Results": {
+    "layout.business-form": {
+      "Name": "layout.business-form",
+      "Iterations": 300,
+      "MedianMs": 0.5461,
+      "P95Ms": 0.6558149999999999,
+      "MaxMs": 11.173,
+      "AllocatedBytesPerIteration": 114472,
+      "RetainedBytes": -9744,
+      "WorkingSetDeltaBytes": 8577024,
+      "Gen0Collections": 4,
+      "Gen1Collections": 3,
+      "Gen2Collections": 0
+    },
+    "render.business-form": {
+      "Name": "render.business-form",
+      "Iterations": 200,
+      "MedianMs": 3.2388000000000003,
+      "P95Ms": 5.022874999999997,
+      "MaxMs": 17.1812,
+      "AllocatedBytesPerIteration": 407768,
+      "RetainedBytes": -14824,
+      "WorkingSetDeltaBytes": 5955584,
+      "Gen0Collections": 9,
+      "Gen1Collections": 8,
+      "Gen2Collections": 0
+    },
+    "render.text-heavy": {
+      "Name": "render.text-heavy",
+      "Iterations": 150,
+      "MedianMs": 26.17035,
+      "P95Ms": 28.471339999999998,
+      "MaxMs": 32.6574,
+      "AllocatedBytesPerIteration": 7404072,
+      "RetainedBytes": -15224,
+      "WorkingSetDeltaBytes": -4509696,
+      "Gen0Collections": 132,
+      "Gen1Collections": 131,
+      "Gen2Collections": 0
+    },
+    "text.measure-repeated": {
+      "Name": "text.measure-repeated",
+      "Iterations": 100,
+      "MedianMs": 33.8228,
+      "P95Ms": 40.79638,
+      "MaxMs": 43.58,
+      "AllocatedBytesPerIteration": 12064008,
+      "RetainedBytes": -15624,
+      "WorkingSetDeltaBytes": 143360,
+      "Gen0Collections": 144,
+      "Gen1Collections": 143,
+      "Gen2Collections": 0
+    },
+    "memory.image-retention": {
+      "Name": "memory.image-retention",
+      "Iterations": 200,
+      "MedianMs": 0.15245,
+      "P95Ms": 0.20402999999999977,
+      "MaxMs": 0.5026,
+      "AllocatedBytesPerIteration": 262557,
+      "RetainedBytes": 52428056,
+      "WorkingSetDeltaBytes": 44781568,
+      "Gen0Collections": 2,
+      "Gen1Collections": 2,
+      "Gen2Collections": 2
+    },
+    "memory.font-fallback-growth": {
+      "Name": "memory.font-fallback-growth",
+      "Iterations": 100,
+      "MedianMs": 4.9646,
+      "P95Ms": 6.4759449999999985,
+      "MaxMs": 8.9097,
+      "AllocatedBytesPerIteration": 13760,
+      "RetainedBytes": 153864,
+      "WorkingSetDeltaBytes": 7499776,
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0
+    }
+  }
+}

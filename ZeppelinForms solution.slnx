@@ -3,6 +3,10 @@
   <Folder Name="/.github/workflows/">
     <File Path=".github/workflows/ci.yml" />
     <File Path=".github/workflows/release.yml" />
+    <File Path="bench.yml" />
+  </Folder>
+  <Folder Name="/bench/">
+    <Project Path="bench/ZeppelinForms.Benchmarks/ZeppelinForms.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/examples/">
     <Project Path="examples/ZF Linux/ZF Linux.csproj" />
