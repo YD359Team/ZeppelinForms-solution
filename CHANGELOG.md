@@ -2,6 +2,8 @@
 
 ## [0.10.0] - Hyperborea
 
+![Antarctica](assets/Logo-0.10.0.jpg)
+
 ### Performance
 
 - Fixed an image memory leak. `SkiaGraphics` pinned the pixel buffer of every
@@ -38,7 +40,7 @@ Measured on a 1280x800 offscreen surface, Windows, workstation GC:
 
 ## [0.9.0] - Antarctica
 
-![Antarctica](assets/Logo-0.9.0.png)
+![Antarctica](assets/Logo-0.9.0.jpg)
 
 ### Breaking changes
 - Platform rework
