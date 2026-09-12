@@ -13,4 +13,17 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+
+	<PropertyGroup>
+		<!-- Предупреждение, которое печатается и пролистывается, ничем
+         не отличается от его отсутствия. Ронять сборку — единственный
+         способ заставить их чинить. -->
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+		<!-- Мёртвые поля и неиспользуемые члены: за 0.9–0.10 их вычищали
+         трижды вручную (_disposed в TextInputControl, поля Win32Window,
+         DefaultFont и CachedImage в Skia). Это работа компилятора. -->
+		<AnalysisLevel>latest</AnalysisLevel>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+	</PropertyGroup>
 </Project>
