@@ -515,9 +515,14 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     private void OnThemeChanged(object? sender, EventArgs e)
     {
-        if (Content is null) return;
+        if (Content is not null)
+            ApplyTheme(Content);
 
-        ApplyTheme(Content);
+        // оверлеи живут отдельно от Content: без этого открытые инспектор,
+        // меню или флаут остаются в старой теме до закрытия
+        foreach (UIElement overlay in _overlays.ToArray())
+            ApplyTheme(overlay);
+
         Invalidate();
     }
 
@@ -656,6 +661,26 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                     Walk(child, action);
                 break;
         }
+    }
+
+    /// <summary>Присоединить оверлей: тема, шрифт, имена, OnAttached.
+    /// Единая точка для всех оверлеев — флаутов, тостов, подсказок, меню
+    /// и инспектора. Раньше через неё проходил только AddOverlay,
+    /// а остальные клали элемент прямо в _overlays, и тема до него
+    /// не доезжала.</summary>
+    private void AttachOverlay(UIElement content)
+    {
+        content.Owner = this;
+        AttachTree(content);
+    }
+
+    /// <summary>Отсоединить оверлей. Симметрична AttachOverlay: без неё
+    /// закрытый флаут остаётся в NameScope, его анимации продолжают
+    /// крутиться, а ссылки на него держат диспетчеры ввода и фокуса.</summary>
+    private void DetachOverlay(UIElement content)
+    {
+        DetachTree(content);
+        content.Owner = null;
     }
 
     private int _layoutDepth;
@@ -825,6 +850,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     public void ShowFlyout(UIElement anchor, UIElement content, FlyoutPlacement placement = FlyoutPlacement.Bottom)
     {
+        // сначала присоединение, потом измерение: тема меняет шрифты
+        // и отступы, а позиция считается из DesiredSize
+        AttachOverlay(content);
+
         content.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
 
         Point anchorPos = anchor.GetAbsolutePosition();
@@ -840,7 +869,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             _ => anchorPos,
         };
 
-        content.Owner = this;
         _overlays.Add(content);
         _flyouts.Add(content);
 
@@ -852,7 +880,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (!_overlays.Remove(content)) return;
 
         _flyouts.Remove(content);
-        content.Owner = null;
+        DetachOverlay(content);
 
         FlyoutClosed?.Invoke(this, content);
         Invalidate();
@@ -869,7 +897,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         foreach (UIElement flyout in closing)
         {
             _overlays.Remove(flyout);
-            flyout.Owner = null;
+            DetachOverlay(flyout);
         }
 
         _flyouts.Clear();
@@ -1044,8 +1072,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             Child = new Label { Text = message, TextColor = Colors.White },
         };
 
-        toast.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
         toast.Owner = this;
+        AttachOverlay(toast);
+
+        toast.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
 
         _overlays.Add(toast);
         _toasts.Add(toast);
@@ -1059,7 +1089,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             {
                 _overlays.Remove(toast);
                 _toasts.Remove(toast);
-                toast.Owner = null;
+                DetachOverlay(toast);
                 ArrangeToasts(position);   // оставшиеся подтягиваются на освободившееся место
                 Invalidate();
             });
@@ -1132,6 +1162,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             },
         };
 
+        AttachOverlay(tip);
+
         tip.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
 
         // чуть ниже-правее курсора, как принято в системных подсказках
@@ -1161,7 +1193,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (_activeToolTip is not null)
         {
             _overlays.Remove(_activeToolTip);
-            _activeToolTip.Owner = null;
+            DetachOverlay(_activeToolTip);
             _activeToolTip = null;
             Invalidate();
         }
@@ -1186,12 +1218,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             };
 
             _inspectorGrid.Owner = this;
-            App.Theme.Apply(_inspectorGrid);
+            AttachOverlay(_inspectorGrid);
             _overlays.Add(_inspectorGrid);
         }
         else if (_inspectorGrid is not null)
         {
             _overlays.Remove(_inspectorGrid);
+            DetachOverlay(_inspectorGrid);
             _inspectorGrid = null;
         }
 
@@ -1277,13 +1310,14 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         var menu = new MenuList { Items = items };
         menu.ItemInvoked += (_, _) => CloseAllFlyouts();
 
+        AttachOverlay(menu);
+
         menu.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
 
         float x = Math.Min(position.X, Math.Max(0, ClientSize.Width - menu.DesiredSize.Width));
         float y = Math.Min(position.Y, Math.Max(0, ClientSize.Height - menu.DesiredSize.Height));
 
         menu.Position = new Point(x, y);
-        menu.Owner = this;
 
         _overlays.Add(menu);
         _flyouts.Add(menu);   // закроется кликом мимо — как и положено меню
