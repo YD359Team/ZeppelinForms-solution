@@ -13,6 +13,23 @@ public sealed class SkiaGraphics : Graphics
     // сам подчистит запись, когда Image перестанет использоваться.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Image, SKImage> ImageCache = [];
 
+    // ===== Диагностика =====
+
+    /// <summary>Сколько кистей создано в этом потоке. Ноль или два —
+    /// пул работает; больше означало бы, что кисти пересоздаются.</summary>
+    [ThreadStatic]
+    private static int _paintsCreated;
+
+    internal static int PaintsCreated => _paintsCreated;
+
+    /// <summary>Изображений в кэше. ConditionalWeakTable не даёт Count,
+    /// поэтому считаем сами: записи добавляются только в GetOrCreate,
+    /// а убирает их сборщик — значение показывает, сколько заливок
+    /// было сделано, а не сколько живо сейчас.</summary>
+    private static int _imagesUploaded;
+
+    internal static int ImagesUploaded => Volatile.Read(ref _imagesUploaded);
+
     #region Пул кистей
 
     // Кисти переиспользуются вместо создания на каждый примитив: SKPaint —
@@ -33,7 +50,13 @@ public sealed class SkiaGraphics : Graphics
 
     private static SKPaint FillPaint(Color color)
     {
-        SKPaint paint = _fillPaint ??= new SKPaint();
+        SKPaint paint = _fillPaint;
+
+        if (paint is null)
+        {
+            paint = _fillPaint = new SKPaint();
+            _paintsCreated++;
+        }
 
         paint.Reset();
         paint.Color = new SKColor(color.R, color.G, color.B, color.A);
@@ -84,6 +107,7 @@ public sealed class SkiaGraphics : Graphics
                     "Не удалось загрузить изображение в Skia.");
 
             ImageCache.Add(image, cached);
+            Interlocked.Increment(ref _imagesUploaded);
         }
 
         return cached;

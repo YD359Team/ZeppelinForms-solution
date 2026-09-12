@@ -57,6 +57,9 @@ public static class Scenarios
             SkiaRenderer.Render(scene.Form, scene.Canvas);
             scene.Canvas.Flush();
         },
+        Report = _ =>
+            $"paints {SkiaDiagnostics.PaintsCreated}, " +
+            $"lines {SkiaDiagnostics.LineEntries}",
     };
 
     /// <summary>Тот же кадр, но с преобладанием текста.</summary>
@@ -141,6 +144,7 @@ public static class Scenarios
             images.Graphics.DrawImage(new Rectangle(0, 0, side, side), image);
             images.Surface.Canvas.Flush();
         },
+        Report = _ => $"uploads {SkiaDiagnostics.ImagesUploaded}",
     };
 
     private sealed record ImageState(SKSurface Surface, SkiaGraphics Graphics);

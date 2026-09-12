@@ -27,6 +27,14 @@ internal static class SkiaFontCache
 
     internal static int FallbackCount => Fallbacks.Count;
 
+    /// <summary>Разрешённых typeface'ов, из файлов и из системы.
+    /// Потолка здесь нет намеренно: их единицы на приложение, ключ —
+    /// семейство с начертанием, а не символ.</summary>
+    internal static int TypefaceCount
+    {
+        get { lock (Sync) return FileTypefaces.Count + Typefaces.Count; }
+    }
+
     // SKFont, в отличие от SKTypeface, потокобезопасным не является:
     // MeasureText и ContainsGlyphs меняют его внутреннее состояние.
     // Поэтому всё, что содержит SKFont, живёт по экземпляру на поток —
