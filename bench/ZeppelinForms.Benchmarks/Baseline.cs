@@ -2,6 +2,22 @@
 
 namespace ZeppelinForms.Benchmarks;
 
+/// <summary>Какие метрики сценария имеет смысл сравнивать с эталоном.</summary>
+[Flags]
+public enum GatedMetrics
+{
+    None = 0,
+
+    /// <summary>Медиана времени итерации.</summary>
+    Time = 1,
+
+    /// <summary>Байты аллокаций на итерацию.</summary>
+    Allocations = 2,
+
+    /// <summary>Память, оставшаяся занятой после полной сборки мусора.</summary>
+    Retained = 4,
+}
+
 /// <summary>Одно расхождение с эталоном.</summary>
 public sealed record Regression(
     string Scenario,
@@ -17,8 +33,33 @@ public static class Baseline
         WriteIndented = true,
     };
 
-    /// <summary>Отрисовка текста различается между платформами,
-    /// поэтому эталоны раздельные — как и снимки.</summary>
+    /// <summary>
+    /// Метрики, проверяемые для конкретных сценариев. Всё, чего здесь нет,
+    /// проверяется по <see cref="DefaultMetrics"/>.
+    /// </summary>
+    private static readonly Dictionary<string, GatedMetrics> ScenarioMetrics = new()
+    {
+        // Время здесь — это чтение файлов шрифтов: на холодном файловом
+        // кэше ОС сценарий медленнее в десятки раз, и гейт ловил бы
+        // состояние машины, а не код. Смысл сценария в удержании.
+        ["memory.font-fallback-growth"] = GatedMetrics.Retained,
+
+        // Аллокации на итерацию здесь — это буфер, который создаёт сам
+        // бенчмарк; проверяем его как признак того, что сценарий не
+        // изменился, и удержание как собственно предмет измерения.
+        ["memory.image-retention"] = GatedMetrics.Allocations | GatedMetrics.Retained,
+    };
+
+    /// <summary>
+    /// По умолчанию удержание не проверяется: в сценариях раскладки
+    /// и отрисовки оно колеблется около нуля в обе стороны и дало бы
+    /// срабатывания на шуме.
+    /// </summary>
+    private const GatedMetrics DefaultMetrics = GatedMetrics.Time | GatedMetrics.Allocations;
+
+    /// <summary>Ось, для которой снят эталон. Отрисовка текста
+    /// отличается между платформами, поэтому эталоны раздельные —
+    /// как и снимки в tests/.../Snapshots/Expected/{win,linux}.</summary>
     public static string CurrentPlatform =>
         OperatingSystem.IsWindows() ? "win"
         : OperatingSystem.IsLinux() ? "linux"
@@ -72,15 +113,22 @@ public static class Baseline
             if (!baseline.Results.TryGetValue(result.Name, out BenchmarkResult? old))
                 continue;   // новый сценарий — сравнивать не с чем
 
-            Check(result.Name, "median-ms",
-                old.MedianMs, result.MedianMs, timeTolerance);
+            GatedMetrics metrics = ScenarioMetrics.TryGetValue(result.Name, out GatedMetrics custom)
+                ? custom
+                : DefaultMetrics;
 
-            Check(result.Name, "alloc-per-iter",
-                old.AllocatedBytesPerIteration, result.AllocatedBytesPerIteration,
-                allocationTolerance);
+            if (metrics.HasFlag(GatedMetrics.Time))
+                Check(result.Name, "median-ms",
+                    old.MedianMs, result.MedianMs, timeTolerance);
 
-            Check(result.Name, "retained-bytes",
-                old.RetainedBytes, result.RetainedBytes, allocationTolerance);
+            if (metrics.HasFlag(GatedMetrics.Allocations))
+                Check(result.Name, "alloc-per-iter",
+                    old.AllocatedBytesPerIteration, result.AllocatedBytesPerIteration,
+                    allocationTolerance);
+
+            if (metrics.HasFlag(GatedMetrics.Retained))
+                Check(result.Name, "retained-bytes",
+                    old.RetainedBytes, result.RetainedBytes, allocationTolerance);
         }
 
         return regressions;
