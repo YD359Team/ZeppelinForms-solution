@@ -178,6 +178,11 @@ public class Form : IDisposable
 
     public FlowDirection? FlowDirection { get; set; }
 
+    // Список приватный и меняется только через AttachOverlay/DetachOverlay.
+    // Раньше он был обычным List, и пять методов из шести клали элемент
+    // напрямую — тема до оверлея не доезжала, а при закрытии не звался
+    // DetachTree. Прямого Add больше нет, поэтому забыть про присоединение
+    // нельзя: единственный путь внутрь проходит через него.
     private readonly List<UIElement> _overlays = [];
     public IReadOnlyList<UIElement> Overlays => _overlays;
     private readonly List<UIElement> _flyouts = [];
@@ -576,6 +581,35 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     // ===== Присоединение поддерева к форме =====
 
+    /// <summary>Показать оверлей: присоединить поддерево (тема, шрифт, имена,
+    /// OnAttached) и положить поверх содержимого. Единственный путь
+    /// в список оверлеев — флауты, тосты, подсказки, меню и инспектор
+    /// проходят через него.</summary>
+    /// <remarks>Присоединение идёт до измерения: тема задаёт шрифты
+    /// и отступы, а позиция оверлея считается из DesiredSize.</remarks>
+    private void AttachOverlay(UIElement content)
+    {
+        if (_overlays.Contains(content)) return;
+
+        content.Owner = this;
+        AttachTree(content);
+
+        _overlays.Add(content);
+    }
+
+    /// <summary>Убрать оверлей и отсоединить поддерево. Без отсоединения
+    /// закрытый оверлей остаётся в NameScope, его анимации продолжают
+    /// крутиться, а ссылки на него держат диспетчеры ввода и фокуса.</summary>
+    private bool DetachOverlay(UIElement content)
+    {
+        if (!_overlays.Remove(content)) return false;
+
+        DetachTree(content);
+        content.Owner = null;
+
+        return true;
+    }
+
     internal void AttachTree(UIElement root)
     {
         Walk(root, element =>
@@ -669,26 +703,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                     Walk(child, action);
                 break;
         }
-    }
-
-    /// <summary>Присоединить оверлей: тема, шрифт, имена, OnAttached.
-    /// Единая точка для всех оверлеев — флаутов, тостов, подсказок, меню
-    /// и инспектора. Раньше через неё проходил только AddOverlay,
-    /// а остальные клали элемент прямо в _overlays, и тема до него
-    /// не доезжала.</summary>
-    private void AttachOverlay(UIElement content)
-    {
-        content.Owner = this;
-        AttachTree(content);
-    }
-
-    /// <summary>Отсоединить оверлей. Симметрична AttachOverlay: без неё
-    /// закрытый флаут остаётся в NameScope, его анимации продолжают
-    /// крутиться, а ссылки на него держат диспетчеры ввода и фокуса.</summary>
-    private void DetachOverlay(UIElement content)
-    {
-        DetachTree(content);
-        content.Owner = null;
     }
 
     private int _layoutDepth;
@@ -858,8 +872,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     public void ShowFlyout(UIElement anchor, UIElement content, FlyoutPlacement placement = FlyoutPlacement.Bottom)
     {
-        // сначала присоединение, потом измерение: тема меняет шрифты
-        // и отступы, а позиция считается из DesiredSize
         AttachOverlay(content);
 
         content.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
@@ -877,7 +889,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             _ => anchorPos,
         };
 
-        _overlays.Add(content);
         _flyouts.Add(content);
 
         Invalidate();
@@ -885,10 +896,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     public void CloseFlyout(UIElement content)
     {
-        if (!_overlays.Remove(content)) return;
+        if (!DetachOverlay(content)) return;
 
         _flyouts.Remove(content);
-        DetachOverlay(content);
 
         FlyoutClosed?.Invoke(this, content);
         Invalidate();
@@ -903,10 +913,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         UIElement[] closing = [.. _flyouts];
 
         foreach (UIElement flyout in closing)
-        {
-            _overlays.Remove(flyout);
             DetachOverlay(flyout);
-        }
 
         _flyouts.Clear();
 
@@ -920,23 +927,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     /// не закрывается по клику мимо и не участвует в логике всплывашек.</summary>
     public void AddOverlay(UIElement content)
     {
-        if (_overlays.Contains(content)) return;
-
-        content.Owner = this;
-        _overlays.Add(content);
-
-        // без AttachTree к элементу не применится тема и не приедет шрифт
-        AttachTree(content);
-
+        AttachOverlay(content);
         Invalidate();
     }
 
     public void RemoveOverlay(UIElement content)
     {
-        if (!_overlays.Remove(content)) return;
-
-        DetachTree(content);
-        content.Owner = null;
+        if (!DetachOverlay(content)) return;
 
         Invalidate();
     }
@@ -1085,7 +1082,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         toast.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
 
-        _overlays.Add(toast);
         _toasts.Add(toast);
         ArrangeToasts(position);
         Invalidate();
@@ -1095,9 +1091,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         {
             Invoke(() =>
             {
-                _overlays.Remove(toast);
-                _toasts.Remove(toast);
                 DetachOverlay(toast);
+                _toasts.Remove(toast);
                 ArrangeToasts(position);   // оставшиеся подтягиваются на освободившееся место
                 Invalidate();
             });
@@ -1188,8 +1183,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         tip.Position = new Point(x, y);
         tip.Owner = this;
 
+        tip.Position = new Point(x, y);
+
         _activeToolTip = tip;
-        _overlays.Add(tip);
 
         Invalidate();
     }
@@ -1200,7 +1196,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         if (_activeToolTip is not null)
         {
-            _overlays.Remove(_activeToolTip);
             DetachOverlay(_activeToolTip);
             _activeToolTip = null;
             Invalidate();
@@ -1225,13 +1220,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                 VerticalAlignment = VerticalAlignment.Top,
             };
 
-            _inspectorGrid.Owner = this;
             AttachOverlay(_inspectorGrid);
-            _overlays.Add(_inspectorGrid);
         }
         else if (_inspectorGrid is not null)
         {
-            _overlays.Remove(_inspectorGrid);
             DetachOverlay(_inspectorGrid);
             _inspectorGrid = null;
         }
@@ -1327,7 +1319,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         menu.Position = new Point(x, y);
 
-        _overlays.Add(menu);
         _flyouts.Add(menu);   // закроется кликом мимо — как и положено меню
 
         Invalidate();
