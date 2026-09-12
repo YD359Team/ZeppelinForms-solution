@@ -2,15 +2,52 @@
 using System.Text;
 using ZeppelinForms.Drawing;
 
-namespace ZeppelinForms.Skia;
-
 internal static class SkiaFontCache
 {
-    private static readonly Dictionary<Font, SKFont> Fonts = [];
+    // Общие на процесс: SKTypeface в Skia потокобезопасен, держать его
+    // по экземпляру на поток незачем.
     private static readonly Dictionary<string, SKTypeface> FileTypefaces = [];
     private static readonly Dictionary<(string, FontWeight, FontStyle), SKTypeface> Typefaces = [];
     private static readonly Dictionary<(string, FontWeight, FontStyle, int), SKTypeface?> Fallbacks = [];
     private static readonly Lock Sync = new();
+
+    // SKFont, в отличие от SKTypeface, потокобезопасным не является:
+    // MeasureText и ContainsGlyphs меняют его внутреннее состояние.
+    // Поэтому всё, что содержит SKFont, живёт по экземпляру на поток —
+    // по той же причине, по которой в SkiaGraphics [ThreadStatic] сделан
+    // пул кистей: снимковые тесты xunit идут параллельно.
+    //
+    // Общая блокировка вместо этого стоила бы захвата на каждый вызов
+    // MeasurePrefix, а он зовётся на каждое положение каретки.
+
+    [ThreadStatic] private static Dictionary<Font, SKFont>? _fonts;
+    [ThreadStatic] private static Dictionary<(SKTypeface, float), SKFont>? _sizedFonts;
+    [ThreadStatic] private static GenerationalCache<(string Text, Font Font), CachedLine>? _lines;
+
+    /// <summary>Версия подбора шрифтов, увиденная этим потоком.</summary>
+    [ThreadStatic] private static int _localVersion;
+
+    /// <summary>Общая версия подбора шрифтов. Растёт на каждый сброс;
+    /// потоковые кэши подтягиваются к ней лениво, при первом обращении.</summary>
+    private static int _version;
+
+    private static Dictionary<Font, SKFont> Fonts
+    {
+        get
+        {
+            SyncVersion();
+            return _fonts ??= [];
+        }
+    }
+
+    private static Dictionary<(SKTypeface, float), SKFont> SizedFonts
+    {
+        get
+        {
+            SyncVersion();
+            return _sizedFonts ??= [];
+        }
+    }
 
     /// <summary>
     /// Разобранные строки. Лимит поколения подобран под интерфейс:
@@ -18,26 +55,114 @@ internal static class SkiaFontCache
     /// различных строк, а всё сверх того — ввод в поле, который
     /// устаревает сам.
     /// </summary>
-    private static readonly GenerationalCache<(string Text, Font Font), CachedLine> Lines = new(4096);
+    private static GenerationalCache<(string Text, Font Font), CachedLine> Lines
+    {
+        get
+        {
+            SyncVersion();
+            return _lines ??= new GenerationalCache<(string Text, Font Font), CachedLine>(4096);
+        }
+    }
+
+    /// <summary>Догнать общую версию: если подбор шрифтов менялся,
+    /// потоковые кэши держат устаревшие SKFont и разобранные по ним
+    /// строки.</summary>
+    private static void SyncVersion()
+    {
+        int current = Volatile.Read(ref _version);
+        if (_localVersion == current) return;
+
+        DropLocal();
+        _localVersion = current;
+    }
+
+    /// <summary>Освободить потоковые кэши. Порядок важен: сначала строки
+    /// вместе с блобами, потом сами шрифты.</summary>
+    private static void DropLocal()
+    {
+        _lines?.Clear();
+
+        if (_fonts is not null)
+        {
+            foreach (SKFont font in _fonts.Values)
+                font.Dispose();
+
+            _fonts.Clear();
+        }
+
+        if (_sizedFonts is not null)
+        {
+            foreach (SKFont font in _sizedFonts.Values)
+                font.Dispose();
+
+            _sizedFonts.Clear();
+        }
+    }
 
     public static SKFont Get(Font font)
     {
+        Dictionary<Font, SKFont> fonts = Fonts;
+
+        if (fonts.TryGetValue(font, out SKFont? cached))
+            return cached;
+
+        SKTypeface typeface = ResolveTypeface(font);
+        var skFont = new SKFont(typeface, font.Size);
+
+        // Файл шрифта несёт ровно одно начертание, и SKTypeface.FromFile
+        // подбирать по весу и наклону не умеет. Раньше Bold и Italic при
+        // заданном FilePath просто игнорировались — жирный текст рисовался
+        // обычным. Синтезируем: ключ кэша включает Weight и Style, так что
+        // начертания разойдутся по разным SKFont на одном typeface.
+        if (font.FilePath is not null)
+        {
+            if (font.Weight == FontWeight.Bold)
+                skFont.Embolden = true;
+
+            if (font.Style == FontStyle.Italic)
+                skFont.SkewX = -0.25f;
+        }
+
+        fonts[font] = skFont;
+        return skFont;
+    }
+
+    /// <summary>
+    /// Сбросить подбор шрифтов целиком. Нужно там, где он меняется, —
+    /// например, после подгрузки нового файла шрифта.
+    /// </summary>
+    /// <remarks>
+    /// Typeface'ы намеренно не уничтожаются. Среди них лежит
+    /// SKTypeface.Default, общий на процесс, а MatchFamily умеет вернуть
+    /// подмену, из-за чего один объект оказывается сразу под несколькими
+    /// ключами. Их единицы на сброс, и цена ошибки здесь несопоставима
+    /// с выигрышем.
+    ///
+    /// Звать можно только когда отрисовка не идёт: потоковые SKFont
+    /// освобождаются сразу, а на них могут ссылаться уже полученные
+    /// вызывающей стороной CachedLine.
+    /// </remarks>
+    public static void Invalidate()
+    {
         lock (Sync)
         {
-            if (Fonts.TryGetValue(font, out SKFont? cached))
-                return cached;
-
-            SKTypeface typeface = ResolveTypeface(font);
-            var skFont = new SKFont(typeface, font.Size);
-
-            Fonts[font] = skFont;
-            return skFont;
+            FileTypefaces.Clear();
+            Typefaces.Clear();
+            Fallbacks.Clear();
         }
+
+        Interlocked.Increment(ref _version);
+
+        // текущий поток чистится сразу, остальные — при первом обращении
+        SyncVersion();
     }
 
     /// <summary>Сбросить разобранные строки. Нужно там, где меняется
     /// подбор шрифтов, — например, после подгрузки нового файла шрифта.</summary>
-    public static void InvalidateLines() => Lines.Clear();
+    /// <remarks>Оставлен ради вызывающего кода. Сбрасывать одни строки
+    /// недостаточно: SKFont и typeface пережили бы сброс, и подбор
+    /// остался бы прежним. Поэтому делает полный сброс.</remarks>
+    public static void InvalidateLines() => Invalidate();
 
     /// <summary>
     /// Разбор строки на отрезки вместе с габаритами. Результат кэшируется:
@@ -49,13 +174,15 @@ internal static class SkiaFontCache
         if (string.IsNullOrEmpty(text))
             return CachedLine.Empty;
 
+        GenerationalCache<(string Text, Font Font), CachedLine> lines = Lines;
+
         var key = (text, font);
 
-        if (Lines.TryGet(key, out CachedLine? cached))
+        if (lines.TryGet(key, out CachedLine? cached))
             return cached!;
 
         CachedLine line = BuildLine(text, font);
-        Lines.Add(key, line);
+        lines.Add(key, line);
 
         return line;
     }
@@ -67,12 +194,15 @@ internal static class SkiaFontCache
         // Быстрый путь: вся строка покрыта основным шрифтом. Один вызов
         // на строку вместо проверки глифа на каждый символ — для латиницы
         // и кириллицы это попадание всегда.
-        FontRun[] runs = primary.ContainsGlyphs(text)
+        bool wholeLineIsPrimary = primary.ContainsGlyphs(text);
+
+        FontRun[] runs = wholeLineIsPrimary
             ? [new FontRun(0, text.Length, primary, 0)]
             : BuildMixedRuns(text, font);
 
         float width = 0;
         float height = 0;
+        SKRect bounds = SKRect.Empty;
 
         for (int i = 0; i < runs.Length; i++)
         {
@@ -87,9 +217,18 @@ internal static class SkiaFontCache
 
             // высота — максимум высоты чернил, ровно как считалось раньше
             height = Math.Max(height, runBounds.Height);
+
+            // на быстром пути единственный отрезок — это вся строка,
+            // измеренная основным шрифтом. Отдельный замер ниже дал бы
+            // тот же прямоугольник, поэтому берём уже посчитанный
+            if (wholeLineIsPrimary)
+                bounds = runBounds;
         }
 
-        primary.MeasureText(text.AsSpan(), out SKRect bounds);
+        // на смешанном пути границы по-прежнему считаются основным шрифтом:
+        // на этой величине стоят эталонные снимки
+        if (!wholeLineIsPrimary)
+            primary.MeasureText(text.AsSpan(), out bounds);
 
         return new CachedLine
         {
@@ -166,62 +305,65 @@ internal static class SkiaFontCache
 
     private static SKTypeface ResolveTypeface(Font font)
     {
-        // Вызывается только из Get, а он уже под блокировкой:
-        // словари типов не потокобезопасны, и раньше часть обращений
-        // к Typefaces шла мимо замка.
-        if (font.FilePath is not null)
+        // Раньше метод звался из Get под общей блокировкой. Теперь словари
+        // шрифтов потоковые и в замке не нуждаются, а разделяемыми остались
+        // только typeface'ы — блокировка переехала сюда, к ним.
+        lock (Sync)
         {
-            if (FileTypefaces.TryGetValue(font.FilePath, out SKTypeface? fromFile))
-                return fromFile;
-
-            SKTypeface? loaded = SKTypeface.FromFile(font.FilePath);
-
-            if (loaded is not null)
+            if (font.FilePath is not null)
             {
-                FileTypefaces[font.FilePath] = loaded;
-                return loaded;
+                if (FileTypefaces.TryGetValue(font.FilePath, out SKTypeface? fromFile))
+                    return fromFile;
+
+                SKTypeface? loaded = SKTypeface.FromFile(font.FilePath);
+
+                if (loaded is not null)
+                {
+                    FileTypefaces[font.FilePath] = loaded;
+                    return loaded;
+                }
             }
+
+            var key = (font.Family, font.Weight, font.Style);
+
+            if (Typefaces.TryGetValue(key, out SKTypeface? cached))
+                return cached;
+
+            var style = new SKFontStyle(
+                font.Weight == FontWeight.Bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
+                SKFontStyleWidth.Normal,
+                font.Style == FontStyle.Italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);
+
+            SKTypeface? resolved = null;
+
+            foreach (string raw in font.Family.Split(','))
+            {
+                string name = raw.Trim();
+                if (name.Length == 0) continue;
+
+                if (IsGeneric(name))
+                {
+                    resolved = SKFontManager.Default.MatchFamily(GenericToConcrete(name), style);
+                    if (resolved is not null) break;
+                    continue;
+                }
+
+                SKTypeface? candidate = SKFontManager.Default.MatchFamily(name, style);
+
+                // MatchFamily может вернуть подмену вместо null, если семейства нет —
+                // поэтому проверяем, что это действительно запрошенный шрифт
+                if (candidate is not null &&
+                    candidate.FamilyName.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    resolved = candidate;
+                    break;
+                }
+            }
+
+            resolved ??= SKTypeface.Default;
+            Typefaces[key] = resolved;
+            return resolved;
         }
-
-        var key = (font.Family, font.Weight, font.Style);
-
-        if (Typefaces.TryGetValue(key, out SKTypeface? cached))
-            return cached;
-
-        var style = new SKFontStyle(
-            font.Weight == FontWeight.Bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
-            SKFontStyleWidth.Normal,
-            font.Style == FontStyle.Italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);
-
-        SKTypeface? resolved = null;
-
-        foreach (string raw in font.Family.Split(','))
-        {
-            string name = raw.Trim();
-            if (name.Length == 0) continue;
-
-            if (IsGeneric(name))
-            {
-                resolved = SKFontManager.Default.MatchFamily(GenericToConcrete(name), style);
-                if (resolved is not null) break;
-                continue;
-            }
-
-            SKTypeface? candidate = SKFontManager.Default.MatchFamily(name, style);
-
-            // MatchFamily может вернуть подмену вместо null, если семейства нет —
-            // поэтому проверяем, что это действительно запрошенный шрифт
-            if (candidate is not null &&
-                candidate.FamilyName.Equals(name, StringComparison.OrdinalIgnoreCase))
-            {
-                resolved = candidate;
-                break;
-            }
-        }
-
-        resolved ??= SKTypeface.Default;
-        Typefaces[key] = resolved;
-        return resolved;
     }
 
     /// <summary>Шрифт, в котором есть глиф для символа: сначала основной,
@@ -232,7 +374,8 @@ internal static class SkiaFontCache
         SKFont primary = Get(font);
 
         // проверка глифа переехала с SKTypeface на SKFont:
-        // SKTypeface.ContainsGlyph объявлен устаревшим
+        // SKTypeface.ContainsGlyph объявлен устаревшим.
+        // Вне замка это безопасно: primary принадлежит текущему потоку
         if (primary.ContainsGlyph(codepoint))
             return primary.Typeface;
 
@@ -251,17 +394,16 @@ internal static class SkiaFontCache
 
     public static SKFont GetSized(SKTypeface typeface, float size)
     {
+        Dictionary<(SKTypeface, float), SKFont> sized = SizedFonts;
+
         var key = (typeface, size);
 
-        lock (Sync)
-        {
-            if (SizedFonts.TryGetValue(key, out SKFont? cached))
-                return cached;
+        if (sized.TryGetValue(key, out SKFont? cached))
+            return cached;
 
-            var created = new SKFont(typeface, size);
-            SizedFonts[key] = created;
-            return created;
-        }
+        var created = new SKFont(typeface, size);
+        sized[key] = created;
+        return created;
     }
 
     /// <summary>Разбивает строку на отрезки с одинаковым шрифтом.</summary>
@@ -282,8 +424,6 @@ internal static class SkiaFontCache
                 : (text.Substring(run.Start, run.Length), run.Font);
         }
     }
-
-    private static readonly Dictionary<(SKTypeface, float), SKFont> SizedFonts = [];
 
     private static bool IsGeneric(string name) =>
         name is "sans-serif" or "serif" or "monospace";

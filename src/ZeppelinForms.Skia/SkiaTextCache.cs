@@ -1,7 +1,5 @@
 ﻿using SkiaSharp;
 
-namespace ZeppelinForms.Skia;
-
 /// <summary>
 /// Отрезок строки, целиком покрытый одним шрифтом. Хранится индексами,
 /// а не подстрокой: разбор не должен порождать копии — измеряют и рисуют
@@ -19,7 +17,12 @@ internal readonly struct FontRun(int start, int length, SKFont font, float width
 }
 
 /// <summary>Разбор строки на отрезки и её габариты при заданном шрифте.</summary>
-internal sealed class CachedLine
+/// <remarks>
+/// Экземпляр принадлежит кэшу и освобождается при вытеснении поколения.
+/// Держать ссылку дольше одного кадра нельзя: блобы к тому времени
+/// могут быть уже уничтожены.
+/// </remarks>
+internal sealed class CachedLine : IDisposable
 {
     public static readonly CachedLine Empty = new()
     {
@@ -53,29 +56,59 @@ internal sealed class CachedLine
     /// скрытые элементы, служебные замеры высоты строки.</summary>
     private SKTextBlob?[]? _blobs;
 
+    /// <summary>Отрезки, для которых блоб уже пытались построить.
+    /// Отдельный признак нужен потому, что null — законный результат:
+    /// SKTextBlob.Create на пробельном отрезке глифов не даёт, и без
+    /// этого флага такой отрезок пересобирался бы каждый кадр.</summary>
+    private bool[]? _probed;
+
     /// <summary>
     /// Блоб отрезка — набор глифов с позициями, готовый к выводу.
     /// SKCanvas.DrawText(string, ...) строит такой блоб на каждый вызов
     /// и тут же уничтожает, то есть пересобирает раскладку глифов
     /// на каждом кадре. Здесь он строится один раз на строку.
     /// </summary>
-    /// <remarks>Без блокировки: отрисовка идёт с потока интерфейса.
-    /// Гонка двух потоков привела бы к лишнему блобу, который соберёт
-    /// финализатор, а не к порче состояния.</remarks>
+    /// <remarks>Без блокировки: экземпляр лежит в потоковом кэше и
+    /// принадлежит одному потоку целиком — вместе с SKFont, из которого
+    /// строится блоб. Раньше здесь допускалась гонка с лишним блобом;
+    /// теперь её просто неоткуда взять.</remarks>
     public SKTextBlob? GetBlob(int index)
     {
-        SKTextBlob?[] blobs = _blobs ??= new SKTextBlob?[Runs.Length];
+        if (_blobs is null)
+        {
+            _blobs = new SKTextBlob?[Runs.Length];
+            _probed = new bool[Runs.Length];
+        }
 
-        if (blobs[index] is { } cached)
-            return cached;
+        if (_probed![index])
+            return _blobs[index];
 
         FontRun run = Runs[index];
 
         SKTextBlob? blob = SKTextBlob.Create(
             Text.AsSpan(run.Start, run.Length), run.Font);
 
-        blobs[index] = blob;
+        _blobs[index] = blob;
+        _probed[index] = true;
+
         return blob;
+    }
+
+    /// <summary>Освободить блобы. Зовётся кэшем при вытеснении:
+    /// SKTextBlob — обёртка над нативным объектом, и ждать финализатора
+    /// означает держать нативную память до ближайшей сборки.</summary>
+    public void Dispose()
+    {
+        if (_blobs is null) return;
+
+        for (int i = 0; i < _blobs.Length; i++)
+        {
+            _blobs[i]?.Dispose();
+            _blobs[i] = null;
+        }
+
+        _probed = null;
+        _blobs = null;
     }
 }
 
@@ -87,10 +120,16 @@ internal sealed class CachedLine
 /// нет. Списка использования нет, значит чтение не перестраивает
 /// структуру и не требует ничего, кроме одной блокировки.
 /// </summary>
+/// <remarks>Если значения реализуют IDisposable, уходящее поколение
+/// освобождается целиком. Отсюда требование: одно значение не должно
+/// лежать в двух поколениях одновременно.</remarks>
 internal sealed class GenerationalCache<TKey, TValue>(int limit)
     where TKey : notnull
     where TValue : class
 {
+    private static readonly bool ValuesAreDisposable =
+        typeof(IDisposable).IsAssignableFrom(typeof(TValue));
+
     private readonly System.Threading.Lock _sync = new();
 
     private Dictionary<TKey, TValue> _hot = new(limit);
@@ -113,6 +152,12 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit)
             // запись пережила смену поколения — возвращаем её в горячие,
             // иначе она выпала бы при следующей же ротации
             _hot[key] = value;
+
+            // и убираем из холодных: один объект в двух поколениях
+            // означает, что уничтожение уходящего поколения освободит
+            // значение, которым ещё пользуется горячее
+            _cold.Remove(key);
+
             return true;
         }
     }
@@ -123,9 +168,19 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit)
         {
             if (_hot.Count >= Limit)
             {
+                Release(_cold);
+
                 _cold = _hot;
                 _hot = new Dictionary<TKey, TValue>(Limit);
             }
+
+            // замена по тому же ключу: прежнее значение больше ниоткуда
+            // не достать, освобождаем сразу
+            if (_hot.TryGetValue(key, out TValue? replaced) && !ReferenceEquals(replaced, value))
+                Dispose(replaced);
+
+            if (_cold.Remove(key, out TValue? stale) && !ReferenceEquals(stale, value))
+                Dispose(stale);
 
             _hot[key] = value;
         }
@@ -135,8 +190,25 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit)
     {
         lock (_sync)
         {
+            Release(_hot);
+            Release(_cold);
+
             _hot.Clear();
             _cold.Clear();
         }
+    }
+
+    private static void Release(Dictionary<TKey, TValue> generation)
+    {
+        if (!ValuesAreDisposable) return;
+
+        foreach (TValue value in generation.Values)
+            ((IDisposable)value).Dispose();
+    }
+
+    private static void Dispose(TValue value)
+    {
+        if (ValuesAreDisposable)
+            ((IDisposable)value).Dispose();
     }
 }
