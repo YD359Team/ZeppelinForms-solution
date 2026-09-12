@@ -156,6 +156,14 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit, bool disposeEvi
     where TKey : notnull
     where TValue : class
 {
+    /// <summary>Записей в обоих поколениях. Только для диагностики:
+    /// по агрегированной удержанной памяти нельзя отличить постоянный
+    /// след структур от настоящего роста.</summary>
+    internal int Count
+    {
+        get { lock (_sync) return _hot.Count + _cold.Count; }
+    }
+
     private readonly System.Threading.Lock _sync = new();
     private readonly bool _disposeEvicted = disposeEvicted;
 
