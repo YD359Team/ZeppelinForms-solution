@@ -11,31 +11,34 @@ public sealed class SkiaGraphics : Graphics
     private readonly SKCanvas _canvas;
     private static readonly SKFont DefaultFont = new(SKTypeface.Default, 16);
 
+    public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
+
     // Кэш "наш Image -> уже загруженный в Skia SKImage", чтобы не
     // перезаливать пиксели на каждый WM_PAINT. ConditionalWeakTable
     // сам подчистит запись, когда Image перестанет использоваться.
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Image, CachedImage> ImageCache = [];
-
-    public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Image, SKImage> ImageCache = [];
 
     private static SKImage GetOrCreate(Image image)
     {
-        if (!ImageCache.TryGetValue(image, out CachedImage? cached))
+        if (!ImageCache.TryGetValue(image, out SKImage? cached))
         {
-            var handle = System.Runtime.InteropServices.GCHandle.Alloc(
-                image.Pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
-
             var info = new SKImageInfo(image.Width, image.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
 
-            using var bitmap = new SKBitmap();
-            bitmap.InstallPixels(info, handle.AddrOfPinnedObject(), info.RowBytes);
+            // FromPixelCopy, а не InstallPixels: закрепление буфера
+            // через GCHandle было бы сильным корнем GC, живущим отдельно
+            // от таблицы. ConditionalWeakTable значения не освобождает,
+            // поэтому такой handle не снимался никогда и массив пикселей
+            // оставался прикреплённым до конца процесса.
+            // Копия стоит одну заливку на изображение и освобождается
+            // финализатором SKImage вместе с записью в таблице.
+            cached = SKImage.FromPixelCopy(info, image.Pixels, info.RowBytes)
+                ?? throw new InvalidOperationException(
+                    "Не удалось загрузить изображение в Skia.");
 
-            SKImage skImage = SKImage.FromBitmap(bitmap);
-            cached = new CachedImage(skImage, handle);
             ImageCache.Add(image, cached);
         }
 
-        return cached.SkImage;
+        return cached;
     }
 
     public override void DrawImage(
