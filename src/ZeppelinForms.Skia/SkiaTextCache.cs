@@ -159,14 +159,11 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit, bool disposeEvi
     private readonly System.Threading.Lock _sync = new();
     private readonly bool _disposeEvicted = disposeEvicted;
 
-    // Ёмкость словарям не задаётся намеренно. Dictionary(capacity)
-    // выделяет массивы сразу, и при лимите в несколько тысяч записей
-    // пустой кэш занимал бы сотни килобайт на поток ещё до первой
-    // записи — это и всплыло в memory.font-fallback-growth как
-    // постоянный остаток. Горячий словарь растёт по мере надобности,
-    // а холодный получает готовый экземпляр при ротации.
-    private Dictionary<TKey, TValue> _hot = [];
-    private Dictionary<TKey, TValue> _cold = [];
+    // Ёмкость задаётся сразу: кэш всегда дорастает до лимита, а рост
+    // с нуля идёт по лестнице удвоений и проскакивает выше, чем берёт
+    // подсказка, попутно выбрасывая прежние массивы в мусор.
+    private Dictionary<TKey, TValue> _hot = new(limit);
+    private Dictionary<TKey, TValue> _cold = new(limit);
 
     /// <summary>Предельный размер одного поколения. Всего в памяти
     /// может находиться до двух поколений.</summary>
