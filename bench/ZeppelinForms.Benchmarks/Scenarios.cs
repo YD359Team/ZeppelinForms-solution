@@ -16,6 +16,7 @@ public static class Scenarios
         MeasureText(),
         ImageRetention(),
         FontFallbackRetention(),
+        TextChurn(),
     ];
 
     /// <summary>
@@ -190,6 +191,52 @@ public static class Scenarios
         Report = _ =>
             $"fallbacks {SkiaDiagnostics.FallbackEntries}, lines {SkiaDiagnostics.LineEntries}",
     };
+
+    /// <summary>
+    /// Текст и кегль, меняющиеся на каждой итерации. Проверяет потолки
+    /// кэшей: и строка, и размер шрифта каждый раз новые, поэтому
+    /// без ограничения Lines и Fonts росли бы линейно — так ведут себя
+    /// часы, счётчики и живая фильтрация списка.
+    /// </summary>
+    /// <remarks>
+    /// Время здесь второстепенно: каждая итерация промахивается мимо
+    /// обоих кэшей по построению, и меряется стоимость промаха, а не
+    /// работа приложения. Предмет измерения — счётчики и удержание.
+    /// </remarks>
+    private static Benchmark TextChurn() => new()
+    {
+        Name = "memory.text-churn",
+        Description = "Уникальная строка и кегль на каждой итерации (потолки Lines и Fonts)",
+        Iterations = 600,
+        WarmupIterations = 10,
+        Setup = () =>
+        {
+            Scenes.EnsureServices();
+            return new ChurnState(new SkiaTextMeasurer(), 0);
+        },
+        Body = state =>
+        {
+            var churn = (ChurnState)state;
+            int n = churn.Next++;
+
+            // кегль дробный и всякий раз новый: Font — запись, Size входит
+            // в её равенство, поэтому каждое значение заводит свой SKFont
+            Font font = Font.Default.WithSize(14f + n * 0.01f);
+
+            churn.Measurer.MeasureText($"Обновление {n}: значение счётчика", font);
+        },
+
+        Report = _ =>
+            $"lines {SkiaDiagnostics.LineEntries}, " +
+            $"fonts {SkiaDiagnostics.FontEntries}, " +
+            $"sized {SkiaDiagnostics.SizedFontEntries}",
+    };
+
+    private sealed class ChurnState(SkiaTextMeasurer measurer, int next)
+    {
+        public SkiaTextMeasurer Measurer { get; } = measurer;
+        public int Next { get; set; } = next;
+    }
 
     private sealed class FallbackState(SkiaTextMeasurer measurer, int next)
     {
