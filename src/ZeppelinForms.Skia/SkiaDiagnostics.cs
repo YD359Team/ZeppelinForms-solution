@@ -14,4 +14,10 @@ public static class SkiaDiagnostics
     /// (оба поколения). Кэш потоковый, поэтому значение относится
     /// к тому потоку, который спрашивает.</summary>
     public static int LineEntries => SkiaFontCache.LineCount;
+
+    /// <summary>Записей в кэше готовых SKFont текущего потока.</summary>
+    public static int FontEntries => SkiaFontCache.FontCount;
+
+    /// <summary>Записей в кэше шрифтов подстановок с привязкой к кеглю.</summary>
+    public static int SizedFontEntries => SkiaFontCache.SizedFontCount;
 }

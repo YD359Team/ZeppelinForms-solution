@@ -206,7 +206,7 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit, bool disposeEvi
         {
             if (_hot.Count >= Limit)
             {
-                Release(_cold);
+                Release(_cold, _disposeEvicted);
 
                 _cold = _hot;
 
@@ -228,21 +228,34 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit, bool disposeEvi
         }
     }
 
-    public void Clear()
+    public void Clear() => Clear(_disposeEvicted);
+
+    /// <summary>
+    /// Опустошить кэш, уничтожая значения или нет вне зависимости
+    /// от настройки вытеснения.
+    /// </summary>
+    /// <remarks>
+    /// Развязка нужна кэшам шрифтов. При вытеснении уничтожать их
+    /// нельзя: на SKFont ссылаются FontRun внутри разобранных строк,
+    /// которые живут в своём кэше сколь угодно долго. А при полном
+    /// сбросе строки чистятся первыми, ссылок не остаётся —
+    /// и уничтожить шрифты уже можно и нужно.
+    /// </remarks>
+    public void Clear(bool disposeValues)
     {
         lock (_sync)
         {
-            Release(_hot);
-            Release(_cold);
+            Release(_hot, disposeValues);
+            Release(_cold, disposeValues);
 
             _hot.Clear();
             _cold.Clear();
         }
     }
 
-    private void Release(Dictionary<TKey, TValue> generation)
+    private static void Release(Dictionary<TKey, TValue> generation, bool disposeValues)
     {
-        if (!_disposeEvicted) return;
+        if (!disposeValues) return;
 
         foreach (TValue value in generation.Values)
             (value as IDisposable)?.Dispose();

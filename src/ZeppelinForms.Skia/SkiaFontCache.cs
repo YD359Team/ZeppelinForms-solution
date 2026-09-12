@@ -25,9 +25,6 @@ internal static class SkiaFontCache
     private static readonly GenerationalCache<(string, FontWeight, FontStyle, int), FallbackResult> Fallbacks =
         new(1024, disposeEvicted: false);
 
-    /// <summary>Записей в кэше подстановок. Только для бенчмарков:
-    /// показывает, держится ли кэш в пределах лимита, — по удержанной
-    /// памяти этого не видно.</summary>
     internal static int FallbackCount => Fallbacks.Count;
 
     // SKFont, в отличие от SKTypeface, потокобезопасным не является:
@@ -39,8 +36,8 @@ internal static class SkiaFontCache
     // Общая блокировка вместо этого стоила бы захвата на каждый вызов
     // MeasurePrefix, а он зовётся на каждое положение каретки.
 
-    [ThreadStatic] private static Dictionary<Font, SKFont>? _fonts;
-    [ThreadStatic] private static Dictionary<(SKTypeface, float), SKFont>? _sizedFonts;
+    [ThreadStatic] private static GenerationalCache<Font, SKFont>? _fonts;
+    [ThreadStatic] private static GenerationalCache<(SKTypeface, float), SKFont>? _sizedFonts;
     [ThreadStatic] private static GenerationalCache<(string Text, Font Font), CachedLine>? _lines;
 
     /// <summary>Версия подбора шрифтов, увиденная этим потоком.</summary>
@@ -50,21 +47,34 @@ internal static class SkiaFontCache
     /// потоковые кэши подтягиваются к ней лениво, при первом обращении.</summary>
     private static int _version;
 
-    private static Dictionary<Font, SKFont> Fonts
+    /// <summary>
+    /// Готовые SKFont. Потолок нужен из-за размера в ключе: Font —
+    /// запись, и Size входит в её равенство, поэтому анимация кегля
+    /// или зум интерфейса заводят отдельный шрифт на каждое
+    /// промежуточное значение.
+    ///
+    /// Вытеснение без уничтожения: на SKFont ссылаются FontRun внутри
+    /// разобранных строк, а те живут в своём кэше своей жизнью —
+    /// уничтоженный при вытеснении шрифт всплыл бы при отрисовке
+    /// такой строки.
+    /// </summary>
+    private static GenerationalCache<Font, SKFont> Fonts
     {
         get
         {
             SyncVersion();
-            return _fonts ??= [];
+            return _fonts ??= new GenerationalCache<Font, SKFont>(256, disposeEvicted: false);
         }
     }
 
-    private static Dictionary<(SKTypeface, float), SKFont> SizedFonts
+    /// <summary>Шрифты подстановок, привязанные к кеглю. Потолок и правило
+    /// уничтожения — те же, что у <see cref="Fonts"/>, и по той же причине.</summary>
+    private static GenerationalCache<(SKTypeface, float), SKFont> SizedFonts
     {
         get
         {
             SyncVersion();
-            return _sizedFonts ??= [];
+            return _sizedFonts ??= new GenerationalCache<(SKTypeface, float), SKFont>(256, disposeEvicted: false);
         }
     }
 
@@ -87,6 +97,8 @@ internal static class SkiaFontCache
     }
 
     internal static int LineCount => _lines?.Count ?? 0;
+    internal static int FontCount => _fonts?.Count ?? 0;
+    internal static int SizedFontCount => _sizedFonts?.Count ?? 0;
 
     /// <summary>Догнать общую версию: если подбор шрифтов менялся,
     /// потоковые кэши держат устаревшие SKFont и разобранные по ним
@@ -101,34 +113,24 @@ internal static class SkiaFontCache
     }
 
     /// <summary>Освободить потоковые кэши. Порядок важен: сначала строки
-    /// вместе с блобами, потом сами шрифты.</summary>
+    /// вместе с блобами, потом сами шрифты — строки ссылаются на шрифты
+    /// через FontRun, и обратный порядок оставил бы висячие ссылки.</summary>
     private static void DropLocal()
     {
         _lines?.Clear();
 
-        if (_fonts is not null)
-        {
-            foreach (SKFont font in _fonts.Values)
-                font.Dispose();
-
-            _fonts.Clear();
-        }
-
-        if (_sizedFonts is not null)
-        {
-            foreach (SKFont font in _sizedFonts.Values)
-                font.Dispose();
-
-            _sizedFonts.Clear();
-        }
+        // ссылок на шрифты после очистки строк не осталось,
+        // поэтому здесь уничтожаем, хотя при вытеснении — нет
+        _fonts?.Clear(disposeValues: true);
+        _sizedFonts?.Clear(disposeValues: true);
     }
 
     public static SKFont Get(Font font)
     {
-        Dictionary<Font, SKFont> fonts = Fonts;
+        GenerationalCache<Font, SKFont> fonts = Fonts;
 
-        if (fonts.TryGetValue(font, out SKFont? cached))
-            return cached;
+        if (fonts.TryGet(font, out SKFont? cached))
+            return cached!;
 
         SKTypeface typeface = ResolveTypeface(font);
         var skFont = new SKFont(typeface, font.Size);
@@ -147,7 +149,7 @@ internal static class SkiaFontCache
                 skFont.SkewX = -0.25f;
         }
 
-        fonts[font] = skFont;
+        fonts.Add(font, skFont);
         return skFont;
     }
 
@@ -424,15 +426,15 @@ internal static class SkiaFontCache
 
     public static SKFont GetSized(SKTypeface typeface, float size)
     {
-        Dictionary<(SKTypeface, float), SKFont> sized = SizedFonts;
+        GenerationalCache<(SKTypeface, float), SKFont> sized = SizedFonts;
 
         var key = (typeface, size);
 
-        if (sized.TryGetValue(key, out SKFont? cached))
-            return cached;
+        if (sized.TryGet(key, out SKFont? cached))
+            return cached!;
 
         var created = new SKFont(typeface, size);
-        sized[key] = created;
+        sized.Add(key, created);
         return created;
     }
 
