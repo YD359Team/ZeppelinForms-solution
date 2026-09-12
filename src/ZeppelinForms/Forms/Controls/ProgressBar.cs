@@ -47,9 +47,8 @@ public partial class ProgressBar : DecoratedControl
     public ProgressBar()
     {
         // полоса прогресса по своей природе тянется вдоль, а не сохраняет размер
-        HorizontalAlignment = HorizontalAlignment.Stretch;
-        VerticalAlignment = VerticalAlignment.Center;
-
+        SetControlDefault(HorizontalAlignmentProperty, Enums.HorizontalAlignment.Stretch);
+        SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Center);
         SetControlDefault(BorderColorProperty, new Color(255, 180, 180, 180));
         SetControlDefault(BorderWidthProperty, 1f);
     }

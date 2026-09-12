@@ -35,8 +35,8 @@ public partial class GridSplitter : DecoratedControl
     public GridSplitter()
     {
         Size = IsVertical ? new Size(6, float.NaN) : new Size(float.NaN, 6);
-        HorizontalAlignment = HorizontalAlignment.Stretch;
-        VerticalAlignment = VerticalAlignment.Stretch;
+        SetControlDefault(HorizontalAlignmentProperty, Enums.HorizontalAlignment.Stretch);
+        SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Stretch);
     }
 
     protected override void OnAttached()

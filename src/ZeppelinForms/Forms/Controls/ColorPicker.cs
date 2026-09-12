@@ -37,7 +37,7 @@ public class ColorPicker : InteractiveControl
     public ColorPicker()
     {
         SetControlDefault(BackgroundProperty, Colors.White);
-        Padding = new Thickness(4, 3);
+        SetControlDefault(PaddingProperty, new(4, 3));
         Cursor = CursorKind.Hand;
         SetControlDefault(BorderColorProperty, Colors.Black);
         SetControlDefault(BorderWidthProperty, 1f);

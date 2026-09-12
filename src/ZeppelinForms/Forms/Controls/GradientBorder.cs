@@ -25,7 +25,7 @@ public class GradientBorder : DecoratedWrapControl
     public GradientBorder()
     {
         SetControlDefault(BorderWidthProperty, 1f);
-        Padding = new Thickness(1f);
+        SetControlDefault(PaddingProperty, 1f);
     }
 
     public GradientBorder(UIElement child) : this()

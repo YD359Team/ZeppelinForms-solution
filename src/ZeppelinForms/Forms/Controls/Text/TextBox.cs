@@ -45,7 +45,7 @@ public partial class TextBox : TextInputControl, ITextElement
     public TextBox()
     {
         SetControlDefault(BackgroundProperty, Colors.White);
-        Padding = new Thickness(4, 2);
+        SetControlDefault(PaddingProperty, new(4, 2));
         SetControlDefault(BorderWidthProperty, 1f);
 
         _document.Changed += (_, _) =>

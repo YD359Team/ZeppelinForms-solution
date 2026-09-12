@@ -56,7 +56,7 @@ public partial class ComboBox : InteractiveControl
     public ComboBox()
     {
         SetControlDefault(BackgroundProperty, Colors.White);
-        Padding = new Thickness(6, 3);
+        SetControlDefault(PaddingProperty, new(6, 3));
         Cursor = CursorKind.Hand;
         SetControlDefault(BorderWidthProperty, 1f);
 

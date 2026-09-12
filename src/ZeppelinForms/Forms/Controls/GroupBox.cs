@@ -28,7 +28,7 @@ public partial class GroupBox : DecoratedWrapControl
 
     public GroupBox()
     {
-        Padding = new Thickness(10, 8);
+        SetControlDefault(PaddingProperty, new(10, 8));
         SetControlDefault(BorderColorProperty, new Color(255, 200, 200, 200));
         SetControlDefault(BorderWidthProperty, 1f);
     }

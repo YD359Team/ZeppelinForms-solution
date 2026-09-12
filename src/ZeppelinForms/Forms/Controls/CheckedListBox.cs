@@ -46,7 +46,8 @@ public partial class CheckedListBox : ListBox
     public CheckedListBox()
     {
         // место под квадратик слева от содержимого строки
-        Padding = new Thickness(BoxSize + BoxGap + 4f, 2f, 4f, 2f);
+        SetControlDefault(PaddingProperty, new(BoxSize + BoxGap + 4f, 2f, 4f, 2f));
+
     }
 
     public bool IsChecked(int index) => _checked.Contains(index);

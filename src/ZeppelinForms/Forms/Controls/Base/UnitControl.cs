@@ -9,7 +9,7 @@ public abstract class UnitControl : UIElement
     {
         // контейнеры заполняют выделенное место, а конечные контролы —
         // нет: кнопка в ячейке Grid должна остаться кнопкой
-        this.HorizontalAlignment = Enums.HorizontalAlignment.Center;
-        this.VerticalAlignment = Enums.VerticalAlignment.Center;
+        SetControlDefault(HorizontalAlignmentProperty, Enums.HorizontalAlignment.Center);
+        SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Center);
     }
 }

@@ -56,8 +56,8 @@ public partial class TrackBar : InteractiveControl
 
     public TrackBar()
     {
-        HorizontalAlignment = HorizontalAlignment.Stretch;
-        VerticalAlignment = VerticalAlignment.Center;
+        SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Stretch);
+        SetControlDefault(VerticalAlignmentProperty, VerticalAlignment.Center);
     }
 
     private float Fraction

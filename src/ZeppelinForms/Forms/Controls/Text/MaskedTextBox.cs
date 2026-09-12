@@ -23,7 +23,7 @@ public partial class MaskedTextBox : TextInputControl
         _caretIndex = _mask.NextPlaceholder(0);
 
         SetControlDefault(BackgroundProperty, Colors.White);
-        Padding = new Thickness(6, 3);
+        SetControlDefault(PaddingProperty, new(6, 3));
         SetControlDefault(BorderColorProperty, Colors.Black);
         SetControlDefault(BorderWidthProperty, 1f);
     }

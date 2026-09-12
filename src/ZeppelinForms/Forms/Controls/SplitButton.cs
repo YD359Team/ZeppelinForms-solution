@@ -71,14 +71,14 @@ public partial class SplitButton : ButtonBase
     public SplitButton()
     {
         SetControlDefault(BackgroundProperty, new Color(255, 0x0D, 0x6E, 0xFD));
-        HoverBackgroundColor = new Color(255, 0x0B, 0x5E, 0xD7);
-        PressedBackgroundColor = new Color(255, 0x0A, 0x53, 0xBE);
+        SetControlDefault(HoverBackgroundColorProperty, new(255, 0x0B, 0x5E, 0xD7));
+        SetControlDefault(PressedBackgroundColorProperty, new(255, 0x0A, 0x53, 0xBE));
         SetControlDefault(TextColorProperty, Colors.White);
         SetControlDefault(BorderColorProperty, new Color(255, 0x0D, 0x6E, 0xFD));
 
         // волна на составной кнопке сбивает с толку: непонятно,
         // сработала основная часть или стрелка
-        RippleEnabled = false;
+        SetControlDefault(RippleEnabledProperty, false);
 
         _flyout = new FlyoutHost(this);
         _flyout.Closed += (_, _) => InvalidateVisual();

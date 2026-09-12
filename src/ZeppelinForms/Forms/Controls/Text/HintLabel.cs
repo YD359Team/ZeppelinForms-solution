@@ -37,7 +37,7 @@ public class HintLabel : DecoratedControl
     public HintLabel()
     {
         Cursor = CursorKind.Hand;
-        Padding = new Thickness(0, 2);
+        SetControlDefault(PaddingProperty, new(0, 2));
 
         _flyout = new FlyoutHost(this);
         _flyout.Closed += (_, _) => InvalidateVisual();

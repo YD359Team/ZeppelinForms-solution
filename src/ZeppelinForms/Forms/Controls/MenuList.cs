@@ -36,7 +36,7 @@ public partial class MenuList : DecoratedControl
     public MenuList()
     {
         SetControlDefault(BackgroundProperty, Colors.White);
-        Padding = new Thickness(2, 4);
+        SetControlDefault(PaddingProperty, new(2, 4));
     }
 
     private float HeightOf(MenuItem item) => item.IsSeparator ? SeparatorHeight : ItemHeight;

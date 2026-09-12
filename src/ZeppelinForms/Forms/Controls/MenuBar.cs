@@ -31,8 +31,8 @@ public partial class MenuBar : DecoratedControl
     public MenuBar()
     {
         SetControlDefault(BackgroundProperty, new Color(255, 248, 248, 248));
-        HorizontalAlignment = HorizontalAlignment.Stretch;
-        VerticalAlignment = VerticalAlignment.Top;
+        SetControlDefault(HorizontalAlignmentProperty, Enums.HorizontalAlignment.Stretch);
+        SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Top);
     }
 
     private float WidthOf(MenuItem item) =>

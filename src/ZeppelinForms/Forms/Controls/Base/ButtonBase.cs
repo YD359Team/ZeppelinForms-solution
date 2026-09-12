@@ -77,7 +77,7 @@ public abstract partial class ButtonBase : InteractiveControl
         _ripple = new RippleAnimation(this);
 
         Cursor = CursorKind.Hand;
-        Padding = new Thickness(14, 6);
+        SetControlDefault(PaddingProperty, new(14, 6));
         SetControlDefault(CornerRadiusProperty, new CornerRadius(4f));
         SetControlDefault(BorderWidthProperty, 1f);
     }

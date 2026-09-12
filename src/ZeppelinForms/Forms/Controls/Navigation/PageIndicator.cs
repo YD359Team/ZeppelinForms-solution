@@ -57,7 +57,7 @@ public partial class PageIndicator : DecoratedControl
 
     public PageIndicator()
     {
-        Padding = new Thickness(4);
+        SetControlDefault(PaddingProperty, new(4));
         Cursor = CursorKind.Hand;
     }
 
