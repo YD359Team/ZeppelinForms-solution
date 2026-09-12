@@ -56,8 +56,10 @@ public static class SkiaRenderer
             // содержимое рисуется поверх уже с новой темой
             canvas.Save();
 
-            using var path = new SKPath();
-            path.AddCircle(rippleOrigin.X, rippleOrigin.Y, rippleRadius);
+            using var pathBuilder = new SKPathBuilder();
+            pathBuilder.AddCircle(rippleOrigin.X, rippleOrigin.Y, rippleRadius);
+
+            using SKPath path = pathBuilder.Detach();
             canvas.ClipPath(path, antialias: true);
 
             using var paint = new SKPaint

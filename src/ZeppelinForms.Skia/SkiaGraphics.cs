@@ -11,12 +11,63 @@ public sealed class SkiaGraphics : Graphics
     private readonly SKCanvas _canvas;
     private static readonly SKFont DefaultFont = new(SKTypeface.Default, 16);
 
-    public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
-
     // Кэш "наш Image -> уже загруженный в Skia SKImage", чтобы не
     // перезаливать пиксели на каждый WM_PAINT. ConditionalWeakTable
     // сам подчистит запись, когда Image перестанет использоваться.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Image, SKImage> ImageCache = [];
+
+    #region Пул кистей
+
+    // Кисти переиспользуются вместо создания на каждый примитив: SKPaint —
+    // обёртка над нативным объектом, и её выделение с последующим Dispose
+    // на каждую заливку давало сотни килобайт мусора на кадр.
+    //
+    // ThreadStatic, а не общий статик: отрисовка идёт с потока интерфейса,
+    // но снимковые тесты xunit выполняются параллельно, и общая кисть
+    // стала бы гонкой. Кисти с шейдерами и фильтрами в пул не попадают —
+    // в них пришлось бы обнулять ссылку на уже уничтоженный шейдер,
+    // а вызываются они редко, на эффектах и градиентах.
+
+    [ThreadStatic]
+    private static SKPaint? _fillPaint;
+
+    [ThreadStatic]
+    private static SKPaint? _strokePaint;
+
+    private static SKPaint FillPaint(Color color)
+    {
+        SKPaint paint = _fillPaint ??= new SKPaint();
+
+        paint.Reset();
+        paint.Color = new SKColor(color.R, color.G, color.B, color.A);
+        paint.IsAntialias = true;
+        paint.Style = SKPaintStyle.Fill;
+
+        return paint;
+    }
+
+    private static SKPaint StrokePaint(
+        Color color,
+        float width,
+        SKStrokeCap cap = SKStrokeCap.Butt,
+        SKStrokeJoin join = SKStrokeJoin.Miter)
+    {
+        SKPaint paint = _strokePaint ??= new SKPaint();
+
+        paint.Reset();
+        paint.Color = new SKColor(color.R, color.G, color.B, color.A);
+        paint.IsAntialias = true;
+        paint.Style = SKPaintStyle.Stroke;
+        paint.StrokeWidth = width;
+        paint.StrokeCap = cap;
+        paint.StrokeJoin = join;
+
+        return paint;
+    }
+
+    #endregion
+
+    public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
 
     private static SKImage GetOrCreate(Image image)
     {
@@ -111,38 +162,25 @@ public sealed class SkiaGraphics : Graphics
 
     public override void FillRectangle(Rectangle rect, Color color)
     {
-        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
+        SKPaint paint = FillPaint(color);
         _canvas.DrawRect(new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height), paint);
     }
 
     public override void DrawRectangle(Rectangle rect, Color color, float width)
     {
-        using var paint = new SKPaint
-        {
-            Color = new SKColor(color.R, color.G, color.B, color.A),
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = width,
-            IsStroke = true,
-        };
+        SKPaint paint = StrokePaint(color, width);
         _canvas.DrawRect(new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height), paint);
     }
 
     public override void FillEllipse(Rectangle rect, Color color)
     {
-        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
+        SKPaint paint = FillPaint(color);
         _canvas.DrawOval(new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height), paint);
     }
 
     public override void DrawEllipse(Rectangle rect, Color color, float width)
     {
-        using var paint = new SKPaint
-        {
-            Color = new SKColor(color.R, color.G, color.B, color.A),
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = width,
-        };
+        SKPaint paint = StrokePaint(color, width);
         _canvas.DrawOval(new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height), paint);
     }
 
@@ -154,10 +192,10 @@ public sealed class SkiaGraphics : Graphics
 
     public override void SaveLayer(float opacity)
     {
-        using var paint = new SKPaint
-        {
-            Color = new SKColor(255, 255, 255, (byte)Math.Clamp(opacity * 255f, 0, 255)),
-        };
+        // SaveLayer копирует кисть себе, поэтому переиспользуемая
+        // из пула здесь безопасна
+        SKPaint paint = FillPaint(new Color(
+            (byte)Math.Clamp(opacity * 255f, 0, 255), 255, 255, 255));
 
         _canvas.SaveLayer(paint);
     }
@@ -191,15 +229,7 @@ public sealed class SkiaGraphics : Graphics
 
     public override void DrawLine(Point from, Point to, Color color, float width)
     {
-        using var paint = new SKPaint
-        {
-            Color = new SKColor(color.R, color.G, color.B, color.A),
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = width,
-            StrokeCap = SKStrokeCap.Round,
-        };
-
+        SKPaint paint = StrokePaint(color, width, SKStrokeCap.Round);
         _canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
     }
 
@@ -207,35 +237,25 @@ public sealed class SkiaGraphics : Graphics
     {
         if (points.Length < 2) return;
 
-        using var path = new SKPath();
-        path.MoveTo(points[0].X, points[0].Y);
+        // SKPath.MoveTo/LineTo объявлены устаревшими: построение пути
+        // переехало в SKPathBuilder, а сам SKPath стал неизменяемым
+        using var builder = new SKPathBuilder();
+        builder.MoveTo(points[0].X, points[0].Y);
 
         for (int i = 1; i < points.Length; i++)
-            path.LineTo(points[i].X, points[i].Y);
+            builder.LineTo(points[i].X, points[i].Y);
 
-        using var paint = new SKPaint
-        {
-            Color = new SKColor(color.R, color.G, color.B, color.A),
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = width,
-            StrokeCap = SKStrokeCap.Round,
-            StrokeJoin = SKStrokeJoin.Round,   // без этого угол галочки выглядит рубленым
-        };
+        using SKPath path = builder.Detach();
+
+        // StrokeJoin.Round — без него угол галочки выглядит рубленым
+        SKPaint paint = StrokePaint(color, width, SKStrokeCap.Round, SKStrokeJoin.Round);
 
         _canvas.DrawPath(path, paint);
     }
 
     public override void DrawArc(Rectangle rect, float startAngle, float sweepAngle, Color color, float width)
     {
-        using var paint = new SKPaint
-        {
-            Color = new SKColor(color.R, color.G, color.B, color.A),
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = width,
-            StrokeCap = SKStrokeCap.Round,
-        };
+        SKPaint paint = StrokePaint(color, width, SKStrokeCap.Round);
 
         var oval = new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height);
         _canvas.DrawArc(oval, startAngle, sweepAngle, useCenter: false, paint);
@@ -254,15 +274,9 @@ public sealed class SkiaGraphics : Graphics
         float dx = rect.X + (rect.Width - bounds.Width * scale) / 2f - bounds.Left * scale;
         float dy = rect.Y + (rect.Height - bounds.Height * scale) / 2f - bounds.Top * scale;
 
-        using var paint = new SKPaint
-        {
-            Color = new SKColor(color.R, color.G, color.B, color.A),
-            IsAntialias = true,
-            Style = strokeWidth > 0 ? SKPaintStyle.Stroke : SKPaintStyle.Fill,
-            StrokeWidth = strokeWidth,
-            StrokeCap = SKStrokeCap.Round,
-            StrokeJoin = SKStrokeJoin.Round,
-        };
+        SKPaint paint = strokeWidth > 0
+            ? StrokePaint(color, strokeWidth, SKStrokeCap.Round, SKStrokeJoin.Round)
+            : FillPaint(color);
 
         _canvas.Save();
         _canvas.Translate(dx, dy);
@@ -292,7 +306,7 @@ public sealed class SkiaGraphics : Graphics
     {
         if (radius.IsZero) { FillRectangle(rect, color); return; }
 
-        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
+        SKPaint paint = FillPaint(color);
         using var rounded = MakeRoundRect(rect, radius);
         _canvas.DrawRoundRect(rounded, paint);
     }
@@ -301,14 +315,7 @@ public sealed class SkiaGraphics : Graphics
     {
         if (radius.IsZero) { DrawRectangle(rect, color, width); return; }
 
-        using var paint = new SKPaint
-        {
-            Color = new SKColor(color.R, color.G, color.B, color.A),
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = width,
-        };
-
+        SKPaint paint = StrokePaint(color, width);
         using var rounded = MakeRoundRect(rect, radius);
         _canvas.DrawRoundRect(rounded, paint);
     }
@@ -325,14 +332,21 @@ public sealed class SkiaGraphics : Graphics
 
     public override void DrawText(string text, Point position, Color color, Font font)
     {
-        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
+        if (string.IsNullOrEmpty(text)) return;
+
+        SKPaint paint = FillPaint(color);
+        CachedLine line = SkiaFontCache.GetLine(text, font);
 
         float x = position.X;
 
-        foreach ((string run, SKFont runFont) in SkiaFontCache.SplitRuns(text, font))
+        for (int i = 0; i < line.Runs.Length; i++)
         {
-            _canvas.DrawText(run, x, position.Y, SKTextAlign.Left, runFont, paint);
-            x += runFont.MeasureText(run);
+            // блоб уже собран при первой отрисовке этой строки;
+            // DrawText(string, ...) пересобирал бы его каждый кадр
+            if (line.GetBlob(i) is { } blob)
+                _canvas.DrawText(blob, x, position.Y, paint);
+
+            x += line.Runs[i].Width;
         }
     }
 
@@ -341,17 +355,16 @@ public sealed class SkiaGraphics : Graphics
         HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
         VerticalContentAlignment vAlign = VerticalContentAlignment.Center)
     {
-        using var paint = new SKPaint { Color = new SKColor(color.R, color.G, color.B, color.A), IsAntialias = true };
+        if (string.IsNullOrEmpty(text)) return;
 
-        SKFont baseFont = SkiaFontCache.Get(font);
+        SKPaint paint = FillPaint(color);
 
         // ширина считается по тем же участкам, что и рисование, иначе
         // выравнивание разъедется на строках с эмодзи
-        float textWidth = 0;
-        foreach ((string run, SKFont runFont) in SkiaFontCache.SplitRuns(text, font))
-            textWidth += runFont.MeasureText(run);
+        CachedLine line = SkiaFontCache.GetLine(text, font);
 
-        baseFont.MeasureText(text, out SKRect bounds, paint);
+        float textWidth = line.Width;
+        SKRect bounds = line.Bounds;
 
         float x = hAlign switch
         {
@@ -367,21 +380,18 @@ public sealed class SkiaGraphics : Graphics
             _ => rect.Y + rect.Height / 2f - bounds.MidY,
         };
 
-        foreach ((string run, SKFont runFont) in SkiaFontCache.SplitRuns(text, font))
+        for (int i = 0; i < line.Runs.Length; i++)
         {
-            _canvas.DrawText(run, x, baselineY, SKTextAlign.Left, runFont, paint);
-            x += runFont.MeasureText(run);
+            if (line.GetBlob(i) is { } blob)
+                _canvas.DrawText(blob, x, baselineY, paint);
+
+            x += line.Runs[i].Width;
         }
     }
 
     public override void FillPie(Rectangle rect, float startAngle, float sweepAngle, Color color)
     {
-        using var paint = new SKPaint
-        {
-            Color = new SKColor(color.R, color.G, color.B, color.A),
-            IsAntialias = true,
-            Style = SKPaintStyle.Fill,
-        };
+        SKPaint paint = FillPaint(color);
 
         var oval = new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height);
         _canvas.DrawArc(oval, startAngle, sweepAngle, useCenter: true, paint);
@@ -401,12 +411,10 @@ public sealed class SkiaGraphics : Graphics
         foreach (TextRun run in runs)
         {
             Font font = run.Font ?? baseFont;
-            SKFont skFont = SkiaFontCache.Get(font);
 
-            foreach ((string piece, SKFont pieceFont) in SkiaFontCache.SplitRuns(run.Text, font))
-                totalWidth += pieceFont.MeasureText(piece);
+            totalWidth += SkiaFontCache.GetLine(run.Text, font).Width;
 
-            SKFontMetrics metrics = skFont.Metrics;
+            SKFontMetrics metrics = SkiaFontCache.Get(font).Metrics;
             maxAscent = Math.Max(maxAscent, -metrics.Ascent);
             maxDescent = Math.Max(maxDescent, metrics.Descent);
         }
@@ -436,44 +444,35 @@ public sealed class SkiaGraphics : Graphics
             Font font = run.Font ?? baseFont;
             Color color = run.Color ?? baseColor;
 
-            float runStart = x;
-            float runWidth = 0;
+            CachedLine line = SkiaFontCache.GetLine(run.Text, font);
 
-            foreach ((string piece, SKFont pieceFont) in SkiaFontCache.SplitRuns(run.Text, font))
-                runWidth += pieceFont.MeasureText(piece);
+            float runStart = x;
+            float runWidth = line.Width;
 
             if (run.Background is Color background)
             {
-                using var backgroundPaint = new SKPaint
-                {
-                    Color = new SKColor(background.R, background.G, background.B, background.A),
-                };
+                SKPaint backgroundPaint = FillPaint(background);
 
                 _canvas.DrawRect(
                     new SKRect(runStart, top, runStart + runWidth, top + lineHeight),
                     backgroundPaint);
             }
 
-            using var paint = new SKPaint
-            {
-                Color = new SKColor(color.R, color.G, color.B, color.A),
-                IsAntialias = true,
-            };
+            // фон уже нарисован, кисть можно перенастроить под текст:
+            // вызовы идут последовательно, наложения нет
+            SKPaint paint = FillPaint(color);
 
-            foreach ((string piece, SKFont pieceFont) in SkiaFontCache.SplitRuns(run.Text, font))
+            for (int i = 0; i < line.Runs.Length; i++)
             {
-                _canvas.DrawText(piece, x, baseline, SKTextAlign.Left, pieceFont, paint);
-                x += pieceFont.MeasureText(piece);
+                if (line.GetBlob(i) is { } blob)
+                    _canvas.DrawText(blob, x, baseline, paint);
+
+                x += line.Runs[i].Width;
             }
 
             if (run.Underline || run.Strikethrough)
             {
-                using var linePaint = new SKPaint
-                {
-                    Color = paint.Color,
-                    StrokeWidth = Math.Max(1f, font.Size / 14f),
-                    IsAntialias = true,
-                };
+                SKPaint linePaint = StrokePaint(color, Math.Max(1f, font.Size / 14f));
 
                 if (run.Underline)
                 {
@@ -516,8 +515,10 @@ public sealed class SkiaGraphics : Graphics
 
     public override void ClipCircle(Point center, float radius)
     {
-        using var path = new SKPath();
-        path.AddCircle(center.X, center.Y, Math.Max(0, radius));
+        using var builder = new SKPathBuilder();
+        builder.AddCircle(center.X, center.Y, Math.Max(0, radius));
+
+        using SKPath path = builder.Detach();
 
         _canvas.ClipPath(path, antialias: true);
     }

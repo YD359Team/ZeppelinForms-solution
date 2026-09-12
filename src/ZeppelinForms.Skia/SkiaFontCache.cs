@@ -93,6 +93,7 @@ internal static class SkiaFontCache
 
         return new CachedLine
         {
+            Text = text,
             Runs = runs,
             Width = width,
             Height = height,

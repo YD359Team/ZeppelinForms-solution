@@ -23,11 +23,16 @@ internal sealed class CachedLine
 {
     public static readonly CachedLine Empty = new()
     {
+        Text = string.Empty,
         Runs = [],
         Width = 0,
         Height = 0,
         Bounds = SKRect.Empty,
     };
+
+    /// <summary>Строка, к которой относится разбор. Это тот же экземпляр,
+    /// что лежит в ключе кэша, поэтому копии не возникает.</summary>
+    public required string Text { get; init; }
 
     public required FontRun[] Runs { get; init; }
 
@@ -42,6 +47,36 @@ internal sealed class CachedLine
     /// <summary>Границы чернил всей строки по основному шрифту. Нужны
     /// SkiaGraphics для вертикального выравнивания по базовой линии.</summary>
     public required SKRect Bounds { get; init; }
+
+    /// <summary>Готовые блобы по одному на отрезок. Создаются лениво:
+    /// изрядная часть строк только измеряется и никогда не рисуется —
+    /// скрытые элементы, служебные замеры высоты строки.</summary>
+    private SKTextBlob?[]? _blobs;
+
+    /// <summary>
+    /// Блоб отрезка — набор глифов с позициями, готовый к выводу.
+    /// SKCanvas.DrawText(string, ...) строит такой блоб на каждый вызов
+    /// и тут же уничтожает, то есть пересобирает раскладку глифов
+    /// на каждом кадре. Здесь он строится один раз на строку.
+    /// </summary>
+    /// <remarks>Без блокировки: отрисовка идёт с потока интерфейса.
+    /// Гонка двух потоков привела бы к лишнему блобу, который соберёт
+    /// финализатор, а не к порче состояния.</remarks>
+    public SKTextBlob? GetBlob(int index)
+    {
+        SKTextBlob?[] blobs = _blobs ??= new SKTextBlob?[Runs.Length];
+
+        if (blobs[index] is { } cached)
+            return cached;
+
+        FontRun run = Runs[index];
+
+        SKTextBlob? blob = SKTextBlob.Create(
+            Text.AsSpan(run.Start, run.Length), run.Font);
+
+        blobs[index] = blob;
+        return blob;
+    }
 }
 
 /// <summary>
