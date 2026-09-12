@@ -209,7 +209,11 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit, bool disposeEvi
                 Release(_cold);
 
                 _cold = _hot;
-                _hot = [];
+
+                // с ёмкостью, как и первое поколение: новое сразу же
+                // начнёт дорастать до того же лимита, и рост с нуля
+                // стоил бы лестницы перевыделений
+                _hot = new Dictionary<TKey, TValue>(Limit);
             }
 
             // замена по тому же ключу: прежнее значение больше ниоткуда

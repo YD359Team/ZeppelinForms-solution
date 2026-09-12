@@ -42,11 +42,19 @@ public sealed record BenchmarkResult
     public required int Gen1Collections { get; init; }
     public required int Gen2Collections { get; init; }
 
+    /// <summary>Собственный отчёт сценария, если он его даёт.</summary>
+    /// <remarks>В эталон не пишется: это диагностика для глаз,
+    /// а не метрика для сравнения. Гейт на ней строить нельзя —
+    /// счётчики зависят от числа итераций.</remarks>
+    [JsonIgnore]
+    public string? Report { get; init; }
+
     [JsonIgnore]
     public string ShortSummary =>
         $"{MedianMs,8:F3} ms  p95 {P95Ms,8:F3} ms  " +
         $"{Format.Bytes(AllocatedBytesPerIteration),10}/iter  " +
-        $"retained {Format.Bytes(RetainedBytes),10}";
+        $"retained {Format.Bytes(RetainedBytes),10}" +
+        (Report is null ? "" : $"  {Report}");
 }
 
 /// <summary>Файл эталона целиком.</summary>

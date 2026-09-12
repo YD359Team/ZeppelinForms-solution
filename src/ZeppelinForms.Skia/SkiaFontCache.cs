@@ -25,6 +25,11 @@ internal static class SkiaFontCache
     private static readonly GenerationalCache<(string, FontWeight, FontStyle, int), FallbackResult> Fallbacks =
         new(1024, disposeEvicted: false);
 
+    /// <summary>Записей в кэше подстановок. Только для бенчмарков:
+    /// показывает, держится ли кэш в пределах лимита, — по удержанной
+    /// памяти этого не видно.</summary>
+    internal static int FallbackCount => Fallbacks.Count;
+
     // SKFont, в отличие от SKTypeface, потокобезопасным не является:
     // MeasureText и ContainsGlyphs меняют его внутреннее состояние.
     // Поэтому всё, что содержит SKFont, живёт по экземпляру на поток —
@@ -80,6 +85,8 @@ internal static class SkiaFontCache
                 4096, disposeEvicted: true);
         }
     }
+
+    internal static int LineCount => _lines?.Count ?? 0;
 
     /// <summary>Догнать общую версию: если подбор шрифтов менялся,
     /// потоковые кэши держат устаревшие SKFont и разобранные по ним

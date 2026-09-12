@@ -151,6 +151,12 @@ public static class Scenarios
     /// измеритель редкими кодовыми точками и смотрит, сколько
     /// памяти остаётся занято после сборки мусора.
     /// </summary>
+    /// <remarks>
+    /// Задевает два кэша сразу: 32 новых кодпоинта и одну новую строку
+    /// на итерацию, то есть записи копятся и в Fallbacks, и в Lines.
+    /// Поэтому в отчёт идут оба счётчика: по одной удержанной памяти
+    /// их вклады не разделить.
+    /// </remarks>
     private static Benchmark FontFallbackRetention() => new()
     {
         Name = "memory.font-fallback-growth",
@@ -177,6 +183,12 @@ public static class Scenarios
 
             fallback.Measurer.MeasureText(builder.ToString(), Font.Default);
         },
+
+        // Ограниченный кэш держит число записей около лимита независимо
+        // от того, сколько символов через него прошло. Растущее число —
+        // признак того, что потолок не работает.
+        Report = _ =>
+            $"fallbacks {SkiaDiagnostics.FallbackEntries}, lines {SkiaDiagnostics.LineEntries}",
     };
 
     private sealed class FallbackState(SkiaTextMeasurer measurer, int next)

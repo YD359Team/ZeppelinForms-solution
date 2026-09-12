@@ -28,6 +28,15 @@ public sealed class Benchmark
     /// первая загрузка шрифта. Без них первая итерация в разы дороже
     /// остальных и портит и медиану, и максимум.</summary>
     public int WarmupIterations { get; init; } = 20;
+
+    /// <summary>
+    /// Что показать рядом с результатом помимо чисел раннера. Зовётся
+    /// один раз после измерения; аргумент — состояние от Setup.
+    /// </summary>
+    /// <remarks>Нужно там, где агрегированные метрики не отвечают
+    /// на вопрос сценария: удержанная память не отличает рабочий объём
+    /// ограниченного кэша от роста, а число записей — отличает.</remarks>
+    public Func<object, string>? Report { get; init; }
 }
 
 public static class BenchmarkRunner
@@ -76,6 +85,10 @@ public static class BenchmarkRunner
         long heapAfter = GC.GetTotalMemory(forceFullCollection: false);
         long workingSetAfter = CurrentWorkingSet();
 
+        // После замера аллокаций: сам отчёт строит строку, и попади он
+        // выше — она вошла бы в цифру аллокаций сценария.
+        string? report = benchmark.Report?.Invoke(state);
+
         Array.Sort(timings);
 
         return new BenchmarkResult
@@ -91,6 +104,7 @@ public static class BenchmarkRunner
             Gen0Collections = gen0After - gen0Before,
             Gen1Collections = gen1After - gen1Before,
             Gen2Collections = gen2After - gen2Before,
+            Report = report,
         };
     }
 
