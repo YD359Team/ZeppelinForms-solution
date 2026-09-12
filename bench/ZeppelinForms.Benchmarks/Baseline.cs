@@ -100,12 +100,27 @@ public static class Baseline
     /// </summary>
     /// <param name="timeTolerance">Допустимый рост медианы, доля.</param>
     /// <param name="allocationTolerance">Допустимый рост аллокаций, доля.</param>
+    /// <summary>
+    /// Сравнение с эталоном. Пороги разные по смыслу: время замеряется
+    /// на общем раннере и шумит, аллокации детерминированы и шуметь
+    /// не должны вовсе.
+    /// </summary>
+    /// <param name="timeTolerance">Допустимый рост медианы, доля.</param>
+    /// <param name="allocationTolerance">Допустимый рост аллокаций, доля.</param>
     public static List<Regression> Compare(
         BaselineFile baseline,
         IEnumerable<BenchmarkResult> current,
         double timeTolerance = 0.20,
         double allocationTolerance = 0.05)
     {
+        // Абсолютные полы. После фазы 1 аллокации измеряются десятками байт,
+        // и один относительный порог превратил бы гейт в генератор ложных
+        // срабатываний: при эталоне в 72 байта рост на четыре байта — это
+        // уже +5%. Расхождение засчитывается, только когда оно заметно
+        // и в долях, и в абсолютных величинах.
+        const double timeFloorMs = 0.05;
+        const double byteFloor = 1024;
+
         var regressions = new List<Regression>();
 
         foreach (BenchmarkResult result in current)
@@ -119,33 +134,37 @@ public static class Baseline
 
             if (metrics.HasFlag(GatedMetrics.Time))
                 Check(result.Name, "median-ms",
-                    old.MedianMs, result.MedianMs, timeTolerance);
+                    old.MedianMs, result.MedianMs, timeTolerance, timeFloorMs);
 
             if (metrics.HasFlag(GatedMetrics.Allocations))
                 Check(result.Name, "alloc-per-iter",
                     old.AllocatedBytesPerIteration, result.AllocatedBytesPerIteration,
-                    allocationTolerance);
+                    allocationTolerance, byteFloor);
 
             if (metrics.HasFlag(GatedMetrics.Retained))
                 Check(result.Name, "retained-bytes",
-                    old.RetainedBytes, result.RetainedBytes, allocationTolerance);
+                    old.RetainedBytes, result.RetainedBytes,
+                    allocationTolerance, byteFloor);
         }
 
         return regressions;
 
-        void Check(string scenario, string metric, double before, double after, double tolerance)
+        void Check(string scenario, string metric, double before, double after, double tolerance, double floor)
         {
+            double delta = after - before;
+
+            // шум в пределах пола не разбираем независимо от процентов
+            if (delta <= floor) return;
+
             // нулевой эталон делить нельзя, а рост с нуля до заметной
             // величины всё равно надо показать
             if (before <= 0)
             {
-                if (after > 4096)
-                    regressions.Add(new Regression(scenario, metric, before, after, double.PositiveInfinity));
-
+                regressions.Add(new Regression(scenario, metric, before, after, double.PositiveInfinity));
                 return;
             }
 
-            double ratio = (after - before) / before;
+            double ratio = delta / before;
 
             if (ratio > tolerance)
                 regressions.Add(new Regression(scenario, metric, before, after, ratio));
