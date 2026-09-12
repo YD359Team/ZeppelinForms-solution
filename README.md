@@ -249,6 +249,40 @@ above for the full precedence. `ClearValue` gives a property back to the theme.
 
 ### 🛠️ Code Examples
 
+Creating an application in Windows:
+
+```csharp
+public class Program
+{
+    static void Main()
+    {
+        WindowsPlatform windowsPlatform = new();
+        App myApp = new(windowsPlatform)
+        {
+            MainForm = new MainForm()
+        };
+        myApp.Run();
+    }
+}
+```
+
+Creating an application in Linux (X11):
+
+```csharp
+public class Program
+{
+    static void Main()
+    {
+        X11Platform linuxPlatform = new();
+        App myApp = new(linuxPlatform)
+        {
+            MainForm = new MainForm()
+        };
+        myApp.Run();
+    }
+}
+```
+
 Creating an application in the browser (WebAssembly):
 
 ```csharp
