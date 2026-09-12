@@ -91,6 +91,12 @@ public static class Themes
                 panel.ScrollThumbColor = c.ScrollThumb;
             })
 
+            .For<PropertyGrid>((panel, c) =>
+            {
+                panel.BorderColor = c.Border;
+                panel.BorderWidth = 2f;
+            })
+
             // база — нейтральная кнопка, если тип не уточнён
             .For<ButtonBase>((button, c) =>
             {

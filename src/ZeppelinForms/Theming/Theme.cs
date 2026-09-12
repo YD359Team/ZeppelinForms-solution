@@ -2,12 +2,23 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Interfaces;
-
-namespace ZeppelinForms.Theming;
+using ZeppelinForms.Theming;
 
 public sealed class Theme
 {
     private readonly Dictionary<Type, Action<UIElement>> _appliers = [];
+
+    /// <summary>
+    /// Готовые цепочки применителей по типу элемента, от базового
+    /// к производному. Считаются один раз на тип: цепочка зависит
+    /// только от иерархии и набора применителей, а раньше на каждый
+    /// элемент заводился Stack и заново обходились все базовые типы
+    /// со словарным поиском на каждом шаге — на форме из трёхсот
+    /// меток это триста стеков и триста обходов.
+    /// </summary>
+    private readonly Dictionary<Type, Action<UIElement>[]> _chains = [];
+
+    private readonly System.Threading.Lock _chainSync = new();
 
     public required string Name { get; init; }
     public required ThemeColors Colors { get; init; }
@@ -18,34 +29,68 @@ public sealed class Theme
     public Theme For<T>(Action<T, ThemeColors> apply) where T : UIElement
     {
         _appliers[typeof(T)] = element => apply((T)element, Colors);
+
+        // набор применителей изменился — посчитанные цепочки больше
+        // не описывают тему
+        lock (_chainSync)
+            _chains.Clear();
+
         return this;
     }
 
     internal void Apply(UIElement element)
     {
-        // от базового типа к производному: специализация дополняет общее
-        // оформление, а не подменяет его целиком
-        var pending = new Stack<Action<UIElement>>();
+        Action<UIElement>[] chain = GetChain(element.GetType());
 
-        for (Type? type = element.GetType(); type is not null; type = type.BaseType)
-        {
-            if (_appliers.TryGetValue(type, out Action<UIElement>? apply))
-                pending.Push(apply);
-        }
+        if (chain.Length == 0) return;
 
         // на время обхода сеттеры помечают записи как «от темы».
-        // Рекурсии тут быть не может, поэтому хватает простого флага
+        // Предыдущее значение сохраняется, а не гасится в false:
+        // применитель может создать или присоединить дочерний элемент,
+        // и вложенный вызов иначе снял бы пометку у внешнего обхода
+        bool wasApplying = UIElement.ApplyingTheme;
         UIElement.ApplyingTheme = true;
 
         try
         {
-            while (pending.Count > 0)
-                pending.Pop()(element);
+            // от базового типа к производному: специализация дополняет
+            // общее оформление, а не подменяет его целиком
+            foreach (Action<UIElement> apply in chain)
+                apply(element);
         }
         finally
         {
-            UIElement.ApplyingTheme = false;
+            UIElement.ApplyingTheme = wasApplying;
         }
+    }
+
+    /// <summary>Цепочка применителей для типа, от базового к производному.</summary>
+    private Action<UIElement>[] GetChain(Type type)
+    {
+        lock (_chainSync)
+        {
+            if (_chains.TryGetValue(type, out Action<UIElement>[]? cached))
+                return cached;
+        }
+
+        var chain = new List<Action<UIElement>>();
+
+        for (Type? current = type; current is not null; current = current.BaseType)
+        {
+            if (_appliers.TryGetValue(current, out Action<UIElement>? apply))
+                chain.Add(apply);
+        }
+
+        // собирали от производного к базовому — разворачиваем,
+        // порядок применения обратный
+        chain.Reverse();
+
+        Action<UIElement>[] result = chain.Count == 0 ? [] : [.. chain];
+
+        lock (_chainSync)
+            _chains[type] = result;
+
+        return result;
     }
 
     internal static void Apply(UIElement element, ControlStyle style)

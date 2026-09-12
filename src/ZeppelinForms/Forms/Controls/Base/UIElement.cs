@@ -408,10 +408,14 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     private ulong[]? _assigned;
     private ulong[]? _local;
 
-    /// <summary>Идёт применение темы: записи помечаются как «от темы»,
-    /// а не «задано вручную». Ставится Theme.Apply на время обхода.
-    /// Дерево и тема живут в UI-потоке, поэтому статики достаточно.</summary>
-    internal static bool ApplyingTheme { get; set; }
+    /// <summary>Идёт применение темы: сеттеры помечают записи как «от темы»,
+    /// чтобы явно заданные пользователем значения тема не перетирала.</summary>
+    /// <remarks>ThreadStatic, по той же причине, что пул кистей в SkiaGraphics:
+    /// снимковые тесты xunit идут параллельно, и общий флаг заставил бы
+    /// сеттеры в одном потоке считать значения темой, пока тема
+    /// применяется в другом.</remarks>
+    [ThreadStatic]
+    internal static bool ApplyingTheme;
 
     private static bool GetBit(ulong[]? bits, int index) =>
         bits is not null && (index >> 6) < bits.Length && (bits[index >> 6] & (1UL << index)) != 0;

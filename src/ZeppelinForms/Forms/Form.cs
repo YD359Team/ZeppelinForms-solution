@@ -1186,6 +1186,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             };
 
             _inspectorGrid.Owner = this;
+            App.Theme.Apply(_inspectorGrid);
             _overlays.Add(_inspectorGrid);
         }
         else if (_inspectorGrid is not null)
