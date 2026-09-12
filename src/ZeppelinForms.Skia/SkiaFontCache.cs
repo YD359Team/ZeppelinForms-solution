@@ -1,4 +1,5 @@
 ﻿using SkiaSharp;
+using System.Globalization;
 using System.Text;
 using ZeppelinForms.Drawing;
 
@@ -276,7 +277,18 @@ internal static class SkiaFontCache
     }
 
     /// <summary>Медленный путь: в строке есть символы вне основного шрифта,
-    /// поэтому подбор идёт посимвольно.</summary>
+    /// поэтому подбор идёт по графемным кластерам.</summary>
+    /// <remarks>
+    /// Единица подбора — кластер, а не руна. Составной эмодзи — семья,
+    /// флаг, модификатор тона кожи — это несколько рун, склеенных ZWJ
+    /// или следующих подряд; их компоненты резолвятся в разные typeface,
+    /// и посимвольный обход рвал такую последовательность на части.
+    /// Вместо одного глифа рисовались отдельные фигурки.
+    ///
+    /// Шрифт спрашивается по первой руне кластера, а кластер уходит
+    /// в run целиком: разорвать соединённую последовательность нельзя
+    /// в принципе, даже если её части формально есть в разных шрифтах.
+    /// </remarks>
     private static FontRun[] BuildMixedRuns(string text, Font font)
     {
         float size = font.Size;
@@ -287,9 +299,17 @@ internal static class SkiaFontCache
         int position = 0;
         SKTypeface? currentTypeface = null;
 
-        foreach (Rune rune in text.EnumerateRunes())
+        while (position < text.Length)
         {
-            SKTypeface typeface = Resolve(font, rune.Value);
+            int clusterLength = StringInfo.GetNextTextElementLength(text.AsSpan(position));
+
+            // защита от нуля: иначе цикл не сдвинется и повиснет
+            if (clusterLength <= 0)
+                clusterLength = 1;
+
+            // подбор по первой руне кластера — остальные его части
+            // самостоятельного глифа не имеют
+            SKTypeface typeface = Resolve(font, FirstRune(text, position));
 
             if (currentTypeface is null)
             {
@@ -302,7 +322,7 @@ internal static class SkiaFontCache
                 currentTypeface = typeface;
             }
 
-            position += rune.Utf16SequenceLength;
+            position += clusterLength;
         }
 
         if (currentTypeface is not null && start < text.Length)
@@ -310,6 +330,12 @@ internal static class SkiaFontCache
 
         return [.. segments];
     }
+
+    /// <summary>Кодовая точка, с которой начинается кластер.</summary>
+    private static int FirstRune(string text, int index) =>
+        Rune.TryGetRuneAt(text, index, out Rune rune)
+            ? rune.Value
+            : text[index];
 
     /// <summary>
     /// Ширина начала строки длиной length символов. Подстрока не создаётся:
