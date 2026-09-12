@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using ZeppelinForms.Diagnostics;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Headless;
 using ZeppelinForms.Skia;
 using ZeppelinForms.Theming;
@@ -10,6 +11,8 @@ public sealed class SnapshotFixture
 {
     public SnapshotFixture()
     {
+        ZfContract.Behavior = ContractViolationBehavior.Throw;
+
         SkiaTextMeasurer.Register();
         SkiaImageDecoder.Register();
         SkiaOffscreenRenderer.Register();

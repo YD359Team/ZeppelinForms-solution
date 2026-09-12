@@ -1,4 +1,5 @@
 ﻿using SkiaSharp;
+using ZeppelinForms.Diagnostics;
 
 /// <summary>
 /// Отрезок строки, целиком покрытый одним шрифтом. Хранится индексами,
@@ -74,6 +75,12 @@ internal sealed class CachedLine : IDisposable
     /// теперь её просто неоткуда взять.</remarks>
     public SKTextBlob? GetBlob(int index)
     {
+        ZfContract.Require(
+            !_disposed,
+            "Обращение к CachedLine после вытеснения из кэша. " +
+            "Ссылку на разобранную строку нельзя держать дольше одного кадра: " +
+            "её блобы уже уничтожены.");
+
         if (_blobs is null)
         {
             _blobs = new SKTextBlob?[Runs.Length];
@@ -94,11 +101,16 @@ internal sealed class CachedLine : IDisposable
         return blob;
     }
 
+
+    private bool _disposed;
+
     /// <summary>Освободить блобы. Зовётся кэшем при вытеснении:
     /// SKTextBlob — обёртка над нативным объектом, и ждать финализатора
     /// означает держать нативную память до ближайшей сборки.</summary>
     public void Dispose()
     {
+        _disposed = true;
+
         if (_blobs is null) return;
 
         for (int i = 0; i < _blobs.Length; i++)
@@ -110,7 +122,6 @@ internal sealed class CachedLine : IDisposable
         _probed = null;
         _blobs = null;
     }
-
 }
 
 /// <summary>

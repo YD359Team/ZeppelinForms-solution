@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Text;
+using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
@@ -591,6 +592,12 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     {
         if (_overlays.Contains(content)) return;
 
+        ZfContract.Require(
+            content.Owner is null,
+            "Оверлей уже принадлежит форме. Один элемент не может быть " +
+            "оверлеем двух форм одновременно: Owner перезапишется, " +
+            "и первая форма потеряет с ним связь.");
+
         content.Owner = this;
         AttachTree(content);
 
@@ -712,7 +719,12 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         // защита от рекурсии: Invalidate во время раскладки запустил бы её заново
         if (_layoutDepth > 0)
         {
-            System.Diagnostics.Debug.WriteLine("PerformLayout вызван повторно во время раскладки");
+            ZfContract.Fail(
+                "PerformLayout вызван повторно во время раскладки. " +
+                "Обычно это Invalidate из MeasureOverride или ArrangeOverride: " +
+                "измените там геометрию напрямую либо отложите Invalidate " +
+                "до конца прохода.");
+
             return;
         }
 

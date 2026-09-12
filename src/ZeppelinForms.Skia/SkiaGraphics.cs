@@ -1,4 +1,5 @@
 ﻿using SkiaSharp;
+using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
@@ -56,6 +57,17 @@ public sealed class SkiaGraphics : Graphics
         {
             paint = _fillPaint = new SKPaint();
             _paintsCreated++;
+            if (paint is null)
+            {
+                paint = _fillPaint = new SKPaint();
+                _paintsCreated++;
+
+                ZfContract.Require(
+                    _paintsCreated <= 2,
+                    $"Пул кистей создал {_paintsCreated} экземпляров вместо двух. " +
+                    "Кисть где-то теряется или обнуляется между кадрами — " +
+                    "смысл пула в том, что их ровно две на поток.");
+            }
         }
 
         paint.Reset();
@@ -72,7 +84,19 @@ public sealed class SkiaGraphics : Graphics
         SKStrokeCap cap = SKStrokeCap.Butt,
         SKStrokeJoin join = SKStrokeJoin.Miter)
     {
-        SKPaint paint = _strokePaint ??= new SKPaint();
+        SKPaint? paint = _strokePaint;
+
+        if (paint is null)
+        {
+            paint = _strokePaint = new SKPaint();
+            _paintsCreated++;
+
+            ZfContract.Require(
+                _paintsCreated <= 2,
+                $"Пул кистей создал {_paintsCreated} экземпляров вместо двух. " +
+                "Кисть где-то теряется или обнуляется между кадрами — " +
+                "смысл пула в том, что их ровно две на поток.");
+        }
 
         paint.Reset();
         paint.Color = new SKColor(color.R, color.G, color.B, color.A);

@@ -1,4 +1,6 @@
 ﻿using SkiaSharp;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
@@ -9,7 +11,6 @@ using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Headless;
 using ZeppelinForms.Skia;
 using ZeppelinForms.Theming;
-using ZeppelinForms.Core.Collections;
 
 namespace ZeppelinForms.Benchmarks;
 
@@ -49,6 +50,8 @@ public static class Scenes
     public static void EnsureServices()
     {
         if (_servicesRegistered) return;
+
+        ZfContract.Behavior = ContractViolationBehavior.Throw;
 
         SkiaTextMeasurer.Register();
         SkiaImageDecoder.Register();
