@@ -14,16 +14,8 @@ public sealed class SkiaTextMeasurer : ITextMeasurer
         if (string.IsNullOrEmpty(text))
             return Size.Empty;
 
-        float width = 0;
-        float height = 0;
-
-        foreach ((string run, SKFont runFont) in SkiaFontCache.SplitRuns(text, font))
-        {
-            width += runFont.MeasureText(run, out SKRect bounds);
-            height = Math.Max(height, bounds.Height);
-        }
-
-        return new Size(width, height);
+        CachedLine line = SkiaFontCache.GetLine(text, font);
+        return new Size(line.Width, line.Height);
     }
 
     public float MeasureTextWidth(string text, int length, Font font)
@@ -32,7 +24,12 @@ public sealed class SkiaTextMeasurer : ITextMeasurer
             return 0;
 
         length = Math.Min(length, text.Length);
-        return MeasureText(text[..length], font).Width;
+
+        // вся строка — это уже посчитанная ширина строки целиком
+        if (length == text.Length)
+            return SkiaFontCache.GetLine(text, font).Width;
+
+        return SkiaFontCache.MeasurePrefix(text, length, font);
     }
 
     /// <summary>На настольных платформах шрифты берутся из системы
@@ -49,12 +46,10 @@ public sealed class SkiaTextMeasurer : ITextMeasurer
         foreach (TextRun run in runs)
         {
             Font font = run.Font ?? baseFont;
-            SKFont skFont = SkiaFontCache.Get(font);
 
-            foreach ((string piece, SKFont pieceFont) in SkiaFontCache.SplitRuns(run.Text, font))
-                width += pieceFont.MeasureText(piece);
+            width += SkiaFontCache.GetLine(run.Text, font).Width;
 
-            SKFontMetrics metrics = skFont.Metrics;
+            SKFontMetrics metrics = SkiaFontCache.Get(font).Metrics;
             ascent = Math.Max(ascent, -metrics.Ascent);
             descent = Math.Max(descent, metrics.Descent);
         }

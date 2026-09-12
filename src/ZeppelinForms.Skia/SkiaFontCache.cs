@@ -12,6 +12,14 @@ internal static class SkiaFontCache
     private static readonly Dictionary<(string, FontWeight, FontStyle, int), SKTypeface?> Fallbacks = [];
     private static readonly Lock Sync = new();
 
+    /// <summary>
+    /// Разобранные строки. Лимит поколения подобран под интерфейс:
+    /// одновременно на экране редко бывает больше нескольких сотен
+    /// различных строк, а всё сверх того — ввод в поле, который
+    /// устаревает сам.
+    /// </summary>
+    private static readonly GenerationalCache<(string Text, Font Font), CachedLine> Lines = new(4096);
+
     public static SKFont Get(Font font)
     {
         lock (Sync)
@@ -27,22 +35,150 @@ internal static class SkiaFontCache
         }
     }
 
+    /// <summary>Сбросить разобранные строки. Нужно там, где меняется
+    /// подбор шрифтов, — например, после подгрузки нового файла шрифта.</summary>
+    public static void InvalidateLines() => Lines.Clear();
+
+    /// <summary>
+    /// Разбор строки на отрезки вместе с габаритами. Результат кэшируется:
+    /// и раскладка, и отрисовка спрашивают об одной и той же строке
+    /// по многу раз за кадр, а разбор стоит прохода по всем символам.
+    /// </summary>
+    public static CachedLine GetLine(string text, Font font)
+    {
+        if (string.IsNullOrEmpty(text))
+            return CachedLine.Empty;
+
+        var key = (text, font);
+
+        if (Lines.TryGet(key, out CachedLine? cached))
+            return cached!;
+
+        CachedLine line = BuildLine(text, font);
+        Lines.Add(key, line);
+
+        return line;
+    }
+
+    private static CachedLine BuildLine(string text, Font font)
+    {
+        SKFont primary = Get(font);
+
+        // Быстрый путь: вся строка покрыта основным шрифтом. Один вызов
+        // на строку вместо проверки глифа на каждый символ — для латиницы
+        // и кириллицы это попадание всегда.
+        FontRun[] runs = primary.ContainsGlyphs(text)
+            ? [new FontRun(0, text.Length, primary, 0)]
+            : BuildMixedRuns(text, font);
+
+        float width = 0;
+        float height = 0;
+
+        for (int i = 0; i < runs.Length; i++)
+        {
+            FontRun run = runs[i];
+            ReadOnlySpan<char> span = text.AsSpan(run.Start, run.Length);
+
+            float advance = run.Font.MeasureText(span, out SKRect runBounds);
+
+            runs[i] = new FontRun(run.Start, run.Length, run.Font, advance);
+
+            width += advance;
+
+            // высота — максимум высоты чернил, ровно как считалось раньше
+            height = Math.Max(height, runBounds.Height);
+        }
+
+        primary.MeasureText(text.AsSpan(), out SKRect bounds);
+
+        return new CachedLine
+        {
+            Runs = runs,
+            Width = width,
+            Height = height,
+            Bounds = bounds,
+        };
+    }
+
+    /// <summary>Медленный путь: в строке есть символы вне основного шрифта,
+    /// поэтому подбор идёт посимвольно.</summary>
+    private static FontRun[] BuildMixedRuns(string text, Font font)
+    {
+        float size = font.Size;
+
+        var segments = new List<FontRun>();
+
+        int start = 0;
+        int position = 0;
+        SKTypeface? currentTypeface = null;
+
+        foreach (Rune rune in text.EnumerateRunes())
+        {
+            SKTypeface typeface = Resolve(font, rune.Value);
+
+            if (currentTypeface is null)
+            {
+                currentTypeface = typeface;
+            }
+            else if (typeface.FamilyName != currentTypeface.FamilyName)
+            {
+                segments.Add(new FontRun(start, position - start, GetSized(currentTypeface, size), 0));
+                start = position;
+                currentTypeface = typeface;
+            }
+
+            position += rune.Utf16SequenceLength;
+        }
+
+        if (currentTypeface is not null && start < text.Length)
+            segments.Add(new FontRun(start, text.Length - start, GetSized(currentTypeface, size), 0));
+
+        return [.. segments];
+    }
+
+    /// <summary>
+    /// Ширина начала строки длиной length символов. Подстрока не создаётся:
+    /// целые отрезки берутся из уже посчитанных ширин, и меряется только
+    /// хвостовой кусок. Метод зовётся на каждое положение каретки,
+    /// поэтому аллокаций в нём быть не должно.
+    /// </summary>
+    public static float MeasurePrefix(string text, int length, Font font)
+    {
+        CachedLine line = GetLine(text, font);
+
+        float width = 0;
+
+        foreach (FontRun run in line.Runs)
+        {
+            if (run.Start >= length)
+                break;
+
+            int available = Math.Min(run.Length, length - run.Start);
+
+            width += available == run.Length
+                ? run.Width
+                : run.Font.MeasureText(text.AsSpan(run.Start, available));
+        }
+
+        return width;
+    }
+
     private static SKTypeface ResolveTypeface(Font font)
     {
+        // Вызывается только из Get, а он уже под блокировкой:
+        // словари типов не потокобезопасны, и раньше часть обращений
+        // к Typefaces шла мимо замка.
         if (font.FilePath is not null)
         {
-            lock (Sync)
+            if (FileTypefaces.TryGetValue(font.FilePath, out SKTypeface? fromFile))
+                return fromFile;
+
+            SKTypeface? loaded = SKTypeface.FromFile(font.FilePath);
+
+            if (loaded is not null)
             {
-                if (FileTypefaces.TryGetValue(font.FilePath, out SKTypeface? fromFile))
-                    return fromFile;
-
-                SKTypeface? loaded = SKTypeface.FromFile(font.FilePath);
-
-                if (loaded is not null)
-                {
-                    FileTypefaces[font.FilePath] = loaded;
-                    return loaded;
-                }
+                FileTypefaces[font.FilePath] = loaded;
+                return loaded;
             }
         }
 
@@ -92,21 +228,23 @@ internal static class SkiaFontCache
     /// каждый раз создаёт новый объект и заметно стоит.</summary>
     public static SKTypeface Resolve(Font font, int codepoint)
     {
-        SKTypeface primary = SkiaFontCache.Get(font).Typeface;
+        SKFont primary = Get(font);
 
+        // проверка глифа переехала с SKTypeface на SKFont:
+        // SKTypeface.ContainsGlyph объявлен устаревшим
         if (primary.ContainsGlyph(codepoint))
-            return primary;
+            return primary.Typeface;
 
         var key = (font.Family, font.Weight, font.Style, codepoint);
 
         lock (Sync)
         {
             if (Fallbacks.TryGetValue(key, out SKTypeface? cached))
-                return cached ?? primary;
+                return cached ?? primary.Typeface;
 
             SKTypeface? found = SKFontManager.Default.MatchCharacter(codepoint);
             Fallbacks[key] = found;
-            return found ?? primary;
+            return found ?? primary.Typeface;
         }
     }
 
@@ -126,35 +264,22 @@ internal static class SkiaFontCache
     }
 
     /// <summary>Разбивает строку на отрезки с одинаковым шрифтом.</summary>
+    /// <remarks>Совместимая обёртка над кэшем разбора: подстроки здесь
+    /// всё ещё создаются, но сам разбор берётся готовым. Отрисовка
+    /// перейдёт на индексы отдельным шагом.</remarks>
     internal static IEnumerable<(string Text, SKFont Font)> SplitRuns(string text, Font font)
     {
         if (string.IsNullOrEmpty(text)) yield break;
 
-        float size = font.Size;
-        int start = 0;
-        int position = 0;
-        SKTypeface? currentTypeface = null;
+        CachedLine line = GetLine(text, font);
 
-        foreach (Rune rune in text.EnumerateRunes())
+        foreach (FontRun run in line.Runs)
         {
-            SKTypeface typeface = Resolve(font, rune.Value);
-
-            if (currentTypeface is null)
-            {
-                currentTypeface = typeface;
-            }
-            else if (typeface.FamilyName != currentTypeface.FamilyName)
-            {
-                yield return (text[start..position], GetSized(currentTypeface, size));
-                start = position;
-                currentTypeface = typeface;
-            }
-
-            position += rune.Utf16SequenceLength;
+            // отрезок на всю строку отдаём как есть: копия была бы лишней
+            yield return run.Start == 0 && run.Length == text.Length
+                ? (text, run.Font)
+                : (text.Substring(run.Start, run.Length), run.Font);
         }
-
-        if (start < text.Length && currentTypeface is not null)
-            yield return (text[start..], GetSized(currentTypeface, size));
     }
 
     private static readonly Dictionary<(SKTypeface, float), SKFont> SizedFonts = [];
