@@ -50,7 +50,7 @@ public sealed class SkiaGraphics : Graphics
 
     private static SKPaint FillPaint(Color color)
     {
-        SKPaint paint = _fillPaint;
+        SKPaint? paint = _fillPaint;
 
         if (paint is null)
         {
