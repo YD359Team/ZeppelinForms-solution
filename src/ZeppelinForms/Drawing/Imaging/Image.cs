@@ -53,7 +53,15 @@ public sealed class Image
         return LoadFromFile(fullPath);
     }
 
-    public static implicit operator Image(string relativePath) => LoadAsset(relativePath);
+    public static implicit operator Image(string relativePath)
+    {
+        Uri uri = new(relativePath);
+        if (uri.IsFile)
+        {
+            return LoadAsset(relativePath);
+        }
+        return LoadFromUri(uri);
+    }
 }
 
 public enum ImageFlip
