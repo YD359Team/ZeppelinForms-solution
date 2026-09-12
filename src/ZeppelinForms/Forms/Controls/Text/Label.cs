@@ -11,7 +11,22 @@ namespace ZeppelinForms.Forms.Controls.Text;
 /// </summary>
 public class Label : DecoratedControl, ITextElement
 {
-    public string? Text { get; set; }
+    private string? _text;
+    private string[]? _lines;
+
+    public string? Text
+    {
+        get => _text;
+        set
+        {
+            if (_text == value) return;
+
+            _text = value;
+
+            // разбор на строки устаревает вместе с текстом
+            _lines = null;
+        }
+    }
 
     public HorizontalContentAlignment HorizontalContentAlign { get; set; }
     public VerticalContentAlignment VerticalContentAlign { get; set; }
@@ -20,6 +35,11 @@ public class Label : DecoratedControl, ITextElement
 
     private string[] SplitLines() =>
         (Text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+
+    /// <summary>Разбор на строки. Считается один раз на текст: и отрисовка,
+    /// и замер спрашивают его по многу раз за кадр, а Split каждый раз
+    /// создаёт новый массив.</summary>
+    private string[] Lines => _lines ??= SplitLines();
 
     private float LineHeight =>
         TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height * LineSpacing;
@@ -30,7 +50,7 @@ public class Label : DecoratedControl, ITextElement
         if (string.IsNullOrEmpty(Text)) return;
 
         var content = ContentBounds;
-        string[] lines = SplitLines();
+        string[] lines = Lines;
 
         float lineHeight = LineHeight;
         float totalHeight = lineHeight * lines.Length;
@@ -59,7 +79,7 @@ public class Label : DecoratedControl, ITextElement
         if (string.IsNullOrEmpty(Text))
             return ResolveSize(new Size(Padding.Horizontal, Padding.Vertical), availableSize);
 
-        string[] lines = SplitLines();
+        string[] lines = Lines;
 
         float maxWidth = 0;
         foreach (string line in lines)
