@@ -113,6 +113,26 @@ internal sealed class CachedLine : IDisposable
 }
 
 /// <summary>
+/// Результат подбора подстановки для символа: найденный шрифт либо
+/// признак, что подстановки нет.
+/// </summary>
+/// <remarks>
+/// Обёртка нужна кэшу поколений: он хранит ссылочные значения, а
+/// «не нашлось» — такой же законный результат, как найденный шрифт,
+/// и кэшировать его обязательно. MatchCharacter стоит дорого именно
+/// на промахах: при успехе он останавливается на первом подходящем
+/// шрифте, при неудаче обходит все установленные.
+/// </remarks>
+internal sealed class FallbackResult(SKTypeface? typeface)
+{
+    /// <summary>Общий экземпляр для «подстановки нет»: таких записей
+    /// в кэше бывает много, и заводить под каждую свой объект незачем.</summary>
+    public static readonly FallbackResult None = new(null);
+
+    public SKTypeface? Typeface { get; } = typeface;
+}
+
+/// <summary>
 /// Кэш с поколениями вместо LRU: когда горячий словарь перерастает лимит,
 /// он целиком становится холодным, а под новые записи заводится пустой.
 /// Попадание в холодный словарь переносит запись в горячий, поэтому
@@ -120,17 +140,23 @@ internal sealed class CachedLine : IDisposable
 /// нет. Списка использования нет, значит чтение не перестраивает
 /// структуру и не требует ничего, кроме одной блокировки.
 /// </summary>
-/// <remarks>Если значения реализуют IDisposable, уходящее поколение
-/// освобождается целиком. Отсюда требование: одно значение не должно
-/// лежать в двух поколениях одновременно.</remarks>
-internal sealed class GenerationalCache<TKey, TValue>(int limit)
+/// <remarks>
+/// Уничтожать ли вытесняемые значения, задаётся при создании, а не
+/// выводится из типа. Проверка «реализует ли TValue IDisposable» здесь
+/// не годится: SKTypeface его реализует, но подстановки уничтожать
+/// нельзя — MatchCharacter возвращает один и тот же объект для разных
+/// кодпоинтов, и первое же уничтожение испортило бы живые записи
+/// под другими ключами.
+///
+/// Если уничтожение включено, действует требование: одно значение
+/// не должно лежать в двух поколениях одновременно.
+/// </remarks>
+internal sealed class GenerationalCache<TKey, TValue>(int limit, bool disposeEvicted)
     where TKey : notnull
     where TValue : class
 {
-    private static readonly bool ValuesAreDisposable =
-        typeof(IDisposable).IsAssignableFrom(typeof(TValue));
-
     private readonly System.Threading.Lock _sync = new();
+    private readonly bool _disposeEvicted = disposeEvicted;
 
     private Dictionary<TKey, TValue> _hot = new(limit);
     private Dictionary<TKey, TValue> _cold = new(limit);
@@ -198,17 +224,17 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit)
         }
     }
 
-    private static void Release(Dictionary<TKey, TValue> generation)
+    private void Release(Dictionary<TKey, TValue> generation)
     {
-        if (!ValuesAreDisposable) return;
+        if (!_disposeEvicted) return;
 
         foreach (TValue value in generation.Values)
-            ((IDisposable)value).Dispose();
+            (value as IDisposable)?.Dispose();
     }
 
-    private static void Dispose(TValue value)
+    private void Dispose(TValue value)
     {
-        if (ValuesAreDisposable)
-            ((IDisposable)value).Dispose();
+        if (_disposeEvicted)
+            (value as IDisposable)?.Dispose();
     }
 }

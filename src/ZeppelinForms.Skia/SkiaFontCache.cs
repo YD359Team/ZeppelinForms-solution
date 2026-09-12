@@ -8,8 +8,22 @@ internal static class SkiaFontCache
     // по экземпляру на поток незачем.
     private static readonly Dictionary<string, SKTypeface> FileTypefaces = [];
     private static readonly Dictionary<(string, FontWeight, FontStyle), SKTypeface> Typefaces = [];
-    private static readonly Dictionary<(string, FontWeight, FontStyle, int), SKTypeface?> Fallbacks = [];
     private static readonly Lock Sync = new();
+
+    /// <summary>
+    /// Подстановки по кодпоинту. В отличие от остальных словарей здесь
+    /// нужен потолок: ключ включает сам символ, поэтому проход по эмодзи
+    /// или по иероглифике заводит запись на каждый встреченный символ,
+    /// и словарь рос без границы — это и ловит сценарий
+    /// memory.font-fallback-growth.
+    ///
+    /// Вытеснение без уничтожения: MatchCharacter отдаёт один и тот же
+    /// шрифт для целых диапазонов, и уничтожение по одному ключу
+    /// испортило бы остальные. Вытесненный объект освободит финализатор,
+    /// когда на него не останется ссылок.
+    /// </summary>
+    private static readonly GenerationalCache<(string, FontWeight, FontStyle, int), FallbackResult> Fallbacks =
+        new(1024, disposeEvicted: false);
 
     // SKFont, в отличие от SKTypeface, потокобезопасным не является:
     // MeasureText и ContainsGlyphs меняют его внутреннее состояние.
@@ -60,7 +74,10 @@ internal static class SkiaFontCache
         get
         {
             SyncVersion();
-            return _lines ??= new GenerationalCache<(string Text, Font Font), CachedLine>(4096);
+
+            // блобы — нативные объекты, вытеснение обязано их освобождать
+            return _lines ??= new GenerationalCache<(string Text, Font Font), CachedLine>(
+                4096, disposeEvicted: true);
         }
     }
 
@@ -148,8 +165,9 @@ internal static class SkiaFontCache
         {
             FileTypefaces.Clear();
             Typefaces.Clear();
-            Fallbacks.Clear();
         }
+
+        Fallbacks.Clear();
 
         Interlocked.Increment(ref _version);
 
@@ -381,13 +399,18 @@ internal static class SkiaFontCache
 
         var key = (font.Family, font.Weight, font.Style, codepoint);
 
+        // У кэша есть собственная блокировка, но общий замок здесь всё
+        // равно нужен: без него два потока на одном промахе позвали бы
+        // MatchCharacter дважды и завели два шрифта вместо одного
         lock (Sync)
         {
-            if (Fallbacks.TryGetValue(key, out SKTypeface? cached))
-                return cached ?? primary.Typeface;
+            if (Fallbacks.TryGet(key, out FallbackResult? cached))
+                return cached!.Typeface ?? primary.Typeface;
 
             SKTypeface? found = SKFontManager.Default.MatchCharacter(codepoint);
-            Fallbacks[key] = found;
+
+            Fallbacks.Add(key, found is null ? FallbackResult.None : new FallbackResult(found));
+
             return found ?? primary.Typeface;
         }
     }
