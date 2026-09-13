@@ -117,7 +117,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     /// закрыла бы свойство от последующих.</summary>
     internal void SetBoundValue(StyledProperty property, object? value)
     {
-        property.WriteBoxed(this, value);
+        property.WriteBoxedDirect(this, value);
 
         SetBit(ref _assigned, property.Index);
 

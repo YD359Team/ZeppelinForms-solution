@@ -31,7 +31,7 @@ public static class PropertyCatalog
         new(property.Name,
             property.ValueType,
             target => property.GetBoxed((UIElement)target),
-            (target, value) => property.SetBoxed((UIElement)target, value))
+            (target, value) => property.SetBoxedAsUser((UIElement)target, value))
         {
             Category = property.Category,
         };

@@ -64,7 +64,7 @@ public abstract class StyledProperty
     /// <summary>Прочитать значение, не зная его типа. Нужно PropertyGrid.</summary>
     public abstract object? GetBoxed(UIElement element);
 
-    public abstract void SetBoxed(UIElement element, object? value);
+    public abstract void SetBoxedAsUser(UIElement element, object? value);
 
     /// <summary>Тип значения. Нужен биндингу: он получает значение
     /// источника через рефлексию и должен привести его к типу свойства.</summary>
@@ -73,7 +73,7 @@ public abstract class StyledProperty
     /// <summary>Записать значение, не зная его типа статически.
     /// Единственный потребитель — биндинг: там значение приходит
     /// из PropertyInfo.GetValue и типизировать его негде.</summary>
-    internal abstract void WriteBoxed(UIElement element, object? value);
+    internal abstract void WriteBoxedDirect(UIElement element, object? value);
 }
 
 public sealed class StyledProperty<T> : StyledProperty
@@ -116,15 +116,25 @@ public sealed class StyledProperty<T> : StyledProperty
 
     public override object? GetBoxed(UIElement element) => _get(element);
 
-    public override void SetBoxed(UIElement element, object? value)
+    public override void SetBoxedAsUser(UIElement element, object? value)
     {
         // из PropertyGrid значение приходит от пользователя, значит должно
-        // помечаться как заданное вручную — как при обычном присваивании
+        // помечаться как заданное вручную — как при обычном присваивании.
+        //
+        // Через сопоставление с типом проверять нельзя: "value is T" на null
+        // даёт false даже когда T допускает null, и очистить строку
+        // или сбросить шрифт из инспектора было бы невозможно
+        if (value is null)
+        {
+            if (default(T) is null) element.SetStyledValue(this, default!);
+            return;
+        }
+
         if (value is T typed) element.SetStyledValue(this, typed);
     }
 
     public override Type PropertyType => typeof(T);
 
-    internal override void WriteBoxed(UIElement element, object? value) =>
+    internal override void WriteBoxedDirect(UIElement element, object? value) =>
         Write(element, value is T typed ? typed : DefaultValue);
 }
