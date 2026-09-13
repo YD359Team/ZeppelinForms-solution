@@ -21,6 +21,26 @@ public readonly record struct Color
         A = 255; R = r; G = g; B = b;
     }
 
+    public Color WithA(byte a)
+    {
+        return new(a: a, r: this.R, g: this.G, b: this.B);
+    }
+
+    public Color WithR(byte r)
+    {
+        return new(a: this.A, r: r, g: this.G, b: this.B);
+    }
+
+    public Color WithG(byte g)
+    {
+        return new(a: this.A, r: this.R, g: g, b: this.B);
+    }
+
+    public Color WithB(byte b)
+    {
+        return new(a: this.A, r: this.R, g: this.G, b: b);
+    }
+
     public readonly uint AsU32()
     {
         return (uint)((A << 24) | (R << 16) | (G << 8) | B);

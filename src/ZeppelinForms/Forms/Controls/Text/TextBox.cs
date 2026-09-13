@@ -101,6 +101,11 @@ public partial class TextBox : TextInputControl, ITextElement
     }
     private static string? TextDefault => string.Empty;
 
+    /// <summary>Запись в хранилище, минуя лестницу источников. Зовётся
+    /// только делегатом StyledProperty — сеттер идёт через SetValue,
+    /// и прямое присваивание Text отсюда дало бы бесконечную рекурсию.</summary>
+    private void WriteText(string? value) => _document.Text = value ?? string.Empty;
+
     [Styled(Category = "Text")]
     public partial Color CaretColor { get; set; }
     private static Color CaretColorDefault => Colors.Black;

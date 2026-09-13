@@ -33,3 +33,11 @@ public sealed record Font(
 
 public enum FontWeight { Normal, Bold }
 public enum FontStyle { Normal, Italic }
+
+public static class FontEx
+{
+    public static Font WithSize(this Font font, float fontSize)
+    {
+        return new Font(font.Family, fontSize, font.Weight, font.Style);
+    }
+}

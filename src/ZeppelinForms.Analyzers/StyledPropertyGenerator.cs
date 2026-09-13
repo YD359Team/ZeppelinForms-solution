@@ -184,7 +184,7 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
                 text.AppendLine($"        StyledProperty<{property.ValueType}>.Register<{owner}>(");
                 text.AppendLine($"            \"{property.PropertyName}\",");
                 text.AppendLine($"            static owner => owner.{property.PropertyName},");
-                text.AppendLine($"            static (owner, value) => owner.{property.PropertyName} = value,");
+                text.AppendLine($"            static (owner, value) => owner.Write{property.PropertyName}(value),");
                 text.AppendLine($"            {@default},");
                 text.AppendLine($"            \"{property.Category}\",");
                 text.AppendLine($"            {Literal(property.AffectsLayout)},");

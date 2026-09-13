@@ -1008,7 +1008,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         // called when size changed. TODO: Dont call this before size assigned first time
     }
 
-    public Form? FindOwner()
+    internal Form? FindOwner()
     {
         if (_cachedOwnerGeneration == _ownerGeneration)
             return _cachedOwner;
@@ -1063,4 +1063,22 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     /// <summary>Забрать попадание себе, не спускаясь к потомкам (зона полосы прокрутки).</summary>
     protected internal virtual bool HitTestSelfFirst(Point localPoint) => false;
+}
+
+public static class UIElementEx 
+{
+    /// <summary>Настроить элемент по месту, не разрывая выражение.</summary>
+    public static T With<T>(this T element, Action<T> configure) where T : UIElement
+    {
+        configure(element);
+        return element;
+    }
+
+    /// <summary>Позиция в Grid, не разрывая выражение.</summary>
+    public static T At<T>(this T element, int row, int column) where T : UIElement
+    {
+        element.Row = row;
+        element.Column = column;
+        return element;
+    }
 }

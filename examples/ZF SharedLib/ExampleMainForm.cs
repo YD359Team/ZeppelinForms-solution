@@ -55,7 +55,7 @@ public class ExampleMainForm : Form
                 new Border
                 {
                     Docking = Dock.Bottom,
-                    Padding = new Thickness(0, 6),
+                    Padding = new(0, 6),
                     Child = root.CreateIndicator(),
                 },
                 root
@@ -63,35 +63,36 @@ public class ExampleMainForm : Form
         };
     }
 
-    private UIElement GetView1()
-    {
-        Debug.WriteLine("GetView1 вызван");
+    private GradientBorder GetView1() =>
+      new(new StackPanel
+      {
+          Orientation = Orientation.Vertical,
+          MainAxisAlignment = MainAxisAlignment.Center,
+          Spacing = 6,
+          Children =
+          {
+                new PictureBox { Size = new(128, 128), Padding = new(8) }
+                    .With(x => { x.SetImage(Assets.LogoImage()); x.Glitch(); }),
 
-        var logo = new PictureBox { Size = new(128, 128), Padding = new(8) };
-        logo.SetImage(Assets.LogoImage());
-        logo.Glitch();
+                new RichLabel()
+                    .With(x => x.SetText(
+                        "Hi! Welcome to presentation of ",
+                        TextRun.Colored("Zeppelin Forms", Colors.Blue),
+                        " framework")),
 
-        RichLabel lbl = new();
-        lbl.SetText("Hi! Welcome to presentation of ", TextRun.Colored("Zeppelin Forms", Colors.Blue), " framework");
-        PrimaryButton btn = new()
-        {
-            Text = "Goto project GitHub",
-            Font = new Font("Segoe UI", 16f),
-            Size = new(200, 80)
-        };
-        btn.Click += (_, _) => OpenGitHub();
-        StackPanel stackPanel = new()
-        {
-            Orientation = Orientation.Vertical,
-            MainAxisAlignment = MainAxisAlignment.Center,
-            Spacing = 6,
-        };
-        stackPanel.Children.AddRange([logo, lbl, btn]);
-        return new GradientBorder(stackPanel) 
-        { 
-            Stops = [new(MediaColors.DotnetModern, 0), new(MediaColors.Dotnet, 1)], BorderWidth = 2f  
-        };
-    }
+                new PrimaryButton
+                {
+                    Text = "Open project on GitHub",
+                    Font = Font.Default.WithSize(16f),
+                    Size = new(200, 80),
+                }
+                .With(x => x.Click += (_, _) => OpenGitHub()),
+          },
+      })
+      {
+          Stops = [new(MediaColors.DotnetModern, 0), new(MediaColors.Dotnet, 1)],
+          BorderWidth = 2f,
+      };
 
     private void OpenGitHub()
     {
@@ -109,22 +110,23 @@ public class ExampleMainForm : Form
         }
     }
 
-    private UIElement GetView2()
+    private UniformGrid GetView2()
     {
         var grid = new UniformGrid
         {
-            Padding = new Thickness(6),
+            Padding = new(6),
             OverflowY = Overflow.Auto,
             SpacingX = 5,
             SpacingY = 2,
             ScrollBarMode = ScrollBarMode.Inline
         };
-        PictureBox pBox = new() { Size = new(100, 100) };
-        pBox.LoadAsset("Laughing.png");
-        ListBox lBox = new();
-        lBox.Items.AddRange([new Button() { Text = "Item1" }, new Button() { Text = "Item2" }]);
-        ComboBox cBox = new();
-        cBox.Items.AddRange("Item 1", "Item 2", "Item 3");
+        PictureBox pBox = new PictureBox().With(x =>
+        {
+            x.Size = new(100, 100);
+            x.LoadAsset("Laughing.png");
+        });
+        ListBox lBox = new ListBox().With(x => x.Items.AddRange([new Button() { Text = "Item1" }, new Button() { Text = "Item2" }]));
+        ComboBox cBox = new ComboBox().With(x => x.Items.AddRange("Item 1", "Item 2", "Item 3"));
         UIElement[] controls = [
             new Label() { Text = "Label" },
             new LinkLabel() { Text = "LinkLabel" },
@@ -159,14 +161,14 @@ public class ExampleMainForm : Form
         return grid;
     }
 
-    private UIElement GetView3()
+    private Grid GetView3()
     {
         Grid grid = new()
         {
             Columns = "*,*,*,*",
             Rows = "Auto,*,*,*,*,*",
-            Padding = new Thickness(8),
-            Font = new Font("Segoe UI", 18f),
+            Padding = new(8),
+            Font = Font.Default.WithSize(18f),
         };
 
         TextBox display = new()
@@ -175,7 +177,7 @@ public class ExampleMainForm : Form
             IsReadOnly = true,
             HorizontalContentAlign = HorizontalContentAlignment.Right,
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            Margin = new Thickness(3),
+            Margin = new(3),
             ColumnSpan = 4,
         };
 
@@ -240,7 +242,7 @@ public class ExampleMainForm : Form
 
             if (pending == '/' && right == 0)
             {
-                display.Text = "Деление на ноль";
+                display.Text = "Divide by zero";
                 pending = '\0';
                 accumulator = 0;
                 startNewNumber = true;
@@ -259,8 +261,6 @@ public class ExampleMainForm : Form
             Show(accumulator);
             return true;
         }
-
-
 
         void SetOperator(char op)
         {
@@ -326,7 +326,7 @@ public class ExampleMainForm : Form
         return grid;
     }
 
-    private UIElement GetView6()
+    private StackPanel GetView6()
     {
         Loader ring = new() { Style = LoaderStyle.Ring };
         Loader spinner = new() { Style = LoaderStyle.Spinner };
@@ -341,7 +341,7 @@ public class ExampleMainForm : Form
 
         Button toggle = new()
         {
-            Text = "Остановить все",
+            Text = "Stop all",
             HorizontalAlignment = HorizontalAlignment.Center,
         };
 
@@ -352,60 +352,48 @@ public class ExampleMainForm : Form
             foreach (Loader loader in all)
                 loader.IsRunning = running;
 
-            toggle.Text = running ? "Остановить все" : "Запустить все";
+            toggle.Text = running ? "Stop all" : "Start all";
         };
 
-        StackPanel row = new()
+        StackPanel row = new StackPanel()
         {
             Orientation = Orientation.Horizontal,
             Spacing = 32,
             MainAxisAlignment = MainAxisAlignment.Center,
             Margin = new Thickness(0, 24, 0, 24),
-        };
-
-        row.Children.AddRange([
+        }.With(x => x.Children.AddRange([
             Labelled("Ring", ring),
             Labelled("Spinner", spinner),
             Labelled("Dots", dots),
-        ]);
+        ]));
 
-        StackPanel root = new()
+        return new StackPanel()
         {
             Orientation = Orientation.Vertical,
             Spacing = 16,
-            Padding = new Thickness(16),
-        };
-
-        root.Children.AddRange([row, Labelled("Bar", bar), toggle]);
-
-        return root;
+            Padding = new(16),
+        }.With(x => x.Children.AddRange([row, Labelled("Bar", bar), toggle]));
 
         static UIElement Labelled(string caption, UIElement indicator)
         {
-            StackPanel column = new()
+            return new StackPanel()
             {
                 Orientation = Orientation.Vertical,
                 Spacing = 8,
                 CrossAxisAlignment = CrossAxisAlignment.Center,
-            };
-
-            column.Children.AddRange([indicator, new Label { Text = caption }]);
-
-            return column;
+            }.With(x => x.Children.AddRange([indicator, new Label { Text = caption }]));
         }
     }
 
-    private UIElement GetView4()
+    private MapControl GetView4()
     {
-        var map = new MapControl()
+        return new MapControl()
         {
-            UserAgent = "ZeppelinForms/0.5.0",
-        };
-        map.GoTo(55.751244, 37.618423, zoom: 12);
-        return map;
+            UserAgent = "ZeppelinForms/0.10.0",
+        }.With(x => x.GoTo(55.751244, 37.618423, zoom: 12));
     }
 
-    private UIElement GetView5()
+    private Grid GetView5()
     {
         // подложка: на одноцветном фоне ни акрил, ни отражение не читаются
         PictureBox backdrop = new()
@@ -436,15 +424,15 @@ public class ExampleMainForm : Form
     {
         Label log = new()
         {
-            Text = "Перетащи карточку внутри списка или в соседний",
-            Margin = new Thickness(4, 8),
+            Text = "Move card from list to neighbor",
+            Margin = new(4, 8),
             HorizontalAlignment = HorizontalAlignment.Center,
         };
 
         DragList backlog = Column("tasks");
-        backlog.Items.AddRange<object>([
-            Card("Смигрировать Calendar"),
-            Card("Дописать README"),
+        backlog.Items.AddRange([
+            Card("Migrate Calendar"),
+            Card("Write down README"),
             Card("WrapPanel"),
             Card("Table"),
         ]);
@@ -464,31 +452,31 @@ public class ExampleMainForm : Form
         // другая группа: сюда из "tasks" уронить нельзя, хотя список рядом
         DragList notes = Column("notes");
         notes.Items.AddRange<object>([
-            Card("Проверить XDND"),
-            Card("Спросить про кисти"),
+            Card("Check XDND"),
+            Card("Quested about brushes"),
         ]);
 
         foreach (DragList list in (DragList[])[backlog, progress, done, notes])
         {
             list.ItemSent += (_, args) =>
                 log.Text = ReferenceEquals(args.Source, args.Target)
-                    ? $"переставлено: {args.SourceIndex} → {args.TargetIndex}"
-                    : "карточка ушла из списка";
+                    ? $"swapped: {args.SourceIndex} → {args.TargetIndex}"
+                    : "card left the list";
 
-            list.ItemReceived += (_, args) => log.Text = $"принято на позицию {args.TargetIndex}";
+            list.ItemReceived += (_, args) => log.Text = $"received at position {args.TargetIndex}";
         }
 
         Grid grid = new()
         {
             Columns = "*,*,*,*",
             Rows = "Auto,*,Auto",
-            Padding = new Thickness(8),
+            Padding = new(8),
         };
 
         grid.Children.Add(Header("Backlog"), 0, 0);
-        grid.Children.Add(Header("In progress (макс. 3)"), 0, 1);
-        grid.Children.Add(Header("Done (только приём)"), 0, 2);
-        grid.Children.Add(Header("Notes (другая группа)"), 0, 3);
+        grid.Children.Add(Header("In progress (max 3)"), 0, 1);
+        grid.Children.Add(Header("Done (only receive)"), 0, 2);
+        grid.Children.Add(Header("Notes (other group)"), 0, 3);
 
         grid.Children.Add(backlog, 1, 0);
         grid.Children.Add(progress, 1, 1);
@@ -527,11 +515,11 @@ public class ExampleMainForm : Form
             new Label { Text = text, Margin = new Thickness(4) };
     }
 
-    private UIElement GetView8()
+    private Table GetView8()
     {
         Table table = new()
         {
-            Columns = [ new() { Header = "№"}, new() { Header = "Name" }, new() { Header = "Price" },]
+            Columns = [ new() { Header = "#"}, new() { Header = "Name" }, new() { Header = "Price" },]
         };
         table.AddRow("1", "Apple", "0.5$");
         table.AddRow("2", "Tomato", "0.35$");
@@ -541,11 +529,11 @@ public class ExampleMainForm : Form
         return table;
     }
 
-    private UIElement GetView9()
+    private StackPanel GetView9()
     {
         Label hint = new()
         {
-            Text = "Брось сюда файлы из проводника",
+            Text = "Drop file for explorer here",
             HorizontalContentAlign = HorizontalContentAlignment.Center,
             VerticalContentAlign = VerticalContentAlignment.Center,
         };
@@ -583,13 +571,13 @@ public class ExampleMainForm : Form
             if (args.Effect == DragDropEffect.None) return;
 
             zone.BorderColor = new Color(255, 0, 120, 215);
-            hint.Text = "Отпускай";
+            hint.Text = "Release";
         };
 
         zone.DragLeave += (_, _) =>
         {
             zone.BorderColor = idleBorder;
-            hint.Text = "Брось сюда файлы из проводника";
+            hint.Text = "Drop files here!";
         };
 
         zone.Drop += (_, args) =>
@@ -599,13 +587,13 @@ public class ExampleMainForm : Form
             foreach (string path in args.Data.Files)
                 dropped.Items.Add(path);
 
-            hint.Text = $"Принято: {args.Data.Files.Count}";
+            hint.Text = $"Complete: {args.Data.Files.Count}";
         };
 
         StackPanel root = new()
         {
             Orientation = Orientation.Vertical,
-            Padding = new Thickness(16),
+            Padding = new(16),
             Spacing = 8,
         };
 
@@ -616,14 +604,14 @@ public class ExampleMainForm : Form
 
     /// <summary>Матовое стекло. Фон обязан быть прозрачным, иначе
     /// DecoratedPanel зальёт его поверх размытой подложки.</summary>
-    private static UIElement AcrylicCard()
+    private static StackPanel AcrylicCard()
     {
         StackPanel glass = new()
         {
             Background = Colors.Transparent,
-            CornerRadius = new CornerRadius(12f),
-            Padding = new Thickness(16),
-            Size = new Size(260, 96),
+            CornerRadius = new(12f),
+            Padding = new(16),
+            Size = new(260, 96),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             Spacing = 4,
@@ -631,7 +619,7 @@ public class ExampleMainForm : Form
 
         glass.Children.AddRange([
             new Label { Text = "AcrylicEffect" },
-            new Label { Text = "размытая подложка, тон и шум" },
+            new Label { Text = "blurred backdrop, tint and noise" },
         ]);
 
         glass.Effects.Add(new AcrylicEffect
@@ -645,25 +633,21 @@ public class ExampleMainForm : Form
     }
 
     /// <summary>Размытие самого элемента, а не подложки под ним.</summary>
-    private static UIElement BlurCard()
+    private static Label BlurCard()
     {
-        Label label = new()
+        return new Label()
         {
             Text = "BlurEffect",
-            Font = new Font("Segoe UI", 28f),
+            Font = Font.Default.WithSize(28f),
             TextColor = Colors.White,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
-        };
-
-        label.Effects.Add(new BlurEffect(3f));
-
-        return label;
+        }.With(x => x.Effects.Add(new BlurEffect(3f)));
     }
 
     /// <summary>Отражение уходит вниз, поэтому элемент прижат к верху ячейки —
     /// снизу должно остаться место внутри ContentBounds родителя.</summary>
-    private static UIElement ReflectionCard()
+    private static PictureBox ReflectionCard()
     {
         PictureBox picture = new()
         {
@@ -686,12 +670,12 @@ public class ExampleMainForm : Form
     }
 
     /// <summary>Поворот, наклон и масштаб одним эффектом.</summary>
-    private static UIElement TransformCard()
+    private static Label TransformCard()
     {
         Label label = new()
         {
             Text = "TransformEffect",
-            Font = new Font("Segoe UI", 20f),
+            Font = Font.Default.WithSize(20f),
             TextColor = Colors.White,
             Background = new Color(160, 0, 0, 0),
             Padding = new Thickness(12, 8),
@@ -713,28 +697,27 @@ public class ExampleMainForm : Form
 
     private UIElement[] GetPlotControls()
     {
-        PieChart pieChart = new()
-        {
-            HoleRatio = 0.5f,
-        };
-        pieChart.Slices.AddRange(
-            new PieSlice() { Color = Colors.Red, Value = 0.25f, Label = "Red" },
-            new PieSlice() { Color = Colors.Blue, Value = 0.75f, Label = "Blue" }
-        );
-        LineChart lineChart = new()
-        {
-            Title = "y = sin(x) · x",
-            Function = x => MathF.Sin(x) * x,
-            FunctionMinX = -10,
-            FunctionMaxX = 10,
-        };
-        BarChart barChart = new()
-        {
-            Title = "Продажи по кварталам",
-            Categories = { "Q1", "Q2", "Q3", "Q4" },
-            Series = { new ChartSeries { Values = { 120, 180, 90, 210 } } },
-        };
-
-        return [pieChart, lineChart, barChart];
+        return [
+            new PieChart()
+            {
+                HoleRatio = 0.5f,
+            }.With(x => x.Slices.AddRange(
+                new PieSlice() { Color = Colors.Red, Value = 0.25f, Label = "Red" },
+                new PieSlice() { Color = Colors.Blue, Value = 0.75f, Label = "Blue" }
+            )),
+            new LineChart()
+            {
+                Title = "y = sin(x) · x",
+                Function = x => MathF.Sin(x) * x,
+                FunctionMinX = -10,
+                FunctionMaxX = 10,
+            },
+            new BarChart()
+            {
+                Title = "Sales by quarter",
+                Categories = { "Q1", "Q2", "Q3", "Q4" },
+                Series = { new ChartSeries { Values = { 120, 180, 90, 210 } } },
+            }
+        ];
     }
 }
