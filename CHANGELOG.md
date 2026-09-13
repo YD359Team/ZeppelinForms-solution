@@ -4,6 +4,12 @@
 
 ![Hyperborea](assets/Logo-0.10.0.jpg)
 
+### Breaking changes
+
+- New analyzer rules
+- Now warnings will be errors
+- Now `TextBox.Text` is styled property
+
 ### Performance
 
 - Fixed an image memory leak. `SkiaGraphics` pinned the pixel buffer of every
@@ -34,6 +40,7 @@ Measured on a 1280x800 offscreen surface, Windows, workstation GC:
 
 ### Added
 
+- Data bindings
 - `bench/ZeppelinForms.Benchmarks`: a headless benchmark suite with a committed
   per-platform baseline. `--check` fails the build on regressions in frame time,
   allocations or retained memory.
@@ -45,6 +52,10 @@ Measured on a 1280x800 offscreen surface, Windows, workstation GC:
 ### Effects
 
 - Add `GlitchEffect`
+
+### DX
+
+- Use `UIElement` `With` and `At` methods 
 
 ## [0.9.0] - Antarctica
 
