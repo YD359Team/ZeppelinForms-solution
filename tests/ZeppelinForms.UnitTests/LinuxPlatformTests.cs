@@ -39,7 +39,7 @@ public class LinuxPlatformTests
 
         uiThread.Start();
 
-        Assert.True(shown.Wait(TimeSpan.FromSeconds(5)), "Окно не появилось за отведённое время.");
+        Assert.True(shown.Wait(TimeSpan.FromSeconds(5), CancellationToken.None), "Окно не появилось за отведённое время.");
 
         form.Invoke(form.Close);
 

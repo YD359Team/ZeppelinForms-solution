@@ -65,6 +65,15 @@ public abstract class StyledProperty
     public abstract object? GetBoxed(UIElement element);
 
     public abstract void SetBoxed(UIElement element, object? value);
+
+    /// <summary>Тип значения. Нужен биндингу: он получает значение
+    /// источника через рефлексию и должен привести его к типу свойства.</summary>
+    public abstract Type PropertyType { get; }
+
+    /// <summary>Записать значение, не зная его типа статически.
+    /// Единственный потребитель — биндинг: там значение приходит
+    /// из PropertyInfo.GetValue и типизировать его негде.</summary>
+    internal abstract void WriteBoxed(UIElement element, object? value);
 }
 
 public sealed class StyledProperty<T> : StyledProperty
@@ -113,4 +122,9 @@ public sealed class StyledProperty<T> : StyledProperty
         // помечаться как заданное вручную — как при обычном присваивании
         if (value is T typed) element.SetStyledValue(this, typed);
     }
+
+    public override Type PropertyType => typeof(T);
+
+    internal override void WriteBoxed(UIElement element, object? value) =>
+        Write(element, value is T typed ? typed : DefaultValue);
 }

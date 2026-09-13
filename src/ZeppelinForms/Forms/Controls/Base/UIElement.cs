@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Text;
+using ZeppelinForms.Data;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Effects;
 using ZeppelinForms.Drawing.Imaging;
@@ -40,6 +42,87 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     public event EventHandler<KeyEventArgs>? PreviewKeyDown;
     public event EventHandler<KeyEventArgs>? KeyDown;
     public event EventHandler<KeyEventArgs>? KeyUp;
+
+    //
+
+    /// <summary>Биндинги по индексу свойства. Словарь создаётся при первой
+    /// привязке: у большинства элементов биндингов нет вовсе.</summary>
+    private Dictionary<int, Binding>? _bindings;
+
+    /// <summary>Свойство под управлением биндинга. Третий источник значения
+    /// между темой и явным присваиванием: тема биндинг не перебивает,
+    /// а присваивание из кода — перебивает и разрывает его.</summary>
+    private ulong[]? _bound;
+
+    public bool IsBound(StyledProperty property) => GetBit(_bound, property.Index);
+
+    /// <summary>Привязать свойство к свойству источника.</summary>
+    /// <remarks>Элемент держит биндинг, биндинг держит источник, а на элемент
+    /// смотрит слабо — поэтому живая модель не удерживает закрытое окно.</remarks>
+    public Binding Bind<T>(
+        StyledProperty<T> property,
+        object source,
+        string sourcePropertyName,
+        BindingMode mode = BindingMode.OneWay)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        PropertyInfo sourceProperty = source.GetType().GetProperty(sourcePropertyName)
+            ?? throw new ArgumentException(
+                $"У {source.GetType().Name} нет свойства '{sourcePropertyName}'.",
+                nameof(sourcePropertyName));
+
+        // повторная привязка того же свойства заменяет прежнюю
+        Unbind(property);
+
+        var binding = new Binding(this, property, source, sourceProperty, mode);
+
+        _bindings ??= [];
+        _bindings[property.Index] = binding;
+
+        SetBit(ref _bound, property.Index);
+
+        binding.PushToTarget();
+
+        return binding;
+    }
+
+    /// <summary>Разорвать привязку свойства.</summary>
+    public void Unbind(StyledProperty property)
+    {
+        if (_bindings is null || !_bindings.Remove(property.Index, out Binding? binding))
+            return;
+
+        binding.Detach();
+        ClearBit(_bound, property.Index);
+    }
+
+    /// <summary>Разорвать все привязки элемента.</summary>
+    public void UnbindAll()
+    {
+        if (_bindings is null) return;
+
+        foreach (Binding binding in _bindings.Values)
+            binding.Detach();
+
+        _bindings.Clear();
+        _bound = null;
+    }
+
+    /// <summary>Запись из биндинга. Обходит проверку на явное присваивание,
+    /// но само явным не считается — иначе первая же запись из источника
+    /// закрыла бы свойство от последующих.</summary>
+    internal void SetBoundValue(StyledProperty property, object? value)
+    {
+        property.WriteBoxed(this, value);
+
+        SetBit(ref _assigned, property.Index);
+
+        if (property.AffectsLayout) Invalidate();
+        else InvalidateVisual();
+
+        OnStyledPropertyChanged(property);
+    }
 
     // ===
     [Styled(Category = "Appearance")]
@@ -462,9 +545,14 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     /// <summary>Записать значение с учётом источника.
     /// false — запись отклонена: пишет тема, а свойство задали вручную.</summary>
+    /// <summary>Записать значение с учётом источника.
+    /// false — запись отклонена: пишет тема, а свойство задали вручную
+    /// или оно под управлением биндинга.</summary>
     protected bool SetValue<T>(StyledProperty<T> property, ref T storage, T value)
     {
-        if (ApplyingTheme && IsLocal(property)) return false;
+        // Лестница источников, сверху вниз: явное присваивание, биндинг,
+        // тема, умолчание контрола. Тема не перебивает ни первое, ни второй.
+        if (ApplyingTheme && (IsLocal(property) || IsBound(property))) return false;
 
         bool assigned = HasValue(property);
 
@@ -476,6 +564,13 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
             return false;
         }
+
+        // явное присваивание из кода — вершина лестницы. В OneWay оно
+        // разрывает связь: иначе следующее изменение источника молча
+        // затрёт то, что написал пользователь, и он не поймёт почему.
+        // В TwoWay значение уходит в источник, и связь сохраняется.
+        if (!ApplyingTheme && IsBound(property))
+            PushOrBreakBinding(property, value);
 
         storage = value;
 
@@ -496,7 +591,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     /// свойства, поэтому ref-хранилище не нужно.</summary>
     protected bool SetValue<T>(StyledProperty<T> property, T value)
     {
-        if (ApplyingTheme && IsLocal(property)) return false;
+        if (ApplyingTheme && (IsLocal(property) || IsBound(property))) return false;
 
         bool assigned = HasValue(property);
 
@@ -505,6 +600,9 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
             if (!ApplyingTheme) SetBit(ref _local, property.Index);
             return false;
         }
+
+        if (!ApplyingTheme && IsBound(property))
+            PushOrBreakBinding(property, value);
 
         property.Write(this, value);
 
@@ -520,6 +618,19 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         return true;
     }
 
+    /// <summary>Явное присваивание в привязанное свойство: TwoWay отдаёт
+    /// значение источнику, OneWay разрывается.</summary>
+    private void PushOrBreakBinding(StyledProperty property, object? value)
+    {
+        if (_bindings is null || !_bindings.TryGetValue(property.Index, out Binding? binding))
+            return;
+
+        if (binding.Mode == BindingMode.TwoWay)
+            binding.PushToSource(value);
+        else
+            Unbind(property);
+    }
+
     /// <summary>Значение стилизуемого свойства изменилось. Точка для реакций,
     /// которые не выражаются самой записью: остановить анимацию при скрытии,
     /// согласовать зависимые значения, пересчитать кэш.</summary>
@@ -528,6 +639,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     /// <summary>Забыть заданное вручную и вернуть управление теме.</summary>
     public void ClearValue<T>(StyledProperty<T> property)
     {
+        // привязка — тоже источник значения, и очистка снимает его вместе
+        // с остальными: иначе источник продолжал бы писать в свойство,
+        // которое считается очищенным
+        Unbind(property);
+
         ClearBit(_local, property.Index);
         ClearBit(_assigned, property.Index);
 
@@ -554,6 +670,20 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
             return property.GetValue(this);
 
         return property.DefaultValue;
+    }
+
+    /// <summary>Сообщить биндингу, что значение свойства изменилось помимо
+    /// присваивания. Нужно контролам, которые правят своё состояние
+    /// напрямую: ввод в TextBox меняет документ, а не свойство,
+    /// и лестница источников такое изменение не видит.</summary>
+    protected void NotifyBoundValueChanged(StyledProperty property, object? value)
+    {
+        if (_bindings is null ||
+            !_bindings.TryGetValue(property.Index, out Binding? binding) ||
+            binding.Mode != BindingMode.TwoWay)
+            return;
+
+        binding.PushToSource(value);
     }
 
     public Point Position { get; set; }

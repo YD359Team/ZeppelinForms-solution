@@ -58,7 +58,12 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
 
         Location location = syntax.Identifier.GetLocation();
 
-        if (!syntax.Modifiers.Any(SyntaxKind.PartialKeyword))
+        var attribute = context.Attributes[0];
+        bool external = Argument(attribute, "External") is true;
+
+        // у внешнего свойства аксессоры пишет контрол, дописывать генератору
+        // нечего — значит и partial не требуется
+        if (!external && !syntax.Modifiers.Any(SyntaxKind.PartialKeyword))
             return Model.Failed(PropertyNotPartial, location, property.Name);
 
         if (!IsPartial(owner))
@@ -66,8 +71,6 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
 
         if (!DerivesFromElement(owner))
             return Model.Failed(TypeNotElement, location, owner.Name);
-
-        var attribute = context.Attributes[0];
 
         return new Model(
             Namespace: owner.ContainingNamespace.ToDisplayString(),
@@ -77,6 +80,7 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
             Category: Argument(attribute, "Category") as string ?? "Прочее",
             AffectsLayout: Argument(attribute, "AffectsLayout") is true,
             Inherits: Argument(attribute, "Inherits") is true,
+            External: external,
             HasDefault: HasDefaultProperty(owner, property.Name),
             Error: null,
             ErrorLocation: null,
@@ -171,6 +175,25 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
                 ? $"{property.PropertyName}Default"
                 : "default!";
 
+            if (property.External)
+            {
+                // Значение живёт в чужом объекте, поэтому и читаем, и пишем
+                // через само свойство: делегаты регистрации ведут в аксессоры,
+                // которые написал контрол. Поля здесь нет.
+                text.AppendLine($"    public static readonly StyledProperty<{property.ValueType}> {property.PropertyName}Property =");
+                text.AppendLine($"        StyledProperty<{property.ValueType}>.Register<{owner}>(");
+                text.AppendLine($"            \"{property.PropertyName}\",");
+                text.AppendLine($"            static owner => owner.{property.PropertyName},");
+                text.AppendLine($"            static (owner, value) => owner.{property.PropertyName} = value,");
+                text.AppendLine($"            {@default},");
+                text.AppendLine($"            \"{property.Category}\",");
+                text.AppendLine($"            {Literal(property.AffectsLayout)},");
+                text.AppendLine($"            {Literal(property.Inherits)});");
+                text.AppendLine();
+
+                continue;
+            }
+
             text.AppendLine($"    public static readonly StyledProperty<{property.ValueType}> {property.PropertyName}Property =");
             text.AppendLine($"        StyledProperty<{property.ValueType}>.Register<{owner}>(");
             text.AppendLine($"            \"{property.PropertyName}\",");
@@ -213,6 +236,7 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
         public string Category { get; set; }
         public bool AffectsLayout { get; set; }
         public bool Inherits { get; set; }
+        public bool External { get; set; }
         public bool HasDefault { get; set; }
         public DiagnosticDescriptor? Error { get; set; }
         public Location? ErrorLocation { get; set; }
@@ -226,6 +250,7 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
         string Category,
         bool AffectsLayout,
         bool Inherits,
+        bool External,
         bool HasDefault,
         DiagnosticDescriptor? Error,
         Location? ErrorLocation,
@@ -238,6 +263,7 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
             this.Category = Category;
             this.AffectsLayout = AffectsLayout;
             this.Inherits = Inherits;
+            this.External = External;
             this.HasDefault = HasDefault;
             this.Error = Error;
             this.ErrorLocation = ErrorLocation;
@@ -245,6 +271,6 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
         }
         public static Model Failed(DiagnosticDescriptor error, Location location, string argument) =>
             new(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty,
-                false, false, false, error, location, argument);
+                false, false, false, false, error, location, argument);
     }
 }

@@ -50,6 +50,10 @@ public partial class TextBox : TextInputControl, ITextElement
 
         _document.Changed += (_, _) =>
         {
+            // ввод меняет документ напрямую, минуя присваивание Text,
+            // поэтому биндинг надо толкнуть отсюда
+            NotifyBoundValueChanged(TextProperty, _document.Text);
+
             TextChanged?.Invoke(this, EventArgs.Empty);
             InvalidateVisual();
         };
@@ -62,12 +66,6 @@ public partial class TextBox : TextInputControl, ITextElement
     }
 
     // ===== публичный API =====
-
-    public string? Text
-    {
-        get => _document.Text;
-        set => _document.Text = value ?? string.Empty;
-    }
 
     public bool IsMultiline
     {
@@ -91,6 +89,17 @@ public partial class TextBox : TextInputControl, ITextElement
     public string SelectedText => _document.SelectedText;
 
     public int CaretIndex => _document.CaretIndex;
+
+    /// <summary>Текст поля. Хранится в документе, поэтому свойство внешнее:
+    /// поле генератору создавать нельзя — ввод с клавиатуры меняет документ
+    /// напрямую, и отдельное поле разъехалось бы с ним.</summary>
+    [Styled(Category = "Text", AffectsLayout = true, External = true)]
+    public string? Text
+    {
+        get => _document.Text;
+        set => SetValue(TextProperty, value ?? string.Empty);
+    }
+    private static string? TextDefault => string.Empty;
 
     [Styled(Category = "Text")]
     public partial Color CaretColor { get; set; }

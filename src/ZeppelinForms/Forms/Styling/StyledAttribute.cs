@@ -23,4 +23,16 @@ public sealed class StyledAttribute : Attribute
 
     /// <summary>Значение наследуется вниз по дереву, как шрифт.</summary>
     public bool Inherits { get; set; }
+
+    /// <summary>
+    /// Значение живёт не в поле элемента, а в другом объекте — как текст
+    /// TextBox, который хранится в TextDocument.
+    /// </summary>
+    /// <remarks>
+    /// Генератор создаёт только регистрацию StyledProperty; поле и аксессоры
+    /// пишет сам контрол, а свойство остаётся обычным (не partial).
+    /// Сеттер обязан идти через <c>SetValue(Property, value)</c> — иначе
+    /// запись пройдёт мимо темы и биндингов.
+    /// </remarks>
+    public bool External { get; set; }
 }

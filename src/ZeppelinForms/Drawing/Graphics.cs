@@ -59,6 +59,30 @@ public abstract class Graphics
 
     /// <summary>Заливка градиентом.</summary>
     public abstract void FillGradient(Rectangle bounds, CornerRadius radius, GradientStop[] stops, float angle);
+    /// <summary>Умеет ли этот канвас уводить отрисовку в отдельный слой
+    /// и отдавать его содержимое. Эффекты, строящиеся на повторной
+    /// отрисовке, обязаны спрашивать: без поддержки элемент,
+    /// нарисованный в захват, просто исчезнет.</summary>
+    public virtual bool SupportsLayerCapture => false;
+
+    /// <summary>Увести дальнейшую отрисовку в отдельный слой размером
+    /// с указанную область. На канвас она не попадёт.</summary>
+    public virtual void BeginCapture(Rectangle bounds) { }
+
+    /// <summary>Закрыть слой и забрать его содержимое. Ничего не выводит:
+    /// что делать со снимком, решает вызывающий.</summary>
+    public virtual LayerCapture? EndCapture() => null;
+
+    /// <summary>Нарисовать захват. sourceClip — часть захвата в его
+    /// собственных координатах; null означает «целиком».</summary>
+    public virtual void DrawCapture(
+        LayerCapture capture,
+        Rectangle target,
+        Rectangle? sourceClip = null,
+        ColorChannels channels = ColorChannels.All,
+        CaptureBlend blend = CaptureBlend.Normal,
+        float opacity = 1f)
+    { }
 
     public abstract void ClipRoundRect(Rectangle rect, CornerRadius radius);
     public abstract void Rotate(float degrees);

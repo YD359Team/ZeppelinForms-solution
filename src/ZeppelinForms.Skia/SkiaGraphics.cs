@@ -7,8 +7,6 @@ using ZeppelinForms.Forms.Enums;
 
 public sealed class SkiaGraphics : Graphics
 {
-    private readonly SKCanvas _canvas;
-
     // Кэш "наш Image -> уже загруженный в Skia SKImage", чтобы не
     // перезаливать пиксели на каждый WM_PAINT. ConditionalWeakTable
     // сам подчистит запись, когда Image перестанет использоваться.
@@ -110,6 +108,11 @@ public sealed class SkiaGraphics : Graphics
     }
 
     #endregion
+
+    // Канвас меняется на время захвата: элемент рисуется в offscreen-слой,
+    // а не на экран. Стек — потому что эффекты вкладываются друг в друга.
+    private SKCanvas _canvas;
+    private readonly Stack<CaptureFrame> _captures = new();
 
     public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
 
@@ -613,6 +616,132 @@ public sealed class SkiaGraphics : Graphics
         _canvas.Restore();
     }
 
+    #region Захват слоя
+
+    public override bool SupportsLayerCapture => true;
+
+    public override void BeginCapture(Rectangle bounds)
+    {
+        int width = (int)MathF.Ceiling(bounds.Width);
+        int height = (int)MathF.Ceiling(bounds.Height);
+
+        if (width <= 0 || height <= 0)
+        {
+            // нечего захватывать, но кадр в стек положить обязаны:
+            // EndCapture должен найти пару своему Begin
+            _captures.Push(new CaptureFrame(null, _canvas, bounds));
+            return;
+        }
+
+        var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
+        SKSurface? surface = SKSurface.Create(info);
+
+        _captures.Push(new CaptureFrame(surface, _canvas, bounds));
+
+        if (surface is null) return;
+
+        // элемент рисуется в своих обычных координатах, а поверхность
+        // начинается в нуле — сдвигаем её начало к левому верхнему углу области
+        surface.Canvas.Translate(-bounds.X, -bounds.Y);
+
+        _canvas = surface.Canvas;
+    }
+
+    public override LayerCapture? EndCapture()
+    {
+        if (_captures.Count == 0)
+        {
+            ZfContract.Fail("EndCapture без парного BeginCapture.");
+            return null;
+        }
+
+        CaptureFrame frame = _captures.Pop();
+        _canvas = frame.Previous;
+
+        if (frame.Surface is null) return null;
+
+        SKImage? image = frame.Surface.Snapshot();
+        frame.Surface.Dispose();
+
+        return image is null ? null : new SkiaLayerCapture(image, frame.Bounds);
+    }
+
+    public override void DrawCapture(
+        LayerCapture capture,
+        Rectangle target,
+        Rectangle? sourceClip = null,
+        ColorChannels channels = ColorChannels.All,
+        CaptureBlend blend = CaptureBlend.Normal,
+        float opacity = 1f)
+    {
+        if (capture is not SkiaLayerCapture skia) return;
+        if (opacity <= 0f || target.Width <= 0 || target.Height <= 0) return;
+
+        // кисть с фильтром в пул не идёт: пул держит только простые заливки
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(255, 255, 255, (byte)Math.Clamp(opacity * 255f, 0, 255)),
+            BlendMode = blend == CaptureBlend.Screen ? SKBlendMode.Screen : SKBlendMode.SrcOver,
+        };
+
+        SKColorFilter? filter = ChannelFilter(channels);
+        if (filter is not null) paint.ColorFilter = filter;
+
+        if (sourceClip is { } clip)
+        {
+            // координаты среза — внутри захвата, поэтому от его угла
+            var source = new SKRect(
+                clip.X - skia.Bounds.X,
+                clip.Y - skia.Bounds.Y,
+                clip.X - skia.Bounds.X + clip.Width,
+                clip.Y - skia.Bounds.Y + clip.Height);
+
+            _canvas.DrawImage(
+                skia.Image, source,
+                new SKRect(target.X, target.Y, target.X + target.Width, target.Y + target.Height),
+                SKSamplingOptions.Default, paint);
+        }
+        else
+        {
+            _canvas.DrawImage(
+                skia.Image,
+                new SKRect(target.X, target.Y, target.X + target.Width, target.Y + target.Height),
+                SKSamplingOptions.Default, paint);
+        }
+
+        filter?.Dispose();
+    }
+
+    /// <summary>Матрица, гасящая ненужные каналы. Альфа не трогается,
+    /// иначе прозрачные места станут видимыми.</summary>
+    private static SKColorFilter? ChannelFilter(ColorChannels channels)
+    {
+        if (channels == ColorChannels.All) return null;
+
+        float r = channels is ColorChannels.Red or ColorChannels.Magenta or ColorChannels.Yellow ? 1f : 0f;
+        float g = channels is ColorChannels.Green or ColorChannels.Cyan or ColorChannels.Yellow ? 1f : 0f;
+        float b = channels is ColorChannels.Blue or ColorChannels.Cyan or ColorChannels.Magenta ? 1f : 0f;
+
+        return SKColorFilter.CreateColorMatrix(
+        [
+            r, 0, 0, 0, 0,
+            0, g, 0, 0, 0,
+            0, 0, b, 0, 0,
+            0, 0, 0, 1, 0,
+        ]);
+    }
+
+    private sealed class SkiaLayerCapture(SKImage image, Rectangle bounds) : LayerCapture
+    {
+        public SKImage Image { get; } = image;
+
+        public override Rectangle Bounds { get; } = bounds;
+
+        public override void Dispose() => Image.Dispose();
+    }
+
+    #endregion
+
     public override void Skew(float sx, float sy)
     {
         // SKMatrix.CreateSkew задаёт наклон относительно начала координат;
@@ -752,4 +881,7 @@ public sealed class SkiaGraphics : Graphics
         using SKRoundRect rounded = MakeRoundRect(bounds, radius);
         _canvas.DrawRoundRect(rounded, paint);
     }
+
+    private readonly record struct CaptureFrame(
+        SKSurface? Surface, SKCanvas Previous, Rectangle Bounds);
 }
