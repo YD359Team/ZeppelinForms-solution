@@ -38,6 +38,14 @@ Measured on a 1280x800 offscreen surface, Windows, workstation GC:
   per-platform baseline. `--check` fails the build on regressions in frame time,
   allocations or retained memory.
 
+### Animation
+
+- Fix: Animations added before the window was created did not start the frame timer.
+
+### Effects
+
+- Add `GlitchEffect`
+
 ## [0.9.0] - Antarctica
 
 ![Antarctica](assets/Logo-0.9.0.jpg)

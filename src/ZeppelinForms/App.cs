@@ -46,9 +46,7 @@ public class App
 
     public void Run()
     {
-        this.MainForm.Icon ??= Icon.FromStream(
-            typeof(App).Assembly.GetManifestResourceStream(
-                "ZeppelinForms.Resources.ZF.ico")!);
+        this.MainForm.Icon ??= Assets.Logo;
 
         IPlatformWindow window = _platform.CreateWindow(this.MainForm);
 

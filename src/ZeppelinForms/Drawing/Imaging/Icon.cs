@@ -110,6 +110,81 @@ public sealed class Icon
             image.Size);
     }
 
+    /// <summary>Изображение нужного размера как самостоятельный файл,
+    /// пригодный для декодера.</summary>
+    /// <remarks>
+    /// Внутри ICO изображение хранится одним из двух способов: целым PNG
+    /// либо DIB — это BMP без 14-байтового заголовка файла, который
+    /// в контейнере не нужен. Декодеры самостоятельный DIB не открывают,
+    /// поэтому заголовок приходится восстанавливать.
+    /// </remarks>
+    public byte[] GetImageFile(int requestedWidth = 256, int requestedHeight = 256)
+    {
+        ReadOnlySpan<byte> raw = GetImage(requestedWidth, requestedHeight);
+
+        // PNG внутри ICO лежит целиком и в переупаковке не нуждается
+        if (raw.Length >= 8 &&
+            raw[0] == 0x89 && raw[1] == 0x50 && raw[2] == 0x4E && raw[3] == 0x47)
+        {
+            return raw.ToArray();
+        }
+
+        return WrapDib(raw);
+    }
+
+    /// <summary>Готовое к отрисовке изображение.</summary>
+    public Image ToImage(int requestedWidth = 256, int requestedHeight = 256)
+    {
+        using var stream = new MemoryStream(GetImageFile(requestedWidth, requestedHeight));
+        return Image.Load(stream);
+    }
+
+    /// <summary>Приписать DIB заголовок файла BMP.</summary>
+    private static byte[] WrapDib(ReadOnlySpan<byte> dib)
+    {
+        const int FileHeaderSize = 14;
+
+        if (dib.Length < 4)
+            throw new InvalidDataException("Изображение в ICO слишком короткое.");
+
+        int headerSize = BinaryPrimitives.ReadInt32LittleEndian(dib);
+
+        // В ICO высота в заголовке удвоена: DIB описывает картинку вместе
+        // с маской прозрачности, лежащей следом. Для BMP это надо исправить,
+        // иначе декодер прочитает маску как нижнюю половину изображения.
+        int height = dib.Length >= 12
+            ? BinaryPrimitives.ReadInt32LittleEndian(dib[8..])
+            : 0;
+
+        int bitCount = dib.Length >= 16
+            ? BinaryPrimitives.ReadUInt16LittleEndian(dib[14..])
+            : 32;
+
+        byte[] file = new byte[FileHeaderSize + dib.Length];
+
+        file[0] = (byte)'B';
+        file[1] = (byte)'M';
+
+        BinaryPrimitives.WriteInt32LittleEndian(file.AsSpan(2), file.Length);
+        // 4 байта зарезервированы и остаются нулями
+
+        // палитра лежит между заголовком и пикселями; у 24- и 32-битных её нет
+        int paletteSize = bitCount <= 8 ? (1 << bitCount) * 4 : 0;
+
+        BinaryPrimitives.WriteInt32LittleEndian(
+            file.AsSpan(10), FileHeaderSize + headerSize + paletteSize);
+
+        dib.CopyTo(file.AsSpan(FileHeaderSize));
+
+        if (height != 0)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(
+                file.AsSpan(FileHeaderSize + 8), height / 2);
+        }
+
+        return file;
+    }
+
     /// <summary>Содержимое ICO целиком. Нужно там, где иконку принимает
     /// не система, а что-то другое — например favicon страницы: браузер
     /// хочет весь файл, а не отдельное изображение из него.</summary>

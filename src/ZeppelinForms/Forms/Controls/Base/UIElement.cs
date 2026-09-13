@@ -22,6 +22,9 @@ namespace ZeppelinForms.Forms.Controls.Base;
 public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 {
     // ===== события =====
+    /// <summary>Элемент присоединён к форме. Нужно тем, кто не может
+    /// работать без неё: анимации, подписки на жизненный цикл окна.</summary>
+    public event EventHandler? Attached;
     public event EventHandler<char>? TextInput;
     public event EventHandler? GotFocus;
     public event EventHandler? LostFocus;
@@ -290,6 +293,12 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     protected virtual void OnPreviewMouseMove(MouseMoveEventArgs e) { }
 
     // ===== подъём событий =====
+    internal void RaiseAttached()
+    {
+        OnAttached();
+        Attached?.Invoke(this, EventArgs.Empty);
+    }
+
     internal void RaiseDragEnter(DragDropEventArgs e)
     {
         OnDragEnter(e);
@@ -999,9 +1008,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         // called when size changed. TODO: Dont call this before size assigned first time
     }
 
-    internal void RaiseAttached() => OnAttached();
-
-    internal Form? FindOwner()
+    public Form? FindOwner()
     {
         if (_cachedOwnerGeneration == _ownerGeneration)
             return _cachedOwner;

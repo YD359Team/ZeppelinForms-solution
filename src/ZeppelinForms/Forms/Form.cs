@@ -50,6 +50,14 @@ public class Form : IDisposable
             // до показа, платформа об этом ещё не знает
             if (AllowDrop)
                 value.SetDragDropEnabled(true);
+
+            // то же с анимациями: добавленные до создания окна лежат в списке,
+            // но Frames.Start ушёл в null — запускаем кадры здесь
+            if (_animations.Count > 0)
+            {
+                _lastTickTicks = Environment.TickCount64;
+                value.Frames.Start(FrameIntervalMs);
+            }
         }
     }
 

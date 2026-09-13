@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using ZeppelinForms;
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Effects;
+using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
@@ -63,6 +65,12 @@ public class ExampleMainForm : Form
 
     private UIElement GetView1()
     {
+        Debug.WriteLine("GetView1 вызван");
+
+        var logo = new PictureBox { Size = new(128, 128), Padding = new(8) };
+        logo.SetImage(Assets.LogoImage());
+        logo.Glitch();
+
         RichLabel lbl = new();
         lbl.SetText("Hi! Welcome to presentation of ", TextRun.Colored("Zeppelin Forms", Colors.Blue), " framework");
         PrimaryButton btn = new()
@@ -78,7 +86,7 @@ public class ExampleMainForm : Form
             MainAxisAlignment = MainAxisAlignment.Center,
             Spacing = 6,
         };
-        stackPanel.Children.AddRange([lbl, btn]);
+        stackPanel.Children.AddRange([logo, lbl, btn]);
         return new GradientBorder(stackPanel) 
         { 
             Stops = [new(MediaColors.DotnetModern, 0), new(MediaColors.Dotnet, 1)], BorderWidth = 2f  
