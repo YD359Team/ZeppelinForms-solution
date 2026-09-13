@@ -2,7 +2,7 @@
 
 ## [0.10.0] - Hyperborea
 
-![Antarctica](assets/Logo-0.10.0.jpg)
+![Hyperborea](assets/Logo-0.10.0.jpg)
 
 ### Performance
 
