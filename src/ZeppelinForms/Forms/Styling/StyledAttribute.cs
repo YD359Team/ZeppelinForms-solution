@@ -15,7 +15,7 @@
 public sealed class StyledAttribute : Attribute
 {
     /// <summary>Раздел в PropertyGrid.</summary>
-    public string Category { get; set; } = "Прочее";
+    public string Category { get; set; } = "Other";
 
     /// <summary>Изменение значения требует пересчёта раскладки,
     /// а не только перерисовки.</summary>

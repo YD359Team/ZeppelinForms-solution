@@ -102,7 +102,7 @@ public sealed class StyledProperty<T> : StyledProperty
         Func<TOwner, T> get,
         Action<TOwner, T> set,
         T defaultValue = default!,
-        string category = "Прочее",
+        string category = "Other",
         bool affectsLayout = false,
         bool inherits = false)
         where TOwner : UIElement =>
