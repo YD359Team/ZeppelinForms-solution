@@ -16,6 +16,7 @@ using ZeppelinForms.Forms.Layout;
 using ZeppelinForms.Input.DragDrop;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
+using ZeppelinForms.Input.Pointer;
 using ZeppelinForms.Theming;
 
 namespace ZeppelinForms.Forms;
@@ -199,10 +200,33 @@ public class Form : IDisposable
 
     private UIElement? _dropTarget;
     private UIElement? _hoveredElement;
-    private UIElement? _pressedElement;
-    private UIElement? _mouseCapture;
     private CursorKind _lastCursor = CursorKind.Arrow;
     private readonly FocusDispatcher _focusDispatcher = new();
+
+    /// <summary>Идентификатор мыши. Единица, а не ноль — так же нумерует
+    /// мышь W3C Pointer Events, и браузерный бэкенд сможет отдавать
+    /// pointerId как есть.</summary>
+    internal const int MousePointerId = 1;
+
+    /// <summary>Живые контакты по идентификатору. Пуст, пока ничего
+    /// не нажато: у большинства форм он таким и остаётся.</summary>
+    private readonly Dictionary<int, PointerContact> _contacts = [];
+
+    private int? _primaryContactId;
+
+    /// <summary>Сколько контактов держат системный захват. Считать нужно
+    /// потому, что IPlatformWindow.CaptureMouse() безаргументен — захват
+    /// в системе один на окно, и второй палец, отпустившись, снял бы
+    /// захват у первого.</summary>
+    private int _platformCaptureCount;
+
+    /// <summary>Контакт, который обрабатывается прямо сейчас. Нужен
+    /// CaptureMouse: элемент зовёт его изнутри обработчика и знать
+    /// идентификатор контакта не обязан.</summary>
+    private PointerContact? _dispatching;
+
+    private PointerContact? PrimaryContact =>
+        _primaryContactId is int id && _contacts.TryGetValue(id, out PointerContact? c) ? c : null;
 
     // ===== ToolTip =====
     public int ToolTipDelay { get; set; } = 700;
@@ -230,75 +254,203 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         App.ThemeChanged += OnThemeChanged;
     }
 
-    internal void OnPointerMove(Point point, KeyModifiers modifiers = KeyModifiers.None)
+    // ===== Переходники со старых сигнатур =====
+    // Бэкенды пока присылают мышь позиционными аргументами. Менять их
+    // в этом проходе не нужно: точка входа одна, а конвейер под ней новый.
+
+    internal void OnPointerMove(Point point, KeyModifiers modifiers = KeyModifiers.None) =>
+        OnPointerMove(new PointerEventArgs(
+            MousePointerId, PointerKind.Mouse, point, MouseButton.Left, 1f, modifiers));
+
+    internal void OnPointerDown(PointerEventArgs e)
     {
-        _lastPointerPosition = point;
+        HideToolTip();
 
-        // при захвате цепочка строится от захватившего, а не от того, над кем
-        // курсор: иначе предпросмотр посыпался бы в чужое поддерево
-        UIElement? target = _mouseCapture ?? _pressedElement ?? HitTestAll(point);
-
-        var moveArgs = new MouseMoveEventArgs(point);
-
-        // предпросмотр от корня к цели, до того как движение получит она сама.
-        // Работает и с зажатой кнопкой — именно там он и нужен, чтобы предок
-        // мог следить за перетаскиванием над своими потомками
-        if (target is not null)
+        if (e.Button == MouseButton.Left && _flyouts.Count > 0 && !IsInsideAnyFlyout(e.Location))
         {
-            List<UIElement> chain = [];
+            CloseAllFlyouts();
+            return;
+        }
 
-            for (UIElement? current = target; current is not null; current = current.Parent)
-                chain.Add(current);
+        UIElement? hit = HitTestAll(e.Location);
+        if (hit is { IsEnabled: false }) return;
 
-            chain.Reverse();
+        if (IsInspectorEnabled && _inspectorGrid is not null && !IsInsideInspector(e.Location))
+        {
+            UIElement? picked = Content is not null ? HitTester.HitTest(Content, e.Location) : null;
 
+            if (picked is not null)
+            {
+                _inspectorGrid.SelectedObject = picked;
+                Invalidate();
+                return;
+            }
+        }
+
+        // та же кнопка на живом контакте: мышь прислала второе нажатие
+        // без отпускания. Контакт продолжается, меняется только маска —
+        // заводить второй с тем же идентификатором нельзя
+        if (_contacts.TryGetValue(e.PointerId, out PointerContact? existing))
+        {
+            existing.Buttons |= e.Button.ToFlag();
+            existing.Update(e.Location, e.Timestamp);
+
+            DispatchDown(existing, hit, e, isNew: false);
+            return;
+        }
+
+        bool isPrimary = _contacts.Count == 0;
+
+        var contact = new PointerContact
+        {
+            Id = e.PointerId,
+            Kind = e.Kind,
+            IsPrimary = isPrimary,
+            DownLocation = e.Location,
+            DownTimestamp = e.Timestamp,
+            Buttons = e.Button.ToFlag(),
+            Pressed = hit,
+            Chain = BuildChain(hit),
+        };
+
+        contact.Update(e.Location, e.Timestamp);
+
+        _contacts[e.PointerId] = contact;
+
+        if (isPrimary) _primaryContactId = e.PointerId;
+
+        // кратность считаем только по ведущему контакту: два пальца подряд
+        // по одному месту — это не двойной щелчок
+        if (isPrimary) UpdateClickCount(e.Location, e.Button);
+
+        DispatchDown(contact, hit, e, isNew: true);
+    }
+
+    private void DispatchDown(PointerContact contact, UIElement? hit, PointerEventArgs e, bool isNew)
+    {
+        _dispatching = contact;
+
+        try
+        {
+            foreach (UIElement element in contact.Chain)
+            {
+                element.RaisePointerDown(e);
+                if (e.Handled) return;
+            }
+
+            if (!contact.IsPrimary) return;
+
+            var downArgs = new MouseButtonEventArgs(
+                e.Button, MouseButtonState.Down, e.Location, e.Modifiers);
+
+            foreach (UIElement element in contact.Chain)
+                element.RaisePreviewMouseDown(downArgs);
+
+            hit?.RaiseMouseDown(downArgs);
+
+            if (e.Button == MouseButton.Left && hit is not null)
+                _focusDispatcher.FocusElement(hit);
+        }
+        finally
+        {
+            _dispatching = null;
+        }
+
+        _ = isNew;
+    }
+
+    internal void OnPointerUp(Point point, MouseButton button = MouseButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
+        OnPointerUp(new PointerEventArgs(
+            MousePointerId, PointerKind.Mouse, point, button, 1f, modifiers));
+
+    // ===== Конвейер контактов =====
+
+    internal void OnPointerMove(PointerEventArgs e)
+    {
+        // положение курсора — понятие мыши: тултип и инспектор опираются
+        // на него, и палец двигать его не должен
+        if (e.Kind == PointerKind.Mouse)
+            _lastPointerPosition = e.Location;
+
+        _contacts.TryGetValue(e.PointerId, out PointerContact? contact);
+        contact?.Update(e.Location, e.Timestamp);
+
+        // при живом контакте цепочка строится от захватившего или нажатого,
+        // а не от того, над кем курсор: иначе предпросмотр посыпался бы
+        // в чужое поддерево
+        UIElement? target = contact?.Target
+            ?? (contact is null && e.Kind == PointerKind.Mouse ? HitTestAll(e.Location) : null);
+
+        UIElement[] chain = BuildChain(target);
+
+        _dispatching = contact;
+
+        try
+        {
+            foreach (UIElement element in chain)
+            {
+                element.RaisePointerMove(e);
+                if (e.Handled) return;
+            }
+
+            // ниже — совместимые события мыши: их поднимает только ведущий
+            // контакт, иначе второй палец слал бы MouseMove в тот же контрол
+            if (contact is { IsPrimary: false }) return;
+
+            var moveArgs = new MouseMoveEventArgs(e.Location);
+
+            // предпросмотр от корня к цели, до того как движение получит
+            // она сама. Работает и с зажатой кнопкой — именно там он и нужен,
+            // чтобы предок мог следить за перетаскиванием над своими потомками
             foreach (UIElement element in chain)
                 element.RaisePreviewMouseMove(moveArgs);
+
+            if (contact?.Target is UIElement held)
+            {
+                held.RaiseMouseMove(e.Location);
+                return;
+            }
+
+            // дальше только наведение, а его не бывает у касания: палец
+            // либо на экране, либо нет, состояния «над элементом» нет
+            if (e.Kind != PointerKind.Mouse) return;
+
+            UIElement? hit = target;
+
+            if (hit != _hoveredElement)
+            {
+                // в аргументах указываем «откуда» и «куда», чтобы обработчик
+                // мог отличить переход внутрь потомка от выхода наружу
+                _hoveredElement?.RaiseMouseExit(e.Location, hit);
+                hit?.RaiseMouseEnter(e.Location, _hoveredElement);
+
+                _hoveredElement = hit;
+
+                ScheduleToolTip(hit);
+            }
+
+            hit?.RaiseMouseMove(e.Location);
+
+            CursorKind cursor = hit?.EffectiveCursor ?? CursorKind.Arrow;
+
+            if (cursor != _lastCursor)
+            {
+                _lastCursor = cursor;
+                PlatformWindow?.SetCursor(cursor);
+            }
+
+            if (IsInspectorEnabled)
+            {
+                InspectedElement = !IsInsideInspector(e.Location) && Content is not null
+                    ? HitTester.HitTest(Content, e.Location)
+                    : null;
+
+                InvalidateVisual();
+            }
         }
-
-        if (_mouseCapture is not null)
+        finally
         {
-            _mouseCapture.RaiseMouseMove(point);
-            return;
-        }
-
-        if (_pressedElement is not null)
-        {
-            _pressedElement.RaiseMouseMove(point);
-            return;
-        }
-
-        UIElement? hit = target;
-
-        if (hit != _hoveredElement)
-        {
-            // в аргументах указываем «откуда» и «куда», чтобы обработчик
-            // мог отличить переход внутрь потомка от выхода наружу
-            _hoveredElement?.RaiseMouseExit(point, hit);
-            hit?.RaiseMouseEnter(point, _hoveredElement);
-
-            _hoveredElement = hit;
-
-            ScheduleToolTip(hit);
-        }
-
-        hit?.RaiseMouseMove(point);
-
-        CursorKind cursor = hit?.EffectiveCursor ?? CursorKind.Arrow;
-
-        if (cursor != _lastCursor)
-        {
-            _lastCursor = cursor;
-            PlatformWindow?.SetCursor(cursor);
-        }
-
-        if (IsInspectorEnabled)
-        {
-            InspectedElement = !IsInsideInspector(point) && Content is not null
-                ? HitTester.HitTest(Content, point)
-                : null;
-
-            InvalidateVisual();
+            _dispatching = null;
         }
     }
 
@@ -309,97 +461,141 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         _hoveredElement = null;
     }
 
-    internal void OnPointerDown(Point point, MouseButton button = MouseButton.Left, KeyModifiers modifiers = KeyModifiers.None)
+    internal void OnPointerUp(PointerEventArgs e)
     {
-        HideToolTip();
+        if (e.Kind == PointerKind.Mouse)
+            _lastPointerPosition = e.Location;
 
-        if (button == MouseButton.Left && _flyouts.Count > 0 && !IsInsideAnyFlyout(point))
-        {
-            CloseAllFlyouts();
+        // отпускание без нажатия — обычное дело после отмены: захват
+        // отобрали, контакта уже нет, а система всё равно досылает Up
+        if (!_contacts.TryGetValue(e.PointerId, out PointerContact? contact))
             return;
-        }
 
-        UIElement? hit = HitTestAll(point);
-        if (hit is { IsEnabled: false }) return;
+        contact.Update(e.Location, e.Timestamp);
 
-        UpdateClickCount(point, button);
+        UIElement? hit = HitTestAll(e.Location);
 
-        if (IsInspectorEnabled && _inspectorGrid is not null && !IsInsideInspector(point))
+        _dispatching = contact;
+
+        try
         {
-            UIElement? picked = Content is not null ? HitTester.HitTest(Content, point) : null;
-
-            if (picked is not null)
+            foreach (UIElement element in contact.Chain)
             {
-                _inspectorGrid.SelectedObject = picked;
-                Invalidate();
-                return;
+                element.RaisePointerUp(e);
+                if (e.Handled) break;
+            }
+
+            if (!contact.IsPrimary) return;
+
+            var upArgs = new MouseButtonEventArgs(
+                e.Button, MouseButtonState.Up, e.Location, e.Modifiers);
+
+            if (e.Button == MouseButton.Left)
+            {
+                // цепочка та же, что при нажатии: кто следил за press через
+                // предпросмотр, должен узнать и об отпускании
+                for (UIElement? current = contact.Pressed; current is not null; current = current.Parent)
+                    current.RaisePreviewMouseUp(upArgs);
+
+                contact.Pressed?.RaiseMouseUp(upArgs);
+
+                // захвативший должен узнать об отпускании, даже если нажатие
+                // пришлось на его потомка
+                if (contact.Capture is not null && !ReferenceEquals(contact.Capture, contact.Pressed))
+                    contact.Capture.RaiseMouseUp(upArgs);
+
+                ReleaseCapture(contact);
+
+                // клик = нажатие и отпускание на одном элементе
+                if (hit is not null && ReferenceEquals(hit, contact.Pressed))
+                    BubbleClick(hit, e.Button, e.Location);
+            }
+            else
+            {
+                hit?.RaiseMouseUp(upArgs);
+
+                // правая и средняя не требуют совпадения с нажатием:
+                // захвата для них нет, поэтому клик по факту отпускания.
+                // Поведение сохранено как было — на мой взгляд оно спорное
+                // и просится в список багов первым пунктом
+                if (hit is not null)
+                    BubbleClick(hit, e.Button, e.Location);
             }
         }
-
-        var downArgs = new MouseButtonEventArgs(button, MouseButtonState.Down, point, modifiers);
-
-        if (hit is not null)
+        finally
         {
-            List<UIElement> chain = [];
-
-            for (UIElement? current = hit; current is not null; current = current.Parent)
-                chain.Add(current);
-
-            chain.Reverse();
-
-            foreach (UIElement element in chain)
-                element.RaisePreviewMouseDown(downArgs);
+            _dispatching = null;
         }
 
-        if (button == MouseButton.Left)
-            _pressedElement = hit;
+        contact.Buttons &= ~e.Button.ToFlag();
 
-        hit?.RaiseMouseDown(downArgs);
-
-        if (button == MouseButton.Left && hit is not null)
-            _focusDispatcher.FocusElement(hit);
+        // у касания и пера кнопок нет — контакт кончается вместе с Up
+        if (contact.Kind != PointerKind.Mouse || contact.Buttons == PointerButtons.None)
+            EndContact(contact);
     }
 
-    internal void OnPointerUp(Point point, MouseButton button = MouseButton.Left, KeyModifiers modifiers = KeyModifiers.None)
+    /// <summary>Платформа сообщила, что контакт отменён: pointercancel
+    /// в браузере, ACTION_CANCEL на Android, жест системной оболочки.</summary>
+    internal void OnPointerCancel(int pointerId)
     {
-        UIElement? hit = HitTestAll(point);
+        if (_contacts.TryGetValue(pointerId, out PointerContact? contact))
+            CancelContact(contact, PointerCancelReason.Platform);
+    }
 
-        var upArgs = new MouseButtonEventArgs(button, MouseButtonState.Up, point, modifiers);
+    /// <summary>Цепочка от корня к элементу. Порядок именно такой:
+    /// и предпросмотр, и pointer-события тоннелируют сверху вниз.</summary>
+    private static UIElement[] BuildChain(UIElement? element)
+    {
+        if (element is null) return [];
 
-        if (button == MouseButton.Left)
-        {
-            // цепочка та же, что при нажатии: кто следил за press через
-            // предпросмотр, должен узнать и об отпускании
-            for (UIElement? current = _pressedElement; current is not null; current = current.Parent)
-                current.RaisePreviewMouseUp(upArgs);
+        List<UIElement> chain = [];
 
-            _pressedElement?.RaiseMouseUp(upArgs);
+        for (UIElement? current = element; current is not null; current = current.Parent)
+            chain.Add(current);
 
-            // захвативший должен узнать об отпускании, даже если нажатие
-            // пришлось на его потомка
-            if (_mouseCapture is not null && !ReferenceEquals(_mouseCapture, _pressedElement))
-                _mouseCapture.RaiseMouseUp(upArgs);
+        chain.Reverse();
 
-            if (_mouseCapture is not null)
-            {
-                _mouseCapture = null;
-                PlatformWindow?.ReleaseMouseCapture();
-            }
+        return [.. chain];
+    }
 
-            // клик = нажатие и отпускание на одном элементе
-            if (hit is not null && ReferenceEquals(hit, _pressedElement))
-                BubbleClick(hit, button, point);
+    /// <summary>Оборвать контакт: разослать отмену и забыть его.</summary>
+    private void CancelContact(PointerContact contact, PointerCancelReason reason)
+    {
+        var args = new PointerCancelEventArgs(
+            contact.Id, contact.Kind, contact.Location, reason);
 
-            _pressedElement = null;
-            return;
-        }
+        // отменяем всю цепочку, а не только цель: предок, следивший
+        // за нажатием через предпросмотр, тоже завёл состояние по нему
+        foreach (UIElement element in contact.Chain)
+            element.RaisePointerCanceled(args);
 
-        hit?.RaiseMouseUp(upArgs);
+        if (contact.Capture is not null && Array.IndexOf(contact.Chain, contact.Capture) < 0)
+            contact.Capture.RaisePointerCanceled(args);
 
-        // правая и средняя не требуют совпадения с нажатием:
-        // захвата для них нет, поэтому клик по факту отпускания
-        if (hit is not null)
-            BubbleClick(hit, button, point);
+        EndContact(contact);
+    }
+
+    private void EndContact(PointerContact contact)
+    {
+        ReleaseCapture(contact);
+
+        _contacts.Remove(contact.Id);
+
+        if (_primaryContactId == contact.Id)
+            _primaryContactId = null;
+    }
+
+    private void ReleaseCapture(PointerContact contact)
+    {
+        if (contact.Capture is null) return;
+
+        contact.Capture = null;
+
+        ZfContract.Require(_platformCaptureCount > 0,
+            "Счётчик системного захвата ушёл в минус: захват отпустили дважды.");
+
+        if (--_platformCaptureCount == 0)
+            PlatformWindow?.ReleaseMouseCapture();
     }
 
     private void BubbleClick(UIElement hit, MouseButton button, Point point)
@@ -435,37 +631,47 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     /// захватившего элемента продолжает работать как обычно.</summary>
     internal void CaptureMouse(UIElement element)
     {
-        if (ReferenceEquals(_mouseCapture, element)) return;
+        // захват берут изнутри обработки контакта — DragList зовёт его
+        // из OnPreviewMouseDown. Вне обработки берём ведущий контакт:
+        // так работает старый код, звавший CaptureMouse из таймера
+        PointerContact? contact = _dispatching ?? PrimaryContact;
 
-        _mouseCapture = element;
-        PlatformWindow?.CaptureMouse();
+        if (contact is null) return;
+        if (ReferenceEquals(contact.Capture, element)) return;
+
+        if (contact.Capture is null && _platformCaptureCount++ == 0)
+            PlatformWindow?.CaptureMouse();
+
+        contact.Capture = element;
     }
 
     internal void ReleaseMouseCapture(UIElement element)
     {
-        if (!ReferenceEquals(_mouseCapture, element)) return;
+        foreach (PointerContact contact in _contacts.Values)
+        {
+            if (!ReferenceEquals(contact.Capture, element)) continue;
 
-        _mouseCapture = null;
-        PlatformWindow?.ReleaseMouseCapture();
+            ReleaseCapture(contact);
+            return;
+        }
     }
 
-    /// <summary>Захват отобрала система. Своё состояние сбрасываем как при
-    /// отпускании кнопки, иначе перетаскивание не завершится никогда.</summary>
+    /// <summary>Захват отобрала система.</summary>
+    /// <remarks>
+    /// Раньше здесь рассылался поддельный MouseUp. Кнопке всё равно —
+    /// Click всплывает отдельно, из BubbleClick. А TrackBar и GridSplitter
+    /// принимали его за настоящее отпускание и фиксировали значение,
+    /// хотя взаимодействие оборвали.
+    /// </remarks>
     internal void OnCaptureLost()
     {
-        UIElement? captured = _mouseCapture;
-        UIElement? pressed = _pressedElement;
+        // ToArray: CancelContact правит словарь под нами
+        foreach (PointerContact contact in _contacts.Values.ToArray())
+            CancelContact(contact, PointerCancelReason.CaptureLost);
 
-        _mouseCapture = null;
-        _pressedElement = null;
-
-        var args = new MouseButtonEventArgs(
-            MouseButton.Left, MouseButtonState.Up, _lastPointerPosition, KeyModifiers.None);
-
-        pressed?.RaiseMouseUp(args);
-
-        if (captured is not null && !ReferenceEquals(captured, pressed))
-            captured.RaiseMouseUp(args);
+        // захвата в системе уже нет, счётчик сводим к нулю без вызова
+        // ReleaseMouseCapture — отпускать нечего
+        _platformCaptureCount = 0;
     }
 
     internal void OnKeyDown(Key key, KeyModifiers modifiers, bool isRepeat)
@@ -651,11 +857,18 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (_hoveredElement is not null && IsInTree(root, _hoveredElement))
             _hoveredElement = null;
 
-        if (_pressedElement is not null && IsInTree(root, _pressedElement))
-            _pressedElement = null;
+        // контакт, чья цель уехала из дерева, обязан узнать об отмене.
+        // Раньше поля здесь просто занулялись, и элемент, если его потом
+        // вернули в дерево, оставался нажатым
+        foreach (PointerContact contact in _contacts.Values.ToArray())
+        {
+            bool affected =
+                (contact.Pressed is not null && IsInTree(root, contact.Pressed)) ||
+                (contact.Capture is not null && IsInTree(root, contact.Capture));
 
-        if (_mouseCapture is not null && IsInTree(root, _mouseCapture))
-            _mouseCapture = null;
+            if (affected)
+                CancelContact(contact, PointerCancelReason.Detached);
+        }
 
         if (_dropTarget is not null && IsInTree(root, _dropTarget))
         {

@@ -13,6 +13,7 @@ using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.DragDrop;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
+using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Forms.Controls.Base;
 
@@ -22,6 +23,10 @@ namespace ZeppelinForms.Forms.Controls.Base;
 public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 {
     // ===== события =====
+    public event EventHandler<PointerEventArgs>? PointerDown;
+    public event EventHandler<PointerEventArgs>? PointerMove;
+    public event EventHandler<PointerEventArgs>? PointerUp;
+    public event EventHandler<PointerCancelEventArgs>? PointerCanceled;
     /// <summary>Элемент присоединён к форме. Нужно тем, кто не может
     /// работать без неё: анимации, подписки на жизненный цикл окна.</summary>
     public event EventHandler? Attached;
@@ -285,6 +290,21 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     /// <summary>Отпускание до того, как оно дойдёт до нажатого элемента.
     /// Нужно предкам, которые следили за нажатием через предпросмотр.</summary>
     protected virtual void OnPreviewMouseUp(MouseButtonEventArgs e) { }
+    /// <summary>Контакт коснулся элемента. Идёт от корня к цели — до того,
+    /// как поднимутся совместимые события мыши. Сюда встраиваются
+    /// распознаватели жестов: предку нужно увидеть контакт раньше потомка,
+    /// иначе арбитраж невозможен.</summary>
+    protected virtual void OnPointerDown(PointerEventArgs e) { }
+
+    /// <summary>Контакт сдвинулся. Порядок тот же — от корня к цели.</summary>
+    protected virtual void OnPointerMove(PointerEventArgs e) { }
+
+    /// <summary>Контакт отпущен.</summary>
+    protected virtual void OnPointerUp(PointerEventArgs e) { }
+
+    /// <summary>Взаимодействие оборвано: завершения не будет, и всё, что
+    /// начали по нажатию, надо откатить, а не зафиксировать.</summary>
+    protected virtual void OnPointerCanceled(PointerCancelEventArgs e) { }
     protected virtual void OnKeyUp(KeyEventArgs e) { }
     protected virtual void OnTextInput(char c) { }
     /// <summary>Движение мыши до того, как оно дойдёт до попавшего элемента.
@@ -452,6 +472,38 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     {
         OnMouseWheel(e);
         MouseWheel?.Invoke(this, e);
+    }
+
+    internal void RaisePointerDown(PointerEventArgs e)
+    {
+        OnPointerDown(e);
+        PointerDown?.Invoke(this, e);
+    }
+
+    internal void RaisePointerMove(PointerEventArgs e)
+    {
+        OnPointerMove(e);
+        PointerMove?.Invoke(this, e);
+    }
+
+    internal void RaisePointerUp(PointerEventArgs e)
+    {
+        OnPointerUp(e);
+        PointerUp?.Invoke(this, e);
+    }
+
+    internal void RaisePointerCanceled(PointerCancelEventArgs e)
+    {
+        // состояние сбрасываем здесь, а не оставляем на обработчик:
+        // MouseUp после отмены не придёт никогда, и элемент, забывший
+        // сбросить IsPressed сам, останется нажатым до конца жизни
+        bool wasPressed = IsPressed;
+        IsPressed = false;
+
+        OnPointerCanceled(e);
+        PointerCanceled?.Invoke(this, e);
+
+        if (wasPressed) InvalidateVisual();
     }
 
     // ===================
