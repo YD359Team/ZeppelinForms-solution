@@ -28,7 +28,6 @@ public partial class TreeViewItem : DecoratedControl
         // ZF0006: styled-свойства в конструкторе только через SetControlDefault
         SetControlDefault(SelectionColorProperty, new Color(255, 205, 226, 252));
         SetControlDefault(GlyphColorProperty, new Color(255, 90, 90, 90));
-        SetControlDefault(TextColorProperty, Colors.Black);
     }
 
     [Styled]
@@ -38,10 +37,6 @@ public partial class TreeViewItem : DecoratedControl
     [Styled]
     public partial Color GlyphColor { get; set; }
     private static Color GlyphColorDefault => new(255, 90, 90, 90);
-
-    [Styled]
-    public partial Color TextColor { get; set; }
-    private static Color TextColorDefault => Colors.Black;
 
     private string Text => _owner.GetItemText(Node);
 
