@@ -1,6 +1,4 @@
-﻿using Android.App;
-using Android.Content;
-using Android.Views;
+﻿using Android.Views;
 using SkiaSharp;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
@@ -118,6 +116,8 @@ public sealed class AndroidPlatform : IPlatform
 
     internal void HandleResize(int physicalWidth, int physicalHeight)
     {
+        System.Diagnostics.Debug.WriteLine($"ZF: HandleResize {physicalWidth}x{physicalHeight}");
+
         Scale = _activity.Resources?.DisplayMetrics?.Density ?? 1f;
 
         _physicalWidth = physicalWidth;
@@ -151,6 +151,8 @@ public sealed class AndroidPlatform : IPlatform
     /// повернули экран, поехала жестовая панель.</summary>
     internal void HandleInsets(int left, int top, int right, int bottom)
     {
+        System.Diagnostics.Debug.WriteLine($"ZF: HandleInsets {left},{top},{right},{bottom}");
+
         _insetLeft = left / Scale;
         _insetTop = top / Scale;
         _insetRight = right / Scale;
@@ -185,13 +187,14 @@ public sealed class AndroidPlatform : IPlatform
     /// и рисовать вне OnDraw на Android в принципе нечем.</summary>
     internal void Invalidate()
     {
-        // до создания поверхности рисовать некуда, и метку ставить нельзя:
-        // взведённая без отправки, она закрыла бы все последующие вызовы
-        // навсегда — экран так и остался бы чёрным
+        // до создания поверхности рисовать некуда
         if (_view is null) return;
 
-        if (_paintPending) return;
-
+        // метка нужна только HandleFrame, чтобы знать, что кадр устарел.
+        // Заменять ею отправку нельзя: PostInvalidateOnAnimation и так
+        // склеивает повторные вызовы внутри кадра, а взведённая метка
+        // без отправки — это чёрный экран навсегда, если хоть один кадр
+        // почему-то не дошёл до OnPaintSurface
         _paintPending = true;
         _view.PostInvalidateOnAnimation();
     }
@@ -199,6 +202,8 @@ public sealed class AndroidPlatform : IPlatform
     /// <summary>Рисование. Зовётся из OnPaintSurface и только оттуда.</summary>
     internal void Render(SKSurface surface)
     {
+        System.Diagnostics.Debug.WriteLine($"ZF: Render, окон {_windows.Count}, поверхность {_physicalWidth}x{_physicalHeight}, масштаб {Scale}");
+
         _paintPending = false;
 
         SKCanvas canvas = surface.Canvas;
