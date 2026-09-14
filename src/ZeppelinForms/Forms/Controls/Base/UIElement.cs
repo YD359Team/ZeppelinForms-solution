@@ -11,6 +11,7 @@ using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.DragDrop;
+using ZeppelinForms.Input.Gestures;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 using ZeppelinForms.Input.Pointer;
@@ -56,6 +57,26 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     /// <summary>Биндинги по индексу свойства. Словарь создаётся при первой
     /// привязке: у большинства элементов биндингов нет вовсе.</summary>
     private Dictionary<int, Binding>? _bindings;
+
+    private List<GestureRecognizer>? _gestures;
+
+    /// <summary>Распознаватели жестов этого элемента. Список создаётся
+    /// по первому обращению: у подавляющего большинства элементов
+    /// жестов нет, и пустой список на каждый из них — это мегабайты
+    /// на дереве в тысячу узлов.</summary>
+    public IList<GestureRecognizer> GestureRecognizers => _gestures ??= [];
+
+    /// <summary>Горячий путь конвейера: спрашивается на каждое нажатие
+    /// и не должен ничего создавать.</summary>
+    internal IReadOnlyList<GestureRecognizer>? GestureRecognizersOrNull => _gestures;
+
+    public T AddGesture<T>(T recognizer) where T : GestureRecognizer
+    {
+        recognizer.Element = this;
+        GestureRecognizers.Add(recognizer);
+
+        return recognizer;
+    }
 
     /// <summary>Свойство под управлением биндинга. Третий источник значения
     /// между темой и явным присваиванием: тема биндинг не перебивает,

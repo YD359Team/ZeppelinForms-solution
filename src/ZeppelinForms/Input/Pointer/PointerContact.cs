@@ -1,11 +1,12 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Input.Gestures;
 
 namespace ZeppelinForms.Input.Pointer;
 
 /// <summary>Живой контакт: палец на экране, нажатая кнопка мыши, перо.
 /// Существует от нажатия до отпускания или отмены.</summary>
-internal sealed class PointerContact
+public sealed class PointerContact
 {
     public required int Id { get; init; }
     public required PointerKind Kind { get; init; }
@@ -47,6 +48,16 @@ internal sealed class PointerContact
     public float TravelDistance => Point.DistanceBetween(DownLocation, Location);
 
     public long Duration => Timestamp - DownTimestamp;
+
+    /// <summary>Создаётся только конвейером ввода: снаружи контакт
+    /// придумать нельзя, иначе арена и захват разъедутся с реальностью.</summary>
+    internal PointerContact() { }
+
+    /// <summary>Совместимые события мыши по этому контакту отменены —
+    /// его ведёт выигравший распознаватель. Сам контакт при этом жив.</summary>
+    internal bool IsCompatCancelled { get; set; }
+
+    internal GestureArena? Arena { get; set; }
 
     public void Update(Point location, long timestamp)
     {

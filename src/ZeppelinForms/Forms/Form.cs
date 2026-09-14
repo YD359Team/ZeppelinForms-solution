@@ -14,6 +14,7 @@ using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Layout;
 using ZeppelinForms.Input.DragDrop;
+using ZeppelinForms.Input.Gestures;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 using ZeppelinForms.Input.Pointer;
@@ -327,9 +328,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     private void DispatchDown(PointerContact contact, UIElement? hit, PointerEventArgs e, bool isNew)
     {
-        // сохранить и вернуть, а не обнулить: RaiseMouseDown может открыть
-        // модальный диалог, тот прокрутит вложенный цикл со своими контактами,
-        // и обнуление в его finally оборвало бы наш кадр
         PointerContact? previousDispatch = _dispatching;
         _dispatching = contact;
 
@@ -340,6 +338,17 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                 element.RaisePointerDown(e);
                 if (e.Handled) return;
             }
+
+            // арена собирается один раз на контакт, а не на кнопку
+            if (isNew)
+                contact.Arena = GestureArena.TryCreate(contact, CancelCompatInteraction);
+
+            // арена до совместимых событий: распознаватель, которому хватает
+            // самого нажатия, обязан успеть отменить их раньше, чем кнопка
+            // покрасится нажатой
+            contact.Arena?.PointerDown(e);
+
+            if (contact.IsCompatCancelled) return;
 
             if (!contact.IsPrimary) return;
 
@@ -358,8 +367,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         {
             _dispatching = previousDispatch;
         }
-
-        _ = isNew;
     }
 
     internal void OnPointerDown(Point point, MouseButton button = MouseButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
@@ -404,9 +411,11 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                 if (e.Handled) return;
             }
 
-            // ниже — совместимые события мыши: их поднимает только ведущий
-            // контакт, иначе второй палец слал бы MouseMove в тот же контрол
-            if (contact is { IsPrimary: false }) return;
+            contact?.Arena?.PointerMove(e);
+
+            // контакт достался жесту — совместимой части взаимодействия
+            // больше нет, и наведение с курсором её не касаются
+            if (contact is { IsCompatCancelled: true }) return;
 
             var moveArgs = new MouseMoveEventArgs(e.Location);
 
@@ -500,6 +509,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                 if (e.Handled) break;
             }
 
+            contact.Arena?.PointerUp(e);
+
+            if (contact.IsCompatCancelled) return;
+
             if (!contact.IsPrimary) return;
 
             var upArgs = new MouseButtonEventArgs(
@@ -542,6 +555,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             _dispatching = previousDispatch;
         }
 
+        contact.Arena?.Complete();
+
         contact.Buttons &= ~e.Button.ToFlag();
 
         // у касания и пера кнопок нет — контакт кончается вместе с Up
@@ -573,9 +588,15 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         return [.. chain];
     }
 
-    /// <summary>Оборвать контакт: разослать отмену и забыть его.</summary>
-    private void CancelContact(PointerContact contact, PointerCancelReason reason)
+    /// <summary>Оборвать совместимую часть взаимодействия, оставив контакт живым.
+    /// Нужно победе жеста: кнопке под пальцем надо сообщить, что нажатия
+    /// не было, а контакт продолжает идти — его ведёт распознаватель.</summary>
+    private void CancelCompatInteraction(PointerContact contact, PointerCancelReason reason)
     {
+        if (contact.IsCompatCancelled) return;
+
+        contact.IsCompatCancelled = true;
+
         var args = new PointerCancelEventArgs(
             contact.Id, contact.Kind, contact.Location, reason);
 
@@ -586,6 +607,18 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         if (contact.Capture is not null && Array.IndexOf(contact.Chain, contact.Capture) < 0)
             contact.Capture.RaisePointerCanceled(args);
+
+        ReleaseCapture(contact);
+
+        // цель обнуляем, иначе движения продолжат уходить в отменённый элемент
+        contact.Pressed = null;
+    }
+
+    private void CancelContact(PointerContact contact, PointerCancelReason reason)
+    {
+        contact.Arena?.Cancel();
+
+        CancelCompatInteraction(contact, reason);
 
         EndContact(contact);
     }
