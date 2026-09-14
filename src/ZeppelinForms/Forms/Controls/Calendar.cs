@@ -9,10 +9,68 @@ namespace ZeppelinForms.Forms.Controls;
 
 public partial class Calendar : DecoratedControl
 {
-    private const float HeaderHeight = 28f;
-    private const float DayOfWeekHeight = 20f;
+    // эталонная сетка: размеры, при которых календарь читается без сжатия
+    private const float ReferenceHeaderHeight = 28f;
+    private const float ReferenceDayOfWeekHeight = 20f;
+    private const float ReferenceArrowWidth = 28f;
+    private const float ReferenceCellWidth = 36f;
+    private const float ReferenceCellHeight = 24f;
+
     private const int Rows = 6;
     private const int Columns = 7;
+
+    /// <summary>Ниже этого сжатия не опускаемся: мельче сетка перестаёт
+    /// читаться вовсе, и честнее обрезать её краем, чем нарисовать
+    /// неразличимое.</summary>
+    private const float MinimumScale = 0.6f;
+
+    /// <summary>Геометрия одного кадра.</summary>
+    /// <remarks>
+    /// Один источник на рисование и на попадание. До этого DrawContent,
+    /// OnClick и HitFromPoint держали свои копии одних и тех же чисел,
+    /// и любое изменение размеров надо было вносить в три места
+    /// синхронно — а при масштабировании они разъехались бы молча.
+    /// </remarks>
+    private readonly record struct CalendarLayout(
+        float Scale,
+        float HeaderHeight,
+        float DayOfWeekHeight,
+        float ArrowWidth,
+        Size Cell,
+        Font Font)
+    {
+        public float GridTop => HeaderHeight + DayOfWeekHeight;
+    }
+
+    private CalendarLayout GetLayout()
+    {
+        Rectangle content = this.ContentBounds;
+
+        float width = Math.Max(0, content.Width);
+        float height = Math.Max(0, content.Height);
+
+        float scale = width <= 0 || height <= 0
+            ? 1f
+            : Math.Clamp(
+                Math.Min(
+                    width / (Columns * ReferenceCellWidth),
+                    height / (ReferenceHeaderHeight + ReferenceDayOfWeekHeight + Rows * ReferenceCellHeight)),
+                MinimumScale,
+                1f);
+
+        float header = ReferenceHeaderHeight * scale;
+        float dayOfWeek = ReferenceDayOfWeekHeight * scale;
+
+        return new CalendarLayout(
+            scale,
+            header,
+            dayOfWeek,
+            ReferenceArrowWidth * scale,
+            // Max: при высоте меньше шапки деление дало бы отрицательную
+            // ячейку, и строки поехали бы вверх
+            new Size(width / Columns, Math.Max(0, (height - header - dayOfWeek) / Rows)),
+            this.EffectiveFont.WithSize(this.EffectiveFont.Size * scale));
+    }
 
     private DateTime _displayMonth = DateTime.Today;
 
@@ -58,78 +116,95 @@ public partial class Calendar : DecoratedControl
         }
     }
 
-    private Size CellSize => new(
-        ContentBounds.Width / Columns,
-        (ContentBounds.Height - HeaderHeight - DayOfWeekHeight) / Rows);
-
     // фон, рамку и скругление рисует база — здесь только сетка дат
     protected override void DrawContent(Graphics g)
     {
         var content = this.ContentBounds;
-        var cell = CellSize;
-        Font font = this.EffectiveFont;
+        CalendarLayout layout = GetLayout();
+        Font font = layout.Font;
+
+        // подсветка стрелки — до текста, иначе заливка закрывает глиф
+        if (_hoveredHeaderButton == -1)
+        {
+            g.FillRectangle(
+                new Rectangle(new Point(content.X, content.Y), new Size(layout.ArrowWidth, layout.HeaderHeight)),
+                HeaderHoverColor);
+        }
+        else if (_hoveredHeaderButton == 1)
+        {
+            g.FillRectangle(
+                new Rectangle(
+                    new Point(content.X + content.Width - layout.ArrowWidth, content.Y),
+                    new Size(layout.ArrowWidth, layout.HeaderHeight)),
+                HeaderHoverColor);
+        }
 
         // заголовок: ‹ Месяц Год ›
-        g.DrawText("‹", new Rectangle(new Point(content.X, content.Y), new Size(28, HeaderHeight)),
+        g.DrawText("‹",
+            new Rectangle(new Point(content.X, content.Y), new Size(layout.ArrowWidth, layout.HeaderHeight)),
+            TextColor, font, HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
+
+        g.DrawText("›",
+            new Rectangle(
+                new Point(content.X + content.Width - layout.ArrowWidth, content.Y),
+                new Size(layout.ArrowWidth, layout.HeaderHeight)),
             TextColor, font, HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
         // высоту строки берём по эталонной паре, а не по самому тексту:
         // иначе центр гуляет из-за выносных элементов букв
-        float lineHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
+        float lineHeight = TextMeasurer.Current.MeasureText("Wg", font).Height;
 
         var monthRect = new Rectangle(
-            new Point(content.X + 28, content.Y + (HeaderHeight - lineHeight) / 2f),
-            new Size(content.Width - 56, lineHeight));
+            new Point(content.X + layout.ArrowWidth, content.Y + ((layout.HeaderHeight - lineHeight) / 2f)),
+            // Max: на узком календаре стрелки съедают всю ширину,
+            // и прямоугольник ушёл бы в минус
+            new Size(Math.Max(0, content.Width - (2 * layout.ArrowWidth)), lineHeight));
 
         g.DrawText($"{_displayMonth:MMMM yyyy}", monthRect, TextColor, font,
             HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
-        g.DrawText("›", new Rectangle(new Point(content.X + content.Width - 28, content.Y), new Size(28, HeaderHeight)),
-            TextColor, font, HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
-
-        string[] dayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+        // на узкой сетке двухбуквенные подписи не влезают, и обрезанные
+        // «П» с половиной второй буквы читаются хуже, чем честная одна
+        string[] dayNames =
+            TextMeasurer.Current.MeasureText("Пн", font).Width <= layout.Cell.Width
+                ? ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+                : ["П", "В", "С", "Ч", "П", "С", "В"];
 
         for (int i = 0; i < Columns; i++)
         {
-            if (_hoveredHeaderButton == -1)
-                g.FillRectangle(new Rectangle(new Point(content.X, content.Y), new Size(28, HeaderHeight)), HeaderHoverColor);
-            else if (_hoveredHeaderButton == 1)
-                g.FillRectangle(new Rectangle(new Point(content.X + content.Width - 28, content.Y), new Size(28, HeaderHeight)), HeaderHoverColor);
             g.DrawText(dayNames[i],
                 new Rectangle(
-                    new Point(content.X + i * cell.Width, content.Y + HeaderHeight),
-                    new Size(cell.Width, DayOfWeekHeight)),
+                    new Point(content.X + (i * layout.Cell.Width), content.Y + layout.HeaderHeight),
+                    new Size(layout.Cell.Width, layout.DayOfWeekHeight)),
                 MutedColor, font, HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
         }
 
         DateTime date = FirstCellDate;
-        float gridTop = content.Y + HeaderHeight + DayOfWeekHeight;
+        float gridTop = content.Y + layout.GridTop;
 
         for (int row = 0; row < Rows; row++)
         {
             for (int col = 0; col < Columns; col++)
             {
                 var rect = new Rectangle(
-                    new Point(content.X + col * cell.Width, gridTop + row * cell.Height),
-                    cell);
+                    new Point(content.X + (col * layout.Cell.Width), gridTop + (row * layout.Cell.Height)),
+                    layout.Cell);
 
-                if (SelectedDate?.Date == date.Date)
-                    g.FillRectangle(rect, SelectionColor);
-                else if (date.Date == DateTime.Today)
-                    g.FillRectangle(rect, TodayColor);
+                int cellIndex = (row * Columns) + col;
+                bool selected = SelectedDate?.Date == date.Date;
 
-                Color color = date.Month == _displayMonth.Month
-                    ? (SelectedDate?.Date == date.Date ? Colors.White : TextColor)
-                    : MutedColor;
-
-                int cellIndex = row * Columns + col;
-
-                if (SelectedDate?.Date == date.Date)
+                // ровно одна заливка на ячейку: раньше выделенные заливались
+                // дважды, и полупрозрачный SelectionColor выходил плотнее
+                if (selected)
                     g.FillRectangle(rect, SelectionColor);
                 else if (cellIndex == _hoveredCell)
                     g.FillRectangle(rect, HoverColor);
                 else if (date.Date == DateTime.Today)
                     g.FillRectangle(rect, TodayColor);
+
+                Color color = date.Month == _displayMonth.Month
+                    ? selected ? Colors.White : TextColor
+                    : MutedColor;
 
                 g.DrawText(date.Day.ToString(), rect, color, font,
                     HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
@@ -141,31 +216,20 @@ public partial class Calendar : DecoratedControl
 
     protected override void OnClick(MouseClickEventArgs e)
     {
-        Point abs = GetAbsolutePosition();
-        float localX = e.Location.X - abs.X - Padding.Left;
-        float localY = e.Location.Y - abs.Y - Padding.Top;
+        var (cell, header) = HitFromPoint(e.Location);
 
         e.Handled = true;
 
-        if (localY < HeaderHeight)
+        if (header != 0)
         {
-            if (localX < 28) _displayMonth = _displayMonth.AddMonths(-1);
-            else if (localX > ContentBounds.Width - 28) _displayMonth = _displayMonth.AddMonths(1);
-
+            _displayMonth = _displayMonth.AddMonths(header);
             Invalidate();
             return;
         }
 
-        float gridTop = HeaderHeight + DayOfWeekHeight;
-        if (localY < gridTop) return;
+        if (cell < 0) return;
 
-        var cell = CellSize;
-        int col = (int)(localX / cell.Width);
-        int row = (int)((localY - gridTop) / cell.Height);
-
-        if (col < 0 || col >= Columns || row < 0 || row >= Rows) return;
-
-        DateTime picked = FirstCellDate.AddDays(row * Columns + col);
+        DateTime picked = FirstCellDate.AddDays(cell);
 
         SelectedDate = picked;
         _displayMonth = picked;
@@ -174,30 +238,33 @@ public partial class Calendar : DecoratedControl
         DateSelected?.Invoke(this, picked);
     }
 
-    private(int Cell, int HeaderButton) HitFromPoint(Point location)
+    private (int Cell, int HeaderButton) HitFromPoint(Point location)
     {
         Point abs = GetAbsolutePosition();
         float localX = location.X - abs.X - Padding.Left;
         float localY = location.Y - abs.Y - Padding.Top;
 
-        if (localY < HeaderHeight)
+        CalendarLayout layout = GetLayout();
+
+        if (localY < layout.HeaderHeight)
         {
-            if (localX < 28) return (-1, -1);
-            if (localX > ContentBounds.Width - 28) return (-1, 1);
+            if (localX < layout.ArrowWidth) return (-1, -1);
+            if (localX > this.ContentBounds.Width - layout.ArrowWidth) return (-1, 1);
+
             return (-1, 0);
         }
 
-        float gridTop = HeaderHeight + DayOfWeekHeight;
-        if (localY < gridTop) return (-1, 0);
+        if (localY < layout.GridTop) return (-1, 0);
 
-        var cell = CellSize;
-        int col = (int)(localX / cell.Width);
-        int row = (int)((localY - gridTop) / cell.Height);
+        // сжатая до нуля сетка: делить нечем, и попадать не во что
+        if (layout.Cell.Width <= 0 || layout.Cell.Height <= 0) return (-1, 0);
 
-        if (col < 0 || col >= Columns || row < 0 || row >= Rows)
-            return (-1, 0);
+        int col = (int)(localX / layout.Cell.Width);
+        int row = (int)((localY - layout.GridTop) / layout.Cell.Height);
 
-        return (row * Columns + col, 0);
+        if (col < 0 || col >= Columns || row < 0 || row >= Rows) return (-1, 0);
+
+        return ((row * Columns) + col, 0);
     }
 
     protected override void OnMouseMove(MouseMoveEventArgs args)
@@ -225,5 +292,9 @@ public partial class Calendar : DecoratedControl
     }
 
     protected override Size MeasureOverride(Size availableSize) =>
-        ResolveSize(new Size(252, 220), availableSize);
+        ResolveSize(
+            new Size(
+                Columns * ReferenceCellWidth,
+                ReferenceHeaderHeight + ReferenceDayOfWeekHeight + (Rows * ReferenceCellHeight)),
+            availableSize);
 }
