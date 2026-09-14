@@ -67,7 +67,7 @@ public sealed class ZeppelinView : SKCanvasView
             case MotionEventActions.Cancel:
                 // отменяются все контакты разом: жест забрала система
                 for (int index = 0; index < e.PointerCount; index++)
-                    target.HandleTouchCancel(e.GetPointerId(index));
+                    target.HandleTouchCancel(e.GetPointerId(index), e.GetToolType(index));
                 break;
 
             default:

@@ -153,10 +153,15 @@ public sealed class AndroidPlatform : IPlatform
     /// и рисовать вне OnDraw на Android в принципе нечем.</summary>
     internal void Invalidate()
     {
+        // до создания поверхности рисовать некуда, и метку ставить нельзя:
+        // взведённая без отправки, она закрыла бы все последующие вызовы
+        // навсегда — экран так и остался бы чёрным
+        if (_view is null) return;
+
         if (_paintPending) return;
 
         _paintPending = true;
-        _view?.PostInvalidateOnAnimation();
+        _view.PostInvalidateOnAnimation();
     }
 
     /// <summary>Рисование. Зовётся из OnPaintSurface и только оттуда.</summary>

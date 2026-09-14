@@ -84,7 +84,7 @@ internal sealed class AndroidWindow : IPlatformWindow
         PointerKind kind = ToKind(toolType);
 
         return new PointerEventArgs(
-            kind == PointerKind.Mouse ? Form.MousePointerId : TouchIdBase + pointerId,
+            MapPointerId(pointerId, kind),
             kind,
             ToLocal(x, y),
             MouseButton.Left,
@@ -106,8 +106,14 @@ internal sealed class AndroidWindow : IPlatformWindow
         float x, float y, int pointerId, MotionEventToolType toolType, float pressure, long timestamp) =>
         _form.OnPointerUp(ToArgs(x, y, pointerId, toolType, pressure, timestamp));
 
-    internal void HandleTouchCancel(int pointerId) =>
-        _form.OnPointerCancel(TouchIdBase + pointerId);
+    /// <summary>Единственное место, где решается идентификатор контакта.
+    /// Раздваивать это правило нельзя: отмена обязана попасть в тот же
+    /// контакт, что и нажатие.</summary>
+    private static int MapPointerId(int pointerId, PointerKind kind) =>
+        kind == PointerKind.Mouse ? Form.MousePointerId : TouchIdBase + pointerId;
+
+    internal void HandleTouchCancel(int pointerId, MotionEventToolType toolType) =>
+        _form.OnPointerCancel(MapPointerId(pointerId, ToKind(toolType)));
 
     // ==== остальное из контракта ====
 
