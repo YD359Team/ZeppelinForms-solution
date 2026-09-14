@@ -75,13 +75,6 @@ internal sealed class BrowserWindow : IPlatformWindow
     private Point ToLocal(double x, double y) =>
         new((float)x - Origin.X, (float)y - Origin.Y);
 
-    // ==== ввод ====
-    // Точки приходят в координатах холста; форма ждёт свои, поэтому
-    // из каждой вычитается Origin. У нижней формы он нулевой.
-
-    private Point ToLocal(double x, double y) =>
-        new((float)x - Origin.X, (float)y - Origin.Y);
-
     /// <summary>Идентификаторы касаний браузера произвольны и могут совпасть
     /// с Form.MousePointerId. Раздаём свои, начиная с десяти, и держим
     /// соответствие, пока контакт жив.</summary>
