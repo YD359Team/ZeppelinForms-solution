@@ -144,12 +144,19 @@ Value precedence, highest first:
 
 1. set from user code
 2. set from user code on any ancestor, for inherited properties
-3. theme or style
-4. control default — `SetControlDefault` from a constructor
-5. `DefaultValue` from the registration
+3. a binding
+4. theme or style
+5. control default — `SetControlDefault` from a constructor
+6. `DefaultValue` from the registration
 
 A constructor must use `SetControlDefault`: a plain assignment there would mark
-the value as user-set and lock the theme out for good.
+the value as user-set and lock the theme out for good. ZF0006 reports this.
+
+`External = true` when the value lives in another object, as `TextBox.Text` does
+in its `TextDocument`. The generator then emits only the registration; the
+control writes the accessors itself, routing the setter through
+`SetValue(Property, value)` and exposing a `Write<Name>` method for the
+registration to call directly.
 
 #### Unit Controls
 
@@ -246,6 +253,28 @@ specific applier extends the base one instead of replacing it.
 
 A theme never overwrites a value set from user code — see Styled Properties
 above for the full precedence. `ClearValue` gives a property back to the theme.
+
+### 🔗 Bindings
+
+Any styled property can be bound to a property of any object:
+
+```csharp
+nameBox.Bind(TextBox.TextProperty, user, nameof(User.Name), BindingMode.TwoWay);
+statusLabel.Bind(Label.TextProperty, user, nameof(User.Status));
+saveButton.Bind(UIElement.IsEnabledProperty, user, nameof(User.HasChanges));
+```
+
+`OneWay` follows the source; `TwoWay` also writes back. A source implementing
+`INotifyPropertyChanged` pushes its changes to the target — without it a binding
+only reads the source once, when it is created.
+
+A binding holds its target weakly, so a model outliving a window does not keep
+that window alive. `Unbind` drops one property, `UnbindAll` drops them all, and
+`ClearValue` removes the binding together with the value.
+
+Assigning a bound property from code wins over the binding: in `TwoWay` the
+value goes to the source, in `OneWay` the binding is broken — otherwise the next
+source change would silently overwrite what was just written.
 
 ### 🛠️ Code Examples
 

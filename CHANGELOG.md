@@ -6,9 +6,27 @@
 
 ### Breaking changes
 
-- New analyzer rules
-- Now warnings will be errors
-- Now `TextBox.Text` is styled property
+- New analyzer rules: ZF0006 (a styled property assigned from a constructor)
+  and ZF0007 (an external styled property declared `partial`)
+- Warnings are now errors across the solution
+- `TextBox.Text` is a styled property. It can be bound and it appears in
+  `PropertyGrid`; assigning it now invalidates layout rather than only repainting
+- `[Styled]` gained `External`: the value lives in another object, the generator
+  emits only the registration, and the control writes its own accessors plus a
+  `Write<Name>` method the registration calls
+
+### Data bindings
+
+- `UIElement.Bind`, `Unbind` and `UnbindAll` connect a styled property to a
+  property of any source object. `OneWay` and `TwoWay` are supported; a source
+  implementing `INotifyPropertyChanged` pushes its changes to the target
+- A binding holds its target weakly: a live model no longer keeps a closed
+  window alive, and a binding whose element is gone unsubscribes itself
+- Bindings sit between the theme and user code in the value precedence. The
+  theme does not override a bound value; an assignment from user code does, and
+  breaks a `OneWay` binding rather than letting the next source change silently
+  overwrite what the user wrote
+- `ClearValue` removes the binding along with the value
 
 ### Performance
 
@@ -28,6 +46,17 @@
   and every draw.
 - Replaced deprecated `SKPath` mutation and `SKTypeface.ContainsGlyph` with
   `SKPathBuilder` and `SKFont`.
+- Fixed an unbounded font fallback cache. Its key includes the code point, so
+  walking emoji or CJK added an entry per character and never released one.
+  All font caches are now generational with a fixed ceiling: entries the
+  application keeps using survive a rotation, one-off entries do not.
+- `SKFont` caches are per-thread. `SKFont` mutates internal state while
+  measuring, so sharing one across parallel snapshot tests was a race that no
+  dictionary lock could fix.
+- `Theme.Apply` caches the applier chain per type instead of allocating a stack
+  and walking the base-type chain for every element.
+- `SkiaGraphics.NoiseShader` was an expression-bodied property and rebuilt the
+  shader on every call, contrary to what its own comment claimed.
 
 Measured on a 1280x800 offscreen surface, Windows, workstation GC:
 
@@ -38,24 +67,64 @@ Measured on a 1280x800 offscreen surface, Windows, workstation GC:
 | 1000 repeated text measurements | 33.8 ms, 11.5 MB allocated | 0.06 ms, 8 B |
 | Full layout pass | 0.55 ms, 112 KB allocated | 0.13 ms, 15.9 KB |
 
-### Added
+### Text
 
-- Data bindings
-- `bench/ZeppelinForms.Benchmarks`: a headless benchmark suite with a committed
-  per-platform baseline. `--check` fails the build on regressions in frame time,
-  allocations or retained memory.
+- Font runs are split by grapheme cluster instead of by rune. A composite emoji —
+  a ZWJ sequence, a flag, a skin-tone modifier — is several runes whose parts
+  resolve to different typefaces, and the per-rune walk tore such a sequence
+  apart into separate glyphs
+- With `Font.FilePath` set, weight and style are now synthesised. A font file
+  carries one face and `SKTypeface.FromFile` cannot pick another, so bold text
+  used to render regular. This closes a known limitation from 0.9.0
 
-### Animation
+### Fixes
 
-- Fix: Animations added before the window was created did not start the frame timer.
+- The theme was never applied to overlays. Flyouts, toasts, tooltips, context
+  menus and the inspector went into the overlay list directly, bypassing
+  `AttachTree` — so they kept default colors, stayed unregistered in `NameScope`
+  and never got `OnAttached`. Closing an overlay likewise skipped `DetachTree`,
+  leaving it in `NameScope` with its animations still running and input
+  dispatchers still referencing it. Overlays now have a single entry and exit
+  point, and a theme change reaches them too
+- Animations added before the window existed did not start the frame timer:
+  `Frames.Start` was called on a null platform window and the animation sat in
+  the list forever
+- `PropertyGrid` had no scrolling, so properties past the bottom edge were
+  unreachable
+- `DetachTree` cleared `InspectedElement` and the tooltip owner unconditionally,
+  regardless of which subtree was detaching
 
 ### Effects
 
-- Add `GlitchEffect`
+- Add `GlitchEffect`: channel separation and horizontal slice displacement,
+  animated in discrete steps
+- `Graphics` gained layer capture — `BeginCapture`, `EndCapture`, `DrawCapture`.
+  An effect can redirect an element into an offscreen layer and then draw the
+  result as many times as it needs, with per-channel filtering and blending.
+  This is the base any effect built on repeated drawing needs
 
-### DX
+### Developer experience
 
-- Use `UIElement` `With` and `At` methods 
+- `UIElement.With` configures an element in place without breaking an
+  expression, so a whole view can be written as one tree
+- `At(row, column)` places an element in a `Grid` from an expression
+- ZF0006 reports a styled property assigned from a control constructor: such an
+  assignment marks the value as user-set and locks the theme out permanently.
+  Use `SetControlDefault` instead
+- ZF0007 reports an external styled property left `partial`
+- `ZfContract` checks internal invariants in debug builds and throws instead of
+  failing quietly. Checks are compiled out of release builds entirely
+- `SkiaDiagnostics` exposes cache and pool counters. Retained-memory figures
+  cannot tell a bounded cache at its working size from an actual leak; an entry
+  count can
+- `Assets.Logo` and `Icon.ToImage` make the embedded icon usable as an image.
+  Images inside an ICO are stored as DIB — a BMP without its file header — which
+  no decoder opens on its own
+
+### Examples
+
+- The example project is shared between the Windows and Linux hosts
+- All user-visible text is in English
 
 ## [0.9.0] - Antarctica
 
@@ -116,7 +185,6 @@ Measured on a 1280x800 offscreen surface, Windows, workstation GC:
 - System drag and drop is not supported
 - Folder selection is not supported: the concept does not exist in a browser
 - Repaints are always full-surface
-- With `Font.FilePath` set, weight and style are ignored — `SkiaFontCache` keys typefaces by path alone. Bold needs its own file
 
 ## [0.8.0]
 
@@ -260,7 +328,7 @@ Measured on a 1280x800 offscreen surface, Windows, workstation GC:
 - Add Form.IsDialog
 - Add theme support
 - Extracts ButtonBase class 
-- Now Primary, Secondary и Danger button is new classes with custom themes
+- Now Primary, Secondary and Danger button is new classes with custom themes
 - Add validation to TextBox
 - Add watermark to TextBox
 
