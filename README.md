@@ -12,15 +12,14 @@ The project is under active development.
 
 | # | Name        | Status |
 | - | ----------- | ------ |
-| 1 | Headless    | ✅      |
-| 2 | Windows     | ✅      |
-| 3 | Linux (X11) | ✅*     |
-| 4 | WebAssembly | ✅**    |
-| 5 | macOS       | 💡     |
+| 1 | Headless    | ✅     |
+| 2 | Windows     | ✅     |
+| 3 | Linux (X11) | ✅     |
+| 4 | WebAssembly | ✅*    |
+| 5 | Android     | ⚙️     |
+| 6 | macOS       | 💡     |
 
-\* — Linux: `SetOpacity` and `SetWindowState` are not implemented yet: they need
-`_NET_WM_WINDOW_OPACITY` and `_NET_WM_STATE`. 
-\*\* - WebAssembly: dialogs are async-only,
+\* - WebAssembly: dialogs are async-only,
 and system drag and drop is not supported — see the browser section below.
 
 ### 🧠 Philosophy
@@ -36,7 +35,7 @@ And if the project is modern, why not take advantage of the full capabilities of
 
 | # | Name      | Status |
 | - | --------- | ------ |
-| 1 | SkiaSharp | ✅      |
+| 1 | SkiaSharp | ✅     |
 | 2 | DirectX   | 💡     |
 
 ZeppelinForms itself knows nothing about Skia, because it is implemented in a separate project, `ZeppelinForms.Skia`. This means that the graphics layer is completely decoupled from the framework logic.
@@ -188,7 +187,7 @@ registration to call directly.
 | 20 | SplitButton         |    ✅   |    |                 |         |
 
 
-* — contains bugs and is missing part of its API
+\* — contains bugs and is missing part of its API
 
 #### Panels
 
