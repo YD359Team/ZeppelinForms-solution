@@ -4,15 +4,20 @@ using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Input.Gestures;
 
-/// <summary>Наблюдатель за одним контактом, умеющий заявить на него права.</summary>
+/// <summary>Наблюдатель за контактами, умеющий заявить на них права.</summary>
 /// <remarks>
 /// Распознавание — политика элемента, арбитраж — решение общее: победитель
 /// у контакта ровно один. Поэтому распознаватели висят на элементах,
 /// а разбирается между ними GestureArena.
+///
+/// Арен у распознавателя столько же, сколько ведомых контактов: у щипка
+/// их две, у нажатия одна. Списки идут парами — арена по тому же индексу,
+/// что и её контакт.
 /// </remarks>
 public abstract class GestureRecognizer
 {
-    private GestureArena? _arena;
+    private readonly List<GestureArena> _arenas = [];
+    private readonly List<PointerContact> _contacts = [];
 
     /// <summary>Элемент, на котором висит распознаватель.</summary>
     public UIElement? Element { get; internal set; }
@@ -21,16 +26,28 @@ public abstract class GestureRecognizer
 
     public GestureState State { get; private set; }
 
-    /// <summary>Контакт, за которым сейчас следим. Null вне жеста.</summary>
-    protected PointerContact? Contact { get; private set; }
+    /// <summary>Сколько контактов распознаватель ведёт одновременно.
+    /// Лишние пальцы он не получает вовсе — они достаются другим.</summary>
+    protected virtual int MaxContacts => 1;
+
+    /// <summary>Первый из ведомых контактов. Одноконтактным хватает его.</summary>
+    protected PointerContact? Contact => _contacts.Count > 0 ? _contacts[0] : null;
+
+    protected IReadOnlyList<PointerContact> Contacts => _contacts;
 
     /// <summary>Экран, по которому считаются пороги. Берётся один раз
-    /// на контакт: Displays.Primary каждый раз заново перечисляет мониторы
-    /// через P/Invoke, а вызывать его на каждое движение пальца нельзя.
-    /// За время одного жеста экран всё равно не меняется.</summary>
+    /// на жест: Displays.Primary каждый раз заново перечисляет мониторы
+    /// через P/Invoke, а вызывать его на каждое движение пальца нельзя.</summary>
     protected DisplayInfo Display { get; private set; } = Displays.Primary;
 
+    /// <summary>Пришёл первый контакт — жест начался.</summary>
     protected virtual void OnBegin() { }
+
+    /// <summary>Добавился контакт, в том числе первый.</summary>
+    protected virtual void OnContactAdded(PointerContact contact) { }
+
+    /// <summary>Контакт ушёл. К моменту вызова его в Contacts уже нет.</summary>
+    protected virtual void OnContactRemoved(PointerContact contact) { }
 
     protected virtual void OnPointerDown(PointerEventArgs e) { }
 
@@ -38,18 +55,23 @@ public abstract class GestureRecognizer
 
     protected virtual void OnPointerUp(PointerEventArgs e) { }
 
-    /// <summary>Контакт оборвали или распознаватель проиграл.
-    /// Всё начатое надо откатить, а не зафиксировать.</summary>
+    /// <summary>Жест оборвали или он проиграл. Всё начатое надо откатить,
+    /// а не зафиксировать.</summary>
     protected virtual void OnCancel() { }
 
-    /// <summary>Заявить права на контакт. Все остальные участники арены
-    /// выбывают, а элементы под контактом получают отмену.</summary>
+    /// <summary>Заявить права. Побеждаем во всех своих аренах разом:
+    /// иначе у щипка один палец остался бы вести кнопку, пока второй
+    /// масштабирует.</summary>
     protected void Accept()
     {
         if (State != GestureState.Possible) return;
 
         State = GestureState.Accepted;
-        _arena?.Accept(this);
+
+        // копия: Accept арены зовёт _onWon, а тот может оборвать контакт
+        // и вычистить наши списки прямо под обходом
+        foreach (GestureArena arena in _arenas.ToArray())
+            arena.Accept(this);
     }
 
     /// <summary>Выйти из борьбы: жест не наш. Зовите явно, а не молчите —
@@ -62,20 +84,45 @@ public abstract class GestureRecognizer
         OnCancel();
     }
 
-    internal void Enter(GestureArena arena, PointerContact contact)
+    /// <summary>Принять ещё один контакт. false означает «мне хватит»,
+    /// и арена такого участника к себе не берёт.</summary>
+    internal bool TryEnter(GestureArena arena, PointerContact contact)
     {
-        _arena = arena;
-        Contact = contact;
-        State = GestureState.Possible;
-        Display = Displays.Primary;
+        if (_contacts.Count >= MaxContacts) return false;
 
-        OnBegin();
+        bool first = _contacts.Count == 0;
+
+        if (first)
+        {
+            State = GestureState.Possible;
+            Display = Displays.Primary;
+        }
+
+        _arenas.Add(arena);
+        _contacts.Add(contact);
+
+        if (first) OnBegin();
+
+        OnContactAdded(contact);
+
+        return true;
     }
 
-    internal void Leave()
+    internal void Leave(GestureArena arena)
     {
-        _arena = null;
-        Contact = null;
+        int index = _arenas.IndexOf(arena);
+        if (index < 0) return;
+
+        PointerContact contact = _contacts[index];
+
+        _arenas.RemoveAt(index);
+        _contacts.RemoveAt(index);
+
+        OnContactRemoved(contact);
+
+        // последний палец ушёл — распознаватель снова свободен
+        if (_contacts.Count == 0)
+            State = GestureState.Possible;
     }
 
     internal void DispatchDown(PointerEventArgs e) => OnPointerDown(e);

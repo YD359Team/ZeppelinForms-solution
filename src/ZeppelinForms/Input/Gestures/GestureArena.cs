@@ -28,7 +28,7 @@ internal sealed class GestureArena
     public static GestureArena? TryCreate(
         PointerContact contact, Action<PointerContact, PointerCancelReason> onWon)
     {
-        List<GestureRecognizer>? members = null;
+        List<GestureRecognizer>? candidates = null;
 
         // от цели к корню: более конкретный элемент получает право
         // отказаться первым. Предок не должен перехватывать то,
@@ -43,17 +43,35 @@ internal sealed class GestureArena
             {
                 if (!recognizer.IsEnabled) continue;
 
-                members ??= [];
-                members.Add(recognizer);
+                // многоконтактный распознаватель мог набрать своё на прошлых
+                // пальцах: лишний ему не нужен, и мешать остальным он не должен
+                candidates ??= [];
+                candidates.Add(recognizer);
             }
         }
 
-        if (members is null) return null;
+        if (candidates is null) return null;
 
+        List<GestureRecognizer> members = [];
         var arena = new GestureArena(contact, members, onWon);
 
+        foreach (GestureRecognizer recognizer in candidates)
+        {
+            if (recognizer.TryEnter(arena, contact))
+                members.Add(recognizer);
+        }
+
+        if (members.Count == 0) return null;
+
+        // участник мог выиграть ещё на предыдущем пальце: новый контакт
+        // не открывает борьбу заново, он присоединяется к уже выигранному
         foreach (GestureRecognizer recognizer in members)
-            recognizer.Enter(arena, contact);
+        {
+            if (recognizer.State != GestureState.Accepted) continue;
+
+            arena.AdoptWinner(recognizer);
+            break;
+        }
 
         return arena;
     }
@@ -99,11 +117,26 @@ internal sealed class GestureArena
         _onWon(_contact, PointerCancelReason.GestureWon);
     }
 
+    /// <summary>Признать победителем того, кто выиграл в другой арене.
+    /// Борьбы здесь не было — она кончилась раньше, на другом пальце.</summary>
+    internal void AdoptWinner(GestureRecognizer winner)
+    {
+        if (_winner is not null) return;
+
+        _winner = winner;
+
+        foreach (GestureRecognizer recognizer in _members)
+            if (!ReferenceEquals(recognizer, winner))
+                recognizer.LoseToOther();
+
+        _onWon(_contact, PointerCancelReason.GestureWon);
+    }
+
     /// <summary>Контакт кончился штатно.</summary>
     public void Complete()
     {
         foreach (GestureRecognizer recognizer in _members)
-            recognizer.Leave();
+            recognizer.Leave(this);
     }
 
     /// <summary>Контакт оборвали.</summary>
@@ -112,7 +145,7 @@ internal sealed class GestureArena
         foreach (GestureRecognizer recognizer in _members)
         {
             recognizer.CancelExternally();
-            recognizer.Leave();
+            recognizer.Leave(this);
         }
     }
 }
