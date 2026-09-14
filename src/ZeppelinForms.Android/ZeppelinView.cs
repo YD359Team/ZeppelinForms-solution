@@ -22,6 +22,32 @@ public sealed class ZeppelinView : SKCanvasView
         FocusableInTouchMode = true;
     }
 
+    public override WindowInsets? OnApplyWindowInsets(WindowInsets? insets)
+    {
+        if (insets is not null)
+        {
+            // с API 30 есть типизированный запрос; ниже — устаревшие
+            // свойства, но на 24..29 других нет, а вырез там уже бывает
+            if (OperatingSystem.IsAndroidVersionAtLeast(30))
+            {
+                global::Android.Graphics.Insets bars = insets.GetInsets(
+                    WindowInsets.Type.SystemBars() | WindowInsets.Type.DisplayCutout());
+
+                _platform.HandleInsets(bars.Left, bars.Top, bars.Right, bars.Bottom);
+            }
+            else
+            {
+                _platform.HandleInsets(
+                    insets.SystemWindowInsetLeft,
+                    insets.SystemWindowInsetTop,
+                    insets.SystemWindowInsetRight,
+                    insets.SystemWindowInsetBottom);
+            }
+        }
+
+        return base.OnApplyWindowInsets(insets);
+    }
+
     protected override void OnSizeChanged(int w, int h, int oldw, int oldh)
     {
         base.OnSizeChanged(w, h, oldw, oldh);

@@ -25,6 +25,12 @@ public sealed class AndroidPlatform : IPlatform
     private readonly FrameCallback _frameCallback;
 
     private ZeppelinView? _view;
+
+    // отступы под системные панели и вырез, в логических единицах
+    private float _insetLeft;
+    private float _insetTop;
+    private float _insetRight;
+    private float _insetBottom;
     private int _physicalWidth;
     private int _physicalHeight;
     private bool _paintPending;
@@ -119,7 +125,19 @@ public sealed class AndroidPlatform : IPlatform
 
         if (Root is { } root)
         {
-            root.Form.ClientSize = SurfaceSize;
+            Size surface = SurfaceSize;
+
+            // корневая форма живёт внутри безопасной области, а не во всём
+            // окне: при targetSdk 35 Android рисует содержимое под строкой
+            // состояния всегда, и отказаться от этого нельзя.
+            // Сдвиг идёт через Origin, поэтому касания приходят туда же,
+            // куда нарисовано, — ToLocal его вычитает
+            root.Origin = new Point(_insetLeft, _insetTop);
+
+            root.Form.ClientSize = new Size(
+                Math.Max(0, surface.Width - _insetLeft - _insetRight),
+                Math.Max(0, surface.Height - _insetTop - _insetBottom));
+
             root.Form.PerformLayout();
         }
 
@@ -127,6 +145,20 @@ public sealed class AndroidPlatform : IPlatform
             LayoutOverlay(_windows[i]);
 
         Invalidate();
+    }
+
+    /// <summary>Безопасная область изменилась: появилась клавиатура,
+    /// повернули экран, поехала жестовая панель.</summary>
+    internal void HandleInsets(int left, int top, int right, int bottom)
+    {
+        _insetLeft = left / Scale;
+        _insetTop = top / Scale;
+        _insetRight = right / Scale;
+        _insetBottom = bottom / Scale;
+
+        // до первого OnSizeChanged раскладывать нечего
+        if (_physicalWidth > 0)
+            HandleResize(_physicalWidth, _physicalHeight);
     }
 
     private void LayoutOverlay(AndroidWindow window)

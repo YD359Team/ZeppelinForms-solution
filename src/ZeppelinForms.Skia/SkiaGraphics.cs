@@ -428,6 +428,18 @@ public sealed class SkiaGraphics : Graphics
             _ => rect.Y + rect.Height / 2f - bounds.MidY,
         };
 
+        // прямоугольник задаёт не только выравнивание, но и границы:
+        // без клипа надпись, не влезшая в свою коробку, рисуется поверх
+        // соседей. Клип ставим только при переполнении — безусловный
+        // стоил бы Save/Restore на каждую строку в кадре
+        bool clipped = textWidth > rect.Width;
+
+        if (clipped)
+        {
+            Save();
+            ClipRect(rect);
+        }
+
         for (int i = 0; i < line.Runs.Length; i++)
         {
             if (line.GetBlob(i) is { } blob)
@@ -435,6 +447,9 @@ public sealed class SkiaGraphics : Graphics
 
             x += line.Runs[i].Width;
         }
+
+        if (clipped)
+            Restore();
     }
 
     public override void FillPie(Rectangle rect, float startAngle, float sweepAngle, Color color)
