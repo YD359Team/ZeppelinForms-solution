@@ -1,6 +1,7 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Controls.Tools;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Styling;
@@ -75,15 +76,7 @@ public partial class Spoiler : DecoratedWrapControl
         g.FillRectangle(header, _headerHovered ? HeaderHoverColor : HeaderColor);
 
         // треугольник-указатель: вправо когда свёрнут, вниз когда раскрыт
-        float cx = 12f;
-        float cy = HeaderHeight / 2f;
-        const float r = 4f;
-
-        ReadOnlySpan<Point> arrow = IsCollapsed
-            ? [new(cx - r * 0.6f, cy - r), new(cx + r * 0.8f, cy), new(cx - r * 0.6f, cy + r)]
-            : [new(cx - r, cy - r * 0.6f), new(cx, cy + r * 0.8f), new(cx + r, cy - r * 0.6f)];
-
-        g.DrawPolyline(arrow, HeaderTextColor, 1.8f);
+        Glyphs.DrawChevron(g, new Point(12f, HeaderHeight / 2f), 4f, !IsCollapsed, HeaderTextColor);
 
         if (!string.IsNullOrEmpty(Header))
         {

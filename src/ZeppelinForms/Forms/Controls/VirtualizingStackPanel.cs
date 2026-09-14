@@ -44,9 +44,21 @@ public class VirtualizingStackPanel : DecoratedPanel
             Children.RemoveAt(Children.Count - 1);
 
         foreach (UIElement container in _realized.Values)
-            _recycled.Push(container);
+            Recycle(container);
 
         _realized.Clear();
+    }
+
+    /// <summary>Вернуть контейнер в пул — или выбросить, если пул бесполезен.
+    /// Собственный шаблон переиспользованному контейнеру не подходит
+    /// (Reuse умеет только Label), поэтому такие контейнеры никогда
+    /// не достаются обратно, и складывать их значит копить мусор до
+    /// закрытия окна.</summary>
+    private void Recycle(UIElement container)
+    {
+        if (ItemTemplate is not null) return;
+
+        _recycled.Push(container);
     }
 
     private UIElement CreateContainer(object item) =>

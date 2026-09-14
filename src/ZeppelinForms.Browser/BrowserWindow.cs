@@ -151,7 +151,12 @@ internal sealed class BrowserWindow : IPlatformWindow
 
     internal void HandlePointerCancel(int pointerId)
     {
-        if (!_pointerIds.TryGetValue(pointerId, out int mapped)) return;
+        if (!_pointerIds.TryGetValue(pointerId, out int mapped))
+        {
+            // мышь в словарь не попадает: её идентификатор фиксирован
+            _form.OnPointerCancel(Form.MousePointerId);
+            return;
+        }
 
         _form.OnPointerCancel(mapped);
         ForgetPointer(pointerId);

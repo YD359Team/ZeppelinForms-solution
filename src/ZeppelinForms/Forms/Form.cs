@@ -327,6 +327,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     private void DispatchDown(PointerContact contact, UIElement? hit, PointerEventArgs e, bool isNew)
     {
+        // сохранить и вернуть, а не обнулить: RaiseMouseDown может открыть
+        // модальный диалог, тот прокрутит вложенный цикл со своими контактами,
+        // и обнуление в его finally оборвало бы наш кадр
+        PointerContact? previousDispatch = _dispatching;
         _dispatching = contact;
 
         try
@@ -352,7 +356,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
         finally
         {
-            _dispatching = null;
+            _dispatching = previousDispatch;
         }
 
         _ = isNew;
@@ -386,6 +390,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         UIElement[] chain = BuildChain(target);
 
+        // сохранить и вернуть, а не обнулить: RaiseMouseDown может открыть
+        // модальный диалог, тот прокрутит вложенный цикл со своими контактами,
+        // и обнуление в его finally оборвало бы наш кадр
+        PointerContact? previousDispatch = _dispatching;
         _dispatching = contact;
 
         try
@@ -453,7 +461,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
         finally
         {
-            _dispatching = null;
+            _dispatching = previousDispatch;
         }
     }
 
@@ -478,6 +486,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         UIElement? hit = HitTestAll(e.Location);
 
+        // сохранить и вернуть, а не обнулить: RaiseMouseDown может открыть
+        // модальный диалог, тот прокрутит вложенный цикл со своими контактами,
+        // и обнуление в его finally оборвало бы наш кадр
+        PointerContact? previousDispatch = _dispatching;
         _dispatching = contact;
 
         try
@@ -527,7 +539,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
         finally
         {
-            _dispatching = null;
+            _dispatching = previousDispatch;
         }
 
         contact.Buttons &= ~e.Button.ToFlag();
@@ -639,7 +651,15 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         // так работает старый код, звавший CaptureMouse из таймера
         PointerContact? contact = _dispatching ?? PrimaryContact;
 
-        if (contact is null) return;
+        if (contact is null)
+        {
+            // до 0.11 захват брался безусловно, поэтому тихий отказ здесь —
+            // это молча сломанное перетаскивание у того, кто позвал
+            // CaptureMouse не из обработчика нажатия
+            ZfContract.Require(false, "CaptureMouse вне живого контакта: захватывать нечего.");
+            return;
+        }
+
         if (ReferenceEquals(contact.Capture, element)) return;
 
         if (contact.Capture is null && _platformCaptureCount++ == 0)
@@ -1654,5 +1674,12 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     {
         App.ThemeChanged -= OnThemeChanged;
         _toolTipTimer?.Dispose();
+
+        // контакт держит Chain — весь путь от корня до нажатого элемента.
+        // Форму могли закрыть посреди перетаскивания, и тогда отпускание
+        // не придёт никогда
+        _contacts.Clear();
+        _primaryContactId = null;
+        _platformCaptureCount = 0;
     }
 }
