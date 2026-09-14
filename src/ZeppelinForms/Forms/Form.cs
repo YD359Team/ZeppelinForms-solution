@@ -358,6 +358,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         _ = isNew;
     }
 
+    internal void OnPointerDown(Point point, MouseButton button = MouseButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
+    OnPointerDown(new PointerEventArgs(
+        MousePointerId, PointerKind.Mouse, point, button, 1f, modifiers));
+
     internal void OnPointerUp(Point point, MouseButton button = MouseButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
         OnPointerUp(new PointerEventArgs(
             MousePointerId, PointerKind.Mouse, point, button, 1f, modifiers));
