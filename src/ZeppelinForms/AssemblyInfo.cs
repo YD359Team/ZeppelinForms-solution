@@ -3,4 +3,5 @@
 [assembly: InternalsVisibleTo("ZeppelinForms.Windows")]
 [assembly: InternalsVisibleTo("ZeppelinForms.Linux")]
 [assembly: InternalsVisibleTo("ZeppelinForms.Browser")]
+[assembly: InternalsVisibleTo("ZeppelinForms.Android")]
 [assembly: InternalsVisibleTo("ZeppelinForms.Skia")]
