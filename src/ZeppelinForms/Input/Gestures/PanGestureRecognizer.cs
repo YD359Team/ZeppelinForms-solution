@@ -10,7 +10,8 @@ public enum PanDirection
     Vertical,
 }
 
-public sealed record class PanGestureEventArgs(Point Location, Point Delta, Point TotalOffset);
+public sealed record class PanGestureEventArgs(
+    Point Location, Point Delta, Point TotalOffset, Point DownLocation);
 
 /// <summary>Перетаскивание после преодоления порога срыва.</summary>
 public sealed class PanGestureRecognizer : GestureRecognizer
@@ -68,6 +69,10 @@ public sealed class PanGestureRecognizer : GestureRecognizer
 
         Accept();
 
+        // с этого момента жест наш, и отпускание за пределами окна
+        // обязано до нас дойти
+        CaptureContact();
+
         // старт отсчитываем от точки нажатия, а не от текущей: порог —
         // это задержка распознавания, а не потерянное расстояние
         _last = contact.DownLocation;
@@ -89,5 +94,6 @@ public sealed class PanGestureRecognizer : GestureRecognizer
         new Point(contact.Location.X - _last.X, contact.Location.Y - _last.Y),
         new Point(
             contact.Location.X - contact.DownLocation.X,
-            contact.Location.Y - contact.DownLocation.Y));
+            contact.Location.Y - contact.DownLocation.Y),
+        contact.DownLocation);
 }

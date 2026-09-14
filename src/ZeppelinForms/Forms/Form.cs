@@ -1431,6 +1431,31 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             Timeout.Infinite);
     }
 
+    /// <summary>Выполнить действие через задержку в потоке UI.</summary>
+    /// <returns>Отмена: освободите результат, чтобы вызова не было.</returns>
+    /// <remarks>
+    /// Отмена и срабатывание — это гонка: будильник мог уже уйти в очередь
+    /// UI к моменту, когда его отменяют. Поэтому вызываемый код обязан
+    /// сам проверить, актуален ли он ещё, а не полагаться на Dispose.
+    /// </remarks>
+    internal IDisposable Schedule(int delayMs, Action action)
+    {
+        System.Threading.Timer? timer = null;
+
+        timer = new System.Threading.Timer(
+            _ =>
+            {
+                // таймер тикает на потоке пула — маршалим, как и подсказки
+                Invoke(action);
+                timer?.Dispose();
+            },
+            null,
+            delayMs,
+            Timeout.Infinite);
+
+        return timer;
+    }
+
     // Вызывается на потоке пула — обязательно маршалим на UI-поток
     private void OnToolTipTimerElapsed(object? state) => Invoke(ShowToolTipCore);
 

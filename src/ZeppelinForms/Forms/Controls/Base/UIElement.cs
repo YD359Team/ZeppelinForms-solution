@@ -1067,6 +1067,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     /// <summary>Изменилась геометрия — нужен полный пересчёт и перерисовка.</summary>
     protected internal void Invalidate() => FindOwner()?.Invalidate();
 
+    /// <summary>Захват от имени распознавателя. Отдельный вход потому,
+    /// что CaptureMouse защищённый: снаружи элемента его не позвать,
+    /// а распознаватель живёт снаружи.</summary>
+    internal void CaptureForGesture() => FindOwner()?.CaptureMouse(this);
+
     protected void CaptureMouse() => FindOwner()?.CaptureMouse(this);
 
     protected void ReleaseMouseCapture() => FindOwner()?.ReleaseMouseCapture(this);
