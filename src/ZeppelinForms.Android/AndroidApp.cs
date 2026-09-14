@@ -54,13 +54,32 @@ public static class AndroidApp
             if (Path.GetDirectoryName(target) is { Length: > 0 } directory)
                 Directory.CreateDirectory(directory);
 
-            // перезаписываем всегда, а не только когда файла нет:
-            // обновление приложения меняет содержимое ресурса, оставляя
-            // имя прежним, и уцелевшая копия была бы от старой версии
-            using Stream source = manager.Open($"Assets/{name}");
+            // имя без префикса: AndroidAssetsPrefix (по умолчанию "Assets")
+            // срезается при упаковке, и внутри APK ресурс лежит в корне
+            // assets под тем же относительным именем, которое ждёт LoadAsset
+            using Stream source = OpenAsset(manager, name);
             using FileStream destination = File.Create(target);
 
             source.CopyTo(destination);
+        }
+    }
+
+    /// <summary>Открыть ресурс APK, а при неудаче — сказать, что там есть
+    /// на самом деле. Раскладка внутри APK зависит от свойств сборки,
+    /// и голый FileNotFoundException про неё не говорит ничего.</summary>
+    private static Stream OpenAsset(AssetManager manager, string name)
+    {
+        try
+        {
+            return manager.Open(name);
+        }
+        catch (Java.IO.FileNotFoundException)
+        {
+            string[] actual = manager.List(string.Empty) ?? [];
+
+            throw new FileNotFoundException(
+                $"Ресурс \"{name}\" не найден в APK. В корне assets лежит: " +
+                $"{(actual.Length == 0 ? "ничего" : string.Join(", ", actual))}.");
         }
     }
 }

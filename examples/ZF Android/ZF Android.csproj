@@ -19,9 +19,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- ресурсы общие с остальными примерами. AndroidAsset кладёт их
-         в APK под assets/Assets/..., откуда AndroidApp.Unpack достаёт
-         их по тем же относительным именам, что ждёт Image.LoadAsset -->
+		<!-- ресурсы общие с остальными примерами. AndroidAssetsPrefix (по
+         умолчанию "Assets") срезается при упаковке, поэтому в APK они
+         попадают в корень assets под теми же относительными именами,
+         которые ждёт Image.LoadAsset -->
 		<AndroidAsset Include="..\ZF SharedLib\Assets\**\*" Link="Assets\%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
