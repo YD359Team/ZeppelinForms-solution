@@ -7,11 +7,13 @@ public sealed class X11DisplayProvider : IDisplayProvider
 {
     private readonly nint _display;
     private readonly float _scale;
+    private readonly float _dpi;
 
-    internal X11DisplayProvider(nint display, float scale)
+    internal X11DisplayProvider(nint display, float scale, float dpi)
     {
         _display = display;
         _scale = scale;
+        _dpi = dpi;
     }
 
     public IReadOnlyList<DisplayInfo> GetDisplays()
@@ -56,6 +58,7 @@ public sealed class X11DisplayProvider : IDisplayProvider
                                 // поэтому берём полную
                                 WorkingArea = bounds,
                                 Scale = _scale,
+                                Dpi = _dpi,
                                 IsPrimary = displays.Count == 0,
                                 Name = $"CRTC{i}",
                             });
@@ -91,6 +94,7 @@ public sealed class X11DisplayProvider : IDisplayProvider
                 Bounds = single,
                 WorkingArea = single,
                 Scale = _scale,
+                Dpi = _dpi,
                 IsPrimary = true,
             },
         ];

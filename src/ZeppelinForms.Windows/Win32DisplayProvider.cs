@@ -24,16 +24,24 @@ public sealed class Win32DisplayProvider : IDisplayProvider
                 return true;
 
             float scale = 1f;
+            float dpi = 96f;
 
             // MDT_EFFECTIVE_DPI = 0
             if (NativeMethods.GetDpiForMonitor(monitor, 0, out uint dpiX, out _) == 0 && dpiX > 0)
+            {
+                dpi = dpiX;
                 scale = dpiX / 96f;
+            }
 
             displays.Add(new DisplayInfo
             {
                 Bounds = ToRectangle(info.rcMonitor),
                 WorkingArea = ToRectangle(info.rcWork),
                 Scale = scale,
+                // на Windows эффективный DPI и есть плотность, которую
+                // система считает правдой: ни округления, ни базы, отличной
+                // от 96, здесь нет, поэтому Dpi и Scale связаны жёстко
+                Dpi = dpi,
                 IsPrimary = (info.dwFlags & NativeConstants.MONITORINFOF_PRIMARY) != 0,
                 Name = info.szDevice,
             });
@@ -62,6 +70,7 @@ public sealed class Win32DisplayProvider : IDisplayProvider
             Bounds = bounds,
             WorkingArea = bounds,
             Scale = 1f,
+            Dpi = 96f,
             IsPrimary = true,
         };
     }

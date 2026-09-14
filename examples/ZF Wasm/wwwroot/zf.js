@@ -44,22 +44,44 @@ export function init(canvasId) {
     canvas.style.outline = "none";
     canvas.focus();
 
-    canvas.addEventListener("pointermove", e => zf().OnPointerMove(localX(e), localY(e), modifiers(e)));
+    // без этого браузер оставляет себе прокрутку и щипок: первое же
+    // движение пальцем уходит ему, а нам приходит pointercancel
+    canvas.style.touchAction = "none";
+
+    // 0 — мышь, 1 — касание, 2 — перо
+    function pointerKind(e) {
+        if (e.pointerType === "touch") return 1;
+        if (e.pointerType === "pen") return 2;
+        return 0;
+    }
+
+    canvas.addEventListener("pointermove", e => zf().OnPointerMove(
+        localX(e), localY(e), e.pointerId, pointerKind(e), e.pressure, e.timeStamp, modifiers(e)));
 
     canvas.addEventListener("pointerdown", e => {
         // без захвата браузер обрывает перетаскивание, едва курсор
         // уходит за canvas, и кнопка залипает нажатой
         canvas.setPointerCapture(e.pointerId);
         canvas.focus();
-        zf().OnPointerDown(localX(e), localY(e), e.button, modifiers(e));
+        zf().OnPointerDown(
+            localX(e), localY(e), e.pointerId, pointerKind(e), e.button, e.pressure, e.timeStamp, modifiers(e));
     });
 
     canvas.addEventListener("pointerup", e => {
         canvas.releasePointerCapture(e.pointerId);
-        zf().OnPointerUp(localX(e), localY(e), e.button, modifiers(e));
+        zf().OnPointerUp(
+            localX(e), localY(e), e.pointerId, pointerKind(e), e.button, e.pressure, e.timeStamp, modifiers(e));
     });
 
-    canvas.addEventListener("pointerleave", () => zf().OnPointerLeave());
+    // контакт забрала система: жест оболочки, свайп «назад», входящий звонок
+    canvas.addEventListener("pointercancel", e => zf().OnPointerCancel(e.pointerId));
+
+    // уход курсора — понятие мыши; у касания pointerleave приходит
+    // следом за каждым pointerup и наведение сбрасывать не должен
+    canvas.addEventListener("pointerleave", e => {
+        if (e.pointerType === "touch") return;
+        zf().OnPointerLeave();
+    });
 
     canvas.addEventListener("wheel", e => {
         e.preventDefault();

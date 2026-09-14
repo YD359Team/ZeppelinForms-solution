@@ -56,6 +56,7 @@ public static class Displays
                 Bounds = new Rectangle(Point.Empty, new Size(1920, 1080)),
                 WorkingArea = new Rectangle(Point.Empty, new Size(1920, 1040)),
                 Scale = 1f,
+                Dpi = 96f,
                 IsPrimary = true,
                 Name = "Default",
             },

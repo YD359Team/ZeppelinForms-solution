@@ -3,6 +3,7 @@ using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
+using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Browser;
 
@@ -74,14 +75,94 @@ internal sealed class BrowserWindow : IPlatformWindow
     private Point ToLocal(double x, double y) =>
         new((float)x - Origin.X, (float)y - Origin.Y);
 
-    internal void HandlePointerMove(double x, double y, int modifiers) =>
-        _form.OnPointerMove(ToLocal(x, y), (KeyModifiers)modifiers);
+    // ==== ввод ====
+    // Точки приходят в координатах холста; форма ждёт свои, поэтому
+    // из каждой вычитается Origin. У нижней формы он нулевой.
 
-    internal void HandlePointerDown(double x, double y, int button, int modifiers) =>
-        _form.OnPointerDown(ToLocal(x, y), ToButton(button), (KeyModifiers)modifiers);
+    private Point ToLocal(double x, double y) =>
+        new((float)x - Origin.X, (float)y - Origin.Y);
 
-    internal void HandlePointerUp(double x, double y, int button, int modifiers) =>
-        _form.OnPointerUp(ToLocal(x, y), ToButton(button), (KeyModifiers)modifiers);
+    /// <summary>Идентификаторы касаний браузера произвольны и могут совпасть
+    /// с Form.MousePointerId. Раздаём свои, начиная с десяти, и держим
+    /// соответствие, пока контакт жив.</summary>
+    private readonly Dictionary<int, int> _pointerIds = [];
+    private int _nextPointerId = 10;
+
+    /// <summary>Сдвиг между временем браузера (от начала загрузки страницы)
+    /// и Environment.TickCount64, которым живёт Form. Берётся по первому
+    /// событию: сравнивать между собой можно только однородные величины,
+    /// а длительность удержания считается именно вычитанием.</summary>
+    private long? _timeOffset;
+
+    private long ToTicks(double timestampMs)
+    {
+        _timeOffset ??= Environment.TickCount64 - (long)timestampMs;
+        return _timeOffset.Value + (long)timestampMs;
+    }
+
+    private static PointerKind ToKind(int kind) => kind switch
+    {
+        1 => PointerKind.Touch,
+        2 => PointerKind.Pen,
+        _ => PointerKind.Mouse,
+    };
+
+    private int MapPointerId(int browserId, PointerKind kind)
+    {
+        if (kind == PointerKind.Mouse) return Form.MousePointerId;
+
+        if (_pointerIds.TryGetValue(browserId, out int mapped)) return mapped;
+
+        mapped = _nextPointerId++;
+        _pointerIds[browserId] = mapped;
+
+        return mapped;
+    }
+
+    private void ForgetPointer(int browserId) => _pointerIds.Remove(browserId);
+
+    private PointerEventArgs ToArgs(
+        double x, double y, int browserId, int kind, int button, double pressure, double timestampMs, int modifiers)
+    {
+        PointerKind pointerKind = ToKind(kind);
+
+        return new PointerEventArgs(
+            MapPointerId(browserId, pointerKind),
+            pointerKind,
+            ToLocal(x, y),
+            ToButton(button),
+            (float)pressure,
+            (KeyModifiers)modifiers)
+        {
+            Timestamp = ToTicks(timestampMs),
+        };
+    }
+
+    internal void HandlePointerMove(
+        double x, double y, int pointerId, int kind, double pressure, double timestampMs, int modifiers) =>
+        _form.OnPointerMove(ToArgs(x, y, pointerId, kind, 0, pressure, timestampMs, modifiers));
+
+    internal void HandlePointerDown(
+        double x, double y, int pointerId, int kind, int button, double pressure, double timestampMs, int modifiers) =>
+        _form.OnPointerDown(ToArgs(x, y, pointerId, kind, button, pressure, timestampMs, modifiers));
+
+    internal void HandlePointerUp(
+        double x, double y, int pointerId, int kind, int button, double pressure, double timestampMs, int modifiers)
+    {
+        _form.OnPointerUp(ToArgs(x, y, pointerId, kind, button, pressure, timestampMs, modifiers));
+
+        // отпущенный палец больше не вернётся под этим идентификатором,
+        // иначе словарь рос бы всю жизнь страницы
+        ForgetPointer(pointerId);
+    }
+
+    internal void HandlePointerCancel(int pointerId)
+    {
+        if (!_pointerIds.TryGetValue(pointerId, out int mapped)) return;
+
+        _form.OnPointerCancel(mapped);
+        ForgetPointer(pointerId);
+    }
 
     internal void HandlePointerLeave()
     {

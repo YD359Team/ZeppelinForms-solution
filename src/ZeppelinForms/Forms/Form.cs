@@ -204,9 +204,8 @@ public class Form : IDisposable
     private readonly FocusDispatcher _focusDispatcher = new();
 
     /// <summary>Идентификатор мыши. Единица, а не ноль — так же нумерует
-    /// мышь W3C Pointer Events, и браузерный бэкенд сможет отдавать
-    /// pointerId как есть.</summary>
-    internal const int MousePointerId = 1;
+    /// мышь W3C Pointer Events, и браузерный бэкенд отдаёт pointerId как есть.</summary>
+    public const int MousePointerId = 1;
 
     /// <summary>Живые контакты по идентификатору. Пуст, пока ничего
     /// не нажато: у большинства форм он таким и остаётся.</summary>

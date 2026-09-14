@@ -25,6 +25,27 @@ internal static class X11Dpi
         return 1f;
     }
 
+    /// <summary>Плотность пикселей без округления до четверти и без зажима
+    /// в [1, 4] — в отличие от GetScale, которая специально огрубляет
+    /// результат, чтобы интерфейс не рисовался вкривь. Порогам жестов
+    /// нужна сырая плотность.</summary>
+    public static float GetDpi(nint display, int screen)
+    {
+        if (TryFromResources(display, out float fromResources))
+            return fromResources;
+
+        if (TryFromPhysicalSize(display, screen, out float fromPhysical))
+            return fromPhysical;
+
+        // переменные окружения задают масштаб, а не плотность:
+        // восстанавливаем её обратной операцией — врать так врать
+        // последовательно с тем, что вернёт GetScale
+        if (TryFromEnvironment(out float fromEnv))
+            return fromEnv * BaseDpi;
+
+        return BaseDpi;
+    }
+
     private static bool TryFromResources(nint display, out float dpi)
     {
         dpi = 0;

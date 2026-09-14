@@ -95,17 +95,27 @@ internal static partial class Interop
     internal static void OnResize(int physicalWidth, int physicalHeight, double scale) =>
         Platform?.HandleResize(physicalWidth, physicalHeight, (float)scale);
 
+    /// <summary>kind: 0 — мышь, 1 — касание, 2 — перо. timestampMs — время
+    /// браузера от начала загрузки страницы, не TickCount64: приводит его
+    /// BrowserWindow, здесь оно идёт как есть.</summary>
     [JSExport]
-    internal static void OnPointerMove(double x, double y, int modifiers) =>
-        Platform?.InputTarget()?.HandlePointerMove(x, y, modifiers);
+    internal static void OnPointerMove(
+        double x, double y, int pointerId, int kind, double pressure, double timestampMs, int modifiers) =>
+        Platform?.InputTarget()?.HandlePointerMove(x, y, pointerId, kind, pressure, timestampMs, modifiers);
 
     [JSExport]
-    internal static void OnPointerDown(double x, double y, int button, int modifiers) =>
-        Platform?.InputTarget()?.HandlePointerDown(x, y, button, modifiers);
+    internal static void OnPointerDown(
+        double x, double y, int pointerId, int kind, int button, double pressure, double timestampMs, int modifiers) =>
+        Platform?.InputTarget()?.HandlePointerDown(x, y, pointerId, kind, button, pressure, timestampMs, modifiers);
 
     [JSExport]
-    internal static void OnPointerUp(double x, double y, int button, int modifiers) =>
-        Platform?.InputTarget()?.HandlePointerUp(x, y, button, modifiers);
+    internal static void OnPointerUp(
+        double x, double y, int pointerId, int kind, int button, double pressure, double timestampMs, int modifiers) =>
+        Platform?.InputTarget()?.HandlePointerUp(x, y, pointerId, kind, button, pressure, timestampMs, modifiers);
+
+    [JSExport]
+    internal static void OnPointerCancel(int pointerId) =>
+        Platform?.InputTarget()?.HandlePointerCancel(pointerId);
 
     [JSExport]
     internal static void OnPointerLeave() => Platform?.InputTarget()?.HandlePointerLeave();
