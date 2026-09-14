@@ -5,6 +5,11 @@
     <File Path=".github/workflows/release.yml" />
     <File Path="bench.yml" />
   </Folder>
+  <Folder Name="/assets/">
+    <File Path="assets/Logo-0.10.0.jpg" />
+    <File Path="assets/Logo-0.9.0.jpg" />
+    <File Path="assets/ZF_medium.jpg" />
+  </Folder>
   <Folder Name="/bench/">
     <Project Path="bench/ZeppelinForms.Benchmarks/ZeppelinForms.Benchmarks.csproj" />
   </Folder>
@@ -33,6 +38,5 @@
     <File Path="global.json" />
     <File Path="LICENSE.txt" />
     <File Path="README.md" />
-    <File Path="ZF_medium.png" />
   </Folder>
 </Solution>

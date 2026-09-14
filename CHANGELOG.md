@@ -1,5 +1,11 @@
 # Changes
 
+## [0.11.0] - Atlantida
+
+![Atlantida](assets/Logo-0.10.0.jpg)
+
+
+
 ## [0.10.0] - Hyperborea
 
 ![Hyperborea](assets/Logo-0.10.0.jpg)
