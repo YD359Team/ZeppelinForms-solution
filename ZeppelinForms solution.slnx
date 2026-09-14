@@ -21,6 +21,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/ZeppelinForms.Analyzers/ZeppelinForms.Analyzers.csproj" />
+    <Project Path="src/ZeppelinForms.Android/ZeppelinForms.Android.csproj" />
     <Project Path="src/ZeppelinForms.Browser/ZeppelinForms.Browser.csproj" />
     <Project Path="src/ZeppelinForms.Linux/ZeppelinForms.Linux.csproj" />
     <Project Path="src/ZeppelinForms.Skia/ZeppelinForms.Skia.csproj" />

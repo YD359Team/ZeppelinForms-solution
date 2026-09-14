@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0-android</TargetFramework>
+		<!-- 24 — нижняя граница, на которой Choreographer и MotionEvent
+		     ведут себя так, как здесь предполагается -->
+		<SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+		<OutputType>Library</OutputType>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\ZeppelinForms\ZeppelinForms.csproj" />
+		<ProjectReference Include="..\ZeppelinForms.Skia\ZeppelinForms.Skia.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="SkiaSharp" />
+		<PackageReference Include="SkiaSharp.Views" />
+	</ItemGroup>
+
+</Project>
