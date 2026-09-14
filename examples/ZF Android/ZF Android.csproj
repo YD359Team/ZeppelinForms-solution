@@ -1,11 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net11.0</TargetFramework>
-    <RootNamespace>ZF_Android</RootNamespace>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net10.0-android</TargetFramework>
+		<SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>ZF_Android</RootNamespace>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<ApplicationId>com.yd359.zeppelinforms.example</ApplicationId>
+		<ApplicationVersion>1</ApplicationVersion>
+		<ApplicationDisplayVersion>0.11.0</ApplicationDisplayVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\ZeppelinForms.Android\ZeppelinForms.Android.csproj" />
+		<ProjectReference Include="..\ZF SharedLib\ZF SharedLib.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- ресурсы общие с остальными примерами. AndroidAsset кладёт их
+         в APK под assets/Assets/..., откуда AndroidApp.Unpack достаёт
+         их по тем же относительным именам, что ждёт Image.LoadAsset -->
+		<AndroidAsset Include="..\ZF SharedLib\Assets\**\*" Link="Assets\%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
 
 </Project>
