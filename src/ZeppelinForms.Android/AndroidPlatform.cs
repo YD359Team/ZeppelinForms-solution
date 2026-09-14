@@ -34,6 +34,8 @@ public sealed class AndroidPlatform : IPlatform
     private bool _paintPending;
     private bool _frameScheduled;
 
+    private int _probeFrames = 10;
+
     private AndroidPlatform(Activity activity)
     {
         _activity = activity;
@@ -70,9 +72,21 @@ public sealed class AndroidPlatform : IPlatform
             Scale = _activity.Resources?.DisplayMetrics?.Density ?? 1f;
 
             _view = new ZeppelinView(_activity, this);
+
+            // явно, а не полагаясь на умолчание SetContentView: SKCanvasView
+            // приносит свои LayoutParams, и при WRAP_CONTENT умолчательный
+            // View.onMeasure меряет его в ноль на ноль — визуально это
+            // неотличимо от неработающего рисования
+            _view.LayoutParameters = new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MatchParent,
+                ViewGroup.LayoutParams.MatchParent);
+
             _activity.SetContentView(_view);
 
             // размер придёт в OnSizeChanged: до него раскладывать нечего
+
+            System.Diagnostics.Debug.WriteLine(
+                $"ZF: SetContentView выполнен, масштаб {Scale}");
         }
         else
         {
@@ -253,6 +267,17 @@ public sealed class AndroidPlatform : IPlatform
 
     private void HandleFrame(long frameTimeNanos)
     {
+        if (_probeFrames > 0 && _view is not null)
+        {
+            _probeFrames--;
+
+            System.Diagnostics.Debug.WriteLine(
+                $"ZF: вью attached={_view.IsAttachedToWindow} " +
+                $"размер={_view.Width}x{_view.Height} " +
+                $"родитель={_view.Parent?.GetType().Name ?? "нет"} " +
+                $"видимость={_view.Visibility}");
+        }
+
         _frameScheduled = false;
 
         double timestampMs = frameTimeNanos / 1_000_000.0;

@@ -20,6 +20,8 @@ public sealed class ZeppelinView : SKCanvasView
 
         Focusable = true;
         FocusableInTouchMode = true;
+
+        System.Diagnostics.Debug.WriteLine("ZF: ZeppelinView создан");
     }
 
     public override WindowInsets? OnApplyWindowInsets(WindowInsets? insets)
