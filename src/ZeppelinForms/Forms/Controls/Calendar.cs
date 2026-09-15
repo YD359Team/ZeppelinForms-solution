@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -9,6 +10,28 @@ namespace ZeppelinForms.Forms.Controls;
 
 public partial class Calendar : DecoratedControl
 {
+    /// <summary>Культура для названий месяца, подписей дней и первого дня
+    /// недели. Null — текущая культура потока.</summary>
+    public CultureInfo? Culture
+    {
+        get;
+        set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            field = value;
+            _dayNamesCulture = null;
+            Invalidate();
+        }
+    }
+
+    private CultureInfo EffectiveCulture => Culture ?? CultureInfo.CurrentCulture;
+
+    // подписи считаются на каждый кадр, а смена культуры — событие редкое
+    private CultureInfo? _dayNamesCulture;
+    private string[]? _abbreviatedDayNames;
+    private string[]? _shortestDayNames;
+
     // эталонная сетка: размеры, при которых календарь читается без сжатия
     private const float ReferenceHeaderHeight = 28f;
     private const float ReferenceDayOfWeekHeight = 20f;
@@ -111,8 +134,45 @@ public partial class Calendar : DecoratedControl
         get
         {
             var first = new DateTime(_displayMonth.Year, _displayMonth.Month, 1);
-            int shift = ((int)first.DayOfWeek + 6) % 7;   // неделя с понедельника
+
+            // первый день недели задаёт культура: понедельник в России,
+            // воскресенье в США, суббота в части арабских стран
+            int shift = (((int)first.DayOfWeek - (int)EffectiveCulture.DateTimeFormat.FirstDayOfWeek) + 7) % 7;
+
             return first.AddDays(-shift);
+        }
+    }
+
+    /// <summary>Подписи дней, начиная с первого дня недели культуры.</summary>
+    /// <remarks>
+    /// В .NET массивы дней всегда начинаются с воскресенья независимо
+    /// от культуры, поэтому их надо провернуть на её первый день —
+    /// иначе подписи разойдутся с колонками.
+    /// </remarks>
+    private string[] GetDayNames(bool shortest)
+    {
+        CultureInfo culture = EffectiveCulture;
+
+        if (!ReferenceEquals(_dayNamesCulture, culture))
+        {
+            DateTimeFormatInfo format = culture.DateTimeFormat;
+
+            _abbreviatedDayNames = Rotate(format.AbbreviatedDayNames, format.FirstDayOfWeek);
+            _shortestDayNames = Rotate(format.ShortestDayNames, format.FirstDayOfWeek);
+            _dayNamesCulture = culture;
+        }
+
+        return (shortest ? _shortestDayNames : _abbreviatedDayNames)!;
+
+        static string[] Rotate(string[] source, DayOfWeek firstDay)
+        {
+            var names = new string[Columns];
+            int start = (int)firstDay;
+
+            for (int i = 0; i < Columns; i++)
+                names[i] = source[(start + i) % 7];
+
+            return names;
         }
     }
 
@@ -160,15 +220,25 @@ public partial class Calendar : DecoratedControl
             // и прямоугольник ушёл бы в минус
             new Size(Math.Max(0, content.Width - (2 * layout.ArrowWidth)), lineHeight));
 
-        g.DrawText($"{_displayMonth:MMMM yyyy}", monthRect, TextColor, font,
+        g.DrawText(_displayMonth.ToString("MMMM yyyy", EffectiveCulture), monthRect, TextColor, font,
             HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
-        // на узкой сетке двухбуквенные подписи не влезают, и обрезанные
-        // «П» с половиной второй буквы читаются хуже, чем честная одна
-        string[] dayNames =
-            TextMeasurer.Current.MeasureText("Пн", font).Width <= layout.Cell.Width
-                ? ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
-                : ["П", "В", "С", "Ч", "П", "С", "В"];
+        string[] abbreviated = GetDayNames(shortest: false);
+
+        // сокращения либо влезают все, либо меняются все: разнобой из
+        // «Пн» и «В» в одной строке выглядит поломкой, а не экономией.
+        // Обрезанное DrawText'ом «понед» читается хуже честной одной буквы
+        bool fits = true;
+
+        foreach (string name in abbreviated)
+        {
+            if (TextMeasurer.Current.MeasureText(name, font).Width <= layout.Cell.Width) continue;
+
+            fits = false;
+            break;
+        }
+
+        string[] dayNames = fits ? abbreviated : GetDayNames(shortest: true);
 
         for (int i = 0; i < Columns; i++)
         {
