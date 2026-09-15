@@ -3,6 +3,7 @@
 	<PropertyGroup>
 		<TargetFramework>net10.0-android</TargetFramework>
 		<SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+		<TargetPlatformVersion>36.0</TargetPlatformVersion>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>ZF_Android</RootNamespace>
 		<ImplicitUsings>enable</ImplicitUsings>

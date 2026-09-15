@@ -59,22 +59,27 @@ public sealed class ZeppelinView : SKCanvasView
                     WindowInsets.Type.SystemBars() | WindowInsets.Type.DisplayCutout());
 
                 _platform.HandleInsets(bars.Left, bars.Top, bars.Right, bars.Bottom);
+
+                // клавиатура — отдельный отступ, а не часть системных панелей:
+                // под ней форму надо ужать, а не просто отодвинуть от края,
+                // и высота её меняется независимо от вырезов
+                global::Android.Graphics.Insets ime = insets.GetInsets(WindowInsets.Type.Ime());
+
+                _platform.HandleKeyboardInset(ime.Bottom);
             }
             else
             {
+                // до API 30 отдельного запроса про IME нет вовсе: при
+                // adjustResize система сама вычитает клавиатуру из системных
+                // отступов, и они приходят уже с её учётом
                 _platform.HandleInsets(
                     insets.SystemWindowInsetLeft,
                     insets.SystemWindowInsetTop,
                     insets.SystemWindowInsetRight,
                     insets.SystemWindowInsetBottom);
+
+                _platform.HandleKeyboardInset(0);
             }
-
-            // клавиатура — отдельный отступ, а не часть системных панелей:
-            // под ней форму надо ужать, а не просто отодвинуть от края,
-            // и высота её меняется независимо от вырезов
-            global::Android.Graphics.Insets ime = insets.GetInsets(WindowInsets.Type.Ime());
-
-            _platform.HandleKeyboardInset(ime.Bottom);
         }
 
         return base.OnApplyWindowInsets(insets);
