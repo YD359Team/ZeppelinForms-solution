@@ -121,6 +121,27 @@ internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
     internal void HandleTouchCancel(int pointerId, MotionEventToolType toolType) =>
         _form.OnPointerCancel(MapPointerId(pointerId, ToKind(toolType)));
 
+    /// <summary>Колесо подключённой мыши.</summary>
+    internal void HandleWheel(float x, float y, int delta, int horizontalDelta) =>
+        _form.OnMouseWheel(ToLocal(x, y), delta, horizontalDelta);
+
+    /// <summary>Курсор поехал без нажатия. Только у мыши: у касания
+    /// состояния «над элементом» не бывает, и синтезировать его нельзя —
+    /// иначе подсветка залипнет после отпускания пальца.</summary>
+    internal void HandleHoverMove(float x, float y, long timestamp) =>
+        _form.OnPointerMove(new PointerEventArgs(
+            Form.MousePointerId,
+            PointerKind.Mouse,
+            ToLocal(x, y),
+            MouseButton.Left,
+            0f)
+        {
+            Timestamp = timestamp,
+        });
+
+    /// <summary>Курсор ушёл за пределы окна.</summary>
+    internal void HandlePointerLeave() => _form.OnPointerLeaveWindow();
+
     // ==== остальное из контракта ====
 
     /// <summary>Захват на Android не нужен: касание и так доставляется
