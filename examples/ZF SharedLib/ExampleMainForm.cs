@@ -15,6 +15,7 @@ using ZeppelinForms.Forms.Controls.Map;
 using ZeppelinForms.Forms.Controls.Navigation;
 using ZeppelinForms.Forms.Controls.Shapes;
 using ZeppelinForms.Forms.Controls.Text;
+using ZeppelinForms.Forms.Controls.Tree;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.DragDrop;
 using ZF_SharedLib.Models;
@@ -612,7 +613,7 @@ public class ExampleMainForm : Form
                     Width = GridLength.Fixed(90),
                     Align = HorizontalContentAlignment.Center,
                     Value = item => ((Game)item).Completed,
-                    Format = value => (bool)value! ? "да" : "нет",
+                    Format = value => (bool)value! ? "Yes" : "No",
                 },
             },
         };
@@ -622,7 +623,10 @@ public class ExampleMainForm : Form
         dataGrid.SelectionChanged += (_, item) =>
             selection.Text = item is Game game
                 ? $"{game.Title} — {game.Developer}, {game.Year}"
-                : "Выделите строку";
+                : "Select row";
+
+        TreeView treeView = new TreeView();
+
 
         return new StackPanel
         {
