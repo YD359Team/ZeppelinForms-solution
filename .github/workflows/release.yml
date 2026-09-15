@@ -18,8 +18,8 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Установка workload wasm-tools
-        run: dotnet workload install wasm-tools
+      - name: Установка workload
+        run: dotnet workload install wasm-tools android
 
       - run: sudo apt-get update && sudo apt-get install -y libfontconfig1
       - run: dotnet test --configuration Release
