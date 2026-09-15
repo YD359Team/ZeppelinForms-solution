@@ -151,8 +151,14 @@ public class ExampleMainForm : Form
             .. GetPlotControls()
         ];
         adaptiveLayout.Content = size => size == SizeClass.Compact
-        ? new StackPanel() { Orientation = Orientation.Vertical, Spacing = 5 }.With(x => x.Children.AddRange(controls))
-        : new StackPanel() { Orientation = Orientation.Horizontal, Spacing = 3 }.With(x => x.Children.AddRange(controls));
+        ? new StackPanel() 
+        { 
+            Orientation = Orientation.Vertical, Spacing = 5, OverflowY = Overflow.Auto 
+        }.With(x => x.Children.AddRange(controls))
+        : new StackPanel() 
+        { 
+            Orientation = Orientation.Horizontal, Spacing = 3, OverflowY = Overflow.Auto 
+        }.With(x => x.Children.AddRange(controls));
 
         return adaptiveLayout;
     }

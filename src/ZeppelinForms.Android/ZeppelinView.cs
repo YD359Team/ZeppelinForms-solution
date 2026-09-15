@@ -85,6 +85,47 @@ public sealed class ZeppelinView : SKCanvasView
         return base.OnApplyWindowInsets(insets);
     }
 
+    public override bool OnGenericMotionEvent(MotionEvent? e)
+    {
+        if (e is null) return false;
+
+        AndroidWindow? target = _platform.InputTarget();
+        if (target is null) return false;
+
+        float scale = _platform.Scale;
+
+        switch (e.ActionMasked)
+        {
+            case MotionEventActions.Scroll:
+                {
+                    // ось приходит в «щелчках» колеса, форма ждёт числа в тех же
+                    // единицах, что Win32: там один щелчок — это 120
+                    float vertical = e.GetAxisValue(Axis.Vscroll);
+                    float horizontal = e.GetAxisValue(Axis.Hscroll);
+
+                    target.HandleWheel(
+                        e.GetX() / scale,
+                        e.GetY() / scale,
+                        (int)(vertical * 120),
+                        (int)(horizontal * 120));
+
+                    return true;
+                }
+
+            case MotionEventActions.HoverMove:
+            case MotionEventActions.HoverEnter:
+                target.HandleHoverMove(e.GetX() / scale, e.GetY() / scale, ToTicks(e.EventTime));
+                return true;
+
+            case MotionEventActions.HoverExit:
+                target.HandlePointerLeave();
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     protected override void OnSizeChanged(int w, int h, int oldw, int oldh)
     {
         base.OnSizeChanged(w, h, oldw, oldh);
