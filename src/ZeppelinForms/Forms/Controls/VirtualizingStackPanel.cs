@@ -40,13 +40,22 @@ public class VirtualizingStackPanel : DecoratedPanel
 
     private void RecycleAll()
     {
-        while (Children.Count > 0)
-            Children.RemoveAt(Children.Count - 1);
+        SuppressChildrenInvalidate++;
 
-        foreach (UIElement container in _realized.Values)
-            Recycle(container);
+        try
+        {
+            while (Children.Count > 0)
+                Children.RemoveAt(Children.Count - 1);
 
-        _realized.Clear();
+            foreach (UIElement container in _realized.Values)
+                Recycle(container);
+
+            _realized.Clear();
+        }
+        finally
+        {
+            SuppressChildrenInvalidate--;
+        }
     }
 
     /// <summary>Вернуть контейнер в пул — или выбросить, если пул бесполезен.
@@ -73,49 +82,59 @@ public class VirtualizingStackPanel : DecoratedPanel
 
     private void UpdateRealizedRange(float viewportHeight)
     {
-        if (ItemsSource.Count == 0 || ItemHeight <= 0)
+        SuppressChildrenInvalidate++;
+
+        try
         {
-            RecycleAll();
-            return;
+
+            if (ItemsSource.Count == 0 || ItemHeight <= 0)
+            {
+                RecycleAll();
+                return;
+            }
+
+            int first = Math.Max(0, (int)(ScrollY / ItemHeight) - OverscanCount);
+            int count = (int)Math.Ceiling(viewportHeight / ItemHeight) + OverscanCount * 2;
+            count = Math.Min(count, ItemsSource.Count - first);
+
+            if (first == _firstVisible && count == _visibleCount && _realized.Count > 0)
+                return;
+
+            _firstVisible = first;
+            _visibleCount = count;
+
+            // убираем то, что вышло за окно, в переиспользование
+            List<int> stale = [];
+
+            foreach (int index in _realized.Keys)
+                if (index < first || index >= first + count)
+                    stale.Add(index);
+
+            foreach (int index in stale)
+            {
+                UIElement container = _realized[index];
+                Children.Remove(container);
+                _realized.Remove(index);
+                _recycled.Push(container);
+            }
+
+            for (int i = first; i < first + count; i++)
+            {
+                if (_realized.ContainsKey(i)) continue;
+
+                // шаблон может не подойти переиспользованному контейнеру,
+                // поэтому пул работает, только когда шаблон не задан
+                UIElement container = ItemTemplate is null && _recycled.Count > 0
+                    ? Reuse(_recycled.Pop(), ItemsSource[i])
+                    : CreateContainer(ItemsSource[i]);
+
+                _realized[i] = container;
+                Children.Add(container);
+            }
         }
-
-        int first = Math.Max(0, (int)(ScrollY / ItemHeight) - OverscanCount);
-        int count = (int)Math.Ceiling(viewportHeight / ItemHeight) + OverscanCount * 2;
-        count = Math.Min(count, ItemsSource.Count - first);
-
-        if (first == _firstVisible && count == _visibleCount && _realized.Count > 0)
-            return;
-
-        _firstVisible = first;
-        _visibleCount = count;
-
-        // убираем то, что вышло за окно, в переиспользование
-        List<int> stale = [];
-
-        foreach (int index in _realized.Keys)
-            if (index < first || index >= first + count)
-                stale.Add(index);
-
-        foreach (int index in stale)
+        finally
         {
-            UIElement container = _realized[index];
-            Children.Remove(container);
-            _realized.Remove(index);
-            _recycled.Push(container);
-        }
-
-        for (int i = first; i < first + count; i++)
-        {
-            if (_realized.ContainsKey(i)) continue;
-
-            // шаблон может не подойти переиспользованному контейнеру,
-            // поэтому пул работает, только когда шаблон не задан
-            UIElement container = ItemTemplate is null && _recycled.Count > 0
-                ? Reuse(_recycled.Pop(), ItemsSource[i])
-                : CreateContainer(ItemsSource[i]);
-
-            _realized[i] = container;
-            Children.Add(container);
+            SuppressChildrenInvalidate--;
         }
     }
 

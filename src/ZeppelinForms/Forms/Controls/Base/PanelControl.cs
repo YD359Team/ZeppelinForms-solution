@@ -83,6 +83,13 @@ public abstract partial class PanelControl : UIElement
         Children.CollectionChanged += Children_CollectionChanged;
     }
 
+    /// <summary>Пока больше нуля, изменение состава детей не просит пересчёт
+    /// раскладки. Нужно тем, кто меняет Children прямо в измерении:
+    /// контейнеры там же и меряются, второй проход им не нужен.
+    /// Привязка к дереву при этом происходит как обычно — подавляется
+    /// только просьба о пересчёте.</summary>
+    private protected int SuppressChildrenInvalidate;
+
     private void Children_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         Form? owner = FindOwner();
@@ -101,7 +108,8 @@ public abstract partial class PanelControl : UIElement
                 owner?.AttachTree(item);
             }
 
-        Invalidate();
+        if (SuppressChildrenInvalidate == 0)
+            Invalidate();
     }
 
     /// <summary>Нужны ли полосы при такой видимой области. В режиме Inline

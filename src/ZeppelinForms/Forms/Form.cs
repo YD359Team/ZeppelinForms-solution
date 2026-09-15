@@ -1003,18 +1003,26 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     }
 
     private int _layoutDepth;
+    private bool _layoutRequested;
+
+    /// <summary>Сколько проходов допускается за один вызов.</summary>
+    /// <remarks>
+    /// Двух хватает штатному случаю: первый создаёт контейнеры, второй
+    /// считает по ним итоговый размер. Запас до четырёх — на вложенные
+    /// виртуализующие панели, дерево внутри прокручиваемой панели.
+    /// </remarks>
+    private const int MaxLayoutPasses = 4;
 
     internal void PerformLayout()
     {
-        // защита от рекурсии: Invalidate во время раскладки запустил бы её заново
+        // Invalidate во время раскладки — законное явление: виртуализующая
+        // панель создаёт контейнеры прямо в измерении, потому что до него
+        // неизвестно, сколько строк влезет, а создание контейнера меняет
+        // Children. Заново заходить в проход нельзя, поэтому запоминаем
+        // просьбу и выполняем её после текущего
         if (_layoutDepth > 0)
         {
-            ZfContract.Fail(
-                "PerformLayout вызван повторно во время раскладки. " +
-                "Обычно это Invalidate из MeasureOverride или ArrangeOverride: " +
-                "измените там геометрию напрямую либо отложите Invalidate " +
-                "до конца прохода.");
-
+            _layoutRequested = true;
             return;
         }
 
@@ -1022,21 +1030,47 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         try
         {
-            if (Content is not null)
+            for (int pass = 0; ; pass++)
             {
-                Content.Measure(ClientSize);
-                Content.Arrange(new Rectangle(Point.Empty, ClientSize));
-            }
+                _layoutRequested = false;
 
-            foreach (var overlay in _overlays)
-            {
-                overlay.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
-                overlay.Arrange(new Rectangle(overlay.Position, overlay.DesiredSize));
+                LayoutPass();
+
+                if (!_layoutRequested) break;
+
+                if (pass + 1 >= MaxLayoutPasses)
+                {
+                    // раскладка не сходится: кто-то просит новый проход
+                    // каждый раз. Молча крутить это значит повесить кадр
+                    ZfContract.Fail(
+                        $"Раскладка не сошлась за {MaxLayoutPasses} проходов: " +
+                        "кто-то продолжает звать Invalidate из MeasureOverride " +
+                        "или ArrangeOverride. Изменяйте там геометрию напрямую " +
+                        "вместо запроса нового прохода.");
+
+                    break;
+                }
             }
         }
         finally
         {
             _layoutDepth--;
+            _layoutRequested = false;
+        }
+    }
+
+    private void LayoutPass()
+    {
+        if (Content is not null)
+        {
+            Content.Measure(ClientSize);
+            Content.Arrange(new Rectangle(Point.Empty, ClientSize));
+        }
+
+        foreach (var overlay in _overlays)
+        {
+            overlay.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
+            overlay.Arrange(new Rectangle(overlay.Position, overlay.DesiredSize));
         }
     }
 
