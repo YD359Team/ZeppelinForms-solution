@@ -1,6 +1,7 @@
 ﻿using ZeppelinForms.Animation;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Input.Gestures;
 
 namespace ZeppelinForms.Forms.Controls.Navigation;
 
@@ -28,6 +29,86 @@ public class PageControl : DecoratedPanel
     public bool CanGoBack => _history.Count > 1;
 
     public event EventHandler<Page>? Navigated;
+
+    private SwipeGestureRecognizer? _swipe;
+
+    /// <summary>Как реагировать на свайп по содержимому. Работает и мышью:
+    /// распознаватель различает пальцы и мышь только порогами.</summary>
+    public PageSwipeMode SwipeMode
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            UpdateSwipeRecognizer();
+        }
+    } = PageSwipeMode.Back;
+
+    public PageControl() => UpdateSwipeRecognizer();
+
+    private void UpdateSwipeRecognizer()
+    {
+        if (SwipeMode == PageSwipeMode.None)
+        {
+            if (_swipe is null) return;
+
+            _swipe.Swiped -= OnSwiped;
+            GestureRecognizers.Remove(_swipe);
+            _swipe = null;
+
+            return;
+        }
+
+        if (_swipe is null)
+        {
+            _swipe = this.AddGesture(new SwipeGestureRecognizer());
+            _swipe.Swiped += OnSwiped;
+        }
+
+        _swipe.AllowedDirections = SwipeMode == PageSwipeMode.Back
+            ? [SwipeDirection.Right]
+            : [SwipeDirection.Left, SwipeDirection.Right];
+    }
+
+    private void OnSwiped(object? sender, SwipeGestureEventArgs e)
+    {
+        // переход уже идёт: второй поверх него оставит _outgoing
+        // недорисованным на полпути
+        if (_progress < 1f) return;
+
+        if (SwipeMode == PageSwipeMode.Back)
+        {
+            GoBack();
+            return;
+        }
+
+        // влево — вперёд: содержимое уезжает в ту же сторону, что палец
+        int step = e.Direction == SwipeDirection.Left ? 1 : -1;
+
+        if (PageAtOffset(step) is not Page target) return;
+
+        Navigate(target.Name, step > 0 ? PageTransition.SlideLeft : PageTransition.SlideRight);
+    }
+
+    private Page? PageAtOffset(int offset)
+    {
+        List<Page> pages = [];
+
+        foreach (UIElement child in Children)
+            if (child is Page page)
+                pages.Add(page);
+
+        int index = _current is null ? -1 : pages.IndexOf(_current);
+        if (index < 0) return null;
+
+        int next = index + offset;
+
+        // по кругу не листаем: перескок с последней на первую читается
+        // как сбой, а не как переход
+        return next >= 0 && next < pages.Count ? pages[next] : null;
+    }
 
     /// <summary>Добавить страницу. Первая добавленная становится текущей.</summary>
     public Page AddPage(string name, Func<UIElement> factory, string? title = null)
