@@ -2,9 +2,13 @@
 
 ## [0.11.0] - Atlantida
 
-![Atlantida](assets/Logo-0.10.0.jpg)
+![Atlantida](assets/Logo-0.11.0.jpg)
 
-
+- Android platform support
+- Gestures
+- Adaptive panels improvements
+- TreeView
+- DataGrid
 
 ## [0.10.0] - Hyperborea
 
