@@ -13,6 +13,8 @@ public abstract class TextInputControl : InteractiveControl
 
     protected bool CaretVisible { get; private set; }
 
+    public override bool AcceptsTextInput => IsEnabled;
+
     protected TextInputControl()
     {
         Cursor = CursorKind.IBeam;

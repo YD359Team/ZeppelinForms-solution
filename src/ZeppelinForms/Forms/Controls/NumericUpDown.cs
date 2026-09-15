@@ -278,7 +278,7 @@ public partial class NumericUpDown : TextInputControl
                 _caretIndex = _editText.Length;
                 break;
 
-            case Key.Back when _caretIndex > 0:
+            case Key.Backspace when _caretIndex > 0:
                 _editText = _editText!.Remove(_caretIndex - 1, 1);
                 _caretIndex--;
                 break;

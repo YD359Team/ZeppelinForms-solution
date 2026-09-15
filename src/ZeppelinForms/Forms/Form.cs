@@ -252,6 +252,19 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             OnToolTipTimerElapsed, null, Timeout.Infinite, Timeout.Infinite);
 
         App.ThemeChanged += OnThemeChanged;
+        _focusDispatcher.FocusChanged += OnFocusChangedForKeyboard;
+    }
+
+    /// <summary>Клавиатура следует за фокусом: поле получило его — показываем,
+    /// ушёл на кнопку или в никуда — прячем.</summary>
+    private void OnFocusChangedForKeyboard(object? sender, UIElement? focused)
+    {
+        if (PlatformWindow is not ISoftKeyboard keyboard) return;
+
+        if (focused is { AcceptsTextInput: true } input)
+            keyboard.ShowSoftKeyboard(input.SoftKeyboardKind);
+        else
+            keyboard.HideSoftKeyboard();
     }
 
     // ===== Переходники со старых сигнатур =====
@@ -1732,6 +1745,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     {
         App.ThemeChanged -= OnThemeChanged;
         _toolTipTimer?.Dispose();
+
+        _focusDispatcher.FocusChanged -= OnFocusChangedForKeyboard;
 
         // контакт держит Chain — весь путь от корня до нажатого элемента.
         // Форму могли закрыть посреди перетаскивания, и тогда отпускание

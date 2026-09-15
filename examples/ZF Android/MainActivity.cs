@@ -8,7 +8,8 @@ namespace ZF_Android;
 
 [Activity(
     Label = "ZF Android",
-    MainLauncher = true,
+    MainLauncher = true, 
+    WindowSoftInputMode = Android.Views.SoftInput.AdjustResize,
     // без этого поворот экрана и смена плотности пересоздают активность,
     // а с ней и всё дерево форм — состояние примера терялось бы каждый раз.
     // Размер приедет сам, через ZeppelinView.OnSizeChanged

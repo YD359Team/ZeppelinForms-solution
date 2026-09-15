@@ -12,13 +12,19 @@ namespace ZeppelinForms.Android;
 /// IDesktopWindow не реализует: заголовка, границ и состояния окна
 /// на Android нет.
 /// </summary>
-internal sealed class AndroidWindow : IPlatformWindow
+internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
 {
     private readonly AndroidPlatform _platform;
     private readonly Form _form;
     private readonly AndroidFrameDriver _frames;
 
     private bool _closed;
+
+    // ==== экранная клавиатура ====
+
+    public void ShowSoftKeyboard(SoftKeyboardKind kind) => _platform.ShowSoftKeyboard(kind);
+
+    public void HideSoftKeyboard() => _platform.HideSoftKeyboard();
 
     public AndroidWindow(AndroidPlatform platform, Form form)
     {

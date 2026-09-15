@@ -825,6 +825,18 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     // IGridPlaceable
 
     public Size DesiredSize { get; private set; }
+
+    /// <summary>Принимает ли элемент текстовый ввод.</summary>
+    /// <remarks>
+    /// Признак живёт здесь, а не в каждом контроле, потому что решение
+    /// о клавиатуре принимает форма по факту фокуса. Если бы контрол
+    /// звал показ сам, каждый будущий ввод обязан был бы не забыть
+    /// про мобильные платформы — и однажды забудет.
+    /// </remarks>
+    public virtual bool AcceptsTextInput => false;
+
+    public virtual SoftKeyboardKind SoftKeyboardKind => SoftKeyboardKind.Text;
+
     public bool IsHitTestVisible { get; set; } = true;
     /// <summary>Принимать ли перетаскивание из системы. Приёмник ищется
     /// от попавшего элемента вверх, так что достаточно включить его

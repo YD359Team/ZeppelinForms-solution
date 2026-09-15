@@ -1,4 +1,7 @@
-﻿using Android.Views;
+﻿using Android.Content;
+using Android.Text;
+using Android.Views;
+using Android.Views.InputMethods;
 using SkiaSharp;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
@@ -33,6 +36,8 @@ public sealed class AndroidPlatform : IPlatform
     private int _physicalHeight;
     private bool _paintPending;
     private bool _frameScheduled;
+
+    private float _insetKeyboard;
 
     private int _probeFrames = 10;
 
@@ -150,7 +155,7 @@ public sealed class AndroidPlatform : IPlatform
 
             root.Form.ClientSize = new Size(
                 Math.Max(0, surface.Width - _insetLeft - _insetRight),
-                Math.Max(0, surface.Height - _insetTop - _insetBottom));
+                Math.Max(0, surface.Height - _insetTop - _insetBottom - _insetKeyboard));
 
             root.Form.PerformLayout();
         }
@@ -176,6 +181,64 @@ public sealed class AndroidPlatform : IPlatform
         if (_physicalWidth > 0)
             HandleResize(_physicalWidth, _physicalHeight);
     }
+
+    /// <summary>Клавиатура открылась или закрылась.</summary>
+    /// <remarks>
+    /// Форму под ней просто ужимаем. Правильнее было бы ещё и подтянуть
+    /// поле с фокусом в видимую часть, но для этого нужен ScrollIntoView,
+    /// которого пока нет ни у TreeView, ни у будущего DataGrid — сделаем
+    /// один раз для всех, а не трижды по месту.
+    /// </remarks>
+    internal void HandleKeyboardInset(int bottomPixels)
+    {
+        float inset = bottomPixels / Scale;
+
+        if (Math.Abs(inset - _insetKeyboard) < 0.5f) return;
+
+        _insetKeyboard = inset;
+
+        if (_physicalWidth > 0)
+            HandleResize(_physicalWidth, _physicalHeight);
+    }
+
+    internal void ShowSoftKeyboard(SoftKeyboardKind kind)
+    {
+        if (_view is null) return;
+
+        _view.SoftKeyboardInputType = ToInputType(kind);
+
+        // без фокуса на стороне Android система не спросит InputConnection
+        // и покажет клавиатуру «в никуда»
+        _view.RequestFocus();
+
+        // перезапрос типа: если клавиатура уже открыта, раскладку она
+        // сменит только после переподключения ввода
+        InputMethodManager? manager = GetInputMethodManager();
+
+        manager?.RestartInput(_view);
+        manager?.ShowSoftInput(_view, ShowFlags.Implicit);
+    }
+
+    internal void HideSoftKeyboard()
+    {
+        if (_view is null) return;
+
+        GetInputMethodManager()?.HideSoftInputFromWindow(_view.WindowToken, HideSoftInputFlags.None);
+    }
+
+    private InputMethodManager? GetInputMethodManager() =>
+        _activity.GetSystemService(Context.InputMethodService) as InputMethodManager;
+
+    private static InputTypes ToInputType(SoftKeyboardKind kind) => kind switch
+    {
+        SoftKeyboardKind.Number => InputTypes.ClassNumber,
+        SoftKeyboardKind.Decimal => InputTypes.ClassNumber | InputTypes.NumberFlagDecimal,
+        SoftKeyboardKind.Email => InputTypes.ClassText | InputTypes.TextVariationEmailAddress,
+        SoftKeyboardKind.Phone => InputTypes.ClassPhone,
+        SoftKeyboardKind.Url => InputTypes.ClassText | InputTypes.TextVariationUri,
+        SoftKeyboardKind.Password => InputTypes.ClassText | InputTypes.TextVariationPassword,
+        _ => InputTypes.ClassText,
+    };
 
     private void LayoutOverlay(AndroidWindow window)
     {

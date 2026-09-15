@@ -225,7 +225,7 @@ public partial class TextBox : TextInputControl, ITextElement
                 _document.Insert("\t");
                 break;
 
-            case Key.Back when !IsReadOnly:
+            case Key.Backspace when !IsReadOnly:
                 _document.Backspace();
                 break;
 

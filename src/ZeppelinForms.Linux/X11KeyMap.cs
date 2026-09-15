@@ -7,7 +7,7 @@ internal static class X11KeyMap
     public static Key ToKey(nuint keysym) => keysym switch
     {
         // управление и навигация
-        0xFF08 => Key.Back,
+        0xFF08 => Key.Backspace,
         0xFF09 => Key.Tab,
         0xFF0B => Key.Clear,
         0xFF0D => Key.Enter,

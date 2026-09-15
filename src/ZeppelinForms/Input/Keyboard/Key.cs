@@ -11,7 +11,7 @@ public enum Key : int
     None = 0,
 
     // управление
-    Back = 0x08,
+    Backspace = 0x08,
     Tab = 0x09,
     Clear = 0x0C,
     Enter = 0x0D,

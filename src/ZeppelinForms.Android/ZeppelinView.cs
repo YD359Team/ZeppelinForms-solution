@@ -1,5 +1,7 @@
 ﻿using Android.Content;
+using Android.Text;
 using Android.Views;
+using Android.Views.InputMethods;
 using SkiaSharp.Views.Android;
 
 namespace ZeppelinForms.Android;
@@ -13,6 +15,27 @@ public sealed class ZeppelinView : SKCanvasView
     /// которым живёт Form. Берётся по первому событию: длительность удержания
     /// считается вычитанием, а вычитать можно только однородные величины.</summary>
     private long? _timeOffset;
+
+    /// <summary>Тип клавиатуры, запрошенный последним показом.</summary>
+    internal InputTypes SoftKeyboardInputType { get; set; } = InputTypes.ClassText;
+
+    /// <summary>Без InputConnection программная клавиатура появится,
+    /// но введённое до приложения не дойдёт: IME общается с получателем
+    /// только через него.</summary>
+    public override IInputConnection? OnCreateInputConnection(EditorInfo? outAttrs)
+    {
+        if (outAttrs is not null)
+        {
+            outAttrs.InputType = SoftKeyboardInputType;
+            outAttrs.ImeOptions = ImeFlags.NoFullscreen | ImeFlags.NoExtractUi;
+        }
+
+        AndroidWindow? target = _platform.InputTarget();
+
+        return target is null ? null : new ZeppelinInputConnection(this, target.Form);
+    }
+
+    public override bool OnCheckIsTextEditor() => true;
 
     internal ZeppelinView(Context context, AndroidPlatform platform) : base(context)
     {
@@ -45,6 +68,13 @@ public sealed class ZeppelinView : SKCanvasView
                     insets.SystemWindowInsetRight,
                     insets.SystemWindowInsetBottom);
             }
+
+            // клавиатура — отдельный отступ, а не часть системных панелей:
+            // под ней форму надо ужать, а не просто отодвинуть от края,
+            // и высота её меняется независимо от вырезов
+            global::Android.Graphics.Insets ime = insets.GetInsets(WindowInsets.Type.Ime());
+
+            _platform.HandleKeyboardInset(ime.Bottom);
         }
 
         return base.OnApplyWindowInsets(insets);

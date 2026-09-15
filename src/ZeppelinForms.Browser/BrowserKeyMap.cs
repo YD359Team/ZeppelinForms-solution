@@ -21,7 +21,7 @@ internal static class BrowserKeyMap
 
         return code switch
         {
-            "Backspace" => Key.Back,
+            "Backspace" => Key.Backspace,
             "Tab" => Key.Tab,
             "Enter" or "NumpadEnter" => Key.Enter,
             "Pause" => Key.Pause,

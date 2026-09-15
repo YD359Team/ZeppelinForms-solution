@@ -145,7 +145,7 @@ public partial class MaskedTextBox : TextInputControl
                 Accepted?.Invoke(this, EventArgs.Empty);
                 break;
 
-            case Key.Back:
+            case Key.Backspace:
                 {
                     int position = _mask.IsPlaceholder(_caretIndex) && _buffer[_caretIndex] != _mask.PromptChar
                         ? _caretIndex

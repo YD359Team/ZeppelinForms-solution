@@ -8,6 +8,9 @@ namespace ZeppelinForms.Forms.Dispatchers;
 
 public class FocusDispatcher
 {
+    /// <summary>Фокус перешёл. Null — фокуса больше нет.</summary>
+    public event EventHandler<UIElement?>? FocusChanged;
+
     public UIElement? FocusedElement => _focused;
 
     private UIElement? _focused;
@@ -30,7 +33,11 @@ public class FocusDispatcher
         input.IsFocused = true;
         element.RaiseGotFocus();
         element.Invalidate();
+
         _focused = element;
+
+        FocusChanged?.Invoke(this, element);
+
         return true;
     }
 
@@ -42,6 +49,8 @@ public class FocusDispatcher
             input.IsFocused = false;
 
         _focused = null;
+
+        FocusChanged?.Invoke(this, null);
     }
 
     public bool MoveNext(UIElement root) => Move(root, forward: true);
