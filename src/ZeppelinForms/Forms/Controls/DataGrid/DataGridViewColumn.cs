@@ -1,9 +1,9 @@
 ﻿using ZeppelinForms.Forms.Enums;
 
-namespace ZeppelinForms.Forms.Controls.Grid;
+namespace ZeppelinForms.Forms.Controls.DataGrid;
 
 /// <summary>Столбец грида: заголовок, ширина и способ добраться до значения.</summary>
-public sealed class DataGridColumn
+public sealed class DataGridViewColumn
 {
     public string? Header { get; set; }
 

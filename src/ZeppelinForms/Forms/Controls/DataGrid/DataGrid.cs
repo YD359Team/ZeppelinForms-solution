@@ -8,7 +8,7 @@ using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
-namespace ZeppelinForms.Forms.Controls.Grid;
+namespace ZeppelinForms.Forms.Controls.DataGrid;
 
 /// <summary>Таблица данных с виртуализацией строк.</summary>
 /// <remarks>
@@ -17,7 +17,7 @@ namespace ZeppelinForms.Forms.Controls.Grid;
 /// измерение и раскладку каждый кадр. Контрол материализуется только
 /// для редактируемой ячейки.
 /// </remarks>
-public partial class DataGrid : DecoratedControl
+public partial class DataGridView : DecoratedControl
 {
     private const float ScrollBarThickness = 10f;
 
@@ -28,13 +28,13 @@ public partial class DataGrid : DecoratedControl
 
     private int _hoveredRow = -1;
 
-    public List<DataGridColumn> Columns { get; init; } = [];
+    public List<DataGridViewColumn> Columns { get; init; } = [];
 
     /// <summary>Строки данных. Тип элементов произвольный — столбцы знают,
     /// что из него доставать.</summary>
     public ObservableCollection<object> Items { get; } = [];
 
-    public DataGrid() => Items.CollectionChanged += OnItemsChanged;
+    public DataGridView() => Items.CollectionChanged += OnItemsChanged;
 
     private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -202,7 +202,7 @@ public partial class DataGrid : DecoratedControl
         float taken = 0;
         float starWeight = 0;
 
-        foreach (DataGridColumn column in Columns)
+        foreach (DataGridViewColumn column in Columns)
         {
             if (column.Width.IsStar)
             {
@@ -232,7 +232,7 @@ public partial class DataGrid : DecoratedControl
     }
 
     /// <summary>Ширина по заголовку и видимым строкам — не по всем.</summary>
-    private float MeasureAuto(DataGridColumn column, int firstRow, int lastRow)
+    private float MeasureAuto(DataGridViewColumn column, int firstRow, int lastRow)
     {
         Font font = this.EffectiveFont;
 
