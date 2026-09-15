@@ -17,6 +17,7 @@ using ZeppelinForms.Forms.Controls.Shapes;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.DragDrop;
+using ZF_SharedLib.Models;
 
 namespace ZF_SharedLib;
 
@@ -517,13 +518,38 @@ public class ExampleMainForm : Form
             new Label { Text = text, Margin = new Thickness(4) };
     }
 
+    internal static readonly Game[] s_games =
+    [
+        new("Half-Life 2", "Valve", 2004, 9.6f, true),
+        new("Portal 2", "Valve", 2011, 9.5f, true),
+        new("The Witcher 3", "CD Projekt Red", 2015, 9.3f, true),
+        new("Disco Elysium", "ZA/UM", 2019, 9.1f, false),
+        new("Hollow Knight", "Team Cherry", 2017, 9.0f, true),
+        new("Factorio", "Wube Software", 2020, 9.4f, false),
+        new("Outer Wilds", "Mobius Digital", 2019, 8.9f, true),
+        new("Return of the Obra Dinn", "Lucas Pope", 2018, 8.8f, true),
+        new("Slay the Spire", "Mega Crit", 2019, 8.7f, false),
+        new("Celeste", "Maddy Makes Games", 2018, 9.0f, true),
+        new("Hades", "Supergiant Games", 2020, 9.2f, false),
+        new("Subnautica", "Unknown Worlds", 2018, 8.6f, true),
+        new("RimWorld", "Ludeon Studios", 2018, 9.0f, false),
+        new("Stardew Valley", "ConcernedApe", 2016, 8.9f, true),
+        new("Dishonored", "Arkane Studios", 2012, 8.8f, true),
+        new("Prey", "Arkane Studios", 2017, 8.5f, false),
+        new("Divinity: Original Sin 2", "Larian Studios", 2017, 9.2f, true),
+        new("Baldur's Gate 3", "Larian Studios", 2023, 9.6f, false),
+        new("Katana ZERO", "Askiisoft", 2019, 8.7f, true),
+        new("Tunic", "Andrew Shouldice", 2022, 8.4f, false),
+    ];
+
+
     private StackPanel GetView8()
     {
         Table table = new()
         {
-            Columns = [ 
-                new() { Header = "#"}, 
-                new() { Header = "Name" }, 
+            Columns = [
+                new() { Header = "#"},
+                new() { Header = "Name" },
                 new() { Header = "Price" },
                 new() { Header = "In stock" },
             ]
@@ -534,14 +560,77 @@ public class ExampleMainForm : Form
         table.AddRow("4", "Juice", "2$", "no");
         table.AddRow("5", "Cola", "1$", "yes");
 
-        DataGridView dataGrid = new DataGridView();
+        Label selection = new() { Text = "Выделите строку" };
+
+        DataGridView dataGrid = new()
+        {
+            Columns =
+            {
+                // фикс, а не Auto: номер строки короткий и предсказуемый,
+                // а Auto пересчитывался бы при каждой прокрутке
+                new DataGridViewColumn
+                {
+                    Header = "#",
+                    Width = GridLength.Fixed(40),
+                    Align = HorizontalContentAlignment.Right,
+                    CanSort = false,
+                    Value = item => Array.IndexOf(s_games, (Game)item) + 1,
+                },
+                new DataGridViewColumn
+                {
+                    Header = "Game",
+                    Width = GridLength.Star(2),
+                    Value = item => ((Game)item).Title,
+                },
+                new DataGridViewColumn
+                {
+                    Header = "Developer",
+                    Width = GridLength.Star(2),
+                    Value = item => ((Game)item).Developer,
+                },
+                new DataGridViewColumn
+                {
+                    Header = "Year",
+                    Width = GridLength.Fixed(60),
+                    Align = HorizontalContentAlignment.Center,
+                    Value = item => ((Game)item).Year,
+                    // без формата int напечатался бы как «2 004» в культурах
+                    // с разделителем групп
+                    Format = value => ((int)value!).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                },
+                new DataGridViewColumn
+                {
+                    Header = "Rating",
+                    Width = GridLength.Fixed(70),
+                    Align = HorizontalContentAlignment.Right,
+                    Value = item => ((Game)item).Rating,
+                    Format = value => ((float)value!).ToString("0.0", System.Globalization.CultureInfo.CurrentCulture),
+                },
+                new DataGridViewColumn
+                {
+                    Header = "Completed",
+                    Width = GridLength.Fixed(90),
+                    Align = HorizontalContentAlignment.Center,
+                    Value = item => ((Game)item).Completed,
+                    Format = value => (bool)value! ? "да" : "нет",
+                },
+            },
+        };
+
+        dataGrid.Items.AddRange(s_games);
+
+        dataGrid.SelectionChanged += (_, item) =>
+            selection.Text = item is Game game
+                ? $"{game.Title} — {game.Developer}, {game.Year}"
+                : "Выделите строку";
 
         return new StackPanel
         {
             Orientation = Orientation.Vertical,
             Spacing = 5,
+            OverflowY = Overflow.Auto,
             ScrollBarMode = ScrollBarMode.Inline
-        }.With(x => x.Children.AddRange([table, dataGrid]));
+        }.With(x => x.Children.AddRange([table, dataGrid, selection]));
     }
 
     private StackPanel GetView9()

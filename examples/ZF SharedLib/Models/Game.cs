@@ -4,4 +4,9 @@ using System.Text;
 
 namespace ZF_SharedLib.Models;
 
-internal record class Game(string Title, string Genre, uint Year);
+internal sealed record Game(
+    string Title,
+    string Developer,
+    int Year,
+    float Rating,
+    bool Completed);
