@@ -3,6 +3,7 @@ using Android.Text;
 using Android.Views;
 using Android.Views.InputMethods;
 using SkiaSharp.Views.Android;
+using ZeppelinForms.Input.Keyboard;
 
 namespace ZeppelinForms.Android;
 
@@ -177,6 +178,52 @@ public sealed class ZeppelinView : SKCanvasView
             default:
                 return false;
         }
+
+        return true;
+    }
+
+    public override bool OnKeyDown(Keycode keyCode, KeyEvent? e)
+    {
+        if (e is null) return false;
+
+        // «назад» — не клавиша, а системный жест: спрашиваем приложение
+        // и, если оно не взялось, отдаём системе закрывать активность
+        if (keyCode == Keycode.Back)
+        {
+            return _platform.RaiseBackRequested() || base.OnKeyDown(keyCode, e);
+        }
+
+        AndroidWindow? target = _platform.InputTarget();
+        if (target is null) return false;
+
+        KeyModifiers modifiers = AndroidKeyMap.ToModifiers(e.MetaState);
+        Key key = AndroidKeyMap.ToKey(keyCode);
+
+        if (key != Key.None)
+            target.Form.OnKeyDown(key, modifiers, e.RepeatCount > 0);
+
+        // символ идёт отдельно от клавиши, как WM_CHAR отдельно от WM_KEYDOWN.
+        // Управляющие отсекаем: Backspace и Enter уже ушли выше клавишей,
+        // и вставлять их ещё и текстом значит получить их дважды
+        int unicode = e.UnicodeChar;
+
+        if (unicode is > 0x1F and not 0x7F)
+            target.Form.OnTextInput((char)unicode);
+
+        return key != Key.None || unicode > 0;
+    }
+
+    public override bool OnKeyUp(Keycode keyCode, KeyEvent? e)
+    {
+        if (e is null || keyCode == Keycode.Back) return base.OnKeyUp(keyCode, e);
+
+        AndroidWindow? target = _platform.InputTarget();
+        if (target is null) return false;
+
+        Key key = AndroidKeyMap.ToKey(keyCode);
+        if (key == Key.None) return false;
+
+        target.Form.OnKeyUp(key, AndroidKeyMap.ToModifiers(e.MetaState));
 
         return true;
     }

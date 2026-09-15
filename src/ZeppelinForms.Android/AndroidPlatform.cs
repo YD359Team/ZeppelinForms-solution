@@ -18,6 +18,26 @@ namespace ZeppelinForms.Android;
 /// </summary>
 public sealed class AndroidPlatform : IPlatform
 {
+    /// <summary>Нажата системная кнопка или жест «назад».
+    /// Установите Handled, чтобы система не закрывала активность.</summary>
+    /// <remarks>
+    /// Не маплю её на Escape намеренно: Escape в форме обрабатывают многие,
+    /// и результат мы не видим — OnKeyDown ничего не возвращает. Тогда
+    /// оказалось бы невозможно отличить «диалог закрылся» от «никто
+    /// не взялся», и приложение выходило бы при каждом нажатии.
+    /// </remarks>
+    public event EventHandler<BackRequestedEventArgs>? BackRequested;
+
+    internal bool RaiseBackRequested()
+    {
+        if (BackRequested is null) return false;
+
+        var args = new BackRequestedEventArgs();
+        BackRequested(this, args);
+
+        return args.Handled;
+    }
+
     /// <summary>Затемнение под модальным диалогом.</summary>
     private static readonly SKColor s_scrim = new(0, 0, 0, 96);
 
