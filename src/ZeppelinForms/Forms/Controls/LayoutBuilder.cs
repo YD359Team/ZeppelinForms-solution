@@ -11,14 +11,28 @@ namespace ZeppelinForms.Forms.Controls;
 public class LayoutBuilder : DecoratedWrapControl
 {
     private Size _builtFor = Size.Empty;
+    private object? _builtKey;
     private bool _hasBuilt;
 
     /// <summary>Получает доступный размер, возвращает содержимое.</summary>
     public Func<Size, UIElement>? Builder { get; set; }
 
+    /// <summary>Что считать поводом пересобрать содержимое.
+    /// Null — изменение размера больше <see cref="RebuildThreshold"/>.</summary>
+    /// <remarks>
+    /// Порог в единицах размера годится, пока пересборка дешёвая, и плох
+    /// для адаптивности: при перетаскивании рамки окна он срабатывает почти
+    /// каждый кадр, а пересборка заменяет Child целиком — вместе с фокусом,
+    /// позицией прокрутки и набранным текстом. Ключ позволяет пересобираться
+    /// только когда меняется то, от чего раскладка действительно зависит:
+    /// класс размера, ориентация, число влезающих колонок.
+    /// </remarks>
+    public Func<Size, object?>? RebuildKey { get; set; }
+
     /// <summary>
     /// Насколько должен измениться размер, чтобы содержимое пересобралось.
     /// Защищает от пересборки на каждый пиксель при перетаскивании рамки окна.
+    /// Не действует, когда задан <see cref="RebuildKey"/>.
     /// </summary>
     public float RebuildThreshold { get; set; } = 1f;
 
@@ -26,7 +40,7 @@ public class LayoutBuilder : DecoratedWrapControl
 
     public LayoutBuilder()
     {
-        
+
     }
 
     public LayoutBuilder(UIElement child) : base(child)
@@ -42,7 +56,7 @@ public class LayoutBuilder : DecoratedWrapControl
         Invalidate();
     }
 
-    private bool NeedsRebuild(Size available)
+    private bool NeedsRebuild(Size available, object? key)
     {
         if (!_hasBuilt) return true;
 
@@ -50,6 +64,10 @@ public class LayoutBuilder : DecoratedWrapControl
         // содержимое по ней бессмысленно, ждём конечного размера
         if (!float.IsFinite(available.Width) && !float.IsFinite(available.Height))
             return false;
+
+        // ключ задан — размер сам по себе поводом не считается
+        if (RebuildKey is not null)
+            return !Equals(key, _builtKey);
 
         return Math.Abs(available.Width - _builtFor.Width) >= RebuildThreshold
             || Math.Abs(available.Height - _builtFor.Height) >= RebuildThreshold;
@@ -61,16 +79,22 @@ public class LayoutBuilder : DecoratedWrapControl
             Math.Max(0, availableSize.Width - Padding.Horizontal),
             Math.Max(0, availableSize.Height - Padding.Vertical));
 
-        if (Builder is not null && NeedsRebuild(inner))
+        if (Builder is not null)
         {
-            _builtFor = inner;
-            _hasBuilt = true;
+            object? key = RebuildKey?.Invoke(inner);
 
-            // присваивание Child само отвяжет прежнее поддерево
-            // и привяжет новое через WrapControl
-            Child = Builder(inner);
+            if (NeedsRebuild(inner, key))
+            {
+                _builtFor = inner;
+                _builtKey = key;
+                _hasBuilt = true;
 
-            ContentRebuilt?.Invoke(this, EventArgs.Empty);
+                // присваивание Child само отвяжет прежнее поддерево
+                // и привяжет новое через WrapControl
+                Child = Builder(inner);
+
+                ContentRebuilt?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         return base.MeasureOverride(availableSize);
