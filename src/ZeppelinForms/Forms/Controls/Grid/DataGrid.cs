@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Core.Text;
+﻿using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -30,17 +32,18 @@ public partial class DataGrid : DecoratedControl
 
     /// <summary>Строки данных. Тип элементов произвольный — столбцы знают,
     /// что из него доставать.</summary>
-    public IList<object> Items
+    public ObservableCollection<object> Items { get; } = [];
+
+    public DataGrid() => Items.CollectionChanged += OnItemsChanged;
+
+    private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        get;
-        set
-        {
-            field = value;
-            _scrollY = 0;
-            SelectedIndex = -1;
-            Invalidate();
-        }
-    } = [];
+        // выделенная строка могла исчезнуть вместе с данными
+        if (SelectedIndex >= Items.Count) SelectedIndex = -1;
+
+        // смещение зажмёт EnsureLayout, здесь достаточно позвать раскладку
+        Invalidate();
+    }
 
     public float WheelStep { get; set; } = 48f;
 
@@ -106,6 +109,11 @@ public partial class DataGrid : DecoratedControl
 
     // ===== геометрия =====
 
+    private bool _verticalBar;
+    private bool _horizontalBar;
+    private int _visibleFirst;
+    private int _visibleLast = -1;
+
     /// <summary>Область строк: содержимое за вычетом шапки и полос.</summary>
     private Rectangle BodyBounds
     {
@@ -116,8 +124,8 @@ public partial class DataGrid : DecoratedControl
             return new Rectangle(
                 new Point(content.X, content.Y + HeaderHeight),
                 new Size(
-                    Math.Max(0, content.Width - (NeedsVerticalBar ? ScrollBarThickness : 0)),
-                    Math.Max(0, content.Height - HeaderHeight - (NeedsHorizontalBar ? ScrollBarThickness : 0))));
+                    Math.Max(0, content.Width - (_verticalBar ? ScrollBarThickness : 0)),
+                    Math.Max(0, content.Height - HeaderHeight - (_horizontalBar ? ScrollBarThickness : 0))));
         }
     }
 
@@ -135,13 +143,55 @@ public partial class DataGrid : DecoratedControl
 
     private float TotalHeight => Items.Count * RowHeight;
 
-    private bool NeedsVerticalBar => TotalHeight > this.ContentBounds.Height - HeaderHeight;
-
-    private bool NeedsHorizontalBar => TotalWidth > this.ContentBounds.Width;
-
     private float MaxScrollX => Math.Max(0, TotalWidth - BodyBounds.Width);
 
     private float MaxScrollY => Math.Max(0, TotalHeight - BodyBounds.Height);
+
+    /// <summary>Пересчитать видимый диапазон, полосы и ширины столбцов.</summary>
+    /// <remarks>
+    /// Зовётся отовсюду, где нужна геометрия, а не только из рисования:
+    /// иначе попадание и ScrollTo работали бы по данным прошлого кадра,
+    /// а до первого кадра — по пустым.
+    ///
+    /// Три величины зависят друг от друга по кругу: видимый диапазон нужен
+    /// Auto-ширинам, ширины — решению о горизонтальной полосе, полоса —
+    /// высоте тела, а высота тела — видимому диапазону. Круг разрывается
+    /// пессимистичной оценкой диапазона: считаем так, будто горизонтальная
+    /// полоса есть всегда. Цена ошибки — одна лишняя строка в расчёте
+    /// Auto-ширины, и та в запас.
+    /// </remarks>
+    private void EnsureLayout()
+    {
+        Rectangle content = this.ContentBounds;
+
+        float bodyHeightGuess = Math.Max(0, content.Height - HeaderHeight - ScrollBarThickness);
+
+        _visibleFirst = RowHeight <= 0 ? 0 : Math.Max(0, (int)(_scrollY / RowHeight));
+        _visibleLast = RowHeight <= 0
+            ? -1
+            : Math.Min(Items.Count - 1, (int)((_scrollY + bodyHeightGuess) / RowHeight));
+
+        // два прохода: полосы отнимают место друг у друга, и одного не хватает
+        _verticalBar = TotalHeight > content.Height - HeaderHeight;
+
+        float available = content.Width - (_verticalBar ? ScrollBarThickness : 0);
+
+        ResolveWidths(available, _visibleFirst, _visibleLast);
+
+        _horizontalBar = TotalWidth > available;
+
+        if (_horizontalBar && !_verticalBar)
+        {
+            _verticalBar = TotalHeight > content.Height - HeaderHeight - ScrollBarThickness;
+
+            if (_verticalBar)
+                ResolveWidths(content.Width - ScrollBarThickness, _visibleFirst, _visibleLast);
+        }
+
+        // содержимое могло убавиться — смещение обязано остаться в пределах
+        _scrollX = Math.Clamp(_scrollX, 0, MaxScrollX);
+        _scrollY = Math.Clamp(_scrollY, 0, MaxScrollY);
+    }
 
     /// <summary>Распределяет ширины: сначала фиксированные и Auto,
     /// остаток делится между звёздочками.</summary>
@@ -204,6 +254,8 @@ public partial class DataGrid : DecoratedControl
 
     public void ScrollTo(float x, float y)
     {
+        EnsureLayout();
+
         float clampedX = Math.Clamp(x, 0, MaxScrollX);
         float clampedY = Math.Clamp(y, 0, MaxScrollY);
 
@@ -242,6 +294,8 @@ public partial class DataGrid : DecoratedControl
 
     private int RowAt(Point location)
     {
+        EnsureLayout();
+
         Point abs = GetAbsolutePosition();
         float localY = location.Y - abs.Y - Padding.Top;
 
@@ -286,21 +340,13 @@ public partial class DataGrid : DecoratedControl
 
     protected override void DrawContent(Graphics g)
     {
+        EnsureLayout();
+
         Rectangle content = this.ContentBounds;
         Rectangle body = BodyBounds;
-
-        // видимый диапазон: только он и рисуется, и только он участвует
-        // в расчёте Auto-ширины
-        int first = RowHeight <= 0 ? 0 : Math.Max(0, (int)(_scrollY / RowHeight));
-        int last = RowHeight <= 0
-            ? -1
-            : Math.Min(Items.Count - 1, (int)((_scrollY + body.Height) / RowHeight));
-
-        ResolveWidths(content.Width, first, last);
-
         Font font = this.EffectiveFont;
 
-        DrawRows(g, body, first, last, font);
+        DrawRows(g, body, _visibleFirst, _visibleLast, font);
         DrawHeader(g, content, font);
         DrawScrollBars(g, content);
     }
@@ -379,7 +425,7 @@ public partial class DataGrid : DecoratedControl
 
     private void DrawScrollBars(Graphics g, Rectangle content)
     {
-        if (NeedsVerticalBar)
+        if (_verticalBar)
         {
             Rectangle body = BodyBounds;
 
@@ -398,7 +444,7 @@ public partial class DataGrid : DecoratedControl
                 new CornerRadius((ScrollBarThickness - 4) / 2f), ScrollThumbColor);
         }
 
-        if (!NeedsHorizontalBar) return;
+        if (!_horizontalBar) return;
 
         Rectangle bodyH = BodyBounds;
 
