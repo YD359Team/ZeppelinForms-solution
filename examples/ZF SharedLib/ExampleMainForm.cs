@@ -543,7 +543,6 @@ public class ExampleMainForm : Form
         new("Tunic", "Andrew Shouldice", 2022, 8.4f, false),
     ];
 
-
     private StackPanel GetView8()
     {
         Table table = new()
@@ -625,8 +624,47 @@ public class ExampleMainForm : Form
                 ? $"{game.Title} — {game.Developer}, {game.Year}"
                 : "Select row";
 
-        TreeView treeView = new TreeView();
+        TreeView treeView = new()
+        {
+            // фиксированная высота, чтобы дерево прокручивалось внутри себя,
+            // а не растягивало страницу на всю глубину
+            Size = new Size(float.NaN, 220),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            ScrollBarMode = ScrollBarMode.Inline,
 
+            // без этого Content напечатался бы через ToString записи —
+            // со всеми полями разом
+            ItemText = node => node.Content switch
+            {
+                Game game => $"{game.Title} ({game.Year})",
+                string developer => developer,
+                _ => string.Empty,
+            },
+        };
+
+        foreach (IGrouping<string, Game> group in s_games
+            .GroupBy(game => game.Developer)
+            .OrderBy(group => group.Key, StringComparer.CurrentCulture))
+        {
+            TreeNode developer = new(group.Key);
+
+            foreach (Game game in group.OrderBy(game => game.Year))
+                developer.Children.Add(new TreeNode(game));
+
+            treeView.Nodes.Add(developer);
+        }
+
+        // первый узел раскрыт, остальные нет: так на экране сразу видны
+        // оба состояния раскрывателя
+        if (treeView.Nodes.Count > 0) treeView.Nodes[0].IsExpanded = true;
+
+        treeView.SelectionChanged += (_, node) =>
+            selection.Text = node?.Content switch
+            {
+                Game game => $"{game.Title} — {game.Developer}, {game.Year}",
+                string developer => $"{developer}: {s_games.Count(game => game.Developer == developer)} games",
+                _ => "Select row",
+            };
 
         return new StackPanel
         {
@@ -634,7 +672,7 @@ public class ExampleMainForm : Form
             Spacing = 5,
             OverflowY = Overflow.Auto,
             ScrollBarMode = ScrollBarMode.Inline
-        }.With(x => x.Children.AddRange([table, dataGrid, selection]));
+        }.With(x => x.Children.AddRange([table, dataGrid, selection, treeView]));
     }
 
     private StackPanel GetView9()

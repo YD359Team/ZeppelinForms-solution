@@ -1,5 +1,6 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Forms.Controls.Tree;
 
@@ -59,6 +60,10 @@ public class TreeView : DecoratedPanel
     {
         _panel.ItemsSource = _flat;
         _panel.ItemTemplate = CreateRow;
+
+        // без этого дерево выше своей коробки обрезается, и виртуализация
+        // считает диапазон по вечно нулевому ScrollY
+        _panel.OverflowY = Overflow.Auto;
 
         Children.Add(_panel);
 
