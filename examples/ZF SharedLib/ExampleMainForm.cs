@@ -10,6 +10,7 @@ using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Charts;
+using ZeppelinForms.Forms.Controls.DataGrid;
 using ZeppelinForms.Forms.Controls.Map;
 using ZeppelinForms.Forms.Controls.Navigation;
 using ZeppelinForms.Forms.Controls.Shapes;
@@ -516,18 +517,31 @@ public class ExampleMainForm : Form
             new Label { Text = text, Margin = new Thickness(4) };
     }
 
-    private Table GetView8()
+    private StackPanel GetView8()
     {
         Table table = new()
         {
-            Columns = [ new() { Header = "#"}, new() { Header = "Name" }, new() { Header = "Price" },]
+            Columns = [ 
+                new() { Header = "#"}, 
+                new() { Header = "Name" }, 
+                new() { Header = "Price" },
+                new() { Header = "In stock" },
+            ]
         };
-        table.AddRow("1", "Apple", "0.5$");
-        table.AddRow("2", "Tomato", "0.35$");
-        table.AddRow("3", "Bread", "1$");
-        table.AddRow("4", "Juice", "2$");
-        table.AddRow("5", "Cola", "1$");
-        return table;
+        table.AddRow("1", "Apple", "0.5$", "yes");
+        table.AddRow("2", "Tomato", "0.35$", "no");
+        table.AddRow("3", "Bread", "1$", "no");
+        table.AddRow("4", "Juice", "2$", "no");
+        table.AddRow("5", "Cola", "1$", "yes");
+
+        DataGridView dataGrid = new DataGridView();
+
+        return new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 5,
+            ScrollBarMode = ScrollBarMode.Inline
+        }.With(x => x.Children.AddRange([table, dataGrid]));
     }
 
     private StackPanel GetView9()
