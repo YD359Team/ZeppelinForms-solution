@@ -110,16 +110,9 @@ public class ExampleMainForm : Form
         }
     }
 
-    private UniformGrid GetView2()
+    private AdaptiveLayout GetView2()
     {
-        var grid = new UniformGrid
-        {
-            Padding = new(6),
-            OverflowY = Overflow.Auto,
-            SpacingX = 5,
-            SpacingY = 2,
-            ScrollBarMode = ScrollBarMode.Inline
-        };
+        var adaptiveLayout = new AdaptiveLayout();
         PictureBox pBox = new PictureBox().With(x =>
         {
             x.Size = new(100, 100);
@@ -157,8 +150,11 @@ public class ExampleMainForm : Form
             new PolygonShape() { Stroke = Colors.Black, Points = [new(), new(1, 1), new(0, 1)] },
             .. GetPlotControls()
         ];
-        grid.Children.AddRange(controls);
-        return grid;
+        adaptiveLayout.Content = size => size == SizeClass.Compact
+        ? new StackPanel() { Orientation = Orientation.Vertical, Spacing = 5 }.With(x => x.Children.AddRange(controls))
+        : new StackPanel() { Orientation = Orientation.Horizontal, Spacing = 3 }.With(x => x.Children.AddRange(controls));
+
+        return adaptiveLayout;
     }
 
     private Grid GetView3()
