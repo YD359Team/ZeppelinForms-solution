@@ -264,9 +264,9 @@ public partial class DataGrid : DecoratedControl
         e.Handled = true;
     }
 
-    protected override void OnMouseMove(Point location)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
-        int row = RowAt(location);
+        int row = RowAt(e.Location);
 
         if (row == _hoveredRow) return;
 
@@ -274,7 +274,7 @@ public partial class DataGrid : DecoratedControl
         InvalidateVisual();
     }
 
-    protected override void OnMouseExit(Point location, UIElement? next)
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         if (_hoveredRow < 0) return;
 
@@ -341,6 +341,40 @@ public partial class DataGrid : DecoratedControl
         }
 
         g.Restore();
+    }
+
+    private void DrawHeader(Graphics g, Rectangle content, Font font)
+    {
+        var headerRect = new Rectangle(
+            new Point(content.X, content.Y), new Size(content.Width, HeaderHeight));
+
+        g.FillRectangle(headerRect, HeaderColor);
+
+        // шапка ездит по горизонтали вместе с телом, но не по вертикали —
+        // ради этого грид и держит смещения сам, а не наследует PanelControl
+        g.Save();
+        g.ClipRect(headerRect);
+
+        float x = content.X - _scrollX;
+
+        for (int col = 0; col < Columns.Count; col++)
+        {
+            var cell = new Rectangle(
+                new Point(x + CellPadding.Left, content.Y),
+                new Size(Math.Max(0, _widths[col] - CellPadding.Horizontal), HeaderHeight));
+
+            g.DrawText(Columns[col].Header ?? string.Empty, cell, HeaderTextColor, font,
+                Columns[col].Align, VerticalContentAlignment.Center);
+
+            x += _widths[col];
+        }
+
+        g.Restore();
+
+        g.DrawLine(
+            new Point(content.X, content.Y + HeaderHeight),
+            new Point(content.X + content.Width, content.Y + HeaderHeight),
+            GridLineColor, 1f);
     }
 
     private void DrawScrollBars(Graphics g, Rectangle content)
