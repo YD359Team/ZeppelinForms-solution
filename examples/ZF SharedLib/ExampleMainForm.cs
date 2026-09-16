@@ -629,7 +629,6 @@ public class ExampleMainForm : Form
             // фиксированная высота, чтобы дерево прокручивалось внутри себя,
             // а не растягивало страницу на всю глубину
             Size = new Size(float.NaN, 220),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
             ScrollBarMode = ScrollBarMode.Inline,
 
             // без этого Content напечатался бы через ToString записи —
@@ -670,6 +669,7 @@ public class ExampleMainForm : Form
         {
             Orientation = Orientation.Vertical,
             Spacing = 5,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
             OverflowY = Overflow.Auto,
             ScrollBarMode = ScrollBarMode.Inline
         }.With(x => x.Children.AddRange([table, dataGrid, selection, treeView]));
