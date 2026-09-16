@@ -42,6 +42,11 @@ public static class GlitchExtensions
 
             if (form is null) return;
 
+            // повторный Attached не должен заводить вторую анимацию поверх первой
+            form.RemoveAnimation(element, "glitch");
+
+            if (form is null) return;
+
             form.AddAnimation(new LoopAnimation(
                 element, "glitch", TimeSpan.FromSeconds(1),
                 phase =>
@@ -55,11 +60,25 @@ public static class GlitchExtensions
                 }));
         }
 
-        if (element.FindOwner() is null)
-            element.Attached += (_, _) => Start();
-        else
-            Start();
+        // анимацию надо снимать при уходе из дерева: иначе она живёт
+        // до закрытия формы и дёргает InvalidateVisual на невидимой
+        // странице — кадры не останавливаются никогда
+        element.Detached += (_, _) => element.StopGlitchAnimation();
+
+        // повторная привязка возможна: PageControl отвязывает страницу
+        // при уходе с неё и привязывает обратно при возврате
+        element.Attached += (_, _) => Start();
+
+        if (element.FindOwner() is not null) Start();
 
         return effect;
     }
+
+    /// <summary>Снять анимацию, оставив сам эффект.</summary>
+    /// <remarks>
+    /// Отдельно от StopGlitch: там эффект убирается насовсем, а здесь
+    /// он остаётся и оживёт при следующей привязке к дереву.
+    /// </remarks>
+    private static void StopGlitchAnimation(this UIElement element) =>
+        element.FindOwner()?.RemoveAnimation(element, "glitch");
 }

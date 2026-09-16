@@ -31,6 +31,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     /// <summary>Элемент присоединён к форме. Нужно тем, кто не может
     /// работать без неё: анимации, подписки на жизненный цикл окна.</summary>
     public event EventHandler? Attached;
+    public event EventHandler? Detached;
     public event EventHandler<char>? TextInput;
     public event EventHandler? GotFocus;
     public event EventHandler? LostFocus;
@@ -1146,7 +1147,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     protected virtual void OnDetached() { }
 
-    internal void RaiseDetached() => OnDetached();
+    internal void RaiseDetached()
+    {
+        OnDetached();
+        Detached?.Invoke(this, EventArgs.Empty);
+    }
 
     /// <summary>Рисуется после потомков и вне их отсечения — полосы прокрутки, рамки поверх.</summary>
     protected internal virtual void DrawOverlay(Graphics g) { }

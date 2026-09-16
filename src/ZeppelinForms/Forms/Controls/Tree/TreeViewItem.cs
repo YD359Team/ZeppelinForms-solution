@@ -40,7 +40,9 @@ public partial class TreeViewItem : DecoratedControl
 
     private string Text => _owner.GetItemText(Node);
 
-    private float IndentWidth => Node.Level * _owner.Indent;
+    // минус один: у TreeView служебный корень, и узлы верхнего уровня
+    // имеют Level == 1 — без поправки всё дерево смещено на лишний шаг
+    private float IndentWidth => Math.Max(0, Node.Level - 1) * _owner.Indent;
 
     // фон, рамка и скругление рисует база — здесь выделение, глиф и текст
     protected override void DrawContent(Graphics g)
