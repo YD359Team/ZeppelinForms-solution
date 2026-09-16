@@ -257,6 +257,23 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     private static bool IsVisibleDefault => true;
 
+    /// <summary>Виден ли элемент с учётом предков.</summary>
+    /// <remarks>
+    /// Собственного IsVisible мало: PageControl прячет страницы, не отвязывая
+    /// их от дерева, поэтому у элемента на скрытой странице IsVisible
+    /// остаётся истинным, а на экране его нет.
+    /// </remarks>
+    public bool IsEffectivelyVisible
+    {
+        get
+        {
+            for (UIElement? node = this; node is not null; node = node.Parent)
+                if (!node.IsVisible) return false;
+
+            return true;
+        }
+    }
+
     [Styled(Category = "Text", AffectsLayout = true)]
     public partial Font? Font { get; set; }
     //

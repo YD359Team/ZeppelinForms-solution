@@ -1186,6 +1186,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             // могли снять из completed соседней анимации
             if (!_animations.Contains(animation)) continue;
 
+            // анимация на скрытом поддереве не продвигается и не перерисовывается.
+            // Не снимаем её: страница вернётся, и анимация должна ожить.
+            // PageControl прячет страницы, не отвязывая, поэтому опираться
+            // на Detached здесь нельзя
+            if (animation.Target is UIElement hidden && !hidden.IsEffectivelyVisible)
+                continue;
+
             bool alive = animation.Advance(elapsed);
 
             // перерисовываем цель независимо от того, дожила ли анимация
