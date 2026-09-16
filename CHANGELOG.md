@@ -4,11 +4,151 @@
 
 ![Atlantida](assets/Logo-0.11.0.jpg)
 
-- Android platform support
-- Gestures
-- Adaptive panels improvements
-- TreeView
-- DataGrid
+### Breaking changes
+
+- `DisplayInfo.Dpi` is required. `Scale` is a UI scaling decision — X11 rounds it
+  to quarters, Android counts it from a 160 dpi base — so physical density cannot
+  be recovered from it, and gesture thresholds need the real value. Every
+  `IDisplayProvider` implementation must now supply it
+- The input pipeline is built on pointer contacts rather than on the mouse.
+  `Form.OnPointerDown`, `OnPointerMove` and `OnPointerUp` take `PointerEventArgs`;
+  the old positional signatures remain as thin adapters, so platform backends
+  needed no changes
+- `PointerContact` is public: gesture recognizers are a public extension point
+  and need the contact's history
+- `Image.LoadAsset` resolves paths through the new `Assets.Root` instead of
+  hardcoding `AppContext.BaseDirectory`. The default is the old path, so desktop
+  behaviour is unchanged; Android points it at the application data directory
+- A reentrant `Invalidate` from `MeasureOverride` or `ArrangeOverride` no longer
+  fails a contract. Virtualizing panels create containers during measurement by
+  necessity, so the request is deferred and satisfied by an extra layout pass.
+  The contract still fires when layout fails to converge in four passes
+- `Calendar` takes month names, weekday captions and the first day of the week
+  from the culture. Previously the week always started on Monday and the captions
+  were hardcoded Russian
+- `VirtualizingStackPanel.Refresh` no longer clears its children eagerly; it
+  marks the realized range stale and lets the next layout pass rebuild it
+
+### Android
+
+- `ZeppelinForms.Android`: a backend on `net10.0-android`. Windows are layers on
+  a single surface, as in the browser; frames come from `Choreographer`
+- Real multi-touch. `MotionEvent` is decomposed per contact, including the
+  pointers that `ACTION_MOVE` carries alongside the one that moved
+- `AndroidDisplayProvider` reports both the 160-based density as `Scale` and the
+  panel's real dpi as `Dpi`
+- Safe area handling: system bars, display cutout and the on-screen keyboard
+  arrive as separate insets, and the root form lays out inside them. This is not
+  optional — Android 15 forces edge-to-edge for `targetSdk` 35
+- On-screen keyboard through the new `ISoftKeyboard`, a separate interface rather
+  than methods on `IPlatformWindow`: four desktop backends would have had nothing
+  to put in them but empty bodies. It follows focus — a control that accepts text
+  input raises the keyboard, anything else hides it
+- Text from the IME arrives through an `InputConnection`, so suggestions,
+  autocorrect and emoji work, not only key events
+- Android key codes are mapped to `Key`; the printable character arrives
+  separately from the key, as `WM_CHAR` does on Windows
+- The system back gesture is surfaced as `AndroidPlatform.BackRequested` rather
+  than mapped onto `Escape`: `Form.OnKeyDown` returns nothing, so "a dialog
+  closed" could not be told apart from "nobody handled it"
+- Mouse wheel and hover from an attached mouse
+- `AndroidApp.Run` unpacks APK assets into the application directory before the
+  platform starts
+
+### Input and gestures
+
+- Contacts are tracked per pointer id: hover exists only for a mouse, platform
+  capture is reference-counted because `IPlatformWindow.CaptureMouse` is
+  window-wide, and the hit chain is captured at press time rather than recomputed
+- `PointerCanceled` is a first-class event. Previously a lost capture was
+  simulated with a fake mouse-up, which a `TrackBar` or a `GridSplitter` took for
+  a real release and committed a value on
+- `GestureArena` arbitrates one contact between recognizers attached to elements.
+  Recognition is an element's policy; arbitration is global, because a contact has
+  exactly one winner. A winner cancels the interaction the elements under it had
+  already started
+- Recognizers: tap, pan, long press, swipe, pinch and rotate. Pinch and rotate
+  span two contacts and win in every arena they take part in at once
+- `PointerThresholds` states its thresholds in millimetres. A slop tuned in
+  pixels on a desktop mouse is either indistinguishable from zero or
+  insurmountable on a phone
+- `PageControl` navigates on a swipe, by history or by page order
+- The browser backend now forwards `pointerId`, `pointerType`, `pressure` and
+  `pointercancel`, and sets `touch-action: none` — without it the browser keeps
+  panning for itself
+
+### TreeView
+
+- Expanded nodes are projected into a flat list which feeds
+  `VirtualizingStackPanel`. Nested containers would have been simpler and would
+  have killed virtualization: the visible range is computed by dividing scroll by
+  row height, and that needs a one-dimensional sequence
+- A node's change notification is raised at the root, so `TreeView` subscribes to
+  one node instead of every node — there is nothing to forget to unsubscribe
+- One control per row, not per cell; the expander glyph is shared with `Spoiler`
+  through `Glyphs.DrawChevron`
+
+### DataGridView
+
+- Cells are drawn rather than built from controls: twenty columns over thirty
+  visible rows would mean six hundred elements measured and arranged every frame
+- Columns reach their value through a delegate rather than reflection or a
+  binding. Reflection per cell per frame is the cost 0.10.0 spent effort
+  removing, and a binding would mean one subscription per visible cell,
+  recreated on every scroll
+- Row virtualization, a header that scrolls horizontally with the body but not
+  vertically, star and fixed column widths, row selection, `ScrollIntoView`
+- `Auto` width measures the header and the visible rows, not the whole data set:
+  scanning everything on each layout pass would defeat virtualization. Column
+  width can therefore change while scrolling — use a fixed width when that matters
+
+### Adaptive layout
+
+- `SizeClass` and `Breakpoints` classify a layout region, not the screen: a
+  300-unit panel inside a wide window is as cramped as a whole phone screen
+- `LayoutBuilder.RebuildKey` makes a rebuild depend on meaning rather than on
+  pixels. The size threshold fires almost every frame while a window frame is
+  dragged, and a rebuild replaces the child along with its focus, scroll position
+  and typed text
+- `AdaptiveLayout` rebuilds only when the size class changes
+
+### Fixes
+
+- `Graphics.DrawText` clips to the rectangle it is given. The rectangle was used
+  only for alignment, so a caption too wide for its box was drawn over its
+  neighbours
+- `PanelControl` no longer requests a layout pass for children added during
+  measurement, which cost a full pass per list scroll
+- `VirtualizingStackPanel` stopped accumulating containers it can never reuse:
+  with an item template the recycle pool is useless, and pushing into it leaked
+  until the window closed
+- An animation on a hidden subtree is no longer advanced or repainted.
+  `PageControl` hides pages without detaching them, so `IsVisible` alone was not
+  enough — `UIElement.IsEffectivelyVisible` walks the ancestors
+- `Calendar` scales its font and captions to the available size, shares one
+  geometry between drawing and hit testing, no longer paints the hover highlight
+  over the navigation arrows, and no longer fills a selected cell twice
+- `TreeView` and `DataGridView` override the `Center` alignment that
+  `UnitControl` gives its descendants. A centred list row swallows the depth
+  indent and reads as if nesting were inverted
+- `Point.DistanceBetweenM` computed a Manhattan distance through two square roots
+  instead of `MathF.Abs`
+
+### Known limitations
+
+- Content cannot be scrolled by dragging it. `PanelControl` scrolls with the
+  wheel and programmatically, and scrollbar thumbs cannot be dragged, so on
+  Android no list can be scrolled at all. This is the first thing 0.12.0 will fix
+- `DataGridView` has no cell editing, no sorting, no column resizing and no
+  frozen columns. `CanSort` and `Comparer` exist on the column but are not used yet
+- `TreeView` has no keyboard navigation
+- Desktop backends deliver a single contact: pinch and rotate need Android or a
+  touchscreen in a browser. `WM_POINTER` and XInput2 are not wired up
+- Android has no clipboard, no file dialogs and no `IAppLifecycle`, so frames
+  keep running while the application is in the background
+- `Form.ShowDialog` throws on Android — only `ShowDialogAsync` works, because a
+  nested loop cannot block the UI thread there
+- A repaint flicker in `TreeView` on Android is unresolved
 
 ## [0.10.0] - Hyperborea
 

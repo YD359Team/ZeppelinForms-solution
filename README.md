@@ -16,11 +16,14 @@ The project is under active development.
 | 2 | Windows     | ✅     |
 | 3 | Linux (X11) | ✅     |
 | 4 | WebAssembly | ✅*    |
-| 5 | Android     | ⚙️     |
+| 5 | Android     | ✅     |
 | 6 | macOS       | 💡     |
 
 \* - WebAssembly: dialogs are async-only,
 and system drag and drop is not supported — see the browser section below.
+
+Android: dialogs are async-only, and there is no clipboard or file dialog yet.
+On both, content cannot yet be scrolled by dragging it.
 
 ### 🧠 Philosophy
 
@@ -96,7 +99,6 @@ Unlike WinForms, all controls support:
 background, corner radius, border — lives one level down. Inherit the closest
 base that already does what you need:
 
-
 `Draw` is sealed in every `Decorated*` class: it fills the background, calls
 your content, then draws the border. Override these instead:
 
@@ -105,6 +107,10 @@ your content, then draws the border. Override these instead:
 | `DecoratedControl` | `DrawContent` (required), `DrawDecoration` | `Draw` |
 | `DecoratedPanel` | `DrawContent`, `DrawDecoration`, `MeasureContentOverride`, `ArrangeContentOverride` | `Draw`, `MeasureOverride`, `ArrangeOverride` |
 | `DecoratedWrapControl` | `DrawContent`, `DrawDecoration` | `Draw` |
+
+`Decorated*` is not a fourth category — it is a decoration layer inside each of
+the three. `DecoratedControl` is a `UnitControl`, so it inherits every default
+`UnitControl` sets, alignment included.
 
 `DrawContent` runs before children, `DrawDecoration` after them and outside
 their clip — that is where selection outlines, resize handles and drop
@@ -128,12 +134,9 @@ public partial Color HoverColor { get; set; }
 private static Color HoverColorDefault => new(255, 232, 240, 254);
 ```
 
-Requirements: the property is `partial` with a getter and a setter, its type
-is a `partial` descendant of `UIElement`. The default comes from a static
-property named `<Name>Default`; omit it when `default(T)` will do. It must be
-a property, not a field: static field initializers run in declaration order,
-and partial declarations are split across files, so a field could be read
-before it is computed.
+Requirements: the property is `partial` with a getter and a setter, and the type
+declaring it is a `partial` descendant of `UIElement`. The default comes from a
+static property named `<Name>Default`; omit it when `default(T)` will do.
 
 Flags: `AffectsLayout = true` when the value changes measurement — the setter
 then invalidates layout instead of only repainting. `Inherits = true` when the
@@ -170,7 +173,7 @@ registration to call directly.
 |  3 | CheckBox            |    ✅   | 23 | LineChart       |    ✅   |
 |  4 | PictureBox          |    ✅   | 24 | PieChart        |    ✅   |
 |  5 | RadioButton         |    ✅   | 25 | RichLabel       |    ✅   |
-|  6 | TextBox             |   ✅*   | 26 | LinkLabel       |    ✅   |
+|  6 | TextBox             |    ✅*  | 26 | LinkLabel       |    ✅   |
 |  7 | ToggleSwitch        |    ✅   | 27 | LineShape       |    ✅   |
 |  8 | DateTimePicker      |    ✅   | 28 | RectangleShape  |    ✅   |
 |  9 | TimePicker          |    ✅   | 29 | EllipseShape    |    ✅   |
@@ -183,11 +186,11 @@ registration to call directly.
 | 16 | TrackBar            |    ✅   | 36 | MapControl      |    ✅   |
 | 17 | Calendar            |    ✅   | 37 | Loader          |    ✅   |
 | 18 | MenuBar             |    ✅   | 38 | PageIndicator   |    ✅   |
-| 19 | MenuList            |    ✅   |    |                 |         |
-| 20 | SplitButton         |    ✅   |    |                 |         |
-
+| 19 | MenuList            |    ✅   | 39 | DataGridView    |    ✅** |
+| 20 | SplitButton         |    ✅   | 40 | Table           |    ✅   |
 
 \* — contains bugs and is missing part of its API
+\*\* — DataGridView: no cell editing, sorting, column resizing or frozen columns yet
 
 #### Panels
 
@@ -222,8 +225,9 @@ A specialized type of panel capable of working with collections of elements.
 | 1 | ListBox | ✅ |
 | 2 | CheckedListBox | ✅ |
 | 3 | DragList | ✅ |
-| 4 | TreeView | 💡 |
-| 5 | DataGrid | 💡 |
+| 4 | TreeView | ✅* |
+
+\* — TreeView: no keyboard navigation yet
 
 ⭐ All panels can display a scrollbar when their content overflows.
 
