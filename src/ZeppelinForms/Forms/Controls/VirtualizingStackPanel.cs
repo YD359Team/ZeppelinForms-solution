@@ -16,6 +16,7 @@ public class VirtualizingStackPanel : DecoratedPanel
 
     private int _firstVisible;
     private int _visibleCount;
+    private bool _rangeValid;
 
     public IList<object> ItemsSource { get; set; } = [];
 
@@ -32,9 +33,15 @@ public class VirtualizingStackPanel : DecoratedPanel
         OverflowY = Overflow.Auto;
     }
 
+    /// <summary>Состав или порядок ItemsSource изменились.</summary>
     public void Refresh()
     {
-        RecycleAll();
+        // детей здесь не трогаем: вычистить их сейчас значит показать пустой
+        // список в кадре между Refresh и ближайшим измерением — это и есть
+        // мерцание. Достаточно объявить диапазон недействительным,
+        // а пересоберёт его UpdateRealizedRange в том же проходе раскладки
+        _rangeValid = false;
+
         Invalidate();
     }
 
@@ -107,15 +114,30 @@ public class VirtualizingStackPanel : DecoratedPanel
             List<int> stale = [];
 
             foreach (int index in _realized.Keys)
-                if (index < first || index >= first + count)
-                    stale.Add(index);
+                if (_rangeValid
+                && first == _firstVisible
+                && count == _visibleCount
+                && _realized.Count > 0)
+                {
+                    return;
+                }
+
+            // состав изменился: ключи в _realized относятся к прежнему списку,
+            // и строка с индексом 3 теперь другой элемент — переиспользовать
+            // их нельзя, только пересоздать
+            if (!_rangeValid) RecycleAll();
+
+            _rangeValid = true;
+
+            _firstVisible = first;
+            _visibleCount = count;
 
             foreach (int index in stale)
             {
                 UIElement container = _realized[index];
                 Children.Remove(container);
                 _realized.Remove(index);
-                _recycled.Push(container);
+                Recycle(container);
             }
 
             for (int i = first; i < first + count; i++)
