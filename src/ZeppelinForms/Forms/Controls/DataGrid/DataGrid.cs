@@ -34,7 +34,15 @@ public partial class DataGridView : DecoratedControl
     /// что из него доставать.</summary>
     public ObservableCollection<object> Items { get; } = [];
 
-    public DataGridView() => Items.CollectionChanged += OnItemsChanged;
+    public DataGridView()
+    {
+        Items.CollectionChanged += OnItemsChanged;
+
+        // таблица занимает отведённое место целиком: центрование,
+        // унаследованное от UnitControl, оставляло бы её узкой полосой
+        // посреди страницы
+        SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Stretch);
+    }
 
     private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {

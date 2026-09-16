@@ -69,6 +69,10 @@ public class TreeView : DecoratedPanel
 
         _root.Changed += OnTreeChanged;
 
+        // дерево — контейнер, а не элемент управления по месту: центровать
+        // его незачем, а унаследованный от UnitControl Center делает именно это
+        SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Stretch);
+
         Rebuild();
     }
 

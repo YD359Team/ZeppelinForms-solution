@@ -25,7 +25,12 @@ public partial class TreeViewItem : DecoratedControl
         _owner = owner;
         Node = node;
 
-        // ZF0006: styled-свойства в конструкторе только через SetControlDefault
+        // ZF0006: styled-свойства в конструкторе только через SetControlDefault.
+        // Выравнивание перебиваем осознанно: UnitControl ставит потомкам
+        // Center, а строка списка обязана занимать всю ширину — иначе
+        // отступ по глубине съедается центрированием, и вложенность
+        // читается наоборот
+        SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Stretch);
         SetControlDefault(SelectionColorProperty, new Color(255, 205, 226, 252));
         SetControlDefault(GlyphColorProperty, new Color(255, 90, 90, 90));
     }
