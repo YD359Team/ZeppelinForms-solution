@@ -93,16 +93,21 @@ public class VirtualizingStackPanel : DecoratedPanel
 
         try
         {
-
             if (ItemsSource.Count == 0 || ItemHeight <= 0)
             {
                 RecycleAll();
+                _rangeValid = false;
+
                 return;
             }
 
             int first = Math.Max(0, (int)(ScrollY / ItemHeight) - OverscanCount);
             int count = (int)Math.Ceiling(viewportHeight / ItemHeight) + OverscanCount * 2;
             count = Math.Min(count, ItemsSource.Count - first);
+
+            System.Diagnostics.Debug.WriteLine(
+    $"ZF: VSP диапазон {first}+{count}, валиден={_rangeValid}, " +
+    $"реализовано={_realized.Count}, детей={Children.Count}, источник={ItemsSource.Count}");
 
             if (first == _firstVisible && count == _visibleCount && _realized.Count > 0)
                 return;

@@ -111,6 +111,8 @@ public class TreeView : DecoratedPanel
 
     private void Rebuild()
     {
+        System.Diagnostics.Debug.WriteLine($"ZF: TreeView.Rebuild, строк станет {_flat.Count}");
+
         TreeFlattener.Flatten(_root.Children, _flat);
 
         // Refresh обязателен, а не только Invalidate: UpdateRealizedRange

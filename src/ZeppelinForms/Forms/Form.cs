@@ -1036,6 +1036,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
                 LayoutPass();
 
+                if (pass > 0)
+                    System.Diagnostics.Debug.WriteLine($"ZF: раскладка, проход {pass + 1}");
+
                 if (!_layoutRequested) break;
 
                 if (pass + 1 >= MaxLayoutPasses)
