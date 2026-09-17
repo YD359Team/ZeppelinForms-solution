@@ -29,6 +29,10 @@ public class Page : DecoratedWrapControl
     public event EventHandler? Appearing;
     public event EventHandler? Disappearing;
 
+    /// <summary>Содержимое уже создано. PageControl смотрит на это,
+    /// когда готовит страницы заранее.</summary>
+    internal bool IsBuilt => _built;
+
     internal void EnsureBuilt()
     {
         if (_built || _factory is null) return;

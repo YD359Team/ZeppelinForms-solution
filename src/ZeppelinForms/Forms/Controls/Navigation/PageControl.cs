@@ -24,6 +24,22 @@ public class PageControl : DecoratedPanel
     public PageTransition Transition { get; set; } = PageTransition.SlideLeft;
     public int TransitionDurationMs { get; set; } = 220;
 
+    /// <summary>Готовить содержимое ещё не показанных страниц в простое.</summary>
+    /// <remarks>
+    /// Фабрика страницы отрабатывает при первом показе — прямо в обработчике
+    /// нажатия. Для страницы из трёх десятков контролов с картинками
+    /// и графиками это заметная пауза между кликом и началом перехода,
+    /// и видна она только в первый раз: дальше содержимое уже построено.
+    /// Поэтому строим остальные страницы заранее, пока пользователь читает
+    /// текущую, и по одной за раз — чтобы не собрать все паузы в одну.
+    /// </remarks>
+    public bool PreloadPages { get; set; } = true;
+
+    /// <summary>Пауза перед очередной порцией подготовки.</summary>
+    public int PreloadDelayMs { get; set; } = 150;
+
+    private IDisposable? _preloadWake;
+
     public Page? CurrentPage => _current;
 
     public bool CanGoBack => _history.Count > 1;
@@ -47,6 +63,50 @@ public class PageControl : DecoratedPanel
     } = PageSwipeMode.Back;
 
     public PageControl() => UpdateSwipeRecognizer();
+
+    protected override void OnAttached()
+    {
+        base.OnAttached();
+
+        // до присоединения часов нет, а значит и отложить подготовку некуда
+        SchedulePreload(PreloadDelayMs);
+    }
+
+    protected override void OnDetached()
+    {
+        base.OnDetached();
+
+        _preloadWake?.Dispose();
+        _preloadWake = null;
+    }
+
+    private void SchedulePreload(int delayMs)
+    {
+        if (!PreloadPages) return;
+        if (FindOwner() is not { } owner) return;
+
+        _preloadWake?.Dispose();
+        _preloadWake = owner.Schedule(delayMs, PreloadNext);
+    }
+
+    /// <summary>Построить одну неготовую страницу и записаться на следующую
+    /// порцию. Именно по одной: построение страницы — это создание десятков
+    /// контролов с загрузкой их ресурсов, и пачкой это даст ту же заметную
+    /// паузу, только в другом месте.</summary>
+    private void PreloadNext()
+    {
+        _preloadWake = null;
+
+        foreach (UIElement child in Children)
+        {
+            if (child is not Page { IsBuilt: false } page) continue;
+
+            page.EnsureBuilt();
+            SchedulePreload(PreloadDelayMs);
+
+            return;
+        }
+    }
 
     private void UpdateSwipeRecognizer()
     {
@@ -238,6 +298,8 @@ public class PageControl : DecoratedPanel
             target.Opacity = 1f;
             Invalidate();
 
+            SchedulePreload(PreloadDelayMs);
+
             return;
         }
 
@@ -261,6 +323,9 @@ public class PageControl : DecoratedPanel
 
                 Invalidate();
             });
+        // не во время перехода: построение страницы посреди анимации
+        // съело бы ровно те кадры, которые она показывает
+        SchedulePreload(TransitionDurationMs + PreloadDelayMs);
     }
 
     /// <summary>Сдвигает и подкрашивает страницы по текущему прогрессу.
