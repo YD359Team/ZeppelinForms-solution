@@ -152,14 +152,25 @@ public class ExampleMainForm : Form
             new PolygonShape() { Stroke = Colors.Black, Points = [new(), new(1, 1), new(0, 1)] },
             .. GetPlotControls()
         ];
+        // на узком экране — колонка с вертикальной прокруткой, на широком —
+        // перенос по строкам. Горизонтальный StackPanel здесь выстраивал все
+        // тридцать контролов в одну строку и уезжал за край: прокрутка была
+        // задана по Y, а расти строка могла только по X
         adaptiveLayout.Content = size => size == SizeClass.Compact
-        ? new StackPanel() 
-        { 
-            Orientation = Orientation.Vertical, Spacing = 5, OverflowY = Overflow.Auto 
+        ? new StackPanel()
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 5,
+            OverflowY = Overflow.Auto
         }.With(x => x.Children.AddRange(controls))
-        : new StackPanel() 
-        { 
-            Orientation = Orientation.Horizontal, Spacing = 3, OverflowY = Overflow.Auto 
+        : new WrapPanel()
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            LineSpacing = 8,
+            LineAlignment = CrossAxisAlignment.Center,
+            Padding = new(8),
+            OverflowY = Overflow.Auto,
         }.With(x => x.Children.AddRange(controls));
 
         return adaptiveLayout;
