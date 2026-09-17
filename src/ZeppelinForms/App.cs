@@ -68,7 +68,7 @@ public class App
         lifecycle.Paused += (_, _) =>
         {
             foreach (Form form in Form.OpenForms)
-                form.PlatformWindow?.Frames.Stop();
+                form.SuspendFrames();
         };
 
         lifecycle.Resumed += (_, _) =>

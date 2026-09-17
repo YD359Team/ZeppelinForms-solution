@@ -38,7 +38,12 @@ internal sealed class AndroidFrameDriver(Action scheduleFrame, Action repaint) :
 
         scheduleFrame();
 
-        if (_lastFrameMs != 0 && timestampMs - _lastFrameMs < _intervalMs)
+        // интервал — это потолок частоты, а не жёсткая мера: vsync приходит
+        // с разбросом, и сравнение впритык роняло каждый второй кадр,
+        // превращая шестьдесят кадров в тридцать. Четверть интервала
+        // разброс покрывает, а лишний кадр на экране 120 Гц по-прежнему
+        // пропускается
+        if (_lastFrameMs != 0 && timestampMs - _lastFrameMs < _intervalMs * 0.75)
             return false;
 
         _lastFrameMs = timestampMs;

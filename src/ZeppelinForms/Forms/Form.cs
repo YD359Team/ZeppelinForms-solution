@@ -22,7 +22,7 @@ using ZeppelinForms.Theming;
 
 namespace ZeppelinForms.Forms;
 
-public class Form : IDisposable
+public partial class Form : IDisposable
 {
     /// <summary>Флаут закрыт — по клику мимо, программно или вместе с формой.
     /// Контролы, открывшие его, обязаны сбросить свою ссылку здесь.</summary>
@@ -53,13 +53,9 @@ public class Form : IDisposable
             if (AllowDrop)
                 value.SetDragDropEnabled(true);
 
-            // то же с анимациями: добавленные до создания окна лежат в списке,
-            // но Frames.Start ушёл в null — запускаем кадры здесь
-            if (_animations.Count > 0)
-            {
-                _lastTickTicks = Environment.TickCount64;
-                value.Frames.Start(FrameIntervalMs);
-            }
+            // то же с анимациями: добавленные до создания окна лежат
+            // в часах, но выдавать кадры было некому — просим их здесь
+            ReviewFrames();
         }
     }
 
@@ -135,11 +131,6 @@ public class Form : IDisposable
     public bool CanMinimize { get; set; } = true;
     public bool CanMaximize { get; set; } = true;
     public bool CanResize { get; set; } = true;
-
-    private readonly List<IAnimation> _animations = [];
-    private long _lastTickTicks;
-
-    public int FrameIntervalMs { get; set; } = 16;   // ~60 кадров в секунду
 
     public WindowState WindowState
     {
@@ -230,7 +221,7 @@ public class Form : IDisposable
 
     // ===== ToolTip =====
     public int ToolTipDelay { get; set; } = 700;
-    private readonly System.Threading.Timer _toolTipTimer;
+    private IDisposable? _toolTipWake;
     private UIElement? _toolTipOwner;
     private UIElement? _activeToolTip;
     private Point _lastPointerPosition;
@@ -248,9 +239,6 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     public Form()
     {
-        _toolTipTimer = new System.Threading.Timer(
-            OnToolTipTimerElapsed, null, Timeout.Infinite, Timeout.Infinite);
-
         App.ThemeChanged += OnThemeChanged;
         _focusDispatcher.FocusChanged += OnFocusChangedForKeyboard;
     }
@@ -959,21 +947,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (_toolTipOwner is not null && IsInTree(root, _toolTipOwner))
             _toolTipOwner = null;
 
-        for (int i = _animations.Count - 1; i >= 0; i--)
-        {
-            if (_animations[i].Target is not UIElement element || !IsInTree(root, element))
-                continue;
-
-            IAnimation animation = _animations[i];
-            _animations.RemoveAt(i);
-
-            // цель уходит из дерева: ни значение доводить, ни completed
-            // звать не нужно — приводить в порядок больше нечего
-            animation.Cancel(applyFinalValue: false);
-        }
-
-        if (_animations.Count == 0)
-            PlatformWindow?.Frames.Stop();
+        CancelAnimationsIn(root);
     }
 
     private static bool IsInTree(UIElement root, UIElement candidate)
@@ -1103,115 +1077,15 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     {
         PerformLayout();
 
+        // видимость элемента — свойство раскладки, поэтому её смена всегда
+        // проходит здесь. Часы пересматривают, нужны ли кадры: анимация
+        // на показавшейся заново странице должна ожить, а на спрятанной —
+        // перестать будить окно
+        ReviewFrames();
+
         // полная перерисовка: копим всю клиентскую область
         _dirtyRegion = new Rectangle(Point.Empty, ClientSize);
         PlatformWindow?.Invalidate(null);
-    }
-
-    internal void AddAnimation(IAnimation animation)
-    {
-        // одна анимация на связку «объект + свойство».
-        // Вытесняемую снимаем с вызовом её completed, иначе состояние,
-        // которое она должна была привести в порядок, останется в середине —
-        // именно из-за этого PageControl оставлял страницы висеть
-        for (int i = _animations.Count - 1; i >= 0; i--)
-        {
-            IAnimation existing = _animations[i];
-
-            if (!ReferenceEquals(existing.Target, animation.Target) ||
-                existing.Key != animation.Key)
-                continue;
-
-            _animations.RemoveAt(i);
-
-            // без доведения значения: новая анимация начнёт со своего from,
-            // и прыжок в конец дал бы мелькание
-            existing.Cancel(applyFinalValue: false);
-        }
-
-        _animations.Add(animation);
-
-        if (_animations.Count == 1)
-        {
-            _lastTickTicks = Environment.TickCount64;
-            PlatformWindow?.Frames.Start(FrameIntervalMs);
-        }
-    }
-
-    internal void RemoveAnimation(object target, string key)
-    {
-        for (int i = _animations.Count - 1; i >= 0; i--)
-        {
-            IAnimation existing = _animations[i];
-
-            if (!ReferenceEquals(existing.Target, target) || existing.Key != key)
-                continue;
-
-            _animations.RemoveAt(i);
-            existing.Cancel(applyFinalValue: false);
-        }
-
-        if (_animations.Count == 0)
-            PlatformWindow?.Frames.Stop();
-    }
-
-    /// <summary>Снова выдавать кадры, если анимации ещё не закончились.
-    /// Вызывается при возврате приложения из фона.</summary>
-    internal void ResumeFrames()
-    {
-        if (_animations.Count == 0) return;
-
-        // за время в фоне прошло сколько угодно времени; без сброса первая же
-        // итерация продвинула бы анимации сразу до конца
-        _lastTickTicks = Environment.TickCount64;
-        PlatformWindow?.Frames.Start(FrameIntervalMs);
-    }
-
-    internal void Tick()
-    {
-        long now = Environment.TickCount64;
-        var elapsed = TimeSpan.FromMilliseconds(now - _lastTickTicks);
-        _lastTickTicks = now;
-
-        bool wholeWindow = false;
-
-        // по снимку, а не по живому списку: Advance вызывает completed
-        // прямо внутри себя, а тот может и снять анимации, и добавить —
-        // переход страницы делает ровно это. Индексы при таком раскладе
-        // разъезжаются под ногами
-        IAnimation[] running = [.. _animations];
-
-        foreach (IAnimation animation in running)
-        {
-            // могли снять из completed соседней анимации
-            if (!_animations.Contains(animation)) continue;
-
-            // анимация на скрытом поддереве не продвигается и не перерисовывается.
-            // Не снимаем её: страница вернётся, и анимация должна ожить.
-            // PageControl прячет страницы, не отвязывая, поэтому опираться
-            // на Detached здесь нельзя
-            if (animation.Target is UIElement hidden && !hidden.IsEffectivelyVisible)
-                continue;
-
-            bool alive = animation.Advance(elapsed);
-
-            // перерисовываем цель независимо от того, дожила ли анимация
-            // до следующего кадра: последний её кадр тоже надо показать
-            switch (animation.Target)
-            {
-                // анимация самой формы — например, волна смены темы —
-                // выходит за пределы любого отдельного элемента
-                case Form: wholeWindow = true; break;
-                case UIElement element: element.InvalidateVisual(); break;
-            }
-
-            if (!alive) _animations.Remove(animation);
-        }
-
-        if (_animations.Count == 0)
-            PlatformWindow?.Frames.Stop();
-
-        if (wholeWindow) InvalidateVisual();
     }
 
     // ===== Flyout API =====
@@ -1300,8 +1174,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         s_openForms.Remove(this);
 
-        // таймер кадров живёт в окне, которого больше нет
-        PlatformWindow?.Frames.Stop();
+        _clock?.Stop();
 
         _dialogClosed?.TrySetResult();
 
@@ -1432,19 +1305,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         ArrangeToasts(position);
         Invalidate();
 
-        System.Threading.Timer? timer = null;
-        timer = new System.Threading.Timer(_ =>
+        Schedule(durationMs, () =>
         {
-            Invoke(() =>
-            {
-                DetachOverlay(toast);
-                _toasts.Remove(toast);
-                ArrangeToasts(position);   // оставшиеся подтягиваются на освободившееся место
-                Invalidate();
-            });
-
-            timer?.Dispose();
-        }, null, durationMs, Timeout.Infinite);
+            DetachOverlay(toast);
+            _toasts.Remove(toast);
+            ArrangeToasts(position);   // оставшиеся подтягиваются на освободившееся место
+            Invalidate();
+        });
     }
 
     private void ArrangeToasts(ToastPosition position)
@@ -1483,38 +1350,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         _toolTipOwner = target is not null && !string.IsNullOrEmpty(target.ToolTip) ? target : null;
 
-        _toolTipTimer.Change(
-            _toolTipOwner is not null ? ToolTipDelay : Timeout.Infinite,
-            Timeout.Infinite);
+        if (_toolTipOwner is not null)
+            _toolTipWake = Schedule(ToolTipDelay, ShowToolTipCore);
     }
-
-    /// <summary>Выполнить действие через задержку в потоке UI.</summary>
-    /// <returns>Отмена: освободите результат, чтобы вызова не было.</returns>
-    /// <remarks>
-    /// Отмена и срабатывание — это гонка: будильник мог уже уйти в очередь
-    /// UI к моменту, когда его отменяют. Поэтому вызываемый код обязан
-    /// сам проверить, актуален ли он ещё, а не полагаться на Dispose.
-    /// </remarks>
-    internal IDisposable Schedule(int delayMs, Action action)
-    {
-        System.Threading.Timer? timer = null;
-
-        timer = new System.Threading.Timer(
-            _ =>
-            {
-                // таймер тикает на потоке пула — маршалим, как и подсказки
-                Invoke(action);
-                timer?.Dispose();
-            },
-            null,
-            delayMs,
-            Timeout.Infinite);
-
-        return timer;
-    }
-
-    // Вызывается на потоке пула — обязательно маршалим на UI-поток
-    private void OnToolTipTimerElapsed(object? state) => Invoke(ShowToolTipCore);
 
     private void ShowToolTipCore()
     {
@@ -1563,7 +1401,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     private void HideToolTip()
     {
-        _toolTipTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        _toolTipWake?.Dispose(); 
+        _toolTipWake = null;
 
         if (_activeToolTip is not null)
         {
@@ -1788,7 +1627,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     public void Dispose()
     {
         App.ThemeChanged -= OnThemeChanged;
-        _toolTipTimer?.Dispose();
+        _toolTipWake?.Dispose(); 
+        _clock?.Dispose();
 
         _focusDispatcher.FocusChanged -= OnFocusChangedForKeyboard;
 
