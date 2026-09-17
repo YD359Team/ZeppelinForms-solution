@@ -9,10 +9,30 @@ namespace ZeppelinForms.Forms.Controls;
 /// Создаёт контейнеры только для видимых элементов. Требует одинаковой
 /// высоты строк — иначе нельзя вычислить видимый диапазон без измерения всех.
 /// </summary>
+/// <remarks>
+/// Контейнер принадлежит элементу, а не позиции в списке. Когда состав
+/// источника меняется — узел дерева раскрылся, строку вставили выше
+/// видимого окна, — уже созданные контейнеры не пересоздаются, а просто
+/// переезжают на новый индекс. Пересоздание по индексу отвязывало всё окно
+/// строк от дерева и строило его заново: терялись наведение и нажатие,
+/// заново применялась тема, а строка, по которой кликнули, исчезала прямо
+/// внутри своего OnClick.
+/// </remarks>
 public class VirtualizingStackPanel : DecoratedPanel
 {
-    private readonly Dictionary<int, UIElement> _realized = [];
+    private Dictionary<int, UIElement> _realized = [];
+    private Dictionary<int, UIElement> _next = [];
     private readonly Stack<UIElement> _recycled = new();
+
+    // элемент источника, который показывает контейнер. Сравнение по ссылке:
+    // узел дерева с переопределённым Equals не должен забрать чужую строку
+    private readonly Dictionary<UIElement, object?> _itemOf = new(ReferenceEqualityComparer.Instance);
+
+    // рабочие коллекции пересборки диапазона — поля, а не локальные,
+    // чтобы прокрутка не выделяла память на каждую строку
+    private readonly Dictionary<object, UIElement> _byItem = new(ReferenceEqualityComparer.Instance);
+    private readonly List<UIElement> _unmatched = [];
+    private readonly List<int> _missing = [];
 
     private int _firstVisible;
     private int _visibleCount;
@@ -20,7 +40,24 @@ public class VirtualizingStackPanel : DecoratedPanel
 
     public IList<object> ItemsSource { get; set; } = [];
 
-    public Func<object, UIElement>? ItemTemplate { get; set; }
+    public Func<object, UIElement>? ItemTemplate
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            // контейнеры прежнего шаблона новому не подходят, а пул
+            // подписей бесполезен шаблону — сбрасываем и то, и другое
+            RecycleAll();
+            _recycled.Clear();
+
+            field = value;
+            _rangeValid = false;
+
+            Invalidate();
+        }
+    }
 
     /// <summary>Высота строки. Одинакова для всех — на этом строится виртуализация.</summary>
     public float ItemHeight { get; set; } = 24f;
@@ -51,11 +88,12 @@ public class VirtualizingStackPanel : DecoratedPanel
 
         try
         {
-            while (Children.Count > 0)
-                Children.RemoveAt(Children.Count - 1);
-
             foreach (UIElement container in _realized.Values)
+            {
+                Children.Remove(container);
+                _itemOf.Remove(container);
                 Recycle(container);
+            }
 
             _realized.Clear();
         }
@@ -87,80 +125,120 @@ public class VirtualizingStackPanel : DecoratedPanel
             Padding = new Thickness(6, 3),
         };
 
-    private void UpdateRealizedRange(float viewportHeight)
+    /// <summary>Привести набор контейнеров к видимому окну.</summary>
+    /// <returns>true, если состав контейнеров изменился и их надо измерить.</returns>
+    private bool UpdateRealizedRange(float viewportHeight)
     {
+        if (ItemsSource.Count == 0 || ItemHeight <= 0)
+        {
+            bool hadContainers = _realized.Count > 0;
+
+            RecycleAll();
+            _rangeValid = false;
+
+            return hadContainers;
+        }
+
+        int total = ItemsSource.Count;
+
+        // ScrollY здесь может быть от прошлого состава: список только что
+        // свернулся, а зажмёт прокрутку PanelControl лишь в размещении.
+        // Без зажима first уезжал за конец, и count уходил в минус
+        int first = Math.Clamp((int)(ScrollY / ItemHeight) - OverscanCount, 0, total - 1);
+        int count = (int)Math.Ceiling(viewportHeight / ItemHeight) + OverscanCount * 2;
+        count = Math.Clamp(count, 0, total - first);
+
+        // ранний выход обязан смотреть на _rangeValid: после Refresh диапазон
+        // часто прежний, а элементы в нём уже другие. Без этой проверки
+        // раскрытие узла оставляло строки от старой проекции
+        if (_rangeValid && first == _firstVisible && count == _visibleCount)
+            return false;
+
         SuppressChildrenInvalidate++;
 
         try
         {
-            if (ItemsSource.Count == 0 || ItemHeight <= 0)
+            // 1. прежние контейнеры по их элементам. Повтор той же ссылки
+            // в источнике (одна строка дважды) получает отдельный контейнер
+            foreach (UIElement container in _realized.Values)
             {
-                RecycleAll();
-                _rangeValid = false;
+                object? item = _itemOf.GetValueOrDefault(container);
 
-                return;
+                if (item is null || !_byItem.TryAdd(item, container))
+                    _unmatched.Add(container);
             }
 
-            int first = Math.Max(0, (int)(ScrollY / ItemHeight) - OverscanCount);
-            int count = (int)Math.Ceiling(viewportHeight / ItemHeight) + OverscanCount * 2;
-            count = Math.Min(count, ItemsSource.Count - first);
-
-            System.Diagnostics.Debug.WriteLine(
-    $"ZF: VSP диапазон {first}+{count}, валиден={_rangeValid}, " +
-    $"реализовано={_realized.Count}, детей={Children.Count}, источник={ItemsSource.Count}");
-
-            if (first == _firstVisible && count == _visibleCount && _realized.Count > 0)
-                return;
-
-            _firstVisible = first;
-            _visibleCount = count;
-
-            // убираем то, что вышло за окно, в переиспользование
-            List<int> stale = [];
-
-            foreach (int index in _realized.Keys)
-                if (_rangeValid
-                && first == _firstVisible
-                && count == _visibleCount
-                && _realized.Count > 0)
-                {
-                    return;
-                }
-
-            // состав изменился: ключи в _realized относятся к прежнему списку,
-            // и строка с индексом 3 теперь другой элемент — переиспользовать
-            // их нельзя, только пересоздать
-            if (!_rangeValid) RecycleAll();
-
-            _rangeValid = true;
-
-            _firstVisible = first;
-            _visibleCount = count;
-
-            foreach (int index in stale)
-            {
-                UIElement container = _realized[index];
-                Children.Remove(container);
-                _realized.Remove(index);
-                Recycle(container);
-            }
-
+            // 2. новое окно: всё, что было видно, остаётся тем же объектом
+            // и лишь переезжает на свой новый индекс
             for (int i = first; i < first + count; i++)
             {
-                if (_realized.ContainsKey(i)) continue;
+                object item = ItemsSource[i];
+
+                if (item is not null && _byItem.Remove(item, out UIElement? kept))
+                    _next[i] = kept;
+                else
+                    _missing.Add(i);
+            }
+
+            // всё, что в новое окно не попало, свободно
+            _unmatched.AddRange(_byItem.Values);
+            _byItem.Clear();
+
+            // 3. недостающие строки. Без шаблона свободную подпись
+            // перепривязываем прямо на месте — отвязывать её от дерева,
+            // чтобы тут же привязать обратно, незачем
+            int free = 0;
+
+            foreach (int index in _missing)
+            {
+                object item = ItemsSource[index];
+                UIElement container;
 
                 // шаблон может не подойти переиспользованному контейнеру,
                 // поэтому пул работает, только когда шаблон не задан
-                UIElement container = ItemTemplate is null && _recycled.Count > 0
-                    ? Reuse(_recycled.Pop(), ItemsSource[i])
-                    : CreateContainer(ItemsSource[i]);
+                if (ItemTemplate is null && free < _unmatched.Count)
+                {
+                    container = Reuse(_unmatched[free++], item);
+                }
+                else if (ItemTemplate is null && _recycled.Count > 0)
+                {
+                    container = Reuse(_recycled.Pop(), item);
+                    Children.Add(container);
+                }
+                else
+                {
+                    container = CreateContainer(item);
+                    Children.Add(container);
+                }
 
-                _realized[i] = container;
-                Children.Add(container);
+                _itemOf[container] = item;
+                _next[index] = container;
             }
+
+            // 4. убираем то, что вышло за окно, в переиспользование
+            for (; free < _unmatched.Count; free++)
+            {
+                UIElement container = _unmatched[free];
+
+                Children.Remove(container);
+                _itemOf.Remove(container);
+                Recycle(container);
+            }
+
+            (_realized, _next) = (_next, _realized);
+            _next.Clear();
+
+            _rangeValid = true;
+            _firstVisible = first;
+            _visibleCount = count;
+
+            return true;
         }
         finally
         {
+            _unmatched.Clear();
+            _missing.Clear();
+
             SuppressChildrenInvalidate--;
         }
     }
@@ -175,9 +253,12 @@ public class VirtualizingStackPanel : DecoratedPanel
 
     protected override Size MeasureContentOverride(Size availableSize)
     {
+        // по прокручиваемой оси PanelControl даёт бесконечность, и настоящая
+        // высота окна известна только по прошлому размещению. Двадцать строк —
+        // лишь догадка для самого первого прохода: размещение её поправит
         float viewportHeight = float.IsFinite(availableSize.Height)
             ? availableSize.Height
-            : ItemHeight * 20;
+            : ArrangedViewport.Height > 0 ? ArrangedViewport.Height : ItemHeight * 20;
 
         UpdateRealizedRange(viewportHeight);
 
@@ -203,6 +284,19 @@ public class VirtualizingStackPanel : DecoratedPanel
     protected override void ArrangeContentOverride(Size contentSize)
     {
         float width = Math.Max(0, contentSize.Width - Padding.Horizontal);
+
+        // здесь высота окна уже точная. Если догадка измерения не совпала —
+        // окно выросло, панель впервые размещается, — досоздаём строки сразу,
+        // а не просим второй проход: контейнеры тут же и меряются.
+        // Ширина панели по авторазмеру при этом не пересчитывается до
+        // следующего прохода — строки одной высоты её почти не меняют
+        if (UpdateRealizedRange(ArrangedViewport.Height))
+        {
+            var itemSize = new Size(width, ItemHeight);
+
+            foreach (UIElement container in _realized.Values)
+                container.Measure(itemSize);
+        }
 
         foreach ((int index, UIElement container) in _realized)
         {

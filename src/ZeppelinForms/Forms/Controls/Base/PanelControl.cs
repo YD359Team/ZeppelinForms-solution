@@ -5,6 +5,7 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
+using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Forms.Controls.Base;
 
@@ -57,6 +58,17 @@ public abstract partial class PanelControl : UIElement
     // на каждом обращении давал бы разные ответы в разных местах кадра
     private bool _verticalBar;
     private bool _horizontalBar;
+
+    /// <summary>Видимая область по итогам последнего размещения.</summary>
+    /// <remarks>
+    /// Измерение по прокручиваемой оси получает бесконечность, поэтому
+    /// виртуализации больше неоткуда узнать, сколько строк видно. Viewport
+    /// для этого не годится: он смотрит на ActualSize, который внутри
+    /// ArrangeOverride ещё прошлый. Здесь размер уже текущего размещения —
+    /// в ArrangeContentOverride он точный, в MeasureContentOverride он
+    /// с прошлого прохода.
+    /// </remarks>
+    protected Size ArrangedViewport { get; private set; }
 
     protected bool ShowVerticalBar => _verticalBar;
     protected bool ShowHorizontalBar => _horizontalBar;
@@ -186,6 +198,17 @@ public abstract partial class PanelControl : UIElement
             ScrollsHorizontally ? Math.Max(viewport.Width, _contentSize.Width) : viewport.Width,
             ScrollsVertically ? Math.Max(viewport.Height, _contentSize.Height) : viewport.Height);
 
+        float maxX = Math.Max(0, _contentSize.Width - viewport.Width);
+        float maxY = Math.Max(0, _contentSize.Height - viewport.Height);
+
+        // зажимаем до размещения содержимого, а не после: виртуализация
+        // считает видимый диапазон по ScrollY прямо в ArrangeContentOverride,
+        // и после сворачивания списка она получала бы прокрутку за его концом
+        ScrollX = Math.Clamp(ScrollX, 0, maxX);
+        ScrollY = Math.Clamp(ScrollY, 0, maxY);
+
+        ArrangedViewport = viewport;
+
         ArrangeContentOverride(contentArea);
 
         if (IsRightToLeft)
@@ -196,12 +219,6 @@ public abstract partial class PanelControl : UIElement
                     contentArea.Width - child.Position.X - child.ActualSize.Width,
                     child.Position.Y);
         }
-
-        float maxX = Math.Max(0, _contentSize.Width - viewport.Width);
-        float maxY = Math.Max(0, _contentSize.Height - viewport.Height);
-
-        ScrollX = Math.Clamp(ScrollX, 0, maxX);
-        ScrollY = Math.Clamp(ScrollY, 0, maxY);
 
         if (ScrollX != 0 || ScrollY != 0)
         {
@@ -326,6 +343,10 @@ public abstract partial class PanelControl : UIElement
             {
                 _draggingVertical = true;
                 _dragOffset = offsetInBar - pos;
+
+                // без захвата перетаскивание обрывается, как только курсор
+                // уходит за окно: движения получает уже не это окно
+                CaptureMouse();
             }
             else
             {
@@ -344,6 +365,7 @@ public abstract partial class PanelControl : UIElement
             {
                 _draggingHorizontal = true;
                 _dragOffset = offsetInBar - pos;
+                CaptureMouse();
             }
             else
             {
@@ -386,7 +408,22 @@ public abstract partial class PanelControl : UIElement
 
     protected override void OnMouseUp(MouseButtonEventArgs location)
     {
+        EndThumbDrag();
+    }
+
+    protected override void OnPointerCanceled(PointerCancelEventArgs e)
+    {
+        // отпускания после отмены не будет: без сброса следующее движение
+        // мыши без нажатой кнопки продолжило бы тащить ползунок
+        EndThumbDrag();
+    }
+
+    private void EndThumbDrag()
+    {
+        if (!_draggingVertical && !_draggingHorizontal) return;
+
         _draggingVertical = _draggingHorizontal = false;
+        ReleaseMouseCapture();
     }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)

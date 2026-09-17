@@ -4,6 +4,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
+using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -96,6 +97,10 @@ public partial class ScrollBar : DecoratedControl
         {
             _isDragging = true;
             _dragOffset = local - thumbPos;   // тянем за ту точку, где схватили
+
+            // без захвата перетаскивание обрывается, как только курсор
+            // уходит за окно
+            CaptureMouse();
         }
         else
         {
@@ -119,7 +124,18 @@ public partial class ScrollBar : DecoratedControl
         Value = (local - _dragOffset) / free * MaxValue;
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs location) => _isDragging = false;
+    protected override void OnMouseUp(MouseButtonEventArgs location) => EndDrag();
+
+    // отпускания после отмены не будет — сбрасываем сами
+    protected override void OnPointerCanceled(PointerCancelEventArgs e) => EndDrag();
+
+    private void EndDrag()
+    {
+        if (!_isDragging) return;
+
+        _isDragging = false;
+        ReleaseMouseCapture();
+    }
 
     protected override Size MeasureOverride(Size availableSize) =>
         ResolveSize(new Size(12, 12), availableSize);
