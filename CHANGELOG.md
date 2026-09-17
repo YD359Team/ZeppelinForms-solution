@@ -1,5 +1,9 @@
 # Changes
 
+## [0.12.0] - El Dorado
+
+![El Dorado](assets/Logo-0.11.0.jpg)
+
 ## [0.11.0] - Atlantida
 
 ![Atlantida](assets/Logo-0.11.0.jpg)
