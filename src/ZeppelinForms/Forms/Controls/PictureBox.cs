@@ -15,7 +15,18 @@ public class PictureBox : DecoratedControl
     public string? Source { get; private set; }
 
     private Image? _image;
+
+    /// <summary>Разобранные ресурсы живут до конца процесса: повторный
+    /// LoadAsset той же картинки не должен декодировать её заново.
+    /// Расплата — удержанная память: буфер пикселей не зависит от размера
+    /// контрола, и картинка 2048×2048 занимает 16 МБ, даже если показана
+    /// в квадрате сто на сто. Приложение, которое перебирает много крупных
+    /// ресурсов, может освободить их через ClearAssetCache.</summary>
     private static readonly Dictionary<string, Image> AssetCache = [];
+
+    /// <summary>Забыть разобранные ресурсы. Уже показываемые картинки
+    /// остаются живыми: их держат сами контролы.</summary>
+    public static void ClearAssetCache() => AssetCache.Clear();
 
     /// <summary>Показать уже готовое изображение: снимок другого элемента,
     /// результат обработки, кадр из видео.</summary>
