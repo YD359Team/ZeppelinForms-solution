@@ -12,8 +12,13 @@ namespace ZeppelinForms.UnitTests;
 [Collection("Platform")]
 public class VirtualizationTests
 {
+    /// <summary>Платформа создаётся до формы, а не после: её конструктор
+    /// регистрирует измеритель текста, а присвоение Form.Content зовёт
+    /// раскладку сразу же — измерять уже там.</summary>
     private static (Form Form, VirtualizingStackPanel Panel) CreateList(int itemCount, Size formSize)
     {
+        var platform = new HeadlessPlatform();
+
         var panel = new VirtualizingStackPanel
         {
             ItemHeight = 20,
@@ -25,7 +30,7 @@ public class VirtualizationTests
             panel.ItemsSource.Add(i.ToString());
 
         var form = new Form { Size = formSize, Content = panel };
-        new HeadlessPlatform().CreateWindow(form);
+        platform.CreateWindow(form);
 
         return (form, panel);
     }
@@ -82,6 +87,8 @@ public class VirtualizationTests
     [Fact]
     public void ExpandingNodeKeepsExistingRows()
     {
+        var platform = new HeadlessPlatform();
+
         var tree = new TreeView
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -96,7 +103,7 @@ public class VirtualizationTests
         }
 
         var form = new Form { Size = new Size(400, 300), Content = tree };
-        new HeadlessPlatform().CreateWindow(form);
+        platform.CreateWindow(form);
 
         var panel = tree.Children.OfType<VirtualizingStackPanel>().Single();
 
