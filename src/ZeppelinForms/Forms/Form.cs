@@ -977,7 +977,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     }
 
     private int _layoutDepth;
-    private bool _layoutRequested;
+
+    /// <summary>Раскладка устарела и ждёт ближайшего кадра.</summary>
+    private bool _layoutDirty;
 
     /// <summary>Сколько проходов допускается за один вызов.</summary>
     /// <remarks>
@@ -992,13 +994,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         // Invalidate во время раскладки — законное явление: виртуализующая
         // панель создаёт контейнеры прямо в измерении, потому что до него
         // неизвестно, сколько строк влезет, а создание контейнера меняет
-        // Children. Заново заходить в проход нельзя, поэтому запоминаем
-        // просьбу и выполняем её после текущего
-        if (_layoutDepth > 0)
-        {
-            _layoutRequested = true;
-            return;
-        }
+        // Children. Заново заходить в проход нельзя, а просьба уже записана
+        // в _layoutDirty — её выполнит цикл проходов ниже
+        if (_layoutDepth > 0) return;
 
         _layoutDepth++;
 
@@ -1006,14 +1004,11 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         {
             for (int pass = 0; ; pass++)
             {
-                _layoutRequested = false;
+                _layoutDirty = false;
 
                 LayoutPass();
 
-                if (pass > 0)
-                    System.Diagnostics.Debug.WriteLine($"ZF: раскладка, проход {pass + 1}");
-
-                if (!_layoutRequested) break;
+                if (!_layoutDirty) break;
 
                 if (pass + 1 >= MaxLayoutPasses)
                 {
@@ -1032,9 +1027,24 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         finally
         {
             _layoutDepth--;
-            _layoutRequested = false;
+            _layoutDirty = false;
         }
     }
+
+    /// <summary>Выполнить отложенную раскладку, если она нужна. Зовётся
+    /// перед отрисовкой и перед попаданием — то есть везде, где геометрия
+    /// должна быть свежей.</summary>
+    internal void EnsureLayout()
+    {
+        if (!_layoutDirty) return;
+
+        PerformLayout();
+    }
+
+    /// <summary>Досчитать отложенную раскладку немедленно. Нужно там, где
+    /// код сразу после изменения читает геометрию: позицию, размер, состав
+    /// контейнеров виртуализующей панели.</summary>
+    public void UpdateLayout() => EnsureLayout();
 
     private void LayoutPass()
     {
@@ -1073,9 +1083,19 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         PlatformWindow?.Invalidate(null);
     }
 
+    /// <summary>Пометить раскладку устаревшей и попросить кадр.</summary>
+    /// <remarks>
+    /// Раньше здесь же шёл полный проход Measure/Arrange по всему дереву.
+    /// Тогда установка пяти свойств давала пять раскладок, а прокрутка
+    /// пальцем — по раскладке на каждое событие движения, которых
+    /// приходит больше, чем кадров. Теперь проход один и выполняется
+    /// перед кадром: до отрисовки и до попадания геометрия всё равно
+    /// будет свежей, а промежуточные состояния никто не увидит.
+    /// Коду, которому геометрия нужна сразу, — UpdateLayout.
+    /// </remarks>
     internal void Invalidate()
     {
-        PerformLayout();
+        _layoutDirty = true;
 
         // видимость элемента — свойство раскладки, поэтому её смена всегда
         // проходит здесь. Часы пересматривают, нужны ли кадры: анимация
@@ -1450,6 +1470,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     private UIElement? HitTestAll(Point point)
     {
+        // попадание считается по геометрии: если раскладка ждёт кадра,
+        // клик попал бы в то, что было на экране до последнего изменения
+        EnsureLayout();
+
         for (int i = _overlays.Count - 1; i >= 0; i--)
         {
             var hit = HitTester.HitTest(_overlays[i], point);
@@ -1471,6 +1495,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     internal void OnMouseWheel(Point point, int delta, int horizontalDelta = 0)
     {
+        EnsureLayout();
+
         UIElement? hit = HitTestAll(point);
         if (hit is null) return;
 

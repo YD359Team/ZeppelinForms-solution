@@ -24,6 +24,11 @@ public static class SkiaRenderer
         bool clearBackground = true,
         Point origin = default)
     {
+        // единственная точка, через которую рисуют все платформы, — здесь
+        // и досчитывается отложенная раскладка. Рисовать по устаревшей
+        // геометрии нельзя, а знать про отложенность каждому бэкенду незачем
+        form.EnsureLayout();
+
         canvas.Save();
         canvas.Scale(scale, scale);
         canvas.Translate(origin.X, origin.Y);

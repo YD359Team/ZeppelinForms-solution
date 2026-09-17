@@ -895,6 +895,9 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     public Image RenderToImage()
     {
+        // раскладка отложена до кадра, а снимок — это кадр вне очереди
+        FindOwner()?.UpdateLayout();
+
         int width = (int)MathF.Ceiling(ActualSize.Width);
         int height = (int)MathF.Ceiling(ActualSize.Height);
 

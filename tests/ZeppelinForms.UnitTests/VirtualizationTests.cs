@@ -41,10 +41,11 @@ public class VirtualizationTests
     [Fact]
     public void ScrollRealizesRowsInsideViewport()
     {
-        var (_, panel) = CreateList(1000, new Size(400, 300));
+        var (form, panel) = CreateList(1000, new Size(400, 300));
 
         // 5000 / 20 = строка 250 — первая видимая после прокрутки
         panel.ScrollTo(0, 5000);
+        form.UpdateLayout();
 
         string[] texts = [.. RealizedTexts(panel)];
 
@@ -68,7 +69,7 @@ public class VirtualizationTests
     [Fact]
     public void CollapsingWhileScrolledKeepsRowsVisible()
     {
-        var (_, panel) = CreateList(1000, new Size(400, 300));
+        var (form, panel) = CreateList(1000, new Size(400, 300));
 
         panel.ScrollTo(0, 19000);
 
@@ -77,11 +78,33 @@ public class VirtualizationTests
             panel.ItemsSource.RemoveAt(panel.ItemsSource.Count - 1);
 
         panel.Refresh();
+        form.UpdateLayout();
 
         string[] texts = [.. RealizedTexts(panel)];
 
         Assert.Equal(10, texts.Length);
         Assert.Contains("0", texts);
+    }
+
+    [Fact]
+    public void LayoutIsDeferredUntilRequested()
+    {
+        var (form, panel) = CreateList(1000, new Size(400, 300));
+
+        int realizedBefore = panel.Children.Count;
+
+        // прокрутка только помечает раскладку устаревшей: новых строк
+        // до прохода нет, сколько бы раз её ни вызвали
+        panel.ScrollTo(0, 5000);
+        panel.ScrollTo(0, 6000);
+        panel.ScrollTo(0, 7000);
+
+        Assert.Equal(realizedBefore, panel.Children.Count);
+        Assert.DoesNotContain("350", RealizedTexts(panel));
+
+        form.UpdateLayout();
+
+        Assert.Contains("350", RealizedTexts(panel));
     }
 
     [Fact]
@@ -113,6 +136,7 @@ public class VirtualizationTests
         TreeViewItem before = RowOf(tree.Nodes[1]);
 
         tree.Nodes[0].IsExpanded = true;
+        form.UpdateLayout();
 
         // строка соседнего узла — тот же объект, только ниже на одну позицию
         Assert.Same(before, RowOf(tree.Nodes[1]));

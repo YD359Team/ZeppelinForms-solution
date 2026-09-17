@@ -24,7 +24,14 @@ public partial class Form
 
     /// <summary>Кадр от платформы: таймер окна, requestAnimationFrame,
     /// Choreographer.</summary>
-    internal void Tick() => Clock.Tick();
+    internal void Tick()
+    {
+        // анимации читают геометрию: PageControl сдвигает страницы
+        // от их слота, волна темы — от размера клиентской области
+        EnsureLayout();
+
+        Clock.Tick();
+    }
 
     /// <summary>Пересмотреть, нужны ли кадры. Видимость — свойство
     /// раскладки, поэтому достаточно позвать это из Invalidate: анимация

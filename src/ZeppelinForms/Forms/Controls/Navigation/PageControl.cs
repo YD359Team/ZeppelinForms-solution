@@ -303,8 +303,11 @@ public class PageControl : DecoratedPanel
             return;
         }
 
-        // раскладку уже сделал сеттер IsVisible, и сделал её правильно —
-        // повторный Invalidate здесь был бы лишним проходом
+        // раскладка отложена до кадра, а первый же кадр перехода сдвигает
+        // страницы от их слота — значит слот должен быть посчитан сейчас.
+        // Invalidate для этого не годится: он только помечает
+        FindOwner()?.UpdateLayout();
+
         Page outgoing = previous!;
 
         this.Animate("page", 0f, 1f, TimeSpan.FromMilliseconds(TransitionDurationMs),
