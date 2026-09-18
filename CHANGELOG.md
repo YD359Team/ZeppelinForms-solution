@@ -4,6 +4,15 @@
 
 ![El Dorado](assets/Logo-0.11.0.jpg)
 
+- Up SkiaSharp version to 4.152.0
+- Optimizations
+- Add default tranistion animation for property changes
+- Add virtualization tests
+- Fix virtualization
+- Fix WASM image loading
+- Fix TreeView blinking
+- Fix example layout
+
 ## [0.11.0] - Atlantida
 
 ![Atlantida](assets/Logo-0.11.0.jpg)
