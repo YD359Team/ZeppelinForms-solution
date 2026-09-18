@@ -14,8 +14,14 @@ public static class ElementTreeRenderer
 {
     /// <param name="clip">Грязная область в абсолютных координатах.
     /// null — рисовать всё.</param>
-    public static void Draw(UIElement element, Graphics g, Rectangle? clip = null) =>
-        Draw(element, g, Point.Empty, clip, cull: true);
+    public static void Draw(UIElement element, Graphics g, Rectangle? clip = null)
+    {
+        // внутри этой области чтение свойств отдаёт промежуточные значения
+        // идущих переходов. Снаружи — цели: раскладка, логика и биндинги
+        // должны видеть то, что присвоено, а не полпути к нему
+        using (UIElement.BeginPresentation())
+            Draw(element, g, Point.Empty, clip, cull: true);
+    }
 
     /// <param name="origin">Абсолютная позиция родителя: обход накапливает
     /// её при спуске вместо подъёма к корню на каждом элементе.</param>

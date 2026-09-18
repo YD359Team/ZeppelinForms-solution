@@ -209,9 +209,11 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
             text.AppendLine($"    public partial {property.ValueType} {property.PropertyName}");
             text.AppendLine("    {");
 
+            // геттер идёт через Presented: внутри отрисовки он отдаёт
+            // промежуточное значение идущего перехода, снаружи — саму цель
             text.AppendLine(property.Inherits
-                ? $"        get => GetInheritedValue({property.PropertyName}Property);"
-                : $"        get => {field};");
+                ? $"        get => Presented({property.PropertyName}Property, GetInheritedValue({property.PropertyName}Property));"
+                : $"        get => Presented({property.PropertyName}Property, {field});");
 
             text.AppendLine($"        set => SetValue({property.PropertyName}Property, ref {field}, value);");
             text.AppendLine("    }");

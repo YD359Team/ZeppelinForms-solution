@@ -140,8 +140,13 @@ internal sealed class FrameClock(Form form) : IDisposable
         double deltaMs = (now - _lastFrame).TotalMilliseconds;
         _lastFrame = now;
 
-        var elapsed = TimeSpan.FromMilliseconds(Math.Clamp(deltaMs, 0, MaxFrameDeltaMs));
+        Advance(TimeSpan.FromMilliseconds(Math.Clamp(deltaMs, 0, MaxFrameDeltaMs)));
+    }
 
+    /// <summary>Продвинуть анимации на заданное время. Отдельно от Tick
+    /// ради тестов: там время должно идти по команде, а не по секундомеру.</summary>
+    internal void Advance(TimeSpan elapsed)
+    {
         bool wholeWindow = false;
 
         // по снимку, а не по живому списку: Advance вызывает completed

@@ -673,6 +673,8 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         if (!ApplyingTheme && IsBound(property))
             PushOrBreakBinding(property, value);
 
+        // переход стартует от прежнего видимого значения — до записи
+        BeginTransition(property, storage);
         storage = value;
 
         SetBit(ref _assigned, property.Index);
@@ -705,6 +707,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         if (!ApplyingTheme && IsBound(property))
             PushOrBreakBinding(property, value);
 
+        BeginTransition(property, property.GetValue(this));
         property.Write(this, value);
 
         SetBit(ref _assigned, property.Index);
@@ -1008,6 +1011,141 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     }
 
     public abstract void Draw(Graphics g);
+
+    // ===== Переходы =====
+
+    private List<Transition>? _transitionRules;
+    private List<IPropertyTransition>? _running;
+
+    [ThreadStatic] private static int s_presentationDepth;
+
+    /// <summary>Общий выключатель переходов: под системную настройку
+    /// «уменьшить движение» и под тесты, которым анимация мешает.</summary>
+    public static bool TransitionsEnabled { get; set; } = true;
+
+    /// <summary>Правила переходов этого элемента: какое свойство и за какое
+    /// время добирается до нового значения.</summary>
+    /// <remarks>
+    /// Присваивание при этом остаётся мгновенным. Свойство читается как
+    /// цель — так его видят код, биндинги и PropertyGrid. Промежуточное
+    /// значение отдаётся только внутри отрисовки, через Presented.
+    /// </remarks>
+    public IList<Transition> Transitions => _transitionRules ??= [];
+
+    /// <summary>Идёт отрисовка: чтение свойств отдаёт промежуточные
+    /// значения переходов вместо целей.</summary>
+    internal static bool IsPresenting => s_presentationDepth > 0;
+
+    /// <summary>Открыть область отрисовки. Обход дерева держит её на всё
+    /// время обхода — вложенность нужна на случай снимка элемента,
+    /// сделанного посреди чужой отрисовки.</summary>
+    internal static PresentationScope BeginPresentation()
+    {
+        s_presentationDepth++;
+
+        return default;
+    }
+
+    internal readonly struct PresentationScope : IDisposable
+    {
+        public void Dispose() => s_presentationDepth--;
+    }
+
+    /// <summary>Значение, которое должно уйти в отрисовку: промежуточное,
+    /// пока идёт переход, и цель во всех остальных случаях. Вызывается
+    /// из сгенерированных геттеров.</summary>
+    protected T Presented<T>(StyledProperty<T> property, T target)
+    {
+        if (!IsPresenting || _running is null) return target;
+
+        foreach (IPropertyTransition running in _running)
+            if (ReferenceEquals(running.Property, property))
+                return ((PropertyTransition<T>)running).Current;
+
+        return target;
+    }
+
+    /// <summary>Запустить переход к новому значению. Зовётся до записи:
+    /// стартовать надо от того, что видно сейчас.</summary>
+    private void BeginTransition<T>(StyledProperty<T> property, T from)
+    {
+        if (!TransitionsEnabled) return;
+        if (_transitionRules is null || _transitionRules.Count == 0) return;
+
+        // элемент, которого ещё не показывали, не переходит, а появляется:
+        // иначе каждая форма открывалась бы с проездом всех значений темы
+        // от умолчаний к настоящим
+        if (!_hasBeenArranged) return;
+
+        if (FindOwner() is not { } owner) return;
+
+        Transition? rule = null;
+
+        foreach (Transition candidate in _transitionRules)
+            if (ReferenceEquals(candidate.Property, property))
+            {
+                rule = candidate;
+                break;
+            }
+
+        if (rule is null) return;
+
+        if (property.AffectsLayout)
+        {
+            // промежуточное значение видит только отрисовка, а размеры
+            // считаются по цели — переход такого свойства выглядел бы
+            // как рассинхрон картинки и раскладки
+            ZfContract.Fail(
+                $"Переход на {property.Name} невозможен: свойство влияет " +
+                "на раскладку. Анимируйте то, что рисуется, — цвет, " +
+                "прозрачность, поворот.");
+
+            return;
+        }
+
+        if (Interpolator.Find<T>() is not { } interpolate)
+        {
+            ZfContract.Fail(
+                $"Переход на {property.Name} невозможен: для {typeof(T).Name} " +
+                "нет интерполятора. Объявите его через Interpolator.Register.");
+
+            return;
+        }
+
+        // прерванный переход продолжается с того места, где был,
+        // а не прыгает к прежнему началу
+        T start = from;
+
+        if (_running is not null)
+            foreach (IPropertyTransition existing in _running)
+                if (ReferenceEquals(existing.Property, property))
+                {
+                    start = ((PropertyTransition<T>)existing).Current;
+                    break;
+                }
+
+        var transition = new PropertyTransition<T>(this, property, start, rule, interpolate);
+
+        _running ??= [];
+        _running.Add(transition);
+
+        // вытеснение прежнего перехода того же свойства — по ключу, в часах
+        owner.AddAnimation(transition);
+    }
+
+    internal void RemoveTransition(IPropertyTransition transition)
+    {
+        if (_running is null) return;
+
+        _running.Remove(transition);
+
+        if (_running.Count == 0) _running = null;
+
+        InvalidateVisual();
+    }
+
+    /// <summary>Кадр перехода: перерисовать элемент, не трогая раскладку.</summary>
+    internal void InvalidateTransitionVisual() => InvalidateVisual();
 
     // ===== Measure/Arrange =====
 
