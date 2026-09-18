@@ -554,15 +554,22 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         finally
         {
             _dispatching = previousDispatch;
+
+            // завершение контакта — в finally, а не после try. Выходы выше
+            // (жест забрал контакт, палец не ведущий, обработчик пометил
+            // событие обработанным) обходили этот код стороной, и контакт
+            // оставался в словаре навсегда: следующее движение мыши шло
+            // не тому, кто под курсором, а покойнику из мёртвого контакта,
+            // распознаватели так и не получали Leave, а захват не снимался.
+            // Снаружи это выглядело как пропавшие клики и свайп через раз
+            contact.Arena?.Complete();
+
+            contact.Buttons &= ~e.Button.ToFlag();
+
+            // у касания и пера кнопок нет — контакт кончается вместе с Up
+            if (contact.Kind != PointerKind.Mouse || contact.Buttons == PointerButtons.None)
+                EndContact(contact);
         }
-
-        contact.Arena?.Complete();
-
-        contact.Buttons &= ~e.Button.ToFlag();
-
-        // у касания и пера кнопок нет — контакт кончается вместе с Up
-        if (contact.Kind != PointerKind.Mouse || contact.Buttons == PointerButtons.None)
-            EndContact(contact);
     }
 
     /// <summary>Платформа сообщила, что контакт отменён: pointercancel
