@@ -368,18 +368,4 @@ public partial class GripBox : DecoratedWrapControl
 
         return new Point(absolute.X - origin.X, absolute.Y - origin.Y);
     }
-
-    private static Point RotateAround(Point point, Point center, float degrees)
-    {
-        float radians = degrees * MathF.PI / 180f;
-        float cos = MathF.Cos(radians);
-        float sin = MathF.Sin(radians);
-
-        float dx = point.X - center.X;
-        float dy = point.Y - center.Y;
-
-        return new Point(
-            center.X + dx * cos - dy * sin,
-            center.Y + dx * sin + dy * cos);
-    }
 }
