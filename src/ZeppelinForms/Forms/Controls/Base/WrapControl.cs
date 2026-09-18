@@ -31,6 +31,8 @@ public abstract class WrapControl : UIElement
             {
                 value.Parent = this;
                 owner?.AttachTree(value);
+                // содержимое поменялось — размер элемента считается по нему
+                Invalidate();
             }
         }
     }
@@ -85,6 +87,12 @@ public abstract class WrapControl : UIElement
     // (масштаб, поворот и т.д.) к канвасу непосредственно перед отрисовкой
     // ребёнка. По умолчанию ничего не делает.
     protected internal virtual void ApplyChildTransform(Graphics g) { }
+
+    /// <summary>Содержимое рисуется с преобразованием, а не просто сдвигом.
+    /// Обход дерева тогда не может отсекать поддерево по прямоугольникам:
+    /// в абсолютных координатах ребёнок окажется не там, где сложение
+    /// смещений его ожидает.</summary>
+    protected internal virtual bool TransformsChild => false;
 
     // Зеркало ApplyChildTransform для хит-тестинга: если ребёнок рисуется
     // трансформированным, координаты мыши перед проверкой попадания в

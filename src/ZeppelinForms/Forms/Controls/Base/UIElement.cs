@@ -948,7 +948,21 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     {
         get
         {
-            var bounds = new Rectangle(GetAbsolutePosition(), ActualSize);
+            Point absolute = GetAbsolutePosition();
+
+            return LocalDirtyBounds.Offset(absolute.X, absolute.Y);
+        }
+    }
+
+    /// <summary>То же, но от собственного левого верхнего угла. Обход дерева
+    /// считает абсолютную позицию сам, накапливая её при спуске: подъём
+    /// к корню на каждом элементе — это O(глубина) за элемент и O(n·глубина)
+    /// за кадр.</summary>
+    internal Rectangle LocalDirtyBounds
+    {
+        get
+        {
+            var bounds = new Rectangle(Point.Empty, ActualSize);
 
             if (_effects is { IsEmpty: false })
             {

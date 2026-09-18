@@ -53,6 +53,27 @@ public readonly record struct Rectangle
         return new Rectangle(new Point(left, top), new Size(right - left, bottom - top));
     }
 
+    /// <summary>Тот же прямоугольник, сдвинутый на вектор. Нужен обходу
+    /// дерева: тот накапливает абсолютное смещение при спуске, а не
+    /// поднимается за ним к корню на каждом элементе.</summary>
+    public Rectangle Offset(float dx, float dy) =>
+        new(new Point(X + dx, Y + dy), new Size(Width, Height));
+
+    /// <summary>Общая часть двух прямоугольников. Если они не пересекаются,
+    /// результат пустой — нулевой ширины и высоты, в левом верхнем углу
+    /// пересечения диапазонов.</summary>
+    public Rectangle Intersect(Rectangle other)
+    {
+        float left = Math.Max(X, other.X);
+        float top = Math.Max(Y, other.Y);
+        float right = Math.Min(X + Width, other.X + other.Width);
+        float bottom = Math.Min(Y + Height, other.Y + other.Height);
+
+        return new Rectangle(
+            new Point(left, top),
+            new Size(Math.Max(0, right - left), Math.Max(0, bottom - top)));
+    }
+
     public Rectangle Inflate(float amount) =>
         new(new Point(X - amount, Y - amount), new Size(Width + amount * 2, Height + amount * 2));
 }  

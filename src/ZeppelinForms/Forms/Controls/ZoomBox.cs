@@ -43,6 +43,8 @@ public class ZoomBox : DecoratedWrapControl, IInputElement
         e.Handled = true;
     }
 
+    protected internal override bool TransformsChild => true;
+
     protected internal override void ApplyChildTransform(Graphics g) =>
         g.Scale(ZoomFactor, ZoomFactor);
 

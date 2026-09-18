@@ -14,13 +14,36 @@ public static class ElementTreeRenderer
 {
     /// <param name="clip">Грязная область в абсолютных координатах.
     /// null — рисовать всё.</param>
-    public static void Draw(UIElement element, Graphics g, Rectangle? clip = null)
+    public static void Draw(UIElement element, Graphics g, Rectangle? clip = null) =>
+        Draw(element, g, Point.Empty, clip, cull: true);
+
+    /// <param name="origin">Абсолютная позиция родителя: обход накапливает
+    /// её при спуске вместо подъёма к корню на каждом элементе.</param>
+    /// <param name="clip">Видимая область в абсолютных координатах: грязный
+    /// прямоугольник, сужённый областями всех предков. null — ограничений
+    /// нет, рисуем всё.</param>
+    /// <param name="cull">Можно ли доверять сложению смещений. Под поворотом
+    /// или своим преобразованием содержимого нельзя: там прямоугольники
+    /// в абсолютных координатах больше не описывают положение на холсте,
+    /// и поддерево рисуется целиком.</param>
+    /// <remarks>
+    /// Клип сужается при спуске, а не только берётся из грязной области.
+    /// Раньше отсечение работало лишь там, где платформа давала частичную
+    /// перерисовку: на Android и в браузере clip всегда null, и панель
+    /// со сотней строк рисовала их все, хотя видно десять. ClipRect обрезал
+    /// пиксели, но строить текстовые блобы, пути и тени всё равно
+    /// приходилось на каждую.
+    /// </remarks>
+    private static void Draw(UIElement element, Graphics g, Point origin, Rectangle? clip, bool cull)
     {
         if (!element.IsVisible || element.Opacity <= 0f) return;
         if (!float.IsFinite(element.ActualSize.Width) || !float.IsFinite(element.ActualSize.Height)) return;
 
-        // элемент целиком вне грязной области — пропускаем вместе с потомками
-        if (clip is { } dirty && !element.DirtyBounds.IntersectsWith(dirty))
+        var position = new Point(origin.X + element.Position.X, origin.Y + element.Position.Y);
+
+        // элемент целиком вне видимой области — пропускаем вместе с потомками
+        if (cull && clip is { } visible &&
+            !element.LocalDirtyBounds.Offset(position.X, position.Y).IntersectsWith(visible))
             return;
 
         g.Save();
@@ -35,6 +58,13 @@ public static class ElementTreeRenderer
             g.SaveDisabledLayer(element.DisabledOpacity * element.Opacity, element.DisabledDesaturation);
         else if (element.Opacity < 1f)
             g.SaveLayer(element.Opacity);
+
+        // поворот ломает сложение смещений: под ним прямоугольник в
+        // абсолютных координатах уже не описывает, где ребёнок окажется
+        // на холсте. Отсечение ниже отключаем — рисуем всё поддерево.
+        // Через HasTransform, а не через Rotation напрямую: любое будущее
+        // преобразование элемента должно снимать отсечение само
+        bool cullChildren = cull && !element.HasTransform;
 
         if (element.Rotation != 0f)
         {
@@ -67,7 +97,19 @@ public static class ElementTreeRenderer
                     g.Save();
                     g.ClipRect(wrap.ContentBounds);
                     wrap.ApplyChildTransform(g);
-                    Draw(wrap.Child, g, clip);
+
+                    // своё преобразование содержимого — то же, что поворот:
+                    // ZoomBox масштабирует ребёнка, и его абсолютные
+                    // координаты уже не складываются из смещений
+                    bool cullChild = cullChildren && !wrap.TransformsChild;
+
+                    Draw(
+                        wrap.Child,
+                        g,
+                        position,
+                        cullChild ? Narrow(clip, wrap.ContentBounds, position) : null,
+                        cullChild);
+
                     g.Restore();
                 }
 
@@ -79,8 +121,14 @@ public static class ElementTreeRenderer
                 panel.Draw(g);
                 g.Save();
                 g.ClipRect(panel.ClipBounds);
+
+                Rectangle? inside = cullChildren
+                    ? Narrow(clip, panel.ClipBounds, position)
+                    : null;
+
                 foreach (var child in panel.Children)
-                    Draw(child, g, clip);
+                    Draw(child, g, position, inside, cullChildren);
+
                 g.Restore();
 
                 // полоса прокрутки не должна обрезаться содержимым
@@ -95,5 +143,15 @@ public static class ElementTreeRenderer
             g.Restore();
 
         g.Restore();
+    }
+
+    /// <summary>Сузить видимую область областью содержимого элемента.
+    /// area задана в его собственных координатах, position — его абсолютная
+    /// позиция.</summary>
+    private static Rectangle? Narrow(Rectangle? clip, Rectangle area, Point position)
+    {
+        Rectangle absolute = area.Offset(position.X, position.Y);
+
+        return clip is { } visible ? visible.Intersect(absolute) : absolute;
     }
 }
