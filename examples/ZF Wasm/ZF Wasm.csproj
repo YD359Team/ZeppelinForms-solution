@@ -20,17 +20,27 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- общая с остальными примерами картинка: Link кладёт её в wwwroot,
-         откуда PreloadAsync скачивает её в файловую систему -->
-		<Content Include="..\ZF SharedLib\Assets\**\*" Link="wwwroot\Assets\%(RecursiveDir)%(Filename)%(Extension)" />
+		<!-- общие с остальными примерами картинки -->
+		<SharedAsset Include="..\ZF SharedLib\Assets\**\*" />
+	</ItemGroup>
+
+	<!-- копируем их в настоящий wwwroot, а не объявляем через Content с Link:
+       WebAssembly-SDK делает статическим ресурсом файл по его настоящему пути
+       внутри проекта, а не по значению Link. Ссылка попадала в выход, но
+       маршрута на сервере не получала — сервер отдавал на её адрес index.html
+       со статусом 200, и PreloadAsync записывал в файловую систему HTML -->
+	<Target Name="CopySharedAssets" BeforeTargets="PrepareForBuild">
+		<Copy SourceFiles="@(SharedAsset)"
+		      DestinationFolder="$(MSBuildProjectDirectory)\wwwroot\Assets"
+		      SkipUnchangedFiles="true" />
+	</Target>
+
+	<ItemGroup>
+		<Content Remove="wwwroot\zf.js" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Content Remove="wwwroot\zf.js" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <None Include="wwwroot\zf.js" />
+		<None Include="wwwroot\zf.js" />
 	</ItemGroup>
 
 	<!-- шрифт лежит в wwwroot и подхватывается сам; zf.js приезжает

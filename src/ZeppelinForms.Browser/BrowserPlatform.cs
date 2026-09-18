@@ -77,7 +77,23 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
         foreach (string path in paths)
         {
             // ведущий слэш увёл бы запрос в корень сайта мимо базового адреса
-            byte[] bytes = await http.GetByteArrayAsync(path.TrimStart('/'));
+            using HttpResponseMessage response = await http.GetAsync(path.TrimStart('/'));
+
+            response.EnsureSuccessStatusCode();
+
+            // сервер одностраничного приложения на неизвестный адрес отвечает
+            // не 404, а своим index.html со статусом 200. Без этой проверки
+            // HTML уезжает в файловую систему под именем картинки или шрифта,
+            // и ошибка всплывает много позже — в декодере
+            if (response.Content.Headers.ContentType?.MediaType is "text/html")
+            {
+                throw new InvalidDataException(
+                    $"По адресу {path} сервер отдал HTML вместо файла. " +
+                    "Скорее всего ресурс не опубликован, и запрос увела " +
+                    "подстановка страницы приложения.");
+            }
+
+            byte[] bytes = await response.Content.ReadAsByteArrayAsync();
 
             if (Path.GetDirectoryName(path) is { Length: > 0 } directory)
                 Directory.CreateDirectory(directory);
