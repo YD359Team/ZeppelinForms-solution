@@ -101,7 +101,22 @@ public class PageControl : DecoratedPanel
         {
             if (child is not Page { IsBuilt: false } page) continue;
 
-            page.EnsureBuilt();
+            try
+            {
+                page.EnsureBuilt();
+            }
+            catch (Exception exception)
+            {
+                // подготовка — работа на опережение, и ронять из неё
+                // приложение нельзя: страницу, которую пользователь
+                // ещё не открывал, он не должен и терять. Страница
+                // остаётся непостроенной, так что при переходе на неё
+                // ошибка возникнет там же, где и без подготовки
+                System.Diagnostics.Debug.WriteLine(
+                    $"ZF: страницу \"{page.Title ?? "без заголовка"}\" " +
+                    $"не удалось подготовить заранее. {exception}");
+            }
+
             SchedulePreload(PreloadDelayMs);
 
             return;

@@ -29,8 +29,25 @@ public sealed class SkiaImageDecoder : ImageDecoder
     /// </remarks>
     public override Image Decode(Stream stream)
     {
-        using SKBitmap decoded = SKBitmap.Decode(stream)
-            ?? throw new InvalidDataException("Не удалось декодировать изображение.");
+        // SKBitmap.Decode(Stream) на неудаче отдаёт null и молчит о причине.
+        // Через SKCodec виден код ошибки, а сигнатура в сообщении сразу
+        // отвечает на главный вопрос: это вообще картинка? Файл, скачанный
+        // по пути, которого на сервере нет, часто оказывается страницей
+        // ошибки, и начинается он с "<!DO"
+        long length = stream.CanSeek ? stream.Length : -1;
+        string signature = ReadSignature(stream);
+
+        using SKCodec? codec = SKCodec.Create(stream, out SKCodecResult result);
+
+        if (codec is null)
+            throw new InvalidDataException(
+                $"Не удалось декодировать изображение: {result}, " +
+                $"{length} байт, сигнатура {signature}.");
+
+        using SKBitmap decoded = SKBitmap.Decode(codec)
+            ?? throw new InvalidDataException(
+                $"Формат распознан как {codec.EncodedFormat}, " +
+                $"но пиксели прочитать не удалось ({length} байт).");
 
         SKBitmap? resized = null;
         SKBitmap? converted = null;
@@ -61,6 +78,40 @@ public sealed class SkiaImageDecoder : ImageDecoder
         {
             resized?.Dispose();
             converted?.Dispose();
+        }
+    }
+
+    /// <summary>Первые байты в виде «41 42 43 44 (ABCD)» — по ним видно,
+    /// подсунули ли вместо картинки что-то другое.</summary>
+    private static string ReadSignature(Stream stream)
+    {
+        if (!stream.CanSeek) return "неизвестна";
+
+        long position = stream.Position;
+
+        try
+        {
+            Span<byte> head = stackalloc byte[4];
+            int read = stream.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
+
+            if (read == 0) return "пусто";
+
+            head = head[..read];
+
+            var hex = new System.Text.StringBuilder();
+            var ascii = new System.Text.StringBuilder();
+
+            foreach (byte value in head)
+            {
+                hex.Append(hex.Length > 0 ? " " : string.Empty).Append(value.ToString("X2"));
+                ascii.Append(value is >= 0x20 and < 0x7F ? (char)value : '.');
+            }
+
+            return $"{hex} ({ascii})";
+        }
+        finally
+        {
+            stream.Position = position;
         }
     }
 

@@ -24,7 +24,17 @@ public sealed class Image
     public static Image LoadFromFile(string path)
     {
         using var stream = File.OpenRead(path);
-        return Load(stream);
+
+        try
+        {
+            return Load(stream);
+        }
+        catch (InvalidDataException exception)
+        {
+            // декодер знает только поток: без пути сообщение не говорит,
+            // какой из ресурсов приложения сломан
+            throw new InvalidDataException($"{exception.Message} Файл: {path}.", exception);
+        }
     }
 
     public static Image LoadFromUri(Uri uri)
