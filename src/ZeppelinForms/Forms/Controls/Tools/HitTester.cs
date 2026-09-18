@@ -12,14 +12,16 @@ internal static class HitTester
         if (!root.IsVisible || !root.IsHitTestVisible)
             return null;
 
-        var local = new Point(
-            pointInParentSpace.X - root.Position.X,
-            pointInParentSpace.Y - root.Position.Y);
+        // рендер сдвигает, поворачивает и масштабирует холст, значит точку
+        // надо провести через то же преобразование в обратную сторону.
+        // Само преобразование живёт в UIElement — в одном месте с прямым,
+        // чтобы картинка и клики не разъехались
+        Point local = root.TransformPointToLocal(pointInParentSpace);
 
         // рендер поворачивает холст, значит курсор надо повернуть в обратную
         // сторону — иначе клики уедут тем сильнее, чем больше угол
         if (root.Rotation != 0f)
-            local = RotateAround(local, root.Center, -root.Rotation);
+            local = UIElement.RotateAround(local, root.Center, -root.Rotation);
 
         if (local.X < 0 || local.Y < 0 || local.X > root.ActualSize.Width || local.Y > root.ActualSize.Height)
             return null;
@@ -44,19 +46,5 @@ internal static class HitTester
             default:
                 return root;
         }
-    }
-
-    private static Point RotateAround(Point point, Point center, float degrees)
-    {
-        float radians = degrees * MathF.PI / 180f;
-        float cos = MathF.Cos(radians);
-        float sin = MathF.Sin(radians);
-
-        float dx = point.X - center.X;
-        float dy = point.Y - center.Y;
-
-        return new Point(
-            center.X + dx * cos - dy * sin,
-            center.Y + dx * sin + dy * cos);
     }
 }

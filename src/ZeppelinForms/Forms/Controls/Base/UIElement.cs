@@ -282,6 +282,28 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     [Styled(Category = "Appearance")]
     public partial float Rotation { get; set; }
 
+    /// <summary>Сдвиг при отрисовке, не трогающий раскладку.</summary>
+    /// <remarks>
+    /// Место элемента остаётся тем, которое посчитала раскладка: соседи
+    /// не разъезжаются, размеры не пересчитываются, попадание следует
+    /// за картинкой. Именно поэтому сдвиг и масштаб годятся для переходов,
+    /// а Margin или Size — нет: те меняют раскладку всего вокруг.
+    /// </remarks>
+    [Styled(Category = "Appearance")]
+    public partial float TranslateX { get; set; }
+
+    [Styled(Category = "Appearance")]
+    public partial float TranslateY { get; set; }
+
+    /// <summary>Масштаб при отрисовке вокруг центра элемента.</summary>
+    [Styled(Category = "Appearance")]
+    public partial float ScaleX { get; set; }
+    private static float ScaleXDefault => 1f;
+
+    [Styled(Category = "Appearance")]
+    public partial float ScaleY { get; set; }
+    private static float ScaleYDefault => 1f;
+
     [Styled(Category = "Behavior")]
     public partial bool IsEnabled { get; set; }
 
@@ -831,8 +853,78 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     public partial CornerRadius CornerRadius { get; set; }
     private static CornerRadius CornerRadiusDefault => CornerRadius.Zero;
 
-    protected internal bool HasTransform => Rotation != 0f;
+    protected internal bool HasTransform =>
+        Rotation != 0f || ScaleX != 1f || ScaleY != 1f || TranslateX != 0f || TranslateY != 0f;
+
+    /// <summary>Есть ли преобразование сложнее сдвига. Сдвиг обход дерева
+    /// умеет складывать со смещением и потому не мешает отсечению,
+    /// а поворот и масштаб — мешают.</summary>
+    protected internal bool HasComplexTransform => Rotation != 0f || ScaleX != 1f || ScaleY != 1f;
+
     internal Point Center => new(ActualSize.Width / 2f, ActualSize.Height / 2f);
+
+    /// <summary>Наложить преобразования элемента на холст. Вызывается после
+    /// сдвига на Position, то есть уже в системе координат элемента.</summary>
+    /// <remarks>
+    /// Порядок один и тот же здесь и в обратном пересчёте точки: сдвиг,
+    /// затем поворот и масштаб вокруг центра. Две реализации одного
+    /// преобразования обязаны стоять рядом — разъехавшись, они дадут
+    /// картинку в одном месте и клики в другом.
+    /// </remarks>
+    internal void ApplyTransform(Graphics g)
+    {
+        if (TranslateX != 0f || TranslateY != 0f)
+            g.Translate(TranslateX, TranslateY);
+
+        if (!HasComplexTransform) return;
+
+        Point center = Center;
+
+        g.Translate(center.X, center.Y);
+
+        if (Rotation != 0f) g.Rotate(Rotation);
+        if (ScaleX != 1f || ScaleY != 1f) g.Scale(ScaleX, ScaleY);
+
+        g.Translate(-center.X, -center.Y);
+    }
+
+    /// <summary>Перевести точку из системы координат родителя в свою —
+    /// обратное к ApplyTransform вместе со сдвигом на Position.</summary>
+    internal Point TransformPointToLocal(Point pointInParentSpace)
+    {
+        var local = new Point(
+            pointInParentSpace.X - Position.X - TranslateX,
+            pointInParentSpace.Y - Position.Y - TranslateY);
+
+        if (!HasComplexTransform) return local;
+
+        Point center = Center;
+
+        if (ScaleX != 0f && ScaleY != 0f && (ScaleX != 1f || ScaleY != 1f))
+            local = new Point(
+                center.X + (local.X - center.X) / ScaleX,
+                center.Y + (local.Y - center.Y) / ScaleY);
+
+        if (Rotation != 0f)
+            local = RotateAround(local, center, -Rotation);
+
+        return local;
+    }
+
+    internal static Point RotateAround(Point point, Point center, float degrees)
+    {
+        float radians = degrees * MathF.PI / 180f;
+        float cos = MathF.Cos(radians);
+        float sin = MathF.Sin(radians);
+
+        float dx = point.X - center.X;
+        float dy = point.Y - center.Y;
+
+        return new Point(
+            center.X + dx * cos - dy * sin,
+            center.Y + dx * sin + dy * cos);
+    }
+
     public string? ToolTip { get; set; }
     public string Name { get; set; } = string.Empty;
 

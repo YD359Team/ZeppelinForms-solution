@@ -45,15 +45,24 @@ public static class ElementTreeRenderer
         if (!element.IsVisible || element.Opacity <= 0f) return;
         if (!float.IsFinite(element.ActualSize.Width) || !float.IsFinite(element.ActualSize.Height)) return;
 
-        var position = new Point(origin.X + element.Position.X, origin.Y + element.Position.Y);
+        var placed = new Point(origin.X + element.Position.X, origin.Y + element.Position.Y);
 
-        // элемент целиком вне видимой области — пропускаем вместе с потомками
+        // элемент целиком вне видимой области — пропускаем вместе с потомками.
+        // Сдвиг при отрисовке в LocalDirtyBounds уже учтён, поэтому здесь
+        // берётся место из раскладки, без него
         if (cull && clip is { } visible &&
-            !element.LocalDirtyBounds.Offset(position.X, position.Y).IntersectsWith(visible))
+            !element.LocalDirtyBounds.Offset(placed.X, placed.Y).IntersectsWith(visible))
             return;
+
+        // а вот детям достаётся уже сдвинутое начало координат: сдвиг —
+        // тот же перенос, что и Position, и отсечению он не мешает
+        var position = new Point(
+            placed.X + element.TranslateX,
+            placed.Y + element.TranslateY);
 
         g.Save();
         g.Translate(element.Position.X, element.Position.Y);
+        element.ApplyTransform(g);
 
         // Приглушение и прозрачность — один слой на элемент.
         // SaveDisabledLayer уже умеет альфу, поэтому при выключенном
@@ -65,12 +74,11 @@ public static class ElementTreeRenderer
         else if (element.Opacity < 1f)
             g.SaveLayer(element.Opacity);
 
-        // поворот ломает сложение смещений: под ним прямоугольник в
-        // абсолютных координатах уже не описывает, где ребёнок окажется
+        // поворот и масштаб ломают сложение смещений: под ними прямоугольник
+        // в абсолютных координатах уже не описывает, где ребёнок окажется
         // на холсте. Отсечение ниже отключаем — рисуем всё поддерево.
-        // Через HasTransform, а не через Rotation напрямую: любое будущее
-        // преобразование элемента должно снимать отсечение само
-        bool cullChildren = cull && !element.HasTransform;
+        // Сдвиг в этот список не входит: он уже сложен с position выше
+        bool cullChildren = cull && !element.HasComplexTransform;
 
         if (element.Rotation != 0f)
         {
