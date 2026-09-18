@@ -35,7 +35,19 @@ public class Label : DecoratedControl, ITextElement
     public HorizontalContentAlignment HorizontalContentAlign { get; set; }
     public VerticalContentAlignment VerticalContentAlign { get; set; }
 
-    public float LineSpacing { get; set; } = 1.2f;
+    public float LineSpacing
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // межстрочный интервал входит в высоту многострочной подписи
+            Invalidate();
+        }
+    } = 1.2f;
 
     private string[] SplitLines() =>
         (Text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');

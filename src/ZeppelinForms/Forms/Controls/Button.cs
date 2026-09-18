@@ -10,14 +10,61 @@ namespace ZeppelinForms.Forms.Controls;
 
 public class Button : ButtonBase, ITextElement
 {
-    public string? Text { get; set; }
+    public string? Text
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // размер кнопки по авторазмеру считается по тексту
+            Invalidate();
+        }
+    }
+
     public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Center;
     public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
 
     /// <summary>Иконка слева от текста — path data одиночного SVG-контура.</summary>
-    public string? IconPathData { get; set; }
-    public float IconSize { get; set; } = 16f;
-    public float IconGap { get; set; } = 8f;
+    public string? IconPathData
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // появление или пропажа иконки меняет и ширину, и отступ
+            Invalidate();
+        }
+    }
+
+    public float IconSize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = 16f;
+
+    public float IconGap
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = 8f;
 
     protected override void DrawButtonContent(Graphics g)
     {

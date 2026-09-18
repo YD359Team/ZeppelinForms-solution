@@ -800,6 +800,11 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         foreach (UIElement overlay in _overlays.ToArray())
             ApplyTheme(overlay);
 
+        // тема меняет и Font.Default, а он влияет на размер всего, что
+        // не задало шрифт само. Через свойства такой элемент не проходит,
+        // поэтому кэш измерения сбрасываем по всему дереву
+        InvalidateMeasureTree();
+
         Invalidate();
     }
 
@@ -808,6 +813,18 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     internal void ApplyTheme(UIElement root)
     {
         Walk(root, App.Theme.Apply);
+    }
+
+    /// <summary>Сбросить кэш измерения по всему дереву. Нужно там, где
+    /// размеры зависят не от свойств элементов, а от чего-то общего:
+    /// базового шрифта, масштаба, измерителя текста.</summary>
+    internal void InvalidateMeasureTree()
+    {
+        if (Content is not null)
+            Walk(Content, static element => element.InvalidateMeasure());
+
+        foreach (UIElement overlay in _overlays.ToArray())
+            Walk(overlay, static element => element.InvalidateMeasure());
     }
 
     /// <summary>Сменить тему с расходящейся волной от точки.</summary>

@@ -26,7 +26,19 @@ public class TreeView : DecoratedPanel
     public IList<TreeNode> Nodes => _root.Children;
 
     /// <summary>Отступ на уровень вложенности.</summary>
-    public float Indent { get; set; } = 16f;
+    public float Indent
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // высота строк фиксированная, поэтому отступ — только отрисовка
+            InvalidateVisual();
+        }
+    } = 16f;
 
     public float ItemHeight
     {
@@ -35,7 +47,19 @@ public class TreeView : DecoratedPanel
     }
 
     /// <summary>Как получить подпись узла. По умолчанию — ToString содержимого.</summary>
-    public Func<TreeNode, string>? ItemText { get; set; }
+    public Func<TreeNode, string>? ItemText
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // подписи у уже созданных строк устарели
+            InvalidateVisual();
+        }
+    }
 
     public event EventHandler<TreeNode?>? SelectionChanged;
 

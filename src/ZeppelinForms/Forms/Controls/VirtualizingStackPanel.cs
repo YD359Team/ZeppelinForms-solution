@@ -60,10 +60,34 @@ public class VirtualizingStackPanel : DecoratedPanel
     }
 
     /// <summary>Высота строки. Одинакова для всех — на этом строится виртуализация.</summary>
-    public float ItemHeight { get; set; } = 24f;
+    public float ItemHeight
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // от высоты строки зависит и общий размер, и видимый диапазон
+            _rangeValid = false;
+            Invalidate();
+        }
+    } = 24f;
 
     /// <summary>Сколько строк готовить сверх видимых, чтобы прокрутка не мигала.</summary>
-    public int OverscanCount { get; set; } = 3;
+    public int OverscanCount
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            _rangeValid = false;
+            Invalidate();
+        }
+    } = 3;
 
     public VirtualizingStackPanel()
     {

@@ -12,7 +12,17 @@ namespace ZeppelinForms.Forms.Controls;
 /// </summary>
 public partial class SvgIcon : DecoratedControl
 {
-    public string? PathData { get; set; }
+    public string? PathData
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    }
 
     [Styled(Category = "Appearance")]
     public partial Color Color { get; set; }
@@ -21,7 +31,19 @@ public partial class SvgIcon : DecoratedControl
     /// <summary>0 — заливка, больше нуля — обводка указанной толщины.</summary>
     public float StrokeWidth { get; set; }
 
-    public float IconSize { get; set; } = 24f;
+    public float IconSize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // размер иконки — это её желаемый размер при авторазмере
+            Invalidate();
+        }
+    } = 24f;
 
     protected override void DrawContent(Graphics g)
     {

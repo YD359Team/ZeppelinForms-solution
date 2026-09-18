@@ -3,6 +3,7 @@ using System.Reflection;
 using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Text;
 using ZeppelinForms.Data;
+using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Effects;
 using ZeppelinForms.Drawing.Imaging;
@@ -1010,10 +1011,78 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     // ===== Measure/Arrange =====
 
+    private Size _measuredAgainst;
+    private bool _measureValid;
+
+    /// <summary>Кэш измерения. Выключается на случай подозрения, что
+    /// где-то не хватает Invalidate: сравнить поведение с кэшем и без —
+    /// самый быстрый способ это подтвердить.</summary>
+    public static bool MeasureCacheEnabled { get; set; } = true;
+
+    /// <summary>Проверять кэш вместо того, чтобы ему верить: измерение
+    /// считается заново и сравнивается с запомненным, расхождение
+    /// сообщается через ZfContract. Расхождение означает, что состояние
+    /// элемента поменялось без Invalidate. Режим отладочный — измерений
+    /// вдвое больше, чем без кэша вообще.</summary>
+    public static bool VerifyMeasureCache { get; set; }
+
+    /// <remarks>
+    /// Повторное измерение с тем же ограничением возвращает тот же
+    /// результат — если состояние элемента не менялось. Менялось ли,
+    /// говорит Invalidate: он помечает элемент и всех предков, чей размер
+    /// считается по нему. Без этого кэша полный проход измерял каждый
+    /// элемент на каждом кадре, хотя за кадр меняются единицы.
+    ///
+    /// Цена — требование к контролам: свойство, влияющее на размер,
+    /// обязано звать Invalidate. Для [Styled] с AffectsLayout это делает
+    /// сама система свойств, для обычных — автор свойства.
+    /// </remarks>
     public void Measure(Size availableSize)
     {
-        DesiredSize = MeasureOverride(availableSize);
+        bool reusable = MeasureCacheEnabled
+            && _measureValid
+            && SameConstraint(_measuredAgainst, availableSize);
+
+        if (reusable && !VerifyMeasureCache) return;
+
+        Size measured = MeasureOverride(availableSize);
+
+        if (reusable && measured != DesiredSize)
+        {
+            ZfContract.Fail(
+                $"{GetType().Name} \"{Name}\": измерение дало {measured}, " +
+                $"а в кэше лежит {DesiredSize}. Значит состояние элемента " +
+                "изменилось без Invalidate — свойство, влияющее на размер, " +
+                "обязано его звать.");
+        }
+
+        DesiredSize = measured;
+        _measuredAgainst = availableSize;
+        _measureValid = true;
     }
+
+    /// <summary>Пометить измерение устаревшим у себя и у предков: их размер
+    /// считается по нашему.</summary>
+    /// <remarks>
+    /// Подъём обрывается на первом уже помеченном элементе: если элемент
+    /// недействителен, то и все его предки — их помечали вместе с ним.
+    /// </remarks>
+    internal void InvalidateMeasure()
+    {
+        for (UIElement? current = this; current is not null; current = current.Parent)
+        {
+            if (!current._measureValid) break;
+
+            current._measureValid = false;
+        }
+    }
+
+    /// <summary>Бесконечности сравниваются как равные, NaN — тоже:
+    /// «ограничений нет» и «ось авто» должны совпадать сами с собой,
+    /// иначе кэш не сработает никогда.</summary>
+    private static bool SameConstraint(Size a, Size b) =>
+        (a.Width == b.Width || (float.IsNaN(a.Width) && float.IsNaN(b.Width)))
+        && (a.Height == b.Height || (float.IsNaN(a.Height) && float.IsNaN(b.Height)));
 
     private bool _hasBeenArranged;
 
@@ -1112,7 +1181,14 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     // внутри сборки вроде FocusDispatcher, которому нужно попросить
     // перерисовку не будучи подклассом UIElement.
     /// <summary>Изменилась геометрия — нужен полный пересчёт и перерисовка.</summary>
-    protected internal void Invalidate() => FindOwner()?.Invalidate();
+    protected internal void Invalidate()
+    {
+        // сначала свой кэш измерения и кэш предков, потом просьба к форме:
+        // без этого форма пересчитала бы раскладку по старым размерам
+        InvalidateMeasure();
+
+        FindOwner()?.Invalidate();
+    }
 
     /// <summary>Захват от имени распознавателя. Отдельный вход потому,
     /// что CaptureMouse защищённый: снаружи элемента его не позвать,

@@ -6,10 +6,56 @@ namespace ZeppelinForms.Forms.Controls;
 
 public class StackPanel : DecoratedPanel
 {
-    public Orientation Orientation { get; set; } = Orientation.Vertical;
-    public float Spacing { get; set; }
-    public MainAxisAlignment MainAxisAlignment { get; set; } = MainAxisAlignment.Start;
-    public CrossAxisAlignment CrossAxisAlignment { get; set; } = CrossAxisAlignment.Stretch;
+    // все четыре участвуют в измерении и размещении, поэтому просят
+    // пересчёт: без него кэш измерения отдал бы размер прежней раскладки
+
+    public Orientation Orientation
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = Orientation.Vertical;
+
+    public float Spacing
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    }
+
+    public MainAxisAlignment MainAxisAlignment
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = MainAxisAlignment.Start;
+
+    public CrossAxisAlignment CrossAxisAlignment
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = CrossAxisAlignment.Stretch;
 
     private bool IsVertical => Orientation == Orientation.Vertical;
 

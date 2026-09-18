@@ -26,8 +26,32 @@ public abstract partial class PanelControl : UIElement
 
     protected internal override Rectangle ClipBounds => Viewport;
 
-    public Overflow OverflowX { get; set; } = Overflow.Visible;
-    public Overflow OverflowY { get; set; } = Overflow.Visible;
+    // переполнение решает, даём ли мы содержимому расти по оси,
+    // то есть напрямую влияет на измерение
+
+    public Overflow OverflowX
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = Overflow.Visible;
+
+    public Overflow OverflowY
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = Overflow.Visible;
 
     public float ScrollX { get; private set; }
     public float ScrollY { get; private set; }
@@ -51,7 +75,19 @@ public abstract partial class PanelControl : UIElement
     private float MaxScrollX => Math.Max(0, _contentSize.Width - ActualSize.Width + ReservedWidth);
     private float MaxScrollY => Math.Max(0, _contentSize.Height - ActualSize.Height + ReservedHeight);
 
-    public ScrollBarMode ScrollBarMode { get; set; } = ScrollBarMode.Overlay;
+    public ScrollBarMode ScrollBarMode
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // в режиме Inline полоса отнимает место у содержимого
+            Invalidate();
+        }
+    } = ScrollBarMode.Overlay;
 
     // видимость считается один раз за раскладку и дальше только читается:
     // в режиме Inline полосы отнимают место друг у друга, и пересчёт
