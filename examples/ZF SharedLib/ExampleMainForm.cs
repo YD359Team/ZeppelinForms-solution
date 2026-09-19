@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ZeppelinForms;
+using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Effects;
@@ -171,7 +172,9 @@ public class ExampleMainForm : Form
             LineAlignment = CrossAxisAlignment.Center,
             Padding = new(8),
             OverflowY = Overflow.Auto,
-        }.With(x => x.Children.AddRange(controls));
+        }
+        .With(x => x.Children.AddRange(controls))
+        .With(x => x.ChildrenLayoutTransition = LayoutTransition.Ease(150));
 
         return adaptiveLayout;
     }
@@ -445,6 +448,7 @@ public class ExampleMainForm : Form
         };
 
         DragList backlog = Column("tasks");
+        backlog.ChildrenLayoutTransition = LayoutTransition.Ease(120, Easing.EaseInOut);
         backlog.Items.AddRange([
             Card("Migrate Calendar"),
             Card("Write down README"),
@@ -453,6 +457,7 @@ public class ExampleMainForm : Form
         ]);
 
         DragList progress = Column("tasks");
+        progress.ChildrenLayoutTransition = LayoutTransition.Ease(120, Easing.EaseInOut);
         progress.Items.Add(Card("Drag&Drop"));
 
         // предел незавершённой работы — ровно тот случай,
@@ -461,11 +466,13 @@ public class ExampleMainForm : Form
 
         // из готового обратно не забрать: CanSendItem гасит захват на нажатии
         DragList done = Column("tasks");
+        done.ChildrenLayoutTransition = LayoutTransition.Ease(120, Easing.EaseInOut);
         done.CanSendItem = false;
         done.Items.Add(Card("StyledProperty"));
 
         // другая группа: сюда из "tasks" уронить нельзя, хотя список рядом
         DragList notes = Column("notes");
+        notes.ChildrenLayoutTransition = LayoutTransition.Ease(120, Easing.EaseInOut);
         notes.Items.AddRange<object>([
             Card("Check XDND"),
             Card("Quested about brushes"),
@@ -675,6 +682,9 @@ public class ExampleMainForm : Form
                 string developer => $"{developer}: {s_games.Count(game => game.Developer == developer)} games",
                 _ => "Select row",
             };
+
+        treeView.Children.OfType<VirtualizingStackPanel>().Single()
+            .ChildrenLayoutTransition = LayoutTransition.Ease(180);
 
         return new StackPanel
         {

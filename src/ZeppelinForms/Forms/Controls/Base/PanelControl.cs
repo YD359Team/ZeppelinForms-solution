@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using ZeppelinForms.Animation;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
@@ -23,6 +24,11 @@ public abstract partial class PanelControl : UIElement
     private float _dragOffset;
 
     public ObservableCollection<UIElement> Children { get; } = [];
+
+    /// <summary>Правило переезда для всех детей разом. Его берёт ребёнок,
+    /// у которого нет своего: строке списка неоткуда знать, что список
+    /// умеет перестраиваться плавно.</summary>
+    public LayoutTransition? ChildrenLayoutTransition { get; set; }
 
     protected internal override Rectangle ClipBounds => Viewport;
 

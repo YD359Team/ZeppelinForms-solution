@@ -218,15 +218,18 @@ public class VirtualizingStackPanel : DecoratedPanel
                 object item = ItemsSource[index];
                 UIElement container;
 
-                // шаблон может не подойти переиспользованному контейнеру,
-                // поэтому пул работает, только когда шаблон не задан
                 if (ItemTemplate is null && free < _unmatched.Count)
                 {
                     container = Reuse(_unmatched[free++], item);
+
+                    // контейнер сменил элемент, а не переехал: анимировать
+                    // его дорогу с прежнего индекса на новый незачем
+                    container.SkipNextLayoutTransition();
                 }
                 else if (ItemTemplate is null && _recycled.Count > 0)
                 {
                     container = Reuse(_recycled.Pop(), item);
+                    container.SkipNextLayoutTransition();
                     Children.Add(container);
                 }
                 else

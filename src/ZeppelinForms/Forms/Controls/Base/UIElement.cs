@@ -1204,19 +1204,43 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
             return;
         }
 
+        // без формы переход некому вести — часы кадра живут на ней
+        if (FindOwner() is null) return;
+
         // прерванный переход продолжается с того места, где был,
         // а не прыгает к прежнему началу
-        T start = from;
+        StartTransition(property, PresentedOrTarget(property, from), rule);
+    }
 
-        if (_running is not null)
-            foreach (IPropertyTransition existing in _running)
-                if (ReferenceEquals(existing.Property, property))
-                {
-                    start = ((PropertyTransition<T>)existing).Current;
-                    break;
-                }
+    /// <summary>Значение, которое сейчас видно: промежуточное, если переход
+    /// уже идёт, и переданное иначе.</summary>
+    private T PresentedOrTarget<T>(StyledProperty<T> property, T target)
+    {
+        if (_running is null) return target;
 
-        var transition = new PropertyTransition<T>(this, property, start, rule, interpolate);
+        foreach (IPropertyTransition running in _running)
+            if (ReferenceEquals(running.Property, property))
+                return ((PropertyTransition<T>)running).Current;
+
+        return target;
+    }
+
+    /// <summary>Завести переход свойства от заданного значения к его текущей
+    /// цели. Цель берётся из самого свойства и читается каждый кадр.</summary>
+    internal void StartTransition<T>(StyledProperty<T> property, T from, Transition rule)
+    {
+        if (FindOwner() is not { } owner) return;
+
+        if (Interpolator.Find<T>() is not { } interpolate)
+        {
+            ZfContract.Fail(
+                $"Переход на {property.Name} невозможен: для {typeof(T).Name} " +
+                "нет интерполятора. Объявите его через Interpolator.Register.");
+
+            return;
+        }
+
+        var transition = new PropertyTransition<T>(this, property, from, rule, interpolate);
 
         _running ??= [];
         _running.Add(transition);
@@ -1238,6 +1262,56 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     /// <summary>Кадр перехода: перерисовать элемент, не трогая раскладку.</summary>
     internal void InvalidateTransitionVisual() => InvalidateVisual();
+
+    private Point _arrangedPosition;
+    private bool _skipLayoutTransition;
+
+    /// <summary>Не считать ближайший переезд переездом. Нужно тем, кто
+    /// переиспользует контейнеры: строка, перепривязанная к другому
+    /// элементу списка, не переехала — она стала другой строкой,
+    /// и вести её через пол-экрана незачем.</summary>
+    internal void SkipNextLayoutTransition() => _skipLayoutTransition = true;
+
+    /// <summary>Как элемент переезжает, когда раскладка ставит его
+    /// на новое место. null — мгновенно, как и было.</summary>
+    /// <remarks>
+    /// Правило берётся у самого элемента, а если его нет — у панели-родителя:
+    /// одной строкой на списке включается плавное перестроение всех его
+    /// строк, и контролам внутри ничего знать об этом не нужно.
+    /// </remarks>
+    public LayoutTransition? LayoutTransition { get; set; }
+
+    internal LayoutTransition? EffectiveLayoutTransition =>
+        LayoutTransition ?? (Parent as PanelControl)?.ChildrenLayoutTransition;
+
+    /// <summary>Переезд по правилу FLIP: элемент уже стоит на новом месте,
+    /// но рисуется от старого и приезжает к нулевому сдвигу.</summary>
+    private void StartLayoutTransition(Point previous, Point placed)
+    {
+        if (!TransitionsEnabled) return;
+        if (EffectiveLayoutTransition is not { } rule) return;
+
+        // невидимое поддерево не переезжает: страница, перестроенная
+        // за кадром, должна открыться сразу на своих местах
+        if (!IsEffectivelyVisible) return;
+
+        float dx = previous.X - placed.X;
+        float dy = previous.Y - placed.Y;
+
+        // незакончившийся прошлый переезд складывается с новым: иначе
+        // строка, которую двигают дважды подряд, дёрнется на середине
+        if (dx != 0f)
+            StartTransition(
+                TranslateXProperty,
+                PresentedOrTarget(TranslateXProperty, TranslateX) + dx,
+                rule.ForTranslateX);
+
+        if (dy != 0f)
+            StartTransition(
+                TranslateYProperty,
+                PresentedOrTarget(TranslateYProperty, TranslateY) + dy,
+                rule.ForTranslateY);
+    }
 
     // ===== Measure/Arrange =====
 
@@ -1341,11 +1415,24 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
             _ => finalRect.Y,
         };
 
-        Position = new Point(x, y);
+        var placed = new Point(x, y);
+
+        // сравниваем с местом из прошлой раскладки, а не с Position:
+        // прокручивающая панель правит Position детей уже после Arrange,
+        // и переезд на величину прокрутки анимировать не надо
+        Point previous = _arrangedPosition;
+        bool moved = _hasBeenArranged && (previous.X != placed.X || previous.Y != placed.Y);
+
+        Position = placed;
+        _arrangedPosition = placed;
 
         // результат раскладки уходит в ActualSize; Size остаётся тем,
         // что задал пользователь, иначе авторазмер сработает лишь однажды
         _actualSize = ArrangeOverride(new Size(width, height));
+
+        if (moved && !_skipLayoutTransition) StartLayoutTransition(previous, placed);
+
+        _skipLayoutTransition = false;
 
         // первый проход только фиксирует размер: наследники, реагирующие
         // на изменение, не должны срабатывать на переходе из «не размещён»
