@@ -6,6 +6,7 @@ using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
+using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -95,6 +96,8 @@ public partial class DragList : ItemsControl
 
     protected override void OnDetached()
     {
+        _pressIndex = -1;
+
         Unregister();
         _attached = false;
 
@@ -187,6 +190,22 @@ public partial class DragList : ItemsControl
         _pressIndex = -1;
         _dragging = false;
     }
+
+    /// <summary>Контакт оборвали: жест забрал его себе, платформа прислала
+    /// отмену, окно потеряло фокус. Отпускания после этого не будет,
+    /// поэтому прибираем за собой сами — иначе перетаскиваемая строка
+    /// останется висеть поверх формы навсегда.</summary>
+    protected override void OnPointerCanceled(PointerCancelEventArgs e)
+    {
+        _pressIndex = -1;
+
+        if (!_dragging) return;
+
+        CancelDrag();
+    }
+
+    /// <summary>Идёт ли перенос строки прямо сейчас.</summary>
+    public bool IsDragging => _dragging;
 
     // ===== перетаскивание =====
 

@@ -703,6 +703,15 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         if (ReferenceEquals(contact.Capture, element)) return;
 
+        // захват означает, что элемент забрал указатель себе, — значит
+        // борьба жестов на этом контакте кончена. Иначе распознаватель
+        // предка спокойно дожидался отпускания и выигрывал уже захваченный
+        // контакт: перетаскивание в DragList заканчивалось свайпом страницы,
+        // а перетаскиваемая строка оставалась висеть, потому что отпускания
+        // захвативший так и не получал
+        contact.Arena?.Cancel();
+        contact.Arena = null;
+
         if (contact.Capture is null && _platformCaptureCount++ == 0)
             PlatformWindow?.CaptureMouse();
 
