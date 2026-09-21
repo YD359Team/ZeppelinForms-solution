@@ -114,6 +114,10 @@ public class VirtualizingStackPanel : DecoratedPanel
         {
             foreach (UIElement container in _realized.Values)
             {
+                // полная пересборка — не удаление строк пользователем,
+                // проводить каждую исчезанием незачем
+                container.SkipNextVisibilityTransitions();
+
                 Children.Remove(container);
                 _itemOf.Remove(container);
                 Recycle(container);
@@ -178,6 +182,18 @@ public class VirtualizingStackPanel : DecoratedPanel
         if (_rangeValid && first == _firstVisible && count == _visibleCount)
             return false;
 
+        // прокрутка при прежнем составе источника: строки не появляются
+        // и не исчезают, а въезжают в окно и выезжают из него. Появлением
+        // и исчезанием это становится только после Refresh
+        bool scrolling = _rangeValid;
+
+        // после Refresh уходящая строка может быть просто вытеснена за край —
+        // её элемент по-прежнему в источнике. Исчезать должна только та,
+        // чей элемент убран. Набор нужен, только если исчезание включено
+        HashSet<object>? present = !scrolling && ChildrenExitTransition is not null
+            ? new HashSet<object>(ItemsSource.Where(item => item is not null), ReferenceEqualityComparer.Instance)
+            : null;
+
         SuppressChildrenInvalidate++;
 
         try
@@ -230,11 +246,13 @@ public class VirtualizingStackPanel : DecoratedPanel
                 {
                     container = Reuse(_recycled.Pop(), item);
                     container.SkipNextLayoutTransition();
+                    if (scrolling) container.SkipNextVisibilityTransitions();
                     Children.Add(container);
                 }
                 else
                 {
                     container = CreateContainer(item);
+                    if (scrolling) container.SkipNextVisibilityTransitions();
                     Children.Add(container);
                 }
 
@@ -245,6 +263,14 @@ public class VirtualizingStackPanel : DecoratedPanel
             // 4. убираем то, что вышло за окно, в переиспользование
             for (; free < _unmatched.Count; free++)
             {
+                // выехала за край — не исчезла. Исчезает только строка,
+                // чьего элемента больше нет в источнике
+                if (scrolling ||
+                    (present is not null &&
+                     _itemOf.GetValueOrDefault(container) is { } gone &&
+                     present.Contains(gone)))
+                    container.SkipNextVisibilityTransitions();
+
                 UIElement container = _unmatched[free];
 
                 Children.Remove(container);

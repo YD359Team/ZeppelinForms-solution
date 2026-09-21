@@ -1004,20 +1004,18 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         return ElementRenderer.Current.Render(this, width, height);
     }
 
-    private float _opacity = 1f;
-
-    public float Opacity
-    {
-        get => _opacity;
-        set
-        {
-            float clamped = Math.Clamp(value, 0f, 1f);
-            if (Math.Abs(_opacity - clamped) < 0.001f) return;
-
-            _opacity = clamped;
-            Invalidate();
-        }
-    }
+    /// <summary>Непрозрачность элемента вместе с потомками: 1 — непрозрачен,
+    /// 0 — не виден и не рисуется.</summary>
+    /// <remarks>
+    /// Свойство системы стилей, а не обычное: так оно получает переходы,
+    /// появление и исчезание, и тему. Раскладку не трогает — прозрачный
+    /// элемент по-прежнему занимает своё место. Значения за пределами
+    /// [0; 1] рендерер приводит к ним сам: прибивать их в сеттере значило
+    /// бы ломать интерполяцию, которая может на мгновение перелететь.
+    /// </remarks>
+    [Styled(Category = "Appearance")]
+    public partial float Opacity { get; set; }
+    private static float OpacityDefault => 1f;
 
     private EffectChain? _effects;
 
@@ -1264,7 +1262,71 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     internal void InvalidateTransitionVisual() => InvalidateVisual();
 
     private Point _arrangedPosition;
-    private bool _skipLayoutTransition;
+    private bool _skipEnterTransition;
+    private bool _skipExitTransition;
+
+    /// <summary>Как элемент появляется на уже показанном экране.
+    /// null — мгновенно, как и было.</summary>
+    public VisibilityTransition? EnterTransition { get; set; }
+
+    /// <summary>Как элемент исчезает, когда его убирают из панели.
+    /// null — мгновенно, как и было.</summary>
+    public VisibilityTransition? ExitTransition { get; set; }
+
+    internal VisibilityTransition? EffectiveEnterTransition =>
+        EnterTransition ?? (Parent as PanelControl)?.ChildrenEnterTransition;
+
+    /// <summary>Правило исчезания относительно конкретной панели: спрашивают
+    /// в момент удаления, когда Parent уже может быть сброшен.</summary>
+    internal VisibilityTransition? ExitTransitionIn(PanelControl panel) =>
+        ExitTransition ?? panel.ChildrenExitTransition;
+
+    /// <summary>Не считать ближайшее появление и удаление появлением
+    /// и исчезанием. Нужно тем, кто создаёт и выбрасывает контейнеры
+    /// по ходу прокрутки: строка, выехавшая из-за края, не появилась —
+    /// она просто стала видна.</summary>
+    internal void SkipNextVisibilityTransitions()
+    {
+        _skipEnterTransition = true;
+        _skipExitTransition = true;
+    }
+
+    /// <summary>Забрать отметку о пропуске исчезания: она одноразовая.</summary>
+    internal bool ConsumeSkipExit()
+    {
+        bool skip = _skipExitTransition;
+        _skipExitTransition = false;
+
+        return skip;
+    }
+
+    /// <summary>Годится ли элемент в уходящие: исчезать может только то,
+    /// что уже было на экране.</summary>
+    internal bool CanAnimateExit => TransitionsEnabled && _hasBeenArranged && IsVisible;
+
+    private void StartEnterTransition()
+    {
+        if (!TransitionsEnabled) return;
+        if (EffectiveEnterTransition is not { } rule) return;
+        if (!IsEffectivelyVisible) return;
+
+        // из невидимого вида к тому, что лежит в свойствах: сами свойства
+        // не трогаем, модель с первого кадра видит итоговые значения
+        if (rule.Opacity != 1f)
+            StartTransition(OpacityProperty, Opacity * rule.Opacity, rule.ForOpacity);
+
+        if (rule.Scale != 1f)
+        {
+            StartTransition(ScaleXProperty, ScaleX * rule.Scale, rule.ForScaleX);
+            StartTransition(ScaleYProperty, ScaleY * rule.Scale, rule.ForScaleY);
+        }
+
+        if (rule.OffsetX != 0f)
+            StartTransition(TranslateXProperty, TranslateX + rule.OffsetX, rule.ForTranslateX);
+
+        if (rule.OffsetY != 0f)
+            StartTransition(TranslateYProperty, TranslateY + rule.OffsetY, rule.ForTranslateY);
+    }
 
     /// <summary>Не считать ближайший переезд переездом. Нужно тем, кто
     /// переиспользует контейнеры: строка, перепривязанная к другому
@@ -1415,7 +1477,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
             _ => finalRect.Y,
         };
 
-        var placed = new Point(x, y);
+        // первое размещение внутри уже показанного родителя — это
+        // появление: элемент добавили на экран, который уже видели.
+        // Первое размещение вместе с родителем — это просто открытие
+        // формы, анимировать его незачем
+        bool appearing = !_hasBeenArranged && Parent is { _hasBeenArranged: true };
 
         // сравниваем с местом из прошлой раскладки, а не с Position:
         // прокручивающая панель правит Position детей уже после Arrange,
@@ -1434,12 +1500,9 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
         _skipLayoutTransition = false;
 
-        // первый проход только фиксирует размер: наследники, реагирующие
-        // на изменение, не должны срабатывать на переходе из «не размещён»
-        if (_hasBeenArranged)
-            OnSizeChanged();
-        else
-            _hasBeenArranged = true;
+        if (appearing && !_skipEnterTransition) StartEnterTransition();
+
+        _skipEnterTransition = false;
     }
 
     public void Arrange(Point point, Size size) => Arrange(new Rectangle(point, size));

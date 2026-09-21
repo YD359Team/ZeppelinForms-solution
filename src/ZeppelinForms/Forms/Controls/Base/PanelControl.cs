@@ -30,6 +30,66 @@ public abstract partial class PanelControl : UIElement
     /// умеет перестраиваться плавно.</summary>
     public LayoutTransition? ChildrenLayoutTransition { get; set; }
 
+    /// <summary>Как появляются дети, добавленные на уже показанную панель.
+    /// Его берёт ребёнок, у которого нет своего.</summary>
+    public VisibilityTransition? ChildrenEnterTransition { get; set; }
+
+    /// <summary>Как исчезают убранные дети. Его берёт ребёнок, у которого
+    /// нет своего.</summary>
+    public VisibilityTransition? ChildrenExitTransition { get; set; }
+
+    private List<ExitingChild>? _exiting;
+
+    /// <summary>Уходящие дети: из Children они уже убраны — раскладка,
+    /// попадание и соседи о них не знают, — но дорисовываются поверх,
+    /// пока не доиграет исчезание.</summary>
+    internal IReadOnlyList<ExitingChild>? Exiting => _exiting;
+
+    internal void RemoveExiting(ExitingChild exiting)
+    {
+        if (_exiting is null) return;
+
+        _exiting.Remove(exiting);
+
+        if (_exiting.Count == 0) _exiting = null;
+
+        InvalidateVisual();
+    }
+
+    /// <summary>Начать исчезание убираемого ребёнка, если оно ему положено.
+    /// Зовётся до отвязки от формы: после неё у элемента нет ни владельца,
+    /// ни кадров.</summary>
+    private void BeginExit(UIElement item, Form? owner)
+    {
+        // отметку забираем в любом случае: она одноразовая
+        if (item.ConsumeSkipExit()) return;
+
+        if (owner is null) return;
+        if (!item.CanAnimateExit) return;
+        if (item.ExitTransitionIn(this) is not { } rule) return;
+
+        // панель, которую не видно, не показывает и исчезания
+        if (!IsEffectivelyVisible) return;
+
+        var exiting = new ExitingChild(this, item, rule);
+
+        _exiting ??= [];
+        _exiting.Add(exiting);
+
+        owner.AddAnimation(exiting);
+    }
+
+    /// <summary>Элемент вернули, пока он ещё исчезал: рисовать его дважды —
+    /// живым и призраком — нельзя.</summary>
+    private void CancelExit(UIElement item)
+    {
+        if (_exiting is null) return;
+
+        for (int i = _exiting.Count - 1; i >= 0; i--)
+            if (ReferenceEquals(_exiting[i].Element, item))
+                _exiting[i].Cancel(applyFinalValue: false);
+    }
+
     protected internal override Rectangle ClipBounds => Viewport;
 
     // переполнение решает, даём ли мы содержимому расти по оси,
@@ -151,6 +211,12 @@ public abstract partial class PanelControl : UIElement
         if (e.OldItems is not null)
             foreach (UIElement item in e.OldItems)
             {
+                // исчезает только настоящее удаление: при перестановке
+                // элемент уходит и тут же возвращается, а при замене
+                // на его место встаёт другой — там уход не виден глазу
+                if (e.Action == NotifyCollectionChangedAction.Remove)
+                    BeginExit(item, owner);
+
                 owner?.DetachTree(item);
                 item.Parent = null;
             }
@@ -158,6 +224,8 @@ public abstract partial class PanelControl : UIElement
         if (e.NewItems is not null)
             foreach (UIElement item in e.NewItems)
             {
+                CancelExit(item);
+
                 item.Parent = this;
                 owner?.AttachTree(item);
             }

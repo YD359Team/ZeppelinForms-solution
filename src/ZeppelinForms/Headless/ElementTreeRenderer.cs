@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using ZeppelinForms.Animation;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Effects;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -42,7 +43,11 @@ public static class ElementTreeRenderer
     /// </remarks>
     private static void Draw(UIElement element, Graphics g, Point origin, Rectangle? clip, bool cull)
     {
-        if (!element.IsVisible || element.Opacity <= 0f) return;
+        // прозрачность могут на мгновение увести за [0; 1] кривые перехода —
+        // приводим её к допустимой здесь, а не в сеттере
+        float opacity = Math.Clamp(element.Opacity, 0f, 1f);
+
+        if (!element.IsVisible || opacity <= 0f) return;
         if (!float.IsFinite(element.ActualSize.Width) || !float.IsFinite(element.ActualSize.Height)) return;
 
         var placed = new Point(origin.X + element.Position.X, origin.Y + element.Position.Y);
@@ -143,6 +148,12 @@ public static class ElementTreeRenderer
                 foreach (var child in panel.Children)
                     Draw(child, g, position, inside, cullChildren);
 
+                // уходящие — поверх живых: их место уже заняли соседи,
+                // и под соседями исчезание было бы не видно
+                if (panel.Exiting is { } exiting)
+                    foreach (ExitingChild ghost in exiting)
+                        DrawExiting(ghost, g, position);
+
                 g.Restore();
 
                 // полоса прокрутки не должна обрезаться содержимым
@@ -155,6 +166,41 @@ public static class ElementTreeRenderer
 
         if (needsLayer)
             g.Restore();
+
+        g.Restore();
+    }
+
+    /// <summary>Нарисовать уходящего ребёнка в виде, соответствующем
+    /// пройденной части исчезания. Отсечения нет: призраков единицы,
+    /// а их положение уже не описывает ни одна раскладка.</summary>
+    private static void DrawExiting(ExitingChild ghost, Graphics g, Point origin)
+    {
+        UIElement element = ghost.Element;
+        VisibilityTransition rule = ghost.Rule;
+        float t = ghost.Progress;
+
+        float opacity = 1f + (rule.Opacity - 1f) * t;
+        float scale = 1f + (rule.Scale - 1f) * t;
+
+        if (opacity <= 0f) return;
+
+        // масштаб — вокруг центра элемента, как у ScaleX/ScaleY:
+        // исчезание и появление должны быть зеркальны
+        var center = new Point(
+            element.Position.X + element.ActualSize.Width / 2f,
+            element.Position.Y + element.ActualSize.Height / 2f);
+
+        g.Save();
+
+        g.Translate(center.X + rule.OffsetX * t, center.Y + rule.OffsetY * t);
+        g.Scale(scale, scale);
+        g.Translate(-center.X, -center.Y);
+
+        if (opacity < 1f) g.SaveLayer(opacity);
+
+        Draw(element, g, origin, clip: null, cull: false);
+
+        if (opacity < 1f) g.Restore();
 
         g.Restore();
     }
