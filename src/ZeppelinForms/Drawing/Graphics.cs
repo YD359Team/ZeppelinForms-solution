@@ -83,6 +83,9 @@ public abstract class Graphics
         CaptureBlend blend = CaptureBlend.Normal,
         float opacity = 1f)
     { }
+    /// <summary>Залить замкнутый многоугольник. Контур замыкается сам:
+    /// повторять первую точку в конце не нужно.</summary>
+    public abstract void FillPolygon(ReadOnlySpan<Point> points, Color color);
 
     public abstract void ClipRoundRect(Rectangle rect, CornerRadius radius);
     public abstract void Rotate(float degrees);

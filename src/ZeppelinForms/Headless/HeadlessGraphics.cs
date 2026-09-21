@@ -115,4 +115,8 @@ public class HeadlessGraphics : Graphics
     public override void SaveLayer(float opacity)
     {
     }
+
+    public override void FillPolygon(ReadOnlySpan<Point> points, Color color)
+    {
+    }
 }

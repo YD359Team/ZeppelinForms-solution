@@ -26,13 +26,18 @@ public abstract class CartesianChartBase : ChartBase
 
     protected abstract (float Min, float Max) DataRange { get; }
 
+    /// <summary>Тянуть ли ось значений до нуля. Столбцам без нуля нельзя:
+    /// их длина и есть значение. Ценам — наоборот: нулевая цена не бывает
+    /// нужна, а с ней все свечи схлопнутся в полоску наверху.</summary>
+    protected virtual bool IncludeZero => true;
+
     protected (float Min, float Max) EffectiveRange
     {
         get
         {
             var (min, max) = DataRange;
 
-            min = MinValue ?? Math.Min(0, min);
+            min = MinValue ?? (IncludeZero ? Math.Min(0, min) : min);
             max = MaxValue ?? max;
 
             // вырожденный диапазон растянем, иначе делить будем на ноль

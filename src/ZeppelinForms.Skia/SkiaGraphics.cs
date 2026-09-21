@@ -897,6 +897,23 @@ public sealed class SkiaGraphics : Graphics
         _canvas.DrawRoundRect(rounded, paint);
     }
 
+    public override void FillPolygon(ReadOnlySpan<Point> points, Color color)
+    {
+        if (points.Length < 3) return;
+
+        using var builder = new SKPathBuilder();
+        builder.MoveTo(points[0].X, points[0].Y);
+
+        for (int i = 1; i < points.Length; i++)
+            builder.LineTo(points[i].X, points[i].Y);
+
+        builder.Close();
+
+        using SKPath path = builder.Detach();
+
+        _canvas.DrawPath(path, FillPaint(color));
+    }
+
     private readonly record struct CaptureFrame(
         SKSurface? Surface, SKCanvas Previous, Rectangle Bounds);
 }
