@@ -12,6 +12,9 @@ internal sealed class GestureArena
 
     private GestureRecognizer? _winner;
 
+    /// <summary>Борьба уже решена: кто-то заявил права на контакт.</summary>
+    public bool HasWinner => _winner is not null;
+
     private GestureArena(
         PointerContact contact,
         List<GestureRecognizer> members,

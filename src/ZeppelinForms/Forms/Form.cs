@@ -708,9 +708,16 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         // предка спокойно дожидался отпускания и выигрывал уже захваченный
         // контакт: перетаскивание в DragList заканчивалось свайпом страницы,
         // а перетаскиваемая строка оставалась висеть, потому что отпускания
-        // захвативший так и не получал
-        contact.Arena?.Cancel();
-        contact.Arena = null;
+        // захвативший так и не получал.
+        //
+        // Но только пока борьба идёт. Если победитель уже есть, захват
+        // берёт он сам — распознаватель прокрутки делает это сразу после
+        // победы, — и отменять арену значило бы снимать его же с контакта
+        if (contact.Arena is { HasWinner: false } arena)
+        {
+            arena.Cancel();
+            contact.Arena = null;
+        }
 
         if (contact.Capture is null && _platformCaptureCount++ == 0)
             PlatformWindow?.CaptureMouse();
