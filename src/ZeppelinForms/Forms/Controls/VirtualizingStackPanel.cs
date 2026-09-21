@@ -263,6 +263,8 @@ public class VirtualizingStackPanel : DecoratedPanel
             // 4. убираем то, что вышло за окно, в переиспользование
             for (; free < _unmatched.Count; free++)
             {
+                UIElement container = _unmatched[free];
+
                 // выехала за край — не исчезла. Исчезает только строка,
                 // чьего элемента больше нет в источнике
                 if (scrolling ||
@@ -270,8 +272,6 @@ public class VirtualizingStackPanel : DecoratedPanel
                      _itemOf.GetValueOrDefault(container) is { } gone &&
                      present.Contains(gone)))
                     container.SkipNextVisibilityTransitions();
-
-                UIElement container = _unmatched[free];
 
                 Children.Remove(container);
                 _itemOf.Remove(container);

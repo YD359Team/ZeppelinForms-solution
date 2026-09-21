@@ -1262,6 +1262,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     internal void InvalidateTransitionVisual() => InvalidateVisual();
 
     private Point _arrangedPosition;
+    private bool _skipLayoutTransition;
     private bool _skipEnterTransition;
     private bool _skipExitTransition;
 
@@ -1477,6 +1478,8 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
             _ => finalRect.Y,
         };
 
+        var placed = new Point(x, y);
+
         // первое размещение внутри уже показанного родителя — это
         // появление: элемент добавили на экран, который уже видели.
         // Первое размещение вместе с родителем — это просто открытие
@@ -1503,6 +1506,13 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         if (appearing && !_skipEnterTransition) StartEnterTransition();
 
         _skipEnterTransition = false;
+
+        // первый проход только фиксирует размер: наследники, реагирующие
+        // на изменение, не должны срабатывать на переходе из «не размещён»
+        if (_hasBeenArranged)
+            OnSizeChanged();
+        else
+            _hasBeenArranged = true;
     }
 
     public void Arrange(Point point, Size size) => Arrange(new Rectangle(point, size));

@@ -72,12 +72,12 @@ public static class ElementTreeRenderer
         // Приглушение и прозрачность — один слой на элемент.
         // SaveDisabledLayer уже умеет альфу, поэтому при выключенном
         // элементе второй слой не нужен.
-        bool needsLayer = !element.IsEnabled || element.Opacity < 1f;
+        bool needsLayer = !element.IsEnabled || opacity < 1f;
 
         if (!element.IsEnabled)
-            g.SaveDisabledLayer(element.DisabledOpacity * element.Opacity, element.DisabledDesaturation);
-        else if (element.Opacity < 1f)
-            g.SaveLayer(element.Opacity);
+            g.SaveDisabledLayer(element.DisabledOpacity * opacity, element.DisabledDesaturation);
+        else if (opacity < 1f)
+            g.SaveLayer(opacity);
 
         // поворот и масштаб ломают сложение смещений: под ними прямоугольник
         // в абсолютных координатах уже не описывает, где ребёнок окажется
