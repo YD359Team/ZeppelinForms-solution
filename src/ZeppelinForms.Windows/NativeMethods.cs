@@ -7,6 +7,10 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern bool PostMessage(nint hWnd, uint msg, nint wParam, nint lParam);
 
+    /// <summary>Вариант для запросов, возвращающих BOOL через указатель.</summary>
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, out int pvParam, uint fWinIni);
+
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     public delegate nint WndProc(
         nint hWnd,

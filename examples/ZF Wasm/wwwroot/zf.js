@@ -25,6 +25,12 @@ function modifiers(e) {
 function localX(e) { return e.clientX - canvas.getBoundingClientRect().left; }
 function localY(e) { return e.clientY - canvas.getBoundingClientRect().top; }
 
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+export function prefersReducedMotion() {
+    return reducedMotion.matches;
+}
+
 export function init(canvasId) {
     console.log("zf.js: init", canvasId);
 
@@ -107,6 +113,10 @@ export function init(canvasId) {
 
     document.addEventListener("visibilitychange", () =>
         zf().OnVisibilityChange(document.visibilityState === "visible"));
+
+    // «уменьшить движение» в настройках системы — браузер отдаёт его
+    // медиазапросом, и смену настройки на ходу тоже
+    reducedMotion.addEventListener("change", e => zf().OnReducedMotionChange(e.matches));
 
     // pagehide, а не beforeunload: на мобильных второй часто не приходит
     window.addEventListener("pagehide", () => zf().OnPageHide());

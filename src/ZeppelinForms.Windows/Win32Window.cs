@@ -355,6 +355,12 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
     {
         switch (message)
         {
+            case NativeConstants.WM_SETTINGCHANGE:
+                // из общих настроек нам нужна одна — анимация интерфейса.
+                // Сообщение дальше уходит в DefWindowProc: его ждут и другие
+                _platform.OnSystemSettingsChanged();
+                return 0;
+
             case NativeConstants.WM_CAPTURECHANGED:
                 // захват отобрали извне: своё состояние надо сбросить,
                 // иначе перетаскивание останется висеть

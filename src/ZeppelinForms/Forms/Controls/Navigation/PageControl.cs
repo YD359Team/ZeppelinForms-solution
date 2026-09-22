@@ -281,7 +281,10 @@ public class PageControl : DecoratedPanel
         bool canAnimate = transition != PageTransition.None
             && TransitionDurationMs > 0
             && previous is not null
-            && FindOwner()?.PlatformWindow is not null;
+            && FindOwner()?.PlatformWindow is not null
+            // смена страницы — движение ради красоты: при уменьшенном
+            // движении новая страница просто появляется на месте старой
+            && !Motion.IsReduced;
 
         // состояние перехода выставляем до IsVisible. Его сеттер запускает
         // раскладку синхронно, а ArrangeContentOverride восстанавливает

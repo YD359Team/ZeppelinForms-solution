@@ -13,6 +13,9 @@ internal static partial class Interop
 
     // ==== C# -> JS ====
 
+    [JSImport("prefersReducedMotion", ModuleName)]
+    internal static partial bool PrefersReducedMotion();
+
     /// <summary>Адрес страницы. HttpClient в браузере не знает происхождения
     /// сам, а относительные адреса без BaseAddress он не принимает.</summary>
     [JSImport("baseUri", ModuleName)]
@@ -144,6 +147,10 @@ internal static partial class Interop
     [JSExport]
     internal static void OnVisibilityChange(bool visible) =>
         Platform?.HandleVisibilityChange(visible);
+
+    [JSExport]
+    internal static void OnReducedMotionChange(bool reduced) =>
+    Platform?.HandleReducedMotionChange(reduced);
 
     [JSExport]
     internal static void OnPageHide() => Platform?.HandlePageHide();

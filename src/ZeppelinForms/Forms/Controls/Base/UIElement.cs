@@ -1113,6 +1113,10 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     /// «уменьшить движение» и под тесты, которым анимация мешает.</summary>
     public static bool TransitionsEnabled { get; set; } = true;
 
+    /// <summary>Идут ли переходы сейчас: их не выключили в коде, и система
+    /// не просит уменьшить движение.</summary>
+    internal static bool TransitionsActive => TransitionsEnabled && !Motion.IsReduced;
+
     /// <summary>Правила переходов этого элемента: какое свойство и за какое
     /// время добирается до нового значения.</summary>
     /// <remarks>
@@ -1303,11 +1307,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
 
     /// <summary>Годится ли элемент в уходящие: исчезать может только то,
     /// что уже было на экране.</summary>
-    internal bool CanAnimateExit => TransitionsEnabled && _hasBeenArranged && IsVisible;
+    internal bool CanAnimateExit => TransitionsActive && _hasBeenArranged && IsVisible;
 
     private void StartEnterTransition()
     {
-        if (!TransitionsEnabled) return;
+        if (!TransitionsActive) return;
         if (EffectiveEnterTransition is not { } rule) return;
         if (!IsEffectivelyVisible) return;
 
@@ -1351,7 +1355,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     /// но рисуется от старого и приезжает к нулевому сдвигу.</summary>
     private void StartLayoutTransition(Point previous, Point placed)
     {
-        if (!TransitionsEnabled) return;
+        if (!TransitionsActive) return;
         if (EffectiveLayoutTransition is not { } rule) return;
 
         // невидимое поддерево не переезжает: страница, перестроенная

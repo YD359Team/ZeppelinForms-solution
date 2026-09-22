@@ -853,6 +853,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     /// <summary>Сменить тему с расходящейся волной от точки.</summary>
     public void SwitchTheme(Theme theme, Point origin)
     {
+        // волна — украшение: при уменьшенном движении тема меняется сразу
+        if (Motion.IsReduced)
+        {
+            App.Theme = theme;
+            return;
+        }
+
         _themeRippleOrigin = origin;
         _themeRippleColor = theme.Colors.Background;
         _themeRippleActive = true;

@@ -25,6 +25,26 @@ public sealed class HeadlessPlatform : IPlatform, INestedLoopSupport
         HeadlessImageDecoder.Register();
         HeadlessElementRenderer.Register();
         BuiltInProperties.Register();
+
+        // без системы нет и системной настройки движения. Подключаем
+        // заведомо «не уменьшать» явно: иначе тест, запущенный после
+        // WindowsPlatformTests на машине с выключенной анимацией, увидел бы
+        // настройку этой машины, и переходы в нём стали бы мгновенными
+        ZeppelinForms.Animation.Motion.UseSystemSettings(HeadlessMotionSettings.Instance);
+    }
+
+    /// <summary>Детерминированная настройка движения для headless-прогона.</summary>
+    private sealed class HeadlessMotionSettings : ISystemMotionSettings
+    {
+        public static readonly HeadlessMotionSettings Instance = new();
+
+        public bool PrefersReducedMotion => false;
+
+        public event EventHandler? Changed
+        {
+            add { }
+            remove { }
+        }
     }
 
     public IPlatformWindow CreateWindow(Form form)

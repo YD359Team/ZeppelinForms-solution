@@ -16,7 +16,7 @@ namespace ZeppelinForms.Android;
 /// получать события нельзя, поэтому Form.ShowDialog честно бросит
 /// исключение — работает только ShowDialogAsync.
 /// </summary>
-public sealed class AndroidPlatform : IPlatform
+public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings
 {
     /// <summary>Нажата системная кнопка или жест «назад».
     /// Установите Handled, чтобы система не закрывала активность.</summary>
@@ -67,6 +67,19 @@ public sealed class AndroidPlatform : IPlatform
         _frameCallback = new FrameCallback(HandleFrame);
     }
 
+    /// <summary>Масштаб длительности анимаций, выставленный в ноль, — так
+    /// на Android выглядит «удалить анимацию» в специальных возможностях.
+    /// Читается при запуске: подписка на смену настройки требует
+    /// ContentObserver, а менять её посреди работы приложения никто
+    /// в здравом уме не станет.</summary>
+    public bool PrefersReducedMotion { get; private set; }
+
+    event EventHandler? ISystemMotionSettings.Changed
+    {
+        add { }
+        remove { }
+    }
+
     public static AndroidPlatform Create(Activity activity)
     {
         Skia.SkiaImageDecoder.Register();
@@ -74,7 +87,19 @@ public sealed class AndroidPlatform : IPlatform
         Skia.SkiaOffscreenRenderer.Register();
         Displays.Current = new AndroidDisplayProvider(activity);
 
-        return new AndroidPlatform(activity);
+        var platform = new AndroidPlatform(activity)
+        {
+            // global:: обязателен: внутри ZeppelinForms.Android имя Android
+            // указывает на наше же пространство имён, а не на привязки SDK
+            PrefersReducedMotion = global::Android.Provider.Settings.Global.GetFloat(
+                activity.ContentResolver,
+                global::Android.Provider.Settings.Global.AnimatorDurationScale,
+                1f) == 0f,
+        };
+
+        ZeppelinForms.Animation.Motion.UseSystemSettings(platform);
+
+        return platform;
     }
 
     internal float Scale { get; private set; } = 1f;

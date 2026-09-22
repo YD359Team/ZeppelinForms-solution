@@ -14,7 +14,7 @@ namespace ZeppelinForms.Browser;
 /// получать события в браузере невозможно, поэтому Form.ShowDialog честно
 /// бросит исключение — работает только ShowDialogAsync.
 /// </summary>
-public sealed class BrowserPlatform : IPlatform, IAppLifecycle
+public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSettings
 {
     /// <summary>Затемнение под модальным диалогом. Своих окон у браузера нет,
     /// и без этого непонятно, что нижняя форма перестала принимать ввод.</summary>
@@ -23,6 +23,27 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
     public event EventHandler? Paused;
     public event EventHandler? Resumed;
     public event EventHandler? Saving;
+
+    private bool _reducedMotion;
+
+    public bool PrefersReducedMotion => _reducedMotion;
+
+    /// <summary>Настройка сменилась на ходу — медиазапрос это сообщает.</summary>
+    event EventHandler? ISystemMotionSettings.Changed
+    {
+        add => _motionChanged += value;
+        remove => _motionChanged -= value;
+    }
+
+    private EventHandler? _motionChanged;
+
+    internal void HandleReducedMotionChange(bool reduced)
+    {
+        if (reduced == _reducedMotion) return;
+
+        _reducedMotion = reduced;
+        _motionChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     internal static BrowserPlatform? Current { get; private set; }
 
@@ -57,6 +78,9 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle
 
         var platform = new BrowserPlatform(canvasId);
         Current = platform;
+
+        platform._reducedMotion = Interop.PrefersReducedMotion();
+        ZeppelinForms.Animation.Motion.UseSystemSettings(platform);
 
         return platform;
     }

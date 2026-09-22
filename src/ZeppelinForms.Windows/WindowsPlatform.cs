@@ -1,10 +1,12 @@
-﻿using ZeppelinForms.Forms;
+﻿using ZeppelinForms.Animation;
+using ZeppelinForms.Forms;
 
 namespace ZeppelinForms.Windows;
 
-public class WindowsPlatform : IPlatform, INestedLoopSupport
+public class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMotionSettings
 {
     private int _windowCount = 0;
+    private bool _reducedMotion;
 
     public WindowsPlatform()
     {
@@ -14,6 +16,34 @@ public class WindowsPlatform : IPlatform, INestedLoopSupport
         ZeppelinForms.Skia.SkiaTextMeasurer.Register();
         ZeppelinForms.Skia.SkiaOffscreenRenderer.Register();
         Win32Clipboard.Register();
+
+        _reducedMotion = QueryReducedMotion();
+        Motion.UseSystemSettings(this);
+    }
+
+    public bool PrefersReducedMotion => _reducedMotion;
+
+    public event EventHandler? Changed;
+
+    /// <summary>«Показывать анимацию в Windows» выключен — значит просят
+    /// уменьшить движение. Если запрос не удался, считаем, что не просят:
+    /// так приложение ведёт себя как раньше, а не теряет анимацию молча.</summary>
+    private static bool QueryReducedMotion() =>
+        NativeMethods.SystemParametersInfo(
+            NativeConstants.SPI_GETCLIENTAREAANIMATION, 0, out int enabled, 0)
+        && enabled == 0;
+
+    /// <summary>Пришёл WM_SETTINGCHANGE. Его рассылают всем окнам верхнего
+    /// уровня, поэтому перечитываем настройку и сообщаем только о настоящей
+    /// смене — окон может быть несколько.</summary>
+    internal void OnSystemSettingsChanged()
+    {
+        bool reduced = QueryReducedMotion();
+
+        if (reduced == _reducedMotion) return;
+
+        _reducedMotion = reduced;
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public IPlatformWindow CreateWindow(Form form)
