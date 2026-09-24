@@ -35,6 +35,19 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     private readonly TouchScroller _touch;
 
+    /// <summary>Порядок показа: строка на экране → индекс в Items.
+    /// null — как в источнике. Сама коллекция не трогается: сортировка
+    /// таблицы — способ смотреть на данные, а не менять их.</summary>
+    private List<int>? _order;
+
+    private int _resizingColumn = -1;
+    private float _resizeStartX;
+    private float _resizeStartWidth;
+
+    /// <summary>Нажатие пришлось на границу столбцов: это была тяга ширины,
+    /// и превращать её в клик по заголовку не надо.</summary>
+    private bool _suppressHeaderClick;
+
     private int _hoveredRow = -1;
 
     public List<DataGridViewColumn> Columns { get; init; } = [];
@@ -65,6 +78,11 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     {
         // выделенная строка могла исчезнуть вместе с данными
         if (SelectedIndex >= Items.Count) SelectedIndex = -1;
+
+        // порядок показа построен по прежнему составу: в нём остались
+        // индексы, которых больше нет
+        if (SortColumnIndex >= 0) ApplySort();
+        else _order = null;
 
         // смещение зажмёт EnsureLayout, здесь достаточно позвать раскладку
         Invalidate();
@@ -128,7 +146,109 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         }
     } = -1;
 
-    public object? SelectedItem => SelectedIndex >= 0 ? Items[SelectedIndex] : null;
+    public object? SelectedItem => SelectedIndex >= 0 ? RowItem(SelectedIndex) : null;
+
+    /// <summary>Данные строки по её месту на экране. При сортировке это
+    /// не одно и то же, что Items[row].</summary>
+    public object RowItem(int row) => Items[_order is null ? row : _order[row]];
+
+    // ===== сортировка =====
+
+    /// <summary>По какому столбцу отсортировано. −1 — порядок источника.</summary>
+    public int SortColumnIndex { get; private set; } = -1;
+
+    public bool SortDescending { get; private set; }
+
+    /// <summary>Разрешить сортировку щелчком по заголовку. Сам столбец
+    /// может отказаться через CanSort.</summary>
+    public bool CanSortByHeaderClick { get; set; } = true;
+
+    public event EventHandler? SortChanged;
+
+    /// <summary>Отсортировать по столбцу. Без явного направления повторный
+    /// вызов по тому же столбцу переворачивает порядок — так ведёт себя
+    /// щелчок по заголовку.</summary>
+    public void SortBy(int columnIndex, bool? descending = null)
+    {
+        if (columnIndex < 0 || columnIndex >= Columns.Count)
+        {
+            ClearSort();
+            return;
+        }
+
+        SortDescending = descending ?? (SortColumnIndex == columnIndex && !SortDescending);
+        SortColumnIndex = columnIndex;
+
+        ApplySort();
+
+        SortChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Вернуться к порядку источника.</summary>
+    public void ClearSort()
+    {
+        if (SortColumnIndex < 0) return;
+
+        SortColumnIndex = -1;
+        SortDescending = false;
+
+        ApplySort();
+
+        SortChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ApplySort()
+    {
+        // выделение держится за строку данных, а не за её место на экране:
+        // после сортировки выделенной должна остаться та же запись
+        object? selected = SelectedItem;
+
+        if (SortColumnIndex < 0 || SortColumnIndex >= Columns.Count)
+        {
+            _order = null;
+        }
+        else
+        {
+            DataGridViewColumn column = Columns[SortColumnIndex];
+            IComparer<object?> comparer = column.Comparer ?? Comparer<object?>.Default;
+
+            var order = new List<int>(Items.Count);
+
+            for (int i = 0; i < Items.Count; i++) order.Add(i);
+
+            order.Sort((left, right) =>
+            {
+                int result = comparer.Compare(column.Value(Items[left]), column.Value(Items[right]));
+
+                // List.Sort неустойчива: равные значения без этого меняются
+                // местами от вызова к вызову, и строки прыгают на глазах
+                if (result == 0) return left.CompareTo(right);
+
+                return SortDescending ? -result : result;
+            });
+
+            _order = order;
+        }
+
+        RestoreSelection(selected);
+
+        InvalidateVisual();
+    }
+
+    private void RestoreSelection(object? selected)
+    {
+        if (selected is null) return;
+
+        for (int row = 0; row < Items.Count; row++)
+        {
+            if (!ReferenceEquals(RowItem(row), selected)) continue;
+
+            SelectedIndex = row;
+            return;
+        }
+
+        SelectedIndex = -1;
+    }
 
     public event EventHandler<object?>? SelectionChanged;
 
@@ -267,7 +387,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
         for (int i = firstRow; i <= lastRow && i < Items.Count; i++)
         {
-            float cell = TextMeasurer.Current.MeasureText(column.TextOf(Items[i]), font).Width;
+            float cell = TextMeasurer.Current.MeasureText(column.TextOf(RowItem(i)), font).Width;
 
             if (cell > width) width = cell;
         }
@@ -383,8 +503,110 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         return index >= 0 && index < Items.Count ? index : -1;
     }
 
+    /// <summary>Можно ли тянуть границы столбцов мышью.</summary>
+    public bool CanResizeColumns { get; set; } = true;
+
+    /// <summary>Уже столько столбец не сузить: иначе его легко потерять
+    /// совсем, а вернуть мышью будет нечем.</summary>
+    public float MinColumnWidth { get; set; } = 32f;
+
+    /// <summary>Насколько близко к границе надо подвести курсор, чтобы
+    /// схватить её. Ровно по линии не попадёт никто.</summary>
+    private const float ResizeGrip = 4f;
+
+    /// <summary>Точка в собственных координатах контрола, без отступов.</summary>
+    private Point ToLocal(Point location)
+    {
+        Point abs = GetAbsolutePosition();
+
+        return new Point(location.X - abs.X - Padding.Left, location.Y - abs.Y - Padding.Top);
+    }
+
+    private bool IsOverHeader(Point local) => local.Y >= 0 && local.Y < HeaderHeight;
+
+    /// <summary>Столбец, чью правую границу держит курсор, или −1.</summary>
+    private int ColumnEdgeAt(Point local)
+    {
+        if (!CanResizeColumns || !IsOverHeader(local)) return -1;
+
+        EnsureLayout();
+
+        // шапка ездит вместе с телом по горизонтали, поэтому границы
+        // считаем от того же смещения, с которым она рисуется
+        float x = -_scrollX - _overscroll.X;
+
+        for (int col = 0; col < _widths.Count; col++)
+        {
+            x += _widths[col];
+
+            if (MathF.Abs(local.X - x) <= ResizeGrip) return col;
+        }
+
+        return -1;
+    }
+
+    private int ColumnAt(Point local)
+    {
+        EnsureLayout();
+
+        float x = -_scrollX - _overscroll.X;
+
+        for (int col = 0; col < _widths.Count; col++)
+        {
+            if (local.X >= x && local.X < x + _widths[col]) return col;
+
+            x += _widths[col];
+        }
+
+        return -1;
+    }
+
+    protected override void OnMouseDown(MouseButtonEventArgs e)
+    {
+        _suppressHeaderClick = false;
+
+        int edge = ColumnEdgeAt(ToLocal(e.Location));
+        if (edge < 0) return;
+
+        _resizingColumn = edge;
+        _resizeStartX = e.Location.X;
+        _resizeStartWidth = _widths[edge];
+        _suppressHeaderClick = true;
+
+        // без захвата тяга оборвётся, как только курсор уйдёт за окно
+        CaptureMouse();
+    }
+
+    protected override void OnMouseUp(MouseButtonEventArgs e)
+    {
+        if (_resizingColumn < 0) return;
+
+        _resizingColumn = -1;
+        ReleaseMouseCapture();
+    }
+
     protected override void OnClick(MouseClickEventArgs e)
     {
+        Point local = ToLocal(e.Location);
+
+        if (IsOverHeader(local))
+        {
+            // щелчок, которым тянули границу, сортировкой не считается
+            if (_suppressHeaderClick) return;
+
+            if (!CanSortByHeaderClick) return;
+
+            int column = ColumnAt(local);
+
+            if (column >= 0 && Columns[column].CanSort)
+            {
+                SortBy(column);
+                e.Handled = true;
+            }
+
+            return;
+        }
+
         int row = RowAt(e.Location);
         if (row < 0) return;
 
@@ -394,6 +616,21 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     protected override void OnMouseMove(MouseMoveEventArgs e)
     {
+        if (_resizingColumn >= 0)
+        {
+            // ширина задаётся фиксированной: тянуть звезду или Auto
+            // бессмысленно — следующий же пересчёт вернул бы прежнее
+            Columns[_resizingColumn].Width = GridLength.Fixed(
+                Math.Max(MinColumnWidth, _resizeStartWidth + (e.Location.X - _resizeStartX)));
+
+            Invalidate();
+            return;
+        }
+
+        Point local = ToLocal(e.Location);
+
+        Cursor = ColumnEdgeAt(local) >= 0 ? CursorKind.SizeWestEast : CursorKind.Default;
+
         int row = RowAt(e.Location);
 
         if (row == _hoveredRow) return;
@@ -448,7 +685,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
                         Math.Max(0, _widths[col] - CellPadding.Horizontal),
                         Math.Max(0, RowHeight - CellPadding.Vertical)));
 
-                g.DrawText(Columns[col].TextOf(Items[row]), cell, TextColor, font,
+                g.DrawText(Columns[col].TextOf(RowItem(row)), cell, TextColor, font,
                     Columns[col].Align, VerticalContentAlignment.Center);
 
                 x += _widths[col];
@@ -483,6 +720,8 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
                 new Point(x + CellPadding.Left, content.Y),
                 new Size(Math.Max(0, _widths[col] - CellPadding.Horizontal), HeaderHeight));
 
+            if (col == SortColumnIndex) DrawSortMarker(g, cell);
+
             g.DrawText(Columns[col].Header ?? string.Empty, cell, HeaderTextColor, font,
                 Columns[col].Align, VerticalContentAlignment.Center);
 
@@ -495,6 +734,28 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             new Point(content.X, content.Y + HeaderHeight),
             new Point(content.X + content.Width, content.Y + HeaderHeight),
             GridLineColor, 1f);
+    }
+
+    /// <summary>Треугольник направления сортировки у правого края ячейки
+    /// заголовка. Место под него не резервируется: столбцов обычно немного,
+    /// а отнимать ширину у всех ради одного — хуже, чем изредка наложить
+    /// значок на длинный заголовок.</summary>
+    private void DrawSortMarker(Graphics g, Rectangle cell)
+    {
+        const float half = 4f;
+
+        float centerX = cell.X + cell.Width - half;
+        float centerY = cell.Y + cell.Height / 2f;
+        float direction = SortDescending ? 1f : -1f;
+
+        Span<Point> triangle =
+        [
+            new Point(centerX - half, centerY - half / 2f * direction),
+            new Point(centerX + half, centerY - half / 2f * direction),
+            new Point(centerX, centerY + half * direction),
+        ];
+
+        g.FillPolygon(triangle, HeaderTextColor);
     }
 
     private void DrawScrollBars(Graphics g, Rectangle content)
