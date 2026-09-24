@@ -22,8 +22,11 @@ public static class AndroidApp
     /// что уходят в Image.LoadAsset. Шрифт указывать не нужно: системные
     /// шрифты на Android есть, и Skia найдёт их сама — в отличие
     /// от браузера, где своих шрифтов нет вовсе.</param>
-    public static void Run(Activity activity, Func<Form> mainForm, IEnumerable<string>? assets = null)
-    {
+    /// <returns>Созданная платформа. Через неё приложение подписывается
+    /// на жизненный цикл: Paused, Resumed и Saving — последняя возможность
+    /// сохранить состояние перед тем, как систему могут убить процесс.</returns>
+    public static AndroidPlatform Run(Activity activity, Func<Form> mainForm, IEnumerable<string>? assets = null)
+    { 
         string files = activity.FilesDir?.AbsolutePath
             ?? throw new InvalidOperationException("FilesDir недоступен.");
 
@@ -38,6 +41,8 @@ public static class AndroidApp
 
         App app = new(platform) { MainForm = mainForm() };
         app.Run();
+
+        return platform;
     }
 
     private static void Unpack(Activity activity, IEnumerable<string> names)

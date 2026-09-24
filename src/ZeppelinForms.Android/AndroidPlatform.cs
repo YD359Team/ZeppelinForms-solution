@@ -16,7 +16,7 @@ namespace ZeppelinForms.Android;
 /// получать события нельзя, поэтому Form.ShowDialog честно бросит
 /// исключение — работает только ShowDialogAsync.
 /// </summary>
-public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings
+public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLifecycle
 {
     /// <summary>Нажата системная кнопка или жест «назад».
     /// Установите Handled, чтобы система не закрывала активность.</summary>
@@ -65,19 +65,6 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings
     {
         _activity = activity;
         _frameCallback = new FrameCallback(HandleFrame);
-    }
-
-    /// <summary>Масштаб длительности анимаций, выставленный в ноль, — так
-    /// на Android выглядит «удалить анимацию» в специальных возможностях.
-    /// Читается при запуске: подписка на смену настройки требует
-    /// ContentObserver, а менять её посреди работы приложения никто
-    /// в здравом уме не станет.</summary>
-    public bool PrefersReducedMotion { get; private set; }
-
-    event EventHandler? ISystemMotionSettings.Changed
-    {
-        add { }
-        remove { }
     }
 
     public static AndroidPlatform Create(Activity activity)
@@ -150,8 +137,117 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings
     /// <summary>Циклом владеет система, поэтому возвращает управление сразу.</summary>
     public void Start() { }
 
+    // ===== жизненный цикл =====
+
+    /// <summary>Активность уходит в фон: кадры останавливаются, анимации
+    /// замирают, приложение перестаёт тратить батарею на невидимое.</summary>
+    public event EventHandler? Paused;
+
+    public event EventHandler? Resumed;
+
+    /// <summary>Система собирается сохранить состояние. После этого
+    /// приложение могут убить без предупреждения — это последняя
+    /// возможность записать то, что жалко потерять.</summary>
+    public event EventHandler? Saving;
+
+    private LifecycleBridge? _lifecycle;
+
+    /// <summary>
+    /// Мост от жизненного цикла активности к событиям платформы.
+    /// </summary>
+    /// <remarks>
+    /// Через IActivityLifecycleCallbacks, а не переопределением OnPause
+    /// и OnResume в активности: иначе каждое приложение обязано было бы
+    /// не забыть позвать платформу из четырёх методов, а забытый OnPause
+    /// означает кадры, которые продолжают идти в фоне.
+    ///
+    /// Колбэки приходят на все активности процесса, поэтому чужие
+    /// отфильтровываются: в приложении может быть и вторая активность,
+    /// никак с формой не связанная.
+    /// </remarks>
+    private sealed class LifecycleBridge(AndroidPlatform platform, Activity activity)
+        : Java.Lang.Object, Application.IActivityLifecycleCallbacks
+    {
+        private bool Ours(Activity other) => ReferenceEquals(other, activity);
+
+        public void OnActivityPaused(Activity other)
+        {
+            if (Ours(other)) platform.Paused?.Invoke(platform, EventArgs.Empty);
+        }
+
+        public void OnActivityResumed(Activity other)
+        {
+            if (!Ours(other)) return;
+
+            // пока приложение было в фоне, пользователь мог зайти
+            // в специальные возможности и поменять настройку движения
+            platform.RefreshReducedMotion();
+
+            platform.Resumed?.Invoke(platform, EventArgs.Empty);
+        }
+
+        public void OnActivitySaveInstanceState(Activity other, Bundle outState)
+        {
+            if (Ours(other)) platform.Saving?.Invoke(platform, EventArgs.Empty);
+        }
+
+        // остальные шаги цикла фреймворку не нужны: создание и запуск
+        // происходят до того, как появилась платформа, а остановка
+        // и уничтожение приходят следом за паузой
+        public void OnActivityCreated(Activity other, Bundle? savedInstanceState) { }
+
+        public void OnActivityStarted(Activity other) { }
+
+        public void OnActivityStopped(Activity other) { }
+
+        public void OnActivityDestroyed(Activity other) { }
+    }
+
+    /// <summary>Масштаб длительности анимаций, выставленный в ноль, — так
+    /// на Android выглядит «удалить анимацию» в специальных возможностях.</summary>
+    /// <remarks>
+    /// Перечитывается при возврате из фона, а не наблюдается постоянно:
+    /// ContentObserver ради настройки, которую меняют раз в жизни, —
+    /// лишняя подписка, а сменить её можно только уйдя в настройки,
+    /// то есть выведя приложение из активного состояния.
+    /// </remarks>
+    public bool PrefersReducedMotion { get; private set; }
+
+    private EventHandler? _motionChanged;
+
+    event EventHandler? ISystemMotionSettings.Changed
+    {
+        add => _motionChanged += value;
+        remove => _motionChanged -= value;
+    }
+
+    /// <summary>global:: обязателен: внутри ZeppelinForms.Android имя Android
+    /// указывает на наше же пространство имён, а не на привязки SDK.</summary>
+    private static bool QueryReducedMotion(Activity activity) =>
+        global::Android.Provider.Settings.Global.GetFloat(
+            activity.ContentResolver,
+            global::Android.Provider.Settings.Global.AnimatorDurationScale,
+            1f) == 0f;
+
+    private void RefreshReducedMotion()
+    {
+        bool reduced = QueryReducedMotion(_activity);
+
+        if (reduced == PrefersReducedMotion) return;
+
+        PrefersReducedMotion = reduced;
+        _motionChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public void Exit()
     {
+        if (_lifecycle is not null)
+        {
+            _activity.Application?.UnregisterActivityLifecycleCallbacks(_lifecycle);
+            _lifecycle.Dispose();
+            _lifecycle = null;
+        }
+
         for (int i = _windows.Count - 1; i >= 0; i--)
             _windows[i].Close();
 
