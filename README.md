@@ -8,6 +8,9 @@
 
 ![CI](https://github.com/YD359Team/ZeppelinForms-solution/actions/workflows/ci.yml/badge.svg)
 
+![Windows](assets/Example-desktop-0.12.0.jpg)
+![Android emulator](assets/Example-android-emulator-0.12.0.jpg)
+
 The project is under active development.
 
 | # | Name        | Status |
@@ -166,31 +169,33 @@ registration to call directly.
 
 **Unit controls** are similar to `Control` in WinForms and can be thought of as regular controls. They cannot contain child controls.
 
-|  № | Name            | Status |  № | Name        | Status |
-| -: | ------------------- | :----: | -: | --------------- | :----: |
-|  1 | Label               |    ✅   | 21 | ToggleButton    |    ✅   |
-|  2 | Button              |    ✅   | 22 | BarChart        |    ✅   |
-|  3 | CheckBox            |    ✅   | 23 | LineChart       |    ✅   |
-|  4 | PictureBox          |    ✅   | 24 | PieChart        |    ✅   |
-|  5 | RadioButton         |    ✅   | 25 | RichLabel       |    ✅   |
-|  6 | TextBox             |    ✅*  | 26 | LinkLabel       |    ✅   |
-|  7 | ToggleSwitch        |    ✅   | 27 | LineShape       |    ✅   |
-|  8 | DateTimePicker      |    ✅   | 28 | RectangleShape  |    ✅   |
-|  9 | TimePicker          |    ✅   | 29 | EllipseShape    |    ✅   |
-| 10 | ColorPicker         |    ✅   | 30 | PolygonShape    |    ✅   |
-| 11 | ScrollBar           |    ✅   | 31 | CheckedComboBox |    ✅   |
-| 12 | SvgIcon             |    ✅   | 32 | ComboBox        |    ✅   |
-| 13 | NumericUpDown       |    ✅   | 33 | GridSplitter    |    ✅   |
-| 14 | ProgressBar         |    ✅   | 34 | MaskedTextBox   |    ✅   |
-| 15 | CircularProgressBar |    ✅   | 35 | HintLabel       |    ✅   |
-| 16 | TrackBar            |    ✅   | 36 | MapControl      |    ✅   |
-| 17 | Calendar            |    ✅   | 37 | Loader          |    ✅   |
-| 18 | MenuBar             |    ✅   | 38 | PageIndicator   |    ✅   |
-| 19 | MenuList            |    ✅   | 39 | DataGridView    |    ✅** |
-| 20 | SplitButton         |    ✅   | 40 | Table           |    ✅   |
+|  № | Name            | Status |  № | Name                 | Status |
+| -: | ------------------- | :----:  | -: | --------------- | :----: |
+|  1 | Label               |    ✅   | 23 | LineChart       |    ✅   |
+|  2 | Button              |    ✅   | 24 | PieChart        |    ✅   |
+|  3 | CheckBox            |    ✅   | 25 | RichLabel       |    ✅   |
+|  4 | PictureBox          |    ✅   | 26 | LinkLabel       |    ✅   |
+|  5 | RadioButton         |    ✅   | 27 | LineShape       |    ✅   |
+|  6 | TextBox             |    ✅*  | 28 | RectangleShape  |    ✅   |
+|  7 | ToggleSwitch        |    ✅   | 29 | EllipseShape    |    ✅   |
+|  8 | DateTimePicker      |    ✅   | 30 | PolygonShape    |    ✅   |
+|  9 | TimePicker          |    ✅   | 31 | CheckedComboBox |    ✅   |
+| 10 | ColorPicker         |    ✅   | 32 | ComboBox        |    ✅   |
+| 11 | ScrollBar           |    ✅   | 33 | GridSplitter    |    ✅   |
+| 12 | SvgIcon             |    ✅   | 34 | MaskedTextBox   |    ✅   |
+| 13 | NumericUpDown       |    ✅   | 35 | HintLabel       |    ✅   |
+| 14 | ProgressBar         |    ✅   | 36 | MapControl      |    ✅   |
+| 15 | CircularProgressBar |    ✅   | 37 | Loader          |    ✅   |
+| 16 | TrackBar            |    ✅   | 38 | PageIndicator   |    ✅   |
+| 17 | Calendar            |    ✅   | 39 | DataGridView    |    ✅** |
+| 18 | MenuBar             |    ✅   | 40 | Table           |    ✅   |
+| 19 | MenuList            |    ✅   | 41 | RadarChart      |    ✅   | 
+| 20 | SplitButton         |    ✅   | 42 | CandlestickChart |   ✅   |
+| 21 | ToggleButton        |    ✅   |    |                 |       |
+| 22 | BarChart            |    ✅   |    |                 |       |
 
 \* — contains bugs and is missing part of its API
-\*\* — DataGridView: no cell editing, sorting, column resizing or frozen columns yet
+\*\* — DataGridView: no cell editing or frozen columns yet
 
 #### Panels
 
@@ -225,11 +230,10 @@ A specialized type of panel capable of working with collections of elements.
 | 1 | ListBox | ✅ |
 | 2 | CheckedListBox | ✅ |
 | 3 | DragList | ✅ |
-| 4 | TreeView | ✅* |
+| 4 | TreeView | ✅ |
 
-\* — TreeView: no keyboard navigation yet
-
-⭐ All panels can display a scrollbar when their content overflows.
+⭐ All panels can display a scrollbar when their content overflows, and scroll by
+finger with kinetic flings and rubber-band overscroll on touch devices.
 
 #### Wrapper Controls
 
@@ -256,6 +260,30 @@ specific applier extends the base one instead of replacing it.
 
 A theme never overwrites a value set from user code — see Styled Properties
 above for the full precedence. `ClearValue` gives a property back to the theme.
+
+### 🎞️ Motion
+
+Transitions belong to the property system, not to individual controls. A rule on
+a property makes assignment the target while the visible value travels to it:
+
+```csharp
+card.Transitions.Add(Transition.Ease(DecoratedControl.BackColorProperty, 200));
+list.ChildrenLayoutTransition = LayoutTransition.Speed();
+list.ChildrenEnterTransition = VisibilityTransition.Slide(220, 0f, -12f);
+list.ChildrenExitTransition = VisibilityTransition.Fade(160);
+```
+
+Reading a property returns the target — bindings and logic never see a halfway
+value — while the intermediate value is handed out inside drawing only.
+
+Layout travel works by the FLIP rule: an element the layout moved is already in
+its new place but is drawn from the old one. Nothing in the controls knows about
+it, because expanding a tree node, reflowing a `WrapPanel` and inserting into a
+`DragList` are all the same event: a changed position in `Arrange`.
+
+`Motion.Preference` follows the system setting where the platform has one, and
+reduced motion makes all of the above instant while leaving scroll inertia and
+loading indicators alone.
 
 ### 🔗 Bindings
 

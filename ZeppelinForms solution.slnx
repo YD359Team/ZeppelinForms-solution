@@ -6,8 +6,11 @@
     <File Path="bench.yml" />
   </Folder>
   <Folder Name="/assets/">
+    <File Path="assets/Example-android-emulator-0.12.0.jpg" />
+    <File Path="assets/Example-desktop-0.12.0.jpg" />
     <File Path="assets/Logo-0.10.0.jpg" />
     <File Path="assets/Logo-0.11.0.jpg" />
+    <File Path="assets/Logo-0.12.0.jpg" />
     <File Path="assets/Logo-0.9.0.jpg" />
     <File Path="assets/ZF_medium.jpg" />
   </Folder>

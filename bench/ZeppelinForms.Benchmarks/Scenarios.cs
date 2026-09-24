@@ -2,6 +2,8 @@
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms.Controls;
+using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Skia;
 
 namespace ZeppelinForms.Benchmarks;
@@ -11,6 +13,8 @@ public static class Scenarios
     public static IReadOnlyList<Benchmark> All() =>
     [
         Layout(),
+        LayoutCached(),
+        ScrollVirtualized(),
         RenderBusinessForm(),
         RenderTextHeavy(),
         MeasureText(),
@@ -20,14 +24,52 @@ public static class Scenarios
     ];
 
     /// <summary>
-    /// Полный проход раскладки. Measure и Arrange публичные, а вот
-    /// Form.PerformLayout — internal, поэтому дёргаем Content напрямую.
-    /// Кэша валидности раскладки нет, так что каждый вызов честный.
+    /// Полный проход раскладки без кэша измерения. Measure и Arrange
+    /// публичные, а вот Form.PerformLayout — internal, поэтому дёргаем
+    /// Content напрямую.
     /// </summary>
+    /// <remarks>
+    /// Кэш выключается явно: с ним повторный Measure с тем же ограничением
+    /// почти бесплатен, и сценарий мерил бы попадание в кэш, а не раскладку.
+    /// Честная стоимость прохода всё равно нужна: именно её платит первый
+    /// кадр и любое изменение, затронувшее всё дерево.
+    /// </remarks>
     private static Benchmark Layout() => new()
     {
         Name = "layout.business-form",
-        Description = "Measure + Arrange всего дерева деловой формы",
+        Description = "Measure + Arrange всего дерева деловой формы, без кэша измерения",
+        Iterations = 300,
+        Setup = () =>
+        {
+            UIElement.MeasureCacheEnabled = false;
+
+            return Scenes.BusinessForm();
+        },
+        Body = state =>
+        {
+            var scene = (Scene)state;
+            var size = new Size(scene.Width, scene.Height);
+
+            scene.Form.Content!.Measure(size);
+            scene.Form.Content!.Arrange(new Rectangle(Point.Empty, size));
+        },
+        Report = _ =>
+        {
+            UIElement.MeasureCacheEnabled = true;
+
+            return "кэш измерения выключен на время сценария";
+        },
+    };
+
+    /// <summary>
+    /// Тот же проход, но с кэшем измерения — то есть повторная раскладка,
+    /// в которой не изменилось ничего. Это ровно то, что происходит,
+    /// когда за кадр поменялось одно свойство одного контрола.
+    /// </summary>
+    private static Benchmark LayoutCached() => new()
+    {
+        Name = "layout.business-form-cached",
+        Description = "Повторный Measure + Arrange при попадании в кэш измерения",
         Iterations = 300,
         Setup = () => Scenes.BusinessForm(),
         Body = state =>
@@ -37,6 +79,40 @@ public static class Scenarios
 
             scene.Form.Content!.Measure(size);
             scene.Form.Content!.Arrange(new Rectangle(Point.Empty, size));
+        },
+    };
+
+    /// <summary>
+    /// Кадр прокрутки виртуализованного списка целиком: смещение,
+    /// пересборка видимого диапазона, раскладка и отрисовка.
+    /// </summary>
+    /// <remarks>
+    /// Главный сценарий этого релиза. Пять тысяч строк в источнике,
+    /// и стоимость кадра не должна от их числа зависеть: меняется только
+    /// то, что видно. Прокрутка идёт на высоту строки за итерацию —
+    /// так же, как при прокрутке пальцем, и с пересечением границы строк,
+    /// на котором панель и пересобирает контейнеры.
+    /// </remarks>
+    private static Benchmark ScrollVirtualized() => new()
+    {
+        Name = "scroll.virtualized-list",
+        Description = "Кадр прокрутки списка из 5000 строк: диапазон, раскладка, отрисовка",
+        Iterations = 200,
+        Setup = () => Scenes.VirtualizedList(),
+        Body = state =>
+        {
+            var scene = (Scene)state;
+            var list = (VirtualizingStackPanel)scene.Form.Content!;
+
+            // по высоте строки за кадр, по кругу: иначе список упрётся
+            // в конец, и дальше сценарий мерил бы стояние на месте
+            float next = list.ScrollY + list.ItemHeight;
+            list.ScrollTo(0, next > 4000 ? 0 : next);
+
+            scene.Form.UpdateLayout();
+
+            SkiaRenderer.Render(scene.Form, scene.Canvas);
+            scene.Canvas.Flush();
         },
     };
 

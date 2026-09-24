@@ -2,16 +2,173 @@
 
 ## [0.12.0] - El Dorado
 
-![El Dorado](assets/Logo-0.11.0.jpg)
+![El Dorado](assets/Logo-0.12.0.jpg)
 
-- Up SkiaSharp version to 4.152.0
-- Optimizations
-- Add default tranistion animation for property changes
-- Add virtualization tests
-- Fix virtualization
-- Fix WASM image loading
-- Fix TreeView blinking
-- Fix example layout
+Smooth motion became part of the framework rather than something each control
+arranges for itself, and the frame pipeline underneath it was rebuilt: one clock,
+one deferred layout pass per frame, and no drawing of what cannot be seen.
+
+### Breaking changes
+
+- Layout is deferred. `Invalidate` marks the layout stale and asks for a frame
+  instead of running Measure and Arrange on the spot. The pass happens once per
+  frame — before drawing and before hit testing — so setting five properties
+  costs one layout instead of five, and a drag gesture no longer lays out the
+  tree on every pointer move. Code that reads geometry right after changing
+  something needs the new public `Form.UpdateLayout()`
+- Measure results are cached per constraint. A control whose size depends on its
+  own state must call `Invalidate()` when that state changes; `[Styled]`
+  properties with `AffectsLayout` already do. `UIElement.MeasureCacheEnabled`
+  turns the cache off for bisecting, and `UIElement.VerifyMeasureCache` measures
+  twice and reports mismatches through `ZfContract` — the fastest way to find a
+  property that forgot to invalidate
+- `UIElement.Opacity` is a styled property now, so it can be themed, animated
+  and transitioned. Two consequences: the setter no longer clamps to [0; 1] (the
+  renderer does, because interpolation may briefly overshoot), and changing it
+  no longer triggers layout
+- `Graphics.FillPolygon` is a new abstract member. Custom `Graphics`
+  implementations must provide it
+- `DataGridView.SelectedIndex`, `ScrollIntoView(int)` and the new `RowItem(row)`
+  address display rows. With sorting active a display row is not an index into
+  `Items`
+- Taking pointer capture ends an undecided gesture competition on that contact.
+  Capture means the element owns the pointer, so an ancestor recognizer can no
+  longer wait for the release and win a contact that somebody else is already
+  dragging
+- Panels and `DataGridView` scroll by touch and pen by default (`PanToScroll`),
+  and `DragList` requires a long press before it starts a drag on touch.
+  Mouse behaviour is unchanged on every control
+- `AndroidApp.Run` returns the created `AndroidPlatform` so the application can
+  subscribe to the lifecycle. Existing call sites keep compiling
+- SkiaSharp is 4.152.0. Native asset packages must match the managed version
+
+### Motion
+
+- Transitions live in the property system. A rule on a property makes assignment
+  the target while the visible value travels to it: `button.Transitions.Add(
+  Transition.Ease(DecoratedControl.BackColorProperty, 200))`. Reading the
+  property returns the target — bindings, logic and `PropertyGrid` never see a
+  halfway value — while the intermediate value is handed out inside drawing only.
+  The same split lets a later version move transitions off the UI thread
+- An interrupted transition continues from where it was instead of jumping back
+  to its old start
+- New transform properties that do not affect layout: `TranslateX`, `TranslateY`,
+  `ScaleX`, `ScaleY`, next to the existing `Rotation`. Hit testing follows the
+  picture: the forward and inverse transform now live side by side in `UIElement`
+  instead of being written twice
+- Layout transitions by the FLIP rule: an element the layout moved is already in
+  its new place but is drawn from the old one and travels to a zero offset.
+  One line on a panel — `ChildrenLayoutTransition` — gives smooth tree expansion,
+  `WrapPanel` reflow on resize and `DragList` insertion, with no code in the
+  controls themselves. Duration can scale with distance
+  (`LayoutTransition.Speed()`), because a row that moved by its own height should
+  not take as long as one that crossed the screen
+- Enter and exit transitions. A removed child leaves `Children` immediately —
+  layout, hit testing and neighbours stop seeing it — but the panel keeps drawing
+  it until the exit finishes. Combined with a layout transition the neighbours
+  slide into the gap
+- `Motion.Preference` and the optional `ISystemMotionSettings` platform
+  interface: reduced motion turns property transitions, layout travel, enter and
+  exit, page changes and the theme ripple instant, while scroll inertia and
+  loading indicators keep moving. Windows reads
+  `SPI_GETCLIENTAREAANIMATION` and follows `WM_SETTINGCHANGE`, the browser reads
+  `prefers-reduced-motion` and its change event, Android reads the animator
+  duration scale and rechecks it on resume
+
+### Frame pipeline
+
+- One `FrameClock` per form owns time, animations and deferred work. Time is
+  monotonic and high resolution: `Environment.TickCount64` ticks every 15.6 ms on
+  Windows, so with a 16 ms frame the animation step jumped between 0 and 31 ms,
+  which is visible on a toggle switch
+- Frames are produced only while something visible has to move. An animation on a
+  hidden subtree no longer keeps the window awake sixty times a second, and it
+  comes back to life when the subtree does
+- Deferred work shares a single timer. The caret, tooltips, toasts and long press
+  used to own a `System.Threading.Timer` each and marshal themselves to the UI
+  thread separately. The caret no longer stores its state either: visibility is
+  computed from time, which also removes the race where a queued tick switched
+  the caret back on after focus had left
+- Vsync frame skipping compared against the interval exactly and dropped every
+  other frame on jitter, turning sixty frames into thirty. The threshold is now
+  three quarters of the interval
+- Nothing invisible is drawn. The tree walk accumulates the absolute offset while
+  descending instead of climbing to the root for every element, and narrows the
+  visible area by each ancestor's content bounds. Clipping only ever helped where
+  the platform offered partial redraw — on Android and in the browser the clip is
+  always null, so a panel with a hundred rows built text blobs, paths and shadows
+  for all of them
+
+### Touch
+
+- Panels scroll by finger with kinetic flings and a rubber-band overscroll that
+  springs back. Release velocity is measured over the last 100 ms rather than
+  averaged over the gesture, so a slow drag that ends in a flick answers the
+  flick. A touch during a fling stops it while the bounce keeps playing
+- A panel with nothing to scroll declines the contact, so an inner short list
+  leaves the gesture to the outer one, and a vertical list does not steal the
+  horizontal page swipe
+- `DataGridView` scrolls by finger too, through the same physics: it draws its
+  rows instead of laying out controls, so the shared `TouchScroller` talks to
+  both through a small interface rather than duplicating the feel
+- `VelocityTracker` is public: gesture recognizers that need a throw velocity no
+  longer have to estimate it themselves
+
+### Controls
+
+- `RadarChart`: several series over shared axes, translucent fills, rings as
+  scale divisions
+- `CandlestickChart`: exchange-style candles with wicks, hollow bull candles and
+  a price readout for the hovered period. Its value axis does not stretch to zero
+  — prices live in a narrow band, and a zero baseline flattens the whole picture
+- `CircularProgressBar` takes `StartAngle` and `SweepAngle`, so a semicircular
+  gauge is the same control with a different arc and its own layout
+- `DataGridView`: sorting by header click with a direction marker, and column
+  resizing by dragging header edges. Sorting builds a display order and leaves
+  `Items` untouched; selection holds on to the row of data, not to its place on
+  screen
+- `TreeView`: keyboard navigation — arrows, Home, End, PageUp, PageDown, Enter
+  and Space — plus `ScrollIntoView(node)`
+- Clicking anything inside a control that accepts input now focuses that control.
+  A click almost never lands on the focusable element itself: in a list it hits a
+  row, in a tree a node, in a grid a cell, and focus simply stayed where it was
+
+### Android
+
+- Application lifecycle through `IAppLifecycle`, wired with
+  `IActivityLifecycleCallbacks` rather than by asking applications to forward
+  four methods. Going to the background stops frames; a forgotten `OnPause`
+  would have kept them running
+- System clipboard, including links and HTML coerced to text
+- On-screen keyboard support
+
+### Fixes
+
+- Virtualized panels did not realize new rows while scrolling: an early exit
+  compared the range against fields it had just overwritten. They also sized
+  their viewport at twenty rows, because measurement along a scrolling axis
+  receives infinity — the real viewport is only known during arrange
+- Containers are matched to items by identity instead of by position, so
+  expanding a tree node no longer rebuilds the whole window of rows. That was the
+  `TreeView` flicker and the stale rows: recreated rows lost hover and press
+  state, reapplied the theme, and the clicked row vanished inside its own
+  `OnClick`
+- A contact taken by a gesture never ended, because the cleanup sat after the
+  `try` block while the winning path returned from inside it. Clicks and hover
+  died silently afterwards, and swipes worked every other time
+- Dragging in `DragList` on a page with swipe navigation ended in a page change
+  with the dragged row frozen over the new page
+- Image decoding made four full pixel buffers where two suffice — 64 MB at once
+  for a 2048×2048 asset. Decode failures now report the codec result, the size
+  and the signature, which is what a server error page pretending to be a PNG
+  looks like
+- WASM: assets linked from another project were copied into the output but never
+  served, so preloading wrote the fallback HTML page into the virtual file system
+- `Label.Text`, `WrapControl.Child`, `StackPanel` orientation and spacing,
+  `PanelControl` overflow and several other properties changed geometry without
+  asking for layout at all
+- Scrollbar thumbs took no pointer capture, so dragging broke as soon as the
+  cursor left the window
 
 ## [0.11.0] - Atlantida
 

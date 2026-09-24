@@ -64,6 +64,49 @@ public static class Scenes
     }
 
     /// <summary>
+    /// Длинный виртуализованный список. Строк нарочно много: смысл
+    /// сценария в том, что стоимость кадра не должна от их числа зависеть.
+    /// </summary>
+    public static Scene VirtualizedList(
+        int rows = 5000,
+        int width = DefaultWidth,
+        int height = DefaultHeight)
+    {
+        EnsureServices();
+
+        var list = new VirtualizingStackPanel
+        {
+            ItemHeight = 28,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        };
+
+        for (int i = 0; i < rows; i++)
+            list.ItemsSource.Add($"Строка {i} — данные, подпись, значение");
+
+        var form = new Form
+        {
+            Size = new Size(width, height),
+            Content = list,
+        };
+
+        new HeadlessPlatform(registerServices: false).CreateWindow(form);
+        form.UpdateLayout();
+
+        return new Scene
+        {
+            Form = form,
+            Surface = CreateSurface(width, height),
+            Width = width,
+            Height = height,
+
+            // созданных контейнеров, а не строк источника: именно их
+            // и меряет кадр
+            ElementCount = list.Children.Count,
+        };
+    }
+
+    /// <summary>
     /// Типовая деловая форма: заголовок, панель кнопок, сетка полей,
     /// список. Нарочно без анимаций и эффектов — меряем базовую
     /// стоимость обычного окна, а не пиковую.

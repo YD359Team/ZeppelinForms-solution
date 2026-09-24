@@ -884,7 +884,30 @@ public class ExampleMainForm : Form
                 Title = "Sales by quarter",
                 Categories = { "Q1", "Q2", "Q3", "Q4" },
                 Series = { new ChartSeries { Values = { 120, 180, 90, 210 } } },
-            }
+            },
+            new RadarChart
+            {
+                Title = "Build profile",
+                Categories = { "Speed", "Memory", "Net", "Disk", "Screen", "Battery" },
+                Series =
+                {
+                    new ChartSeries { Name = "0.11", Values = { 3, 5, 2, 4, 1, 4 } },
+                    new ChartSeries { Name = "0.12", Values = { 5, 4, 4, 2, 3, 5 } },
+                },
+            },
+            new CandlestickChart
+            {
+                Title = "Quotes",
+                HollowBullish = true,
+                Candles =
+                {
+                    new Candle { Label = "mon", Open = 100, High = 105, Low = 99,  Close = 104 },
+                    new Candle { Label = "tue", Open = 104, High = 106, Low = 101, Close = 102 },
+                    new Candle { Label = "wed", Open = 102, High = 108, Low = 102, Close = 107 },
+                    new Candle { Label = "thu", Open = 107, High = 107, Low = 103, Close = 103 },
+                    new Candle { Label = "fri", Open = 103, High = 110, Low = 103, Close = 109 },
+                },
+            },
         ];
     }
 }
