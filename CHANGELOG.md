@@ -99,6 +99,28 @@ one deferred layout pass per frame, and no drawing of what cannot be seen.
   always null, so a panel with a hundred rows built text blobs, paths and shadows
   for all of them
 
+### Performance
+
+Numbers from `bench/ZeppelinForms.Benchmarks` on Windows, release build, median
+of an iteration. They are here to be compared against the next release on the
+same machine, not between machines.
+
+| Scenario | Median | Allocated | What it measures |
+| --- | --- | --- | --- |
+| `scroll.virtualized-list` | 0.35 ms | 670 B | a frame of scrolling a 5000-row list: range rebuild, layout and rendering |
+| `layout.business-form` | 0.23 ms | 14.6 KB | a full Measure + Arrange of a business form, measure cache off |
+| `layout.business-form-cached` | 0.06 ms | 7.4 KB | the same pass when nothing changed — the common case once per frame |
+| `render.business-form` | 1.0 ms | 2.2 KB | the whole frame into an offscreen surface |
+
+Two things worth reading off that table. Scrolling five thousand rows costs two
+percent of a 60 fps frame budget and allocates almost nothing, which is the
+promise virtualization is supposed to keep. And the measure cache takes roughly
+three quarters off a repeated layout pass, which is what a frame that changed one
+property now costs.
+
+Rendering dominates everything else by a factor of three to five, so that is
+where the next round of optimization belongs — not in layout.
+
 ### Touch
 
 - Panels scroll by finger with kinetic flings and a rubber-band overscroll that

@@ -25,8 +25,7 @@ The project is under active development.
 \* - WebAssembly: dialogs are async-only,
 and system drag and drop is not supported — see the browser section below.
 
-Android: dialogs are async-only, and there is no clipboard or file dialog yet.
-On both, content cannot yet be scrolled by dragging it.
+Android: dialogs are async-only, and there is no file dialog yet.
 
 ### 🧠 Philosophy
 
@@ -401,3 +400,17 @@ Text rendering differs between platforms, so separate snapshot sets are maintain
 Local snapshot update:
 - bash: `ZF_UPDATE_SNAPSHOTS=true dotnet test`
 - PowerShell: `$env:ZF_UPDATE_SNAPSHOTS='true'; dotnet test`
+
+### 📈 Benchmarks
+
+`bench/ZeppelinForms.Benchmarks` measures layout, rendering, text and the
+scrolling of a virtualized list against a stored baseline:
+
+```powershell
+dotnet run --project bench/ZeppelinForms.Benchmarks -c Release
+dotnet run --project bench/ZeppelinForms.Benchmarks -c Release -- --update-baseline
+```
+
+Run-to-run spread on a desktop machine reaches tens of percent, so a single run
+proves nothing: take the median of three, and record a baseline only from a quiet
+machine. Current numbers are in the release entry in `CHANGELOG.md`.
