@@ -6,7 +6,9 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
+using ZeppelinForms.Input.Gestures;
 using ZeppelinForms.Input.Mouse;
+using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Forms.Controls.DataGrid;
 
@@ -17,7 +19,7 @@ namespace ZeppelinForms.Forms.Controls.DataGrid;
 /// измерение и раскладку каждый кадр. Контрол материализуется только
 /// для редактируемой ячейки.
 /// </remarks>
-public partial class DataGridView : DecoratedControl
+public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 {
     private const float ScrollBarThickness = 10f;
 
@@ -25,6 +27,13 @@ public partial class DataGridView : DecoratedControl
 
     private float _scrollX;
     private float _scrollY;
+
+    /// <summary>Перелёт за край при прокрутке пальцем. В _scrollX и _scrollY
+    /// его нет — они всегда в пределах, — а строки и шапка рисуются
+    /// со смещением на него.</summary>
+    private Point _overscroll;
+
+    private readonly TouchScroller _touch;
 
     private int _hoveredRow = -1;
 
@@ -34,9 +43,17 @@ public partial class DataGridView : DecoratedControl
     /// что из него доставать.</summary>
     public ObservableCollection<object> Items { get; } = [];
 
+    /// <summary>Прокручивать ли таблицу пальцем и пером. Мышью — никогда:
+    /// на десктопе протаскивание мышью выделяет, а прокрутка у колеса.</summary>
+    public bool PanToScroll { get; set; } = true;
+
     public DataGridView()
     {
         Items.CollectionChanged += OnItemsChanged;
+
+        // грид прокручивается сам, минуя PanelControl, поэтому жест
+        // прокрутки ему нужен свой — но физика та же, общая
+        _touch = TouchScroller.Attach(this);
 
         // таблица занимает отведённое место целиком: центрование,
         // унаследованное от UnitControl, оставляло бы её узкой полосой
@@ -262,6 +279,9 @@ public partial class DataGridView : DecoratedControl
 
     public void ScrollTo(float x, float y)
     {
+        // явная прокрутка из кода или колесом главнее инерции броска
+        _touch.Stop();
+
         EnsureLayout();
 
         float clampedX = Math.Clamp(x, 0, MaxScrollX);
@@ -285,6 +305,52 @@ public partial class DataGridView : DecoratedControl
 
         if (top < _scrollY) ScrollTo(_scrollX, top);
         else if (bottom > _scrollY + BodyBounds.Height) ScrollTo(_scrollX, bottom - BodyBounds.Height);
+    }
+
+    UIElement ITouchScrollTarget.Element => this;
+
+    bool ITouchScrollTarget.CanPanHorizontally
+    {
+        get
+        {
+            EnsureLayout();
+
+            return PanToScroll && MaxScrollX > 0;
+        }
+    }
+
+    bool ITouchScrollTarget.CanPanVertically
+    {
+        get
+        {
+            EnsureLayout();
+
+            return PanToScroll && MaxScrollY > 0;
+        }
+    }
+
+    Size ITouchScrollTarget.PanViewport => BodyBounds.Size;
+
+    Point ITouchScrollTarget.PanScroll => new(_scrollX, _scrollY);
+
+    Point ITouchScrollTarget.PanMaxScroll => new(MaxScrollX, MaxScrollY);
+
+    void ITouchScrollTarget.ApplyPanScroll(Point scroll, Point overscroll)
+    {
+        _scrollX = scroll.X;
+        _scrollY = scroll.Y;
+        _overscroll = overscroll;
+
+        // видимый диапазон строк считается по _scrollY, поэтому пересчёт
+        // геометрии обязателен — иначе при броске снизу окажутся пустые полосы
+        EnsureLayout();
+
+        InvalidateVisual();
+    }
+
+    protected override void OnPointerDown(PointerEventArgs e)
+    {
+        if (e.Kind != PointerKind.Mouse) _touch.StopFling();
     }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
@@ -312,7 +378,7 @@ public partial class DataGridView : DecoratedControl
 
         if (localY < bodyTop || localY > bodyTop + body.Height) return -1;
 
-        int index = (int)((localY - bodyTop + _scrollY) / RowHeight);
+        int index = (int)((localY - bodyTop + _scrollY + _overscroll.Y) / RowHeight);
 
         return index >= 0 && index < Items.Count ? index : -1;
     }
@@ -366,13 +432,13 @@ public partial class DataGridView : DecoratedControl
 
         for (int row = first; row <= last; row++)
         {
-            float top = body.Y + (row * RowHeight) - _scrollY;
+            float top = body.Y + (row * RowHeight) - _scrollY - _overscroll.Y;
             var rowRect = new Rectangle(new Point(body.X, top), new Size(TotalWidth, RowHeight));
 
             if (row == SelectedIndex) g.FillRectangle(rowRect, SelectionColor);
             else if (row == _hoveredRow) g.FillRectangle(rowRect, RowHoverColor);
 
-            float x = body.X - _scrollX;
+            float x = body.X - _scrollX - _overscroll.X;
 
             for (int col = 0; col < Columns.Count; col++)
             {
@@ -409,7 +475,7 @@ public partial class DataGridView : DecoratedControl
         g.Save();
         g.ClipRect(headerRect);
 
-        float x = content.X - _scrollX;
+        float x = content.X - _scrollX - _overscroll.X;
 
         for (int col = 0; col < Columns.Count; col++)
         {

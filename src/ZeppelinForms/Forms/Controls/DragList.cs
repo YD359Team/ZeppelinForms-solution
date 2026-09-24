@@ -5,6 +5,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Styling;
+using ZeppelinForms.Input.Gestures;
 using ZeppelinForms.Input.Mouse;
 using ZeppelinForms.Input.Pointer;
 
@@ -37,6 +38,10 @@ public partial class DragList : ItemsControl
 
     private string? _group;
     private bool _attached;
+    /// <summary>Чем ведут текущее взаимодействие. Мышью перенос начинается
+    /// от порога сдвига, пальцем — только после удержания: иначе протянуть
+    /// список пальцем стало бы невозможно, каждое движение уносило бы строку.</summary>
+    private PointerKind _pointerKind = PointerKind.Mouse;
     private bool _dragging;
     private Point _pressOrigin;
     private int _pressIndex = -1;
@@ -85,6 +90,18 @@ public partial class DragList : ItemsControl
 
     /// <summary>Строку принесли сюда.</summary>
     public event EventHandler<DragListDropEventArgs>? ItemReceived;
+
+    public DragList()
+    {
+        // на сенсоре перенос начинается с удержания — так же, как
+        // в списках системных приложений. Выиграв борьбу, удержание
+        // отбирает контакт у прокрутки, и дальше строку ведут
+        // события указателя, а не совместимые события мыши
+        var longPress = new LongPressGestureRecognizer();
+        longPress.Triggered += OnLongPressed;
+
+        AddGesture(longPress);
+    }
 
     // ===== регистрация в группе =====
 
@@ -166,6 +183,10 @@ public partial class DragList : ItemsControl
     {
         if (_pressIndex < 0) return;
 
+        // пальцем перенос начинается только с удержания: движение —
+        // это прокрутка, и отбирать её у списка нельзя
+        if (_pointerKind != PointerKind.Mouse) return;
+
         if (!_dragging)
         {
             // порог: без него любой клик дрожащей рукой станет переносом
@@ -206,6 +227,54 @@ public partial class DragList : ItemsControl
 
     /// <summary>Идёт ли перенос строки прямо сейчас.</summary>
     public bool IsDragging => _dragging;
+
+    // ===== касание =====
+
+    protected override void OnPointerDown(PointerEventArgs e)
+    {
+        base.OnPointerDown(e);
+
+        _pointerKind = e.Kind;
+    }
+
+    /// <summary>Удержание победило: строка берётся на перенос отсюда,
+    /// а не от порога сдвига.</summary>
+    private void OnLongPressed(object? sender, LongPressGestureEventArgs e)
+    {
+        if (!CanSendItem || Children.Count == 0) return;
+
+        // индекс берём заново по точке удержания: отмена совместимых
+        // событий, которая идёт вместе с победой жеста, уже сбросила
+        // запомненное нажатие
+        int index = IndexAt(ToLocal(e.Location));
+        if (index < 0) return;
+
+        _pressOrigin = e.Location;
+        _pressIndex = index;
+
+        BeginDrag();
+        UpdateDrag(e.Location);
+    }
+
+    /// <summary>Перенос пальцем ведут события указателя: совместимые
+    /// события мыши после победы жеста уже не приходят.</summary>
+    protected override void OnPointerMove(PointerEventArgs e)
+    {
+        if (!_dragging || _pointerKind == PointerKind.Mouse) return;
+
+        UpdateDrag(e.Location);
+    }
+
+    protected override void OnPointerUp(PointerEventArgs e)
+    {
+        if (!_dragging || _pointerKind == PointerKind.Mouse) return;
+
+        CompleteDrop();
+        ReleaseMouseCapture();
+
+        _pressIndex = -1;
+        _dragging = false;
+    }
 
     // ===== перетаскивание =====
 
