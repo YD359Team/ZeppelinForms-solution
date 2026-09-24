@@ -362,7 +362,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             hit?.RaiseMouseDown(downArgs);
 
             if (e.Button == MouseButton.Left && hit is not null)
-                _focusDispatcher.FocusElement(hit);
+                FocusFromHit(hit);
         }
         finally
         {
@@ -829,6 +829,21 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         InvalidateMeasureTree();
 
         Invalidate();
+    }
+
+    /// <summary>Отдать фокус тому, кто способен его принять: самому
+    /// нажатому элементу или ближайшему предку, который принимает ввод.</summary>
+    /// <remarks>
+    /// Щелчок почти никогда не попадает прямо в принимающий ввод элемент:
+    /// в списке под курсором строка, в дереве — узел, в гриде — ячейка.
+    /// Раньше фокус в таких случаях просто не переходил, и клавиатура
+    /// продолжала работать на том контроле, где её оставили.
+    /// </remarks>
+    private void FocusFromHit(UIElement hit)
+    {
+        for (UIElement? element = hit; element is not null; element = element.Parent)
+            if (element is IInputElement { TabStop: true } && _focusDispatcher.FocusElement(element))
+                return;
     }
 
     /// <summary>Оформить поддерево по текущей теме. Вызывается при

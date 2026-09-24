@@ -1,6 +1,8 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Input.Keyboard;
 
 namespace ZeppelinForms.Forms.Controls.Tree;
 
@@ -15,7 +17,7 @@ namespace ZeppelinForms.Forms.Controls.Tree;
 /// и ItemTemplate, а у дерева они служебные — любая запись снаружи
 /// разъехалась бы с проекцией.
 /// </remarks>
-public class TreeView : DecoratedPanel
+public class TreeView : DecoratedPanel, IInputElement
 {
     private readonly VirtualizingStackPanel _panel = new();
     private readonly List<object> _flat = [];
@@ -62,6 +64,13 @@ public class TreeView : DecoratedPanel
     }
 
     public event EventHandler<TreeNode?>? SelectionChanged;
+
+    // дерево принимает фокус: без него нет и клавиатуры
+    public bool IsFocused { get; set; }
+
+    public bool TabStop { get; set; } = true;
+
+    public uint TabIndex { get; set; }
 
     public TreeNode? SelectedNode
     {
@@ -156,6 +165,115 @@ public class TreeView : DecoratedPanel
     }
 
     private UIElement CreateRow(object item) => new TreeViewItem(this, (TreeNode)item);
+
+    // ===== клавиатура =====
+
+    /// <summary>Место узла в развёрнутом списке или −1, если он под
+    /// свёрнутым предком и сейчас не показан.</summary>
+    private int RowOf(TreeNode? node) => node is null ? -1 : _flat.IndexOf(node);
+
+    /// <summary>Сколько строк помещается в окне — на это двигают
+    /// PageUp и PageDown.</summary>
+    private int PageRows =>
+        ItemHeight <= 0 ? 1 : Math.Max(1, (int)(_panel.ActualSize.Height / ItemHeight) - 1);
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (_flat.Count == 0) return;
+
+        TreeNode? current = SelectedNode;
+        int row = RowOf(current);
+
+        switch (e.Key)
+        {
+            case Key.Down:
+                SelectRow(row + 1);
+                break;
+
+            case Key.Up:
+                // фокус без выделения — первая стрелка выбирает край,
+                // а не прыгает в никуда
+                SelectRow(row < 0 ? _flat.Count - 1 : row - 1);
+                break;
+
+            case Key.Home:
+                SelectRow(0);
+                break;
+
+            case Key.End:
+                SelectRow(_flat.Count - 1);
+                break;
+
+            case Key.PageDown:
+                SelectRow(row < 0 ? 0 : row + PageRows);
+                break;
+
+            case Key.PageUp:
+                SelectRow(row < 0 ? 0 : row - PageRows);
+                break;
+
+            case Key.Right:
+                // закрытый узел раскрывается, раскрытый пускает внутрь
+                if (current is null) SelectRow(0);
+                else if (current.HasChildren && !current.IsExpanded) current.Expand();
+                else if (current.HasChildren) SelectRow(row + 1);
+                else return;
+
+                break;
+
+            case Key.Left:
+                // раскрытый сворачивается, свёрнутый отдаёт фокус родителю
+                if (current is null) SelectRow(0);
+                else if (current.IsExpanded && current.HasChildren) current.Collapse();
+                else if (current.Parent is { } parent && RowOf(parent) >= 0) SelectNode(parent);
+                else return;
+
+                break;
+
+            case Key.Enter:
+            case Key.Space:
+                if (current is not { HasChildren: true }) return;
+
+                current.IsExpanded = !current.IsExpanded;
+                break;
+
+            default:
+                return;
+        }
+
+        e.Handled = true;
+    }
+
+    private void SelectRow(int row)
+    {
+        if (_flat.Count == 0) return;
+
+        SelectNode((TreeNode)_flat[Math.Clamp(row, 0, _flat.Count - 1)]);
+    }
+
+    private void SelectNode(TreeNode node)
+    {
+        SelectedNode = node;
+
+        ScrollIntoView(node);
+    }
+
+    /// <summary>Подтянуть узел в видимую часть. Узел под свёрнутым предком
+    /// не показывается вовсе — его и подтягивать некуда.</summary>
+    public void ScrollIntoView(TreeNode node)
+    {
+        int row = RowOf(node);
+        if (row < 0 || ItemHeight <= 0) return;
+
+        float top = row * ItemHeight;
+        float bottom = top + ItemHeight;
+        float viewport = _panel.ActualSize.Height;
+
+        if (top < _panel.ScrollY)
+            _panel.ScrollTo(_panel.ScrollX, top);
+        else if (bottom > _panel.ScrollY + viewport)
+            _panel.ScrollTo(_panel.ScrollX, bottom - viewport);
+    }
 
     protected override Size MeasureContentOverride(Size availableSize)
     {
