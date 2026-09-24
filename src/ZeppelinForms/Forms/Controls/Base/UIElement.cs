@@ -1088,6 +1088,23 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
                     new Size(w, h));
             }
 
+            if (ScaleX != 1f || ScaleY != 1f)
+            {
+                // масштаб идёт вокруг центра, поэтому растёт прямоугольник
+                // в обе стороны от него
+                Point center = Center;
+
+                float left = center.X + (bounds.X - center.X) * ScaleX;
+                float top = center.Y + (bounds.Y - center.Y) * ScaleY;
+
+                bounds = new Rectangle(
+                    new Point(left, top),
+                    new Size(bounds.Width * ScaleX, bounds.Height * ScaleY));
+            }
+
+            if (TranslateX != 0f || TranslateY != 0f)
+                bounds = bounds.Offset(TranslateX, TranslateY);
+
             if (BoxShadow is { } shadow)
             {
                 float spread = shadow.Blur + shadow.Spread
@@ -1163,7 +1180,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
     /// стартовать надо от того, что видно сейчас.</summary>
     private void BeginTransition<T>(StyledProperty<T> property, T from)
     {
-        if (!TransitionsEnabled) return;
+        if (!TransitionsActive) return;
         if (_transitionRules is null || _transitionRules.Count == 0) return;
 
         // элемент, которого ещё не показывали, не переходит, а появляется:
