@@ -3,15 +3,15 @@
 namespace ZeppelinForms.Animation;
 
 /// <summary>
-/// Правило: как свойство добирается до нового значения. Присваивание
-/// становится целью, а видимое значение идёт к ней за время перехода.
+/// A rule: how a property gets to a new value. The assignment becomes
+/// the target, and the visible value travels to it over the transition's duration.
 /// </summary>
 /// <remarks>
-/// Само присваивание при этом мгновенно: код, биндинги и PropertyGrid
-/// читают цель, а не полпути. Промежуточное значение живёт отдельным
-/// слоем, который читает отрисовка. Так устроены Core Animation, CSS
-/// и Compose, и именно это разделение позволяет когда-нибудь увезти
-/// переходы на поток отрисовки, не трогая модель.
+/// The assignment itself is instant: code, bindings and PropertyGrid read
+/// the target, not a halfway value. The intermediate value lives in a separate
+/// layer that drawing reads. This is how Core Animation, CSS and Compose work,
+/// and it is exactly this separation that makes it possible some day to move
+/// transitions to the render thread without touching the model.
 /// </remarks>
 public sealed class Transition
 {
@@ -28,14 +28,14 @@ public sealed class Transition
 
     public Func<float, float> Easing { get; }
 
-    /// <summary>Переход с длительностью и кривой.</summary>
+    /// <summary>A transition with a duration and a curve.</summary>
     public static Transition Ease(
         StyledProperty property,
         TimeSpan duration,
         Func<float, float>? easing = null) =>
         new(property, duration, easing ?? Animation.Easing.EaseOut);
 
-    /// <summary>То же в миллисекундах — так короче в разметке контрола.</summary>
+    /// <summary>The same in milliseconds — shorter to write in a control's markup.</summary>
     public static Transition Ease(
         StyledProperty property,
         int durationMs,

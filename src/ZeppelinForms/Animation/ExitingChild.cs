@@ -4,15 +4,15 @@ using ZeppelinForms.Forms.Controls.Base;
 namespace ZeppelinForms.Animation;
 
 /// <summary>
-/// Уходящий элемент: из панели он уже убран, но ещё дорисовывается,
-/// пока не доиграет исчезание.
+/// An exiting element: already removed from the panel, but still drawn
+/// until its disappearance finishes playing.
 /// </summary>
 /// <remarks>
-/// Анимация висит на панели, а не на самом элементе: элемент к этому
-/// моменту отвязан от формы, и часы его больше не видят. По той же
-/// причине значения здесь не идут через систему свойств, а считаются
-/// из прогресса прямо при отрисовке — у отвязанного элемента нет ни
-/// владельца, ни кадров.
+/// The animation hangs on the panel rather than on the element itself:
+/// by this point the element is detached from the form, and the clock
+/// no longer sees it. For the same reason the values here do not go
+/// through the property system but are computed from the progress right
+/// at draw time — a detached element has neither an owner nor frames.
 /// </remarks>
 internal sealed class ExitingChild : IAnimation
 {
@@ -31,8 +31,8 @@ internal sealed class ExitingChild : IAnimation
 
     public VisibilityTransition Rule { get; }
 
-    /// <summary>Пройденная часть исчезания с учётом кривой: 0 — элемент
-    /// выглядит как обычно, 1 — полностью ушёл.</summary>
+    /// <summary>The eased fraction of the exit that has elapsed: 0 — the element
+    /// looks as usual, 1 — it is completely gone.</summary>
     public float Progress { get; private set; }
 
     public object Target => _panel;

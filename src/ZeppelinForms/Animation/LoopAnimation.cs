@@ -1,8 +1,8 @@
 ﻿namespace ZeppelinForms.Animation;
 
 /// <summary>
-/// Бесконечный цикл: отдаёт фазу от 0 до 1 и начинает заново.
-/// Останавливается только снятием — сама не заканчивается никогда.
+/// An endless loop: yields a phase from 0 to 1 and starts over.
+/// Stops only when removed — it never ends by itself.
 /// </summary>
 public sealed class LoopAnimation : IAnimation
 {
@@ -26,8 +26,8 @@ public sealed class LoopAnimation : IAnimation
     {
         _elapsed += elapsed;
 
-        // вычитаем в цикле, а не по модулю: при подвисании на несколько
-        // периодов фаза всё равно останется в пределах одного оборота
+        // subtract in a loop rather than taking the modulus: after a stall
+        // of several periods the phase still stays within one cycle
         while (_elapsed >= _period)
             _elapsed -= _period;
 
@@ -36,7 +36,7 @@ public sealed class LoopAnimation : IAnimation
         return true;
     }
 
-    /// <summary>У бесконечной анимации нет конечного значения и нет
-    /// обработчика завершения — снятие для неё просто остановка.</summary>
+    /// <summary>An endless animation has neither a final value nor
+    /// a completion handler — for it, removal is simply stopping.</summary>
     public void Cancel(bool applyFinalValue) { }
 }

@@ -1,5 +1,14 @@
 # Changes
 
+## [0.13.0] - Siberia
+
+![El Dorado](assets/Logo-0.12.0.jpg)
+
+### Breaking changes
+
+- `Theme` moved from the global namespace to `ZeppelinForms.Theming`. Code that
+  names the type needs `using ZeppelinForms.Theming;`
+
 ## [0.12.0] - El Dorado
 
 ![El Dorado](assets/Logo-0.12.0.jpg)

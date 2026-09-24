@@ -14,8 +14,8 @@ public sealed class Animation<T> : IAnimation
 
     public object Target { get; }
 
-    /// <summary>Что именно анимируется. Новая анимация с тем же ключом
-    /// вытесняет предыдущую — иначе два наведения подряд подерутся за цвет.</summary>
+    /// <summary>What exactly is being animated. A new animation with the same key
+    /// displaces the previous one — otherwise two hovers in a row would fight over the color.</summary>
     public string Key { get; }
 
     public Animation(
@@ -58,9 +58,9 @@ public sealed class Animation<T> : IAnimation
         if (applyFinalValue)
             _apply(_to);
 
-        // completed вызываем всегда: он не про значение, а про состояние —
-        // спрятать уходящую страницу, снять флаг, вернуть фокус. Без него
-        // тот, кто запускал анимацию, останется на полпути навсегда
+        // completed is always invoked: it is about state, not the value —
+        // hide the outgoing page, clear a flag, return focus. Without it,
+        // whoever started the animation would be stuck halfway forever
         _completed?.Invoke();
     }
 }

@@ -74,8 +74,8 @@ public static class Themes
     {
         return new Theme { Name = name, Colors = colors }
 
-            // цвет текста наследуемый, поэтому задаём его один раз на корне:
-            // конкретные контролы переопределяют только там, где цвет другой
+            // text color is inherited, so it is set once at the root:
+            // specific controls override it only where the color differs
             .For<UIElement>((element, c) => element.TextColor = c.Text)
 
             .For<InteractiveControl>((control, c) =>
@@ -84,7 +84,8 @@ public static class Themes
                 control.FocusBorderColor = c.BorderFocused;
             })
 
-            // общее для всех — фон окна и цвет полос прокрутки
+            // shared by every decorated panel — scrollbar colors.
+            // The window background is not set here: the Panel rule does that
             .For<DecoratedPanel>((panel, c) =>
             {
                 panel.ScrollTrackColor = c.ScrollTrack;
@@ -97,7 +98,7 @@ public static class Themes
                 panel.BorderWidth = 2f;
             })
 
-            // база — нейтральная кнопка, если тип не уточнён
+            // base — a neutral button when the type is not more specific
             .For<ButtonBase>((button, c) =>
             {
                 button.BackgroundColor = c.Surface;
@@ -125,7 +126,7 @@ public static class Themes
 
             .For<SecondaryButton>((button, c) =>
             {
-                // контурная: заливки нет, цвет берёт акцент
+                // outlined: no fill, the accent provides the color
                 button.BackgroundColor = Colors.Transparent;
                 button.HoverBackgroundColor = c.SurfaceHover;
                 button.PressedBackgroundColor = c.SurfacePressed;
@@ -228,7 +229,7 @@ public static class Themes
                 box.HeaderColor = c.TextSecondary;
             })
 
-            .For<GripBox>((grip, c) => 
+            .For<GripBox>((grip, c) =>
             {
                 grip.HandleColor = c.Background;
                 grip.HandleBorderColor = c.Accent;

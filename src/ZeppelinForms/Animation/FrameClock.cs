@@ -5,33 +5,36 @@ using ZeppelinForms.Forms.Controls.Base;
 namespace ZeppelinForms.Animation;
 
 /// <summary>
-/// Единственные часы формы: время кадра, анимации и отложенные дела.
+/// The form's only clock: frame time, animations and deferred work.
 /// </summary>
 /// <remarks>
-/// Три причины, по которым это один объект, а не три.
+/// Three reasons why this is one object rather than three.
 ///
-/// Время монотонно и с высоким разрешением. Environment.TickCount64 на
-/// Windows тикает раз в 15,6 мс, и при кадре в 16 мс шаг анимации скакал
-/// между нулём и тридцатью миллисекундами — это видно глазом даже
-/// на переключателе.
+/// Time is monotonic and high-resolution. Environment.TickCount64 on
+/// Windows ticks every 15.6 ms, and with a 16 ms frame the animation step
+/// jumped between zero and thirty milliseconds — visible to the eye
+/// even on a toggle switch.
 ///
-/// Кадры идут только пока есть что двигать. Анимация на скрытом
-/// поддереве не продвигается — и теперь не держит выдачу кадров:
-/// свёрнутый Loader будил окно шестьдесят раз в секунду впустую.
-/// Саму анимацию при этом не снимаем: страница вернётся, и она должна ожить.
+/// Frames run only while there is something to move. An animation in
+/// a hidden subtree does not advance — and no longer keeps frames coming:
+/// a collapsed Loader woke the window sixty times a second for nothing.
+/// The animation itself is not removed, though: the page will come back,
+/// and it must come alive again.
 ///
-/// Отложенные дела делят один таймер. Раньше каретка, подсказка, тост
-/// и длинное нажатие завели по System.Threading.Timer каждый, и каждый
-/// сам маршалил себя в поток UI. Каретка вдобавок хранила своё состояние
-/// вместо того, чтобы вычислять его из времени, и отложенный тик,
-/// добравшийся до очереди после потери фокуса, включал её обратно.
+/// Deferred work shares one timer. Previously the caret, the tooltip,
+/// the toast and the long press each started their own System.Threading.Timer,
+/// and each marshalled itself to the UI thread on its own. On top of that
+/// the caret stored its state instead of computing it from time, and
+/// a deferred tick that reached the queue after focus was lost
+/// turned it back on.
 /// </remarks>
 internal sealed class FrameClock(Form form) : IDisposable
 {
-    /// <summary>Потолок шага анимации. Кадр мог не прийти полсекунды —
-    /// окно тащили за угол, приложение уходило в фон. Без потолка первый
-    /// же кадр после паузы доводит все анимации до конца, и переход,
-    /// который зритель так и не увидел, просто схлопывается.</summary>
+    /// <summary>Cap on the animation step. A frame may not have arrived for
+    /// half a second — the window was being dragged by its corner, the
+    /// application went to the background. Without the cap the very first
+    /// frame after the pause brings every animation to its end, and
+    /// a transition the viewer never saw simply collapses.</summary>
     private const double MaxFrameDeltaMs = 100;
 
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
@@ -44,11 +47,11 @@ internal sealed class FrameClock(Form form) : IDisposable
     private TimeSpan _lastFrame;
     private bool _suspended;
 
-    /// <summary>Монотонное время с создания формы.</summary>
+    /// <summary>Monotonic time since the form was created.</summary>
     public TimeSpan Now => _stopwatch.Elapsed;
 
-    /// <summary>Есть ли анимация, которую видно. Невидимую не двигаем,
-    /// а значит и кадры под неё не нужны.</summary>
+    /// <summary>Whether there is an animation that can be seen. An invisible
+    /// one is not advanced, which means no frames are needed for it.</summary>
     private bool HasVisibleAnimation
     {
         get
@@ -61,14 +64,14 @@ internal sealed class FrameClock(Form form) : IDisposable
         }
     }
 
-    // ===== анимации =====
+    // ===== animations =====
 
     public void Add(IAnimation animation)
     {
-        // одна анимация на связку «объект + свойство».
-        // Вытесняемую снимаем с вызовом её completed, иначе состояние,
-        // которое она должна была привести в порядок, останется в середине —
-        // именно из-за этого PageControl оставлял страницы висеть
+        // one animation per "object + property" pair.
+        // The displaced one is removed with its completed invoked, otherwise
+        // the state it was supposed to tidy up stays in the middle —
+        // this is exactly why PageControl left pages hanging
         for (int i = _animations.Count - 1; i >= 0; i--)
         {
             IAnimation existing = _animations[i];
@@ -79,8 +82,8 @@ internal sealed class FrameClock(Form form) : IDisposable
 
             _animations.RemoveAt(i);
 
-            // без доведения значения: новая анимация начнёт со своего from,
-            // и прыжок в конец дал бы мелькание
+            // without bringing the value to the end: the new animation starts
+            // from its own from, and a jump to the end would cause a flicker
             existing.Cancel(applyFinalValue: false);
         }
 
@@ -105,7 +108,7 @@ internal sealed class FrameClock(Form form) : IDisposable
         Review();
     }
 
-    /// <summary>Снять анимации, цели которых уходят из дерева.</summary>
+    /// <summary>Remove animations whose targets are leaving the tree.</summary>
     public void CancelIn(UIElement root)
     {
         for (int i = _animations.Count - 1; i >= 0; i--)
@@ -116,8 +119,10 @@ internal sealed class FrameClock(Form form) : IDisposable
             IAnimation animation = _animations[i];
             _animations.RemoveAt(i);
 
-            // цель уходит из дерева: ни значение доводить, ни completed
-            // звать не нужно — приводить в порядок больше нечего
+            // the target is leaving the tree: there is no need to bring
+            // the value to the end — nothing will draw it anymore.
+            // Completion is still up to the implementation: Animation<T>
+            // calls completed anyway, because it tidies up state, not the picture
             animation.Cancel(applyFinalValue: false);
         }
 
@@ -133,7 +138,7 @@ internal sealed class FrameClock(Form form) : IDisposable
         return false;
     }
 
-    /// <summary>Кадр от платформы.</summary>
+    /// <summary>A frame from the platform.</summary>
     public void Tick()
     {
         TimeSpan now = _stopwatch.Elapsed;
@@ -143,38 +148,39 @@ internal sealed class FrameClock(Form form) : IDisposable
         Advance(TimeSpan.FromMilliseconds(Math.Clamp(deltaMs, 0, MaxFrameDeltaMs)));
     }
 
-    /// <summary>Продвинуть анимации на заданное время. Отдельно от Tick
-    /// ради тестов: там время должно идти по команде, а не по секундомеру.</summary>
+    /// <summary>Advance animations by the given time. Separate from Tick
+    /// for the sake of tests: there time must move on command,
+    /// not by the stopwatch.</summary>
     internal void Advance(TimeSpan elapsed)
     {
         bool wholeWindow = false;
 
-        // по снимку, а не по живому списку: Advance вызывает completed
-        // прямо внутри себя, а тот может и снять анимации, и добавить —
-        // переход страницы делает ровно это. Индексы при таком раскладе
-        // разъезжаются под ногами
+        // over a snapshot rather than the live list: Advance calls completed
+        // right inside itself, and that may both remove animations and add
+        // new ones — a page transition does exactly this. With that going on,
+        // the indices drift out from under you
         IAnimation[] running = [.. _animations];
 
         foreach (IAnimation animation in running)
         {
-            // могли снять из completed соседней анимации
+            // may have been removed by a neighbouring animation's completed
             if (!_animations.Contains(animation)) continue;
 
-            // анимация на скрытом поддереве не продвигается и не перерисовывается.
-            // Не снимаем её: страница вернётся, и анимация должна ожить.
-            // PageControl прячет страницы, не отвязывая, поэтому опираться
-            // на Detached здесь нельзя
+            // an animation in a hidden subtree is neither advanced nor redrawn.
+            // We don't remove it: the page will come back, and the animation
+            // must come alive again. PageControl hides pages without detaching
+            // them, so Detached cannot be relied on here
             if (animation.Target is UIElement hidden && !hidden.IsEffectivelyVisible)
                 continue;
 
             bool alive = animation.Advance(elapsed);
 
-            // перерисовываем цель независимо от того, дожила ли анимация
-            // до следующего кадра: последний её кадр тоже надо показать
+            // redraw the target whether or not the animation survives
+            // to the next frame: its last frame must be shown too
             switch (animation.Target)
             {
-                // анимация самой формы — например, волна смены темы —
-                // выходит за пределы любого отдельного элемента
+                // an animation of the form itself — the theme-change ripple,
+                // for example — goes beyond the bounds of any single element
                 case Form: wholeWindow = true; break;
                 case UIElement element: element.InvalidateVisual(); break;
             }
@@ -187,11 +193,12 @@ internal sealed class FrameClock(Form form) : IDisposable
         if (wholeWindow) form.InvalidateVisual();
     }
 
-    // ===== выдача кадров =====
+    // ===== frame delivery =====
 
-    /// <summary>Пересмотреть, нужны ли кадры прямо сейчас. Зовётся после
-    /// любого изменения состава анимаций и из Form.Invalidate: видимость —
-    /// свойство раскладки, и её смена всегда проходит через него.</summary>
+    /// <summary>Reconsider whether frames are needed right now. Called after
+    /// any change in the set of animations and from Form.Invalidate:
+    /// visibility is a layout property, and a change of it always
+    /// passes through there.</summary>
     public void Review()
     {
         if (form.PlatformWindow?.Frames is not { } frames) return;
@@ -204,13 +211,13 @@ internal sealed class FrameClock(Form form) : IDisposable
 
         if (frames.IsRunning) return;
 
-        // между остановкой и запуском прошло неизвестно сколько:
-        // первый шаг считаем от этого момента, а не от давнего кадра
+        // an unknown amount of time has passed between stop and start:
+        // the first step is counted from this moment, not from a long-gone frame
         _lastFrame = _stopwatch.Elapsed;
         frames.Start(form.FrameIntervalMs);
     }
 
-    /// <summary>Приложение ушло в фон или окно свернули.</summary>
+    /// <summary>The application went to the background or the window was minimized.</summary>
     public void Suspend()
     {
         _suspended = true;
@@ -223,22 +230,23 @@ internal sealed class FrameClock(Form form) : IDisposable
         Review();
     }
 
-    /// <summary>Окна больше нет: таймер кадров жил в нём, а отложенным
-    /// делам некуда возвращаться.</summary>
+    /// <summary>The window is gone: the frame timer lived in it,
+    /// and deferred work has nowhere to return to.</summary>
     public void Stop()
     {
         form.PlatformWindow?.Frames.Stop();
         _timer?.Change(Timeout.Infinite, Timeout.Infinite);
     }
 
-    // ===== отложенные дела =====
+    // ===== deferred work =====
 
-    /// <summary>Выполнить действие через задержку в потоке UI.</summary>
-    /// <returns>Отмена: освободите результат, чтобы вызова не было.</returns>
+    /// <summary>Run an action on the UI thread after a delay.</summary>
+    /// <returns>Cancellation: dispose the result to prevent the call.</returns>
     /// <remarks>
-    /// Отмена и срабатывание — это гонка: будильник мог уже уйти в очередь
-    /// UI к моменту, когда его отменяют. Поэтому вызываемый код обязан
-    /// сам проверить, актуален ли он ещё, а не полагаться на отмену.
+    /// Cancellation and firing are a race: the wake-up may already have gone
+    /// into the UI queue by the time it is cancelled. So the invoked code
+    /// must check for itself whether it is still relevant, rather than
+    /// rely on cancellation.
     /// </remarks>
     public IDisposable Schedule(TimeSpan delay, Action action)
     {
@@ -280,15 +288,15 @@ internal sealed class FrameClock(Form form) : IDisposable
         _timer.Change((long)delayMs, Timeout.Infinite);
     }
 
-    // тикает на потоке пула — маршалим, дальше всё в потоке UI
+    // ticks on a pool thread — marshal it, everything after this is on the UI thread
     private void OnTimer(object? state) => form.Invoke(RunDue);
 
     private void RunDue()
     {
         TimeSpan now = _stopwatch.Elapsed;
 
-        // сначала снимаем со списка, потом вызываем: дело может завести
-        // новое отложенное дело — каретка так и перевзводит себя
+        // first take it off the list, then invoke: a job may schedule
+        // a new deferred job — this is exactly how the caret re-arms itself
         for (int i = _wakes.Count - 1; i >= 0; i--)
         {
             Wake wake = _wakes[i];
@@ -325,9 +333,9 @@ internal sealed class FrameClock(Form form) : IDisposable
     {
         public TimeSpan Due { get; } = due;
 
-        /// <summary>null — дело отменили. Из списка его вынет ближайший
-        /// Rearm: удалять из середины сейчас значит подраться с RunDue,
-        /// который может идти прямо в эту минуту.</summary>
+        /// <summary>null — the job was cancelled. The nearest Rearm takes it off
+        /// the list: removing it from the middle right now would mean fighting
+        /// with RunDue, which may be running at this very moment.</summary>
         public Action? Action { get; private set; } = action;
 
         public void Dispose() => Action = null;

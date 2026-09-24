@@ -3,16 +3,16 @@ using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Animation;
 
-/// <summary>Идущий переход: то, что видно, пока свойство едет к цели.</summary>
+/// <summary>A running transition: what is visible while the property travels to its target.</summary>
 internal interface IPropertyTransition
 {
     StyledProperty Property { get; }
 }
 
 /// <summary>
-/// Переход одного свойства одного элемента. Живёт на общих часах формы,
-/// как и любая другая анимация: гашение на невидимом поддереве, остановка
-/// кадров и вытеснение по ключу достаются даром.
+/// A transition of one property of one element. Lives on the form's shared
+/// clock like any other animation: suspension in an invisible subtree,
+/// stopping frames and displacement by key come for free.
 /// </summary>
 internal sealed class PropertyTransition<T> : IAnimation, IPropertyTransition
 {
@@ -42,15 +42,15 @@ internal sealed class PropertyTransition<T> : IAnimation, IPropertyTransition
         Current = from;
     }
 
-    /// <summary>Значение, которое видит отрисовка.</summary>
+    /// <summary>The value that drawing sees.</summary>
     public T Current { get; private set; }
 
     public StyledProperty Property => _property;
 
     public object Target => _element;
 
-    /// <summary>Один переход на свойство: второе присваивание подряд
-    /// вытесняет первое, а не едет рядом с ним.</summary>
+    /// <summary>One transition per property: a second assignment in a row
+    /// displaces the first rather than running alongside it.</summary>
     public string Key => $"transition:{_property.Index}";
 
     public bool Advance(TimeSpan elapsed)
@@ -61,9 +61,9 @@ internal sealed class PropertyTransition<T> : IAnimation, IPropertyTransition
             ? 1f
             : Math.Clamp((float)(_elapsed / _duration), 0f, 1f);
 
-        // цель читается каждый кадр, а не запоминается на старте: тема
-        // или биндинг могут переписать её по дороге, и ехать после этого
-        // к отменённому значению незачем
+        // the target is read every frame rather than remembered at the start:
+        // a theme or a binding may rewrite it on the way, and there is no point
+        // continuing toward a value that has been cancelled
         T target = _property.GetValue(_element);
 
         Current = t >= 1f ? target : _interpolate(_from, target, _easing(t));
@@ -78,8 +78,9 @@ internal sealed class PropertyTransition<T> : IAnimation, IPropertyTransition
 
     public void Cancel(bool applyFinalValue)
     {
-        // значение доводить некуда: цель уже лежит в самом свойстве,
-        // и как только переход снят, отрисовка читает её
+        // there is nowhere to bring the value: the target already lives
+        // in the property itself, and as soon as the transition is removed,
+        // drawing reads it
         _element.RemoveTransition(this);
     }
 }

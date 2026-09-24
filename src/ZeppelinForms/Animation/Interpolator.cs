@@ -3,14 +3,14 @@
 namespace ZeppelinForms.Animation;
 
 /// <summary>
-/// Кто умеет считать промежуточное значение между двумя. Реестр по типу:
-/// переход объявляется на свойстве, а как смешивать его значения — вопрос
-/// типа, а не свойства.
+/// Knows how to compute an intermediate value between two. A registry by type:
+/// a transition is declared on a property, but how to blend its values
+/// is a question of the type, not of the property.
 /// </summary>
 /// <remarks>
-/// Тип без интерполятора переходов не получает: перескок в конечное
-/// значение — это не переход, а его отсутствие, и молча подменять одно
-/// другим значит оставить автора контрола гадать, почему не анимируется.
+/// A type without an interpolator gets no transitions: jumping to the final
+/// value is not a transition but the absence of one, and silently substituting
+/// one for the other would leave the control author guessing why nothing animates.
 /// </remarks>
 public static class Interpolator
 {
@@ -37,13 +37,13 @@ public static class Interpolator
             Interpolators.Float(a.BottomLeft, b.BottomLeft, t)));
     }
 
-    /// <summary>Научить переходы новому типу. Своё объявление перекрывает
-    /// встроенное — на случай, когда смешивать надо иначе: цвета, например,
-    /// бывает нужно вести через другое цветовое пространство.</summary>
+    /// <summary>Teach transitions a new type. Your own registration overrides
+    /// the built-in one — for cases where blending must work differently:
+    /// colors, for example, sometimes need to be blended in a different color space.</summary>
     public static void Register<T>(Func<T, T, float, T> interpolate) =>
         Registry[typeof(T)] = interpolate;
 
-    /// <summary>Интерполятор типа или null, если такого нет.</summary>
+    /// <summary>The type's interpolator, or null if there is none.</summary>
     public static Func<T, T, float, T>? Find<T>() =>
         Registry.TryGetValue(typeof(T), out object? found)
             ? (Func<T, T, float, T>)found

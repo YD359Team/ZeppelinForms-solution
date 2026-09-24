@@ -5,7 +5,7 @@ using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Theming;
 
-/// <summary>Семантические цвета: контролы обращаются к роли, а не к оттенку.</summary>
+/// <summary>Semantic colors: controls refer to a role, not to a shade.</summary>
 public sealed record ThemeColors
 {
     public required Color Background { get; init; }

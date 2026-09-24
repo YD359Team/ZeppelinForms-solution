@@ -3,18 +3,19 @@
 namespace ZeppelinForms.Animation;
 
 /// <summary>
-/// Как элемент появляется и исчезает: из какого вида он приходит
-/// и в какой уходит. Вид — прозрачность, масштаб и сдвиг от своего места.
+/// How an element appears and disappears: which look it comes from
+/// and which look it leaves into. The look is opacity, scale and offset
+/// from its own place.
 /// </summary>
 /// <remarks>
-/// Одно описание годится для обеих сторон: появление едет из заданного
-/// вида к обычному, исчезание — от обычного к тому же виду. Так строка,
-/// выехавшая снизу, и уезжает вниз, а не куда-то ещё.
+/// One description serves both directions: appearing travels from the given
+/// look to the normal one, disappearing — from the normal look to the same one.
+/// So a row that slid in from below also leaves downward, and not somewhere else.
 ///
-/// Всё это — свойства отрисовки: появление не двигает соседей, а уходящий
-/// элемент к моменту начала анимации уже убран из раскладки. Соседи
-/// сразу занимают его место, и если у панели задан LayoutTransition,
-/// то плавно въезжают в образовавшийся просвет.
+/// All of this is draw-time properties: appearing does not push the neighbours,
+/// and an exiting element is already removed from the layout by the time the
+/// animation starts. The neighbours immediately take its place, and if the panel
+/// has a LayoutTransition, they slide smoothly into the gap.
 /// </remarks>
 public sealed class VisibilityTransition
 {
@@ -44,37 +45,37 @@ public sealed class VisibilityTransition
 
     public Func<float, float> Easing { get; }
 
-    /// <summary>Прозрачность в невидимом состоянии. 0 — полностью прозрачен.</summary>
+    /// <summary>Opacity in the invisible state. 0 — fully transparent.</summary>
     public float Opacity { get; }
 
-    /// <summary>Масштаб в невидимом состоянии. 1 — без масштабирования.</summary>
+    /// <summary>Scale in the invisible state. 1 — no scaling.</summary>
     public float Scale { get; }
 
-    /// <summary>Сдвиг от своего места в невидимом состоянии.</summary>
+    /// <summary>Offset from its own place in the invisible state.</summary>
     public float OffsetX { get; }
 
     public float OffsetY { get; }
 
-    // правила для появления готовятся один раз: оно случается на каждой
-    // вставке строки, и плодить по пять объектов на строку незачем
+    // the rules for appearing are prepared once: it happens on every row
+    // insertion, and there is no point creating five objects per row
     internal Transition ForOpacity { get; }
     internal Transition ForScaleX { get; }
     internal Transition ForScaleY { get; }
     internal Transition ForTranslateX { get; }
     internal Transition ForTranslateY { get; }
 
-    /// <summary>Проявление из прозрачности.</summary>
+    /// <summary>Fading in from transparency.</summary>
     public static VisibilityTransition Fade(int durationMs, Func<float, float>? easing = null) =>
         new(TimeSpan.FromMilliseconds(durationMs), easing ?? Animation.Easing.EaseOut, 0f, 1f, 0f, 0f);
 
-    /// <summary>Проявление с лёгким увеличением — для карточек и всплывающего.</summary>
+    /// <summary>Fading in with a slight scale-up — for cards and popups.</summary>
     public static VisibilityTransition FadeScale(
         int durationMs,
         float scale = 0.92f,
         Func<float, float>? easing = null) =>
         new(TimeSpan.FromMilliseconds(durationMs), easing ?? Animation.Easing.EaseOut, 0f, scale, 0f, 0f);
 
-    /// <summary>Проявление со сдвигом — для строк списков и уведомлений.</summary>
+    /// <summary>Fading in with an offset — for list rows and notifications.</summary>
     public static VisibilityTransition Slide(
         int durationMs,
         float offsetX,

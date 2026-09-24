@@ -5,13 +5,14 @@ public interface IAnimation
     object Target { get; }
     string Key { get; }
 
-    /// <summary>Продвинуть на прошедшее время. false — анимация закончилась.</summary>
+    /// <summary>Advance by the elapsed time. false — the animation has finished.</summary>
     bool Advance(TimeSpan elapsed);
 
-    /// <summary>Анимацию сняли до срока: вытеснила новая с тем же ключом
-    /// либо убрали цель из дерева. Реализация обязана привести состояние
-    /// к завершённому — тот, кто её запускал, о снятии не узнает.</summary>
-    /// <param name="applyFinalValue">Довести значение до конечного.
-    /// false — оставить как есть: цель уже уходит и дорисовывать нечего.</param>
+    /// <summary>The animation was removed before it finished: displaced by a new one
+    /// with the same key, or its target was removed from the tree. The implementation
+    /// must bring its state to the finished one — whoever started it will not learn
+    /// about the removal.</summary>
+    /// <param name="applyFinalValue">Bring the value to the final one.
+    /// false — leave it as is: the target is already leaving and there is nothing left to draw.</param>
     void Cancel(bool applyFinalValue);
 }

@@ -4,19 +4,19 @@ using ZeppelinForms.Forms.Styling;
 namespace ZeppelinForms.Animation;
 
 /// <summary>
-/// Как элемент переезжает, когда раскладка поставила его на новое место.
+/// How an element travels when the layout has put it in a new place.
 /// </summary>
 /// <remarks>
-/// Работает по правилу FLIP: элемент уже стоит там, где решила раскладка,
-/// но рисуется от старого места и приезжает к нулевому сдвигу. Двигается
-/// при этом не раскладка, а сдвиг при отрисовке — поэтому переезд ничего
-/// не стоит соседям, попадание всё время следует за картинкой, а прерванный
-/// переезд продолжается с того места, где его застали.
+/// Works by the FLIP rule: the element already stands where the layout decided,
+/// but is drawn from its old place and travels to a zero offset. What moves
+/// is not the layout but the draw-time offset — so the travel costs the
+/// neighbours nothing, hit testing follows the picture all the time, and an
+/// interrupted travel continues from wherever it was caught.
 ///
-/// Отсюда же следует, что контролам ничего не нужно знать про анимацию:
-/// раскрытие узла дерева, перестроение WrapPanel при смене ширины окна
-/// и вставка в DragList — это всё смена позиции в Arrange, то есть одно
-/// и то же событие.
+/// It also follows that controls need to know nothing about animation:
+/// expanding a tree node, WrapPanel reflowing when the window width changes,
+/// and inserting into a DragList are all a change of position in Arrange,
+/// that is, one and the same event.
 /// </remarks>
 public sealed class LayoutTransition
 {
@@ -47,12 +47,12 @@ public sealed class LayoutTransition
 
     public Func<float, float> Easing { get; }
 
-    /// <summary>Постоянная длительность, сколько бы элемент ни ехал.</summary>
+    /// <summary>A constant duration, however far the element travels.</summary>
     /// <remarks>
-    /// Годится, когда расстояния примерно одинаковы. Если они разные,
-    /// постоянная длительность врёт: строка, уехавшая на высоту одной
-    /// строки, ползёт те же две десятых секунды, что и уехавшая через
-    /// весь экран, и выглядит это неестественно медленно.
+    /// Suitable when distances are roughly equal. When they differ,
+    /// a constant duration lies: a row that moved by one row's height
+    /// crawls for the same two tenths of a second as one that crossed
+    /// the whole screen, and it looks unnaturally slow.
     /// </remarks>
     public static LayoutTransition Ease(TimeSpan duration, Func<float, float>? easing = null) =>
         new(duration, easing ?? Animation.Easing.EaseOut);
@@ -60,9 +60,9 @@ public sealed class LayoutTransition
     public static LayoutTransition Ease(int durationMs, Func<float, float>? easing = null) =>
         Ease(TimeSpan.FromMilliseconds(durationMs), easing);
 
-    /// <summary>Длительность по расстоянию: чем дальше ехать, тем дольше.
-    /// Границы нужны с обеих сторон — иначе короткий переезд станет
-    /// мельканием, а длинный будет тянуться.</summary>
+    /// <summary>Duration by distance: the farther to travel, the longer it takes.
+    /// Bounds are needed on both sides — otherwise a short move becomes
+    /// a flicker and a long one drags on.</summary>
     public static LayoutTransition Speed(
         float pixelsPerSecond = 1600f,
         int minDurationMs = 90,
@@ -74,11 +74,11 @@ public sealed class LayoutTransition
             TimeSpan.FromMilliseconds(maxDurationMs),
             easing ?? Animation.Easing.EaseOut);
 
-    /// <summary>Правило для одной оси с учётом того, сколько по ней ехать.</summary>
+    /// <summary>The rule for one axis, taking into account how far to travel along it.</summary>
     internal Transition For(StyledProperty<float> property, float distance)
     {
-        // постоянную длительность готовим один раз: переезд случается
-        // на каждой перестройке списка, и плодить объекты на строку незачем
+        // the constant duration is prepared once: travel happens on every
+        // list rearrangement, and there is no point creating objects per row
         if (_fixedDuration is not null)
             return ReferenceEquals(property, UIElement.TranslateXProperty) ? _fixedX! : _fixedY!;
 
