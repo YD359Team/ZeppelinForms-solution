@@ -684,7 +684,7 @@ public class ExampleMainForm : Form
             };
 
         treeView.Children.OfType<VirtualizingStackPanel>().Single()
-            .ChildrenLayoutTransition = LayoutTransition.Ease(180);
+            .ChildrenLayoutTransition = LayoutTransition.Speed();
 
         return new StackPanel
         {

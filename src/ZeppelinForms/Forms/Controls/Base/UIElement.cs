@@ -1365,19 +1365,20 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement
         float dx = previous.X - placed.X;
         float dy = previous.Y - placed.Y;
 
-        // незакончившийся прошлый переезд складывается с новым: иначе
-        // строка, которую двигают дважды подряд, дёрнется на середине
+        // длительность может зависеть от того, сколько ехать: переезд
+        // на одну строку и переезд через весь экран за одно и то же время
+        // выглядят по-разному неправильно
         if (dx != 0f)
             StartTransition(
                 TranslateXProperty,
                 PresentedOrTarget(TranslateXProperty, TranslateX) + dx,
-                rule.ForTranslateX);
+                rule.For(TranslateXProperty, dx));
 
         if (dy != 0f)
             StartTransition(
                 TranslateYProperty,
                 PresentedOrTarget(TranslateYProperty, TranslateY) + dy,
-                rule.ForTranslateY);
+                rule.For(TranslateYProperty, dy));
     }
 
     // ===== Measure/Arrange =====
