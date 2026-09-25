@@ -34,11 +34,12 @@ public static class FileDialog
 
     private static string[] Run(Form owner, FileDialogOptions? options, FileDialogMode mode)
     {
-        // синхронный путь системному выбору не подходит: и в браузере,
-        // и в системных диалогах выбор приходит обратным вызовом
+        // the synchronous path does not fit the system picker: both in the browser
+        // and in system dialogs the choice arrives through a callback
         if (FilePicker.Current is not null)
             throw new NotSupportedException(
-                "На этой платформе выбор файла только асинхронный: используйте OpenFileAsync, SaveFileAsync или SelectFolderAsync.");
+                "File picking on this platform is asynchronous only: use OpenFileAsync, " +
+                "OpenFilesAsync, SaveFileAsync or SelectFolderAsync.");
 
         var dialog = new FileDialogForm(options ?? new FileDialogOptions(), mode);
 
@@ -49,7 +50,7 @@ public static class FileDialog
     {
         FileDialogOptions settings = options ?? new FileDialogOptions();
 
-        // системный выбор, если платформа его предоставила
+        // the system picker, if the platform provides one
         if (FilePicker.Current is { } picker)
             return await PickAsync(picker, settings, mode);
 
@@ -73,15 +74,20 @@ public static class FileDialog
         static string[] Single(string? path) => path is null ? [] : [path];
     }
 
-    private static FileDialogOptions WithMultiple(FileDialogOptions? options, bool multiple)
+    // a copy rather than the caller's object: the same options are often kept
+    // in a field and reused, and OpenFiles followed by OpenFile would otherwise
+    // leave AllowMultiple in whatever state the last call put it
+    private static FileDialogOptions WithMultiple(FileDialogOptions? options, bool multiple) => new()
     {
-        FileDialogOptions settings = options ?? new FileDialogOptions();
-        settings.AllowMultiple = multiple;
-        return settings;
-    }
+        Title = options?.Title,
+        InitialDirectory = options?.InitialDirectory,
+        FileName = options?.FileName,
+        Filters = options?.Filters ?? [],
+        AllowMultiple = multiple,
+    };
 
-    // пустой массив вместо null: «отменили» и «ничего не выбрали» —
-    // для вызывающего кода одно и то же
+    // an empty array instead of null: "cancelled" and "nothing selected"
+    // are the same thing to the caller
     private static string[] Unwrap(DialogResult<string[]> result) =>
         result.IsAccepted && result.Value is { } files ? files : [];
 

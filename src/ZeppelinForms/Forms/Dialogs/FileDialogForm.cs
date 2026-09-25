@@ -8,9 +8,9 @@ using ZeppelinForms.Forms.Enums;
 namespace ZeppelinForms.Forms.Dialogs;
 
 /// <summary>
-/// Обзор файловой системы на контролах самого фреймворка. Работает на всех
-/// платформах одинаково и не требует ни COM, ни портала D-Bus — ценой того,
-/// что выглядит не как системный диалог.
+/// File system browsing built on the framework's own controls. Works the same
+/// on all platforms and needs neither COM nor the D-Bus portal — at the cost
+/// of not looking like the system dialog.
 /// </summary>
 internal sealed class FileDialogForm : Form
 {
@@ -23,8 +23,8 @@ internal sealed class FileDialogForm : Form
     private readonly ComboBox _filter = new();
     private readonly Button _accept = new();
 
-    // соответствие строк списка настоящим путям: в ListBox лежат
-    // только отображаемые имена
+    // maps list rows to real paths: the ListBox holds
+    // only the display names
     private readonly List<Entry> _entries = [];
 
     private string _directory = string.Empty;
@@ -70,8 +70,8 @@ internal sealed class FileDialogForm : Form
         foreach (FileFilter filter in _options.Filters)
             yield return filter;
 
-        // «все файлы» нужен всегда: иначе из диалога не выбраться,
-        // если ни один фильтр не подошёл
+        // "all files" is always needed: otherwise there is no way out
+        // of the dialog if none of the filters fit
         yield return new FileFilter("Все файлы");
     }
 
@@ -110,7 +110,7 @@ internal sealed class FileDialogForm : Form
             Docking = Dock.Bottom,
         };
 
-        // при выборе папки ни имя, ни фильтр не нужны
+        // when picking a folder, neither the name nor the filter is needed
         if (_mode != FileDialogMode.Folder)
         {
             _name.FlexGrow = 1;
@@ -124,13 +124,17 @@ internal sealed class FileDialogForm : Form
         _list.OverflowY = Overflow.Auto;
         _list.Margin = new Thickness(12, 0);
 
-        DockPanel root = new();
+        // the renderer clears the window to white and knows nothing about
+        // the theme, so the root paints the theme background itself —
+        // otherwise the path label, which takes the theme text color,
+        // ends up light-on-white in the dark theme
+        DockPanel root = new() { Background = App.Theme.Colors.Background };
         root.Children.AddRange([top, bottom, _list]);
 
         return root;
     }
 
-    // ===== навигация =====
+    // ===== navigation =====
 
     private void Navigate(string directory)
     {
@@ -173,9 +177,9 @@ internal sealed class FileDialogForm : Form
         }
     }
 
-    /// <summary>Перечисление с отсечением недоступного: системные папки
-    /// вроде «System Volume Information» кидают на первом же обращении,
-    /// и диалог не должен из-за них падать.</summary>
+    /// <summary>Enumeration that cuts off whatever is inaccessible: system folders
+    /// like "System Volume Information" throw on the very first access,
+    /// and the dialog must not crash because of them.</summary>
     private IEnumerable<string> Enumerate(Func<string, IEnumerable<string>> source)
     {
         List<string> items;
@@ -194,7 +198,7 @@ internal sealed class FileDialogForm : Form
         return items;
     }
 
-    // ===== выбор =====
+    // ===== selection =====
 
     private void OnSelectionChanged()
     {
@@ -206,30 +210,30 @@ internal sealed class FileDialogForm : Form
             _name.Text = Path.GetFileName(entry.Path);
     }
 
-    /// <summary>Двойной клик или кнопка: в папку — войти, файл — вернуть.</summary>
+    /// <summary>Double click or the button: a folder — enter it, a file — return it.</summary>
     private void Activate()
     {
         Entry? current = _list.SelectedIndex >= 0 && _list.SelectedIndex < _entries.Count
             ? _entries[_list.SelectedIndex]
             : null;
 
-        // выбор папки: берём выделенную, а если ничего не выделено — текущую
+        // picking a folder: take the selected one, or the current one if nothing is selected
         if (_mode == FileDialogMode.Folder)
         {
             Accept(new[] { current?.Path ?? _directory });
             return;
         }
 
-        // вход в папку важнее всего остального: двойной клик по ней
-        // не должен пытаться что-то вернуть
+        // entering a folder takes priority over everything else:
+        // a double click on it must not try to return anything
         if (current is { IsDirectory: true } directory)
         {
             Navigate(directory.Path);
             return;
         }
 
-        // несколько файлов проверяем до работы с _name: там лежит только
-        // последний выбранный, и к остальным он отношения не имеет
+        // multiple files are checked before touching _name: it holds only
+        // the last selected one and has nothing to do with the rest
         if (_mode == FileDialogMode.Open && _options.AllowMultiple)
         {
             string[] files = [.. _list.SelectedIndices
@@ -247,7 +251,8 @@ internal sealed class FileDialogForm : Form
 
         string full = Path.Combine(_directory, name);
 
-        // открывать несуществующее нечего, а сохранять — обычный случай
+        // there is nothing to open if the file does not exist,
+        // while saving to a new one is the usual case
         if (_mode == FileDialogMode.Open && !File.Exists(full)) return;
 
         if (_mode == FileDialogMode.Save && File.Exists(full) &&

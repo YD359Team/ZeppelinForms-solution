@@ -2,7 +2,7 @@
 
 public static class InputBox
 {
-    /// <summary>Запрос строки. Возвращает null, если отменили.</summary>
+    /// <summary>Asks for a string. Returns null if cancelled.</summary>
     public static string? Show(
         Form owner,
         string prompt,
@@ -27,7 +27,7 @@ public static class InputBox
         return Unwrap(await dialog.ShowDialogAsync<string>(owner));
     }
 
-    /// <summary>Запрос числа. Возвращает null, если отменили или ввели не число.</summary>
+    /// <summary>Asks for a number. Returns null if cancelled or if what was entered is not a number.</summary>
     public static decimal? ShowNumber(
         Form owner,
         string prompt,

@@ -37,6 +37,11 @@ internal sealed class NumberBoxForm : Form
 
         Content = new DockPanel
         {
+            // the renderer clears the window to white and knows nothing about
+            // the theme, so the root paints the theme background itself —
+            // otherwise the prompt, which takes the theme text color,
+            // ends up light-on-white in the dark theme
+            Background = App.Theme.Colors.Background,
             Padding = new Thickness(16),
             Children =
             {
@@ -57,7 +62,6 @@ internal sealed class NumberBoxForm : Form
                         new Label
                         {
                             Text = prompt,
-                            TextColor = Colors.Black,
                             HorizontalContentAlign = HorizontalContentAlignment.Left,
                             HorizontalAlignment = HorizontalAlignment.Stretch,
                         },

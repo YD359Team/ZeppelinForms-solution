@@ -4,10 +4,10 @@ public sealed class FileDialogOptions
 {
     public string? Title { get; set; }
 
-    /// <summary>С какой папки открыться. Пусто — папка документов.</summary>
+    /// <summary>The folder to open in. Empty — the Documents folder.</summary>
     public string? InitialDirectory { get; set; }
 
-    /// <summary>Предложенное имя. Осмысленно только при сохранении.</summary>
+    /// <summary>The suggested name. Meaningful only when saving.</summary>
     public string? FileName { get; set; }
 
     public List<FileFilter> Filters { get; init; } = [];

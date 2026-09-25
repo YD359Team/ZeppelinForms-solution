@@ -2,8 +2,8 @@
 
 public static class MessageBox
 {
-    /// <summary>Синхронный показ. Требует платформы с вложенным циклом;
-    /// в браузере используйте ShowAsync.</summary>
+    /// <summary>Synchronous display. Requires a platform with a nested loop;
+    /// in the browser use ShowAsync.</summary>
     public static MessageBoxResult Show(
         Form owner,
         string message,
@@ -40,7 +40,7 @@ public static class MessageBox
     public static Task ErrorAsync(Form owner, string message, string title = "Ошибка") =>
         ShowAsync(owner, message, title, MessageBoxButtons.Ok, MessageBoxIcon.Error);
 
-    // закрытие крестиком и отмена — для вызывающего кода одно и то же
+    // closing with the window's close button and cancelling are the same thing to the caller
     private static MessageBoxResult Unwrap(DialogResult<MessageBoxResult> result) =>
         result.IsAccepted ? result.Value : MessageBoxResult.Cancel;
 }

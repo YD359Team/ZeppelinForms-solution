@@ -1,26 +1,26 @@
 ﻿namespace ZeppelinForms.Forms.Dialogs;
 
 /// <summary>
-/// Системный выбор файлов. Там, где он есть, FileDialog обращается к нему
-/// вместо собственного обозревателя: в браузере локальной файловой системы
-/// у приложения нет, и обходить её папки бессмысленно.
+/// The system file picker. Where it exists, FileDialog uses it instead of
+/// its own browser: in the browser the application has no local file system,
+/// and walking its folders makes no sense.
 /// </summary>
 public interface IFilePicker
 {
-    /// <summary>Выбранные пути. Пустой массив — отменили.</summary>
+    /// <summary>The selected paths. An empty array — cancelled.</summary>
     Task<string[]> OpenAsync(FileDialogOptions options);
 
-    /// <summary>Путь для сохранения или null, если отменили.</summary>
+    /// <summary>The path to save to, or null if cancelled.</summary>
     Task<string?> SaveAsync(FileDialogOptions options);
 
-    /// <summary>Выбранная папка или null. Поддерживается не везде —
-    /// в браузере выбора папки как такового нет.</summary>
+    /// <summary>The selected folder, or null. Not supported everywhere —
+    /// the browser has no folder picking as such.</summary>
     Task<string?> SelectFolderAsync(FileDialogOptions options);
 }
 
 public static class FilePicker
 {
-    /// <summary>null — обходимся встроенной формой-обозревателем.
-    /// Ставится платформой при запуске.</summary>
+    /// <summary>null — we make do with the built-in browser form.
+    /// Set by the platform at startup.</summary>
     public static IFilePicker? Current { get; set; }
 }
