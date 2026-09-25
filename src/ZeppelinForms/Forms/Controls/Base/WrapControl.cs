@@ -31,15 +31,18 @@ public abstract class WrapControl : UIElement
             {
                 value.Parent = this;
                 owner?.AttachTree(value);
-                // содержимое поменялось — размер элемента считается по нему
-                Invalidate();
             }
+
+            // the content changed — the element's size is computed from it.
+            // This applies to removing the child as well: without it a container
+            // whose child was set to null kept the size of the departed content
+            Invalidate();
         }
     }
 
     public WrapControl()
     {
-        
+
     }
 
     public WrapControl(UIElement child)
@@ -83,19 +86,18 @@ public abstract class WrapControl : UIElement
         return finalSize;
     }
 
-    // Хук для наследников вроде ZoomBox — применить свою трансформацию
-    // (масштаб, поворот и т.д.) к канвасу непосредственно перед отрисовкой
-    // ребёнка. По умолчанию ничего не делает.
+    // A hook for derived classes like ZoomBox — apply their own transform
+    // (scale, rotation, etc.) to the canvas right before the child is drawn.
+    // Does nothing by default.
     protected internal virtual void ApplyChildTransform(Graphics g) { }
 
-    /// <summary>Содержимое рисуется с преобразованием, а не просто сдвигом.
-    /// Обход дерева тогда не может отсекать поддерево по прямоугольникам:
-    /// в абсолютных координатах ребёнок окажется не там, где сложение
-    /// смещений его ожидает.</summary>
+    /// <summary>The content is drawn with a transform rather than a plain offset.
+    /// The tree walk then cannot cull the subtree by rectangles: in absolute
+    /// coordinates the child would not be where adding up offsets expects it.</summary>
     protected internal virtual bool TransformsChild => false;
 
-    // Зеркало ApplyChildTransform для хит-тестинга: если ребёнок рисуется
-    // трансформированным, координаты мыши перед проверкой попадания в
-    // ребёнка нужно преобразовать так же (обратным преобразованием).
+    // The mirror of ApplyChildTransform for hit testing: if the child is drawn
+    // transformed, the mouse coordinates must be transformed the same way
+    // (with the inverse transform) before hit testing the child.
     protected internal virtual Point TransformPointToChild(Point point) => point;
 }

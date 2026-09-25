@@ -12,7 +12,7 @@ using ZeppelinForms.Input.Mouse;
 namespace ZeppelinForms.Forms.Controls.Base;
 
 /// <summary>
-/// Панель, чьи Children генерируются из коллекции данных Items.
+/// A panel whose Children are generated from the Items data collection.
 /// </summary>
 public class ItemsControl : DecoratedPanel
 {
@@ -20,7 +20,7 @@ public class ItemsControl : DecoratedPanel
 
     public ObservableCollection<object> Items { get; } = [];
 
-    /// <summary>Как превратить элемент данных в контрол. Если null — используется ToString().</summary>
+    /// <summary>How to turn a data item into a control. If null, ToString() is used.</summary>
     public Func<object, UIElement>? ItemTemplate { get; set; }
 
     public ItemsControl()
@@ -52,7 +52,7 @@ public class ItemsControl : DecoratedPanel
                 break;
 
             default:
-                // Reset не сообщает, что именно убрали — только полная пересборка
+                // Reset does not say what exactly was removed — only a full rebuild
                 RegenerateContainers();
                 return;
         }
@@ -66,10 +66,9 @@ public class ItemsControl : DecoratedPanel
 
         for (int i = 0; i < items.Count; i++)
         {
-            object? item = items[i];
-            if (item is null) continue;
-
-            UIElement container = GetOrCreateContainer(item);
+            // null is not skipped: every item must have its row,
+            // see GetOrCreateContainer
+            UIElement container = GetOrCreateContainer(items[i]);
             Children.Insert(Math.Clamp(index + i, 0, Children.Count), container);
         }
     }
@@ -81,14 +80,15 @@ public class ItemsControl : DecoratedPanel
             int position = index + i;
             if (position < 0 || position >= Children.Count) continue;
 
+            // the cache entry leaves only together with its own container:
+            // the same object may be in Items twice, and its other row stays
+            if (items is not null && i < items.Count && items[i] is { } item &&
+                _containers.TryGetValue(item, out UIElement? cached) &&
+                ReferenceEquals(cached, Children[position]))
+                _containers.Remove(item);
+
             Children.RemoveAt(position);
         }
-
-        if (items is null) return;
-
-        foreach (object? item in items)
-            if (item is not null)
-                _containers.Remove(item);
     }
 
     private void MoveContainer(int from, int to)
@@ -100,15 +100,30 @@ public class ItemsControl : DecoratedPanel
         Children.Insert(Math.Clamp(to, 0, Children.Count), container);
     }
 
-    /// <summary>Контейнер на элемент данных создаётся один раз: при переносе
-    /// или замене соседей строка сохраняет своё состояние.</summary>
-    private UIElement GetOrCreateContainer(object item)
+    /// <summary>A container per data item is created once: when neighbours
+    /// are moved or replaced, a row keeps its state.</summary>
+    /// <remarks>
+    /// A null item still gets a row: containers must stay aligned with Items
+    /// by index, otherwise every later Remove or Move by index hits a neighbour.
+    /// Such a row is not cached — a dictionary key cannot be null — and does not
+    /// go to ItemTemplate, whose signature promises a non-null item.
+    ///
+    /// The same object may be in Items more than once — interned strings are
+    /// the usual case — and one element cannot stand in the panel twice. So the
+    /// cached container is reused only while it is not shown here; otherwise
+    /// the repeated item gets a fresh container of its own, and only the first
+    /// one stays in the cache.
+    /// </remarks>
+    private UIElement GetOrCreateContainer(object? item)
     {
-        if (_containers.TryGetValue(item, out UIElement? existing))
+        if (item is null) return CreateTextContainer(string.Empty);
+
+        if (_containers.TryGetValue(item, out UIElement? existing) &&
+            !ReferenceEquals(existing.Parent, this))
             return existing;
 
         UIElement created = CreateContainer(item);
-        _containers[item] = created;
+        _containers.TryAdd(item, created);
         return created;
     }
 
@@ -119,7 +134,7 @@ public class ItemsControl : DecoratedPanel
 
         _containers.Clear();
 
-        foreach (object item in Items)
+        foreach (object? item in Items)
             Children.Add(GetOrCreateContainer(item));
 
         Invalidate();
@@ -133,15 +148,18 @@ public class ItemsControl : DecoratedPanel
         if (item is UIElement element)
             return element;
 
-        return new Label
-        {
-            Text = item?.ToString() ?? string.Empty,
-            TextColor = Colors.Black,
-            HorizontalContentAlign = HorizontalContentAlignment.Left,
-            VerticalContentAlign = VerticalContentAlignment.Center,
-            Padding = new Thickness(6, 3),
-        };
+        return CreateTextContainer(item?.ToString() ?? string.Empty);
     }
+
+    // the text color is not set here: it comes from the theme, and a hard-coded
+    // black made rows invisible on a dark background
+    private static Label CreateTextContainer(string text) => new()
+    {
+        Text = text,
+        HorizontalContentAlign = HorizontalContentAlignment.Left,
+        VerticalContentAlign = VerticalContentAlignment.Center,
+        Padding = new Thickness(6, 3),
+    };
 
     protected override Size MeasureContentOverride(Size availableSize)
     {

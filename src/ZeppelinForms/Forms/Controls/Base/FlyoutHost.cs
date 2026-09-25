@@ -3,8 +3,8 @@
 namespace ZeppelinForms.Forms.Controls.Base;
 
 /// <summary>
-/// Помощник для контролов, открывающих флаут: следит за его закрытием
-/// извне, чтобы контрол не считал закрытый флаут открытым.
+/// A helper for controls that open a flyout: tracks it being closed from outside,
+/// so that the control does not consider a closed flyout open.
 /// </summary>
 public sealed class FlyoutHost
 {
@@ -16,7 +16,7 @@ public sealed class FlyoutHost
 
     public bool IsOpen => _content is not null;
 
-    /// <summary>Вызывается, когда флаут закрылся любым способом.</summary>
+    /// <summary>Raised when the flyout has closed in any way.</summary>
     public event EventHandler? Closed;
 
     public bool Toggle(Func<UIElement> createContent, FlyoutPlacement placement = FlyoutPlacement.Bottom)
@@ -41,7 +41,7 @@ public sealed class FlyoutHost
         _form = form;
         _content = content;
 
-        // подписка живёт ровно столько, сколько открыт флаут
+        // the subscription lives exactly as long as the flyout is open
         form.FlyoutClosed += OnFlyoutClosed;
         form.ShowFlyout(_owner, content, placement);
     }

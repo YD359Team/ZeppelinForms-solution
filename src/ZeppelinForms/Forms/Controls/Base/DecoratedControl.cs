@@ -5,8 +5,8 @@ using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls.Base;
 
-/// <summary>Контрол с фоном, рамкой и скруглением. Рисует оформление сам,
-/// наследники добавляют только содержимое.</summary>
+/// <summary>A control with a background, a border and a corner radius. Draws the
+/// decoration itself; derived classes add only the content.</summary>
 public abstract class DecoratedControl : UnitControl
 {
     public sealed override void Draw(Graphics g)
@@ -17,7 +17,7 @@ public abstract class DecoratedControl : UnitControl
 
         DrawContent(g);
 
-        // рамка поверх содержимого: иначе длинный текст её перекроет
+        // the border goes on top of the content: otherwise long text would cover it
         if (BorderWidth > 0 && CurrentBorderColor.A > 0)
             g.DrawRoundRectangle(bounds, CornerRadius, CurrentBorderColor, BorderWidth);
 
@@ -26,6 +26,6 @@ public abstract class DecoratedControl : UnitControl
 
     protected abstract void DrawContent(Graphics g);
 
-    /// <summary>Поверх рамки — кольцо фокуса, индикаторы, полосы.</summary>
+    /// <summary>On top of the border — focus ring, indicators, bars.</summary>
     protected virtual void DrawDecoration(Graphics g) { }
 }

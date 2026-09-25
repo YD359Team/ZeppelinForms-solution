@@ -3,23 +3,23 @@
 namespace ZeppelinForms.Forms.Controls.Base;
 
 // Base/TextInputControl.cs
-/// <summary>Основа полей ввода: мигающая каретка и её жизненный цикл.
-/// Логика редактирования — за наследниками.</summary>
+/// <summary>The basis of input fields: the blinking caret and its life cycle.
+/// The editing logic belongs to derived classes.</summary>
 /// <remarks>
-/// Состояние каретки не хранится, а вычисляется из времени: фаза — это
-/// остаток от деления прожитого с последнего сброса на период. Своего
-/// таймера у каретки поэтому нет, а будильник общих часов нужен только
-/// чтобы перерисовать её в момент переключения.
+/// The caret state is not stored but computed from time: the phase is the
+/// remainder of dividing the time elapsed since the last reset by the period.
+/// That is why the caret has no timer of its own, and the shared clock's
+/// wake-up is needed only to redraw it at the moment it flips.
 ///
-/// Раньше состояние хранилось и переключалось таймером из пула потоков.
-/// Отложенный тик, добравшийся до очереди UI после потери фокуса, включал
-/// каретку обратно, и она оставалась на нефокусном поле.
+/// Previously the state was stored and toggled by a thread-pool timer.
+/// A deferred tick that reached the UI queue after focus was lost turned
+/// the caret back on, and it stayed on an unfocused field.
 /// </remarks>
 public abstract class TextInputControl : InteractiveControl
 {
     private const double BlinkIntervalMs = 530;
 
-    /// <summary>Время последнего сброса мигания по часам формы.</summary>
+    /// <summary>Time of the last blink reset by the form's clock.</summary>
     private TimeSpan _blinkStart;
 
     private IDisposable? _blinkWake;
@@ -30,8 +30,8 @@ public abstract class TextInputControl : InteractiveControl
         {
             if (!IsFocused) return false;
 
-            // часов нет — нет и кадров, в которых мигать: показываем каретку
-            // постоянно, иначе она пропадёт насовсем
+            // no clock — no frames to blink in either: show the caret
+            // permanently, otherwise it would vanish for good
             if (FindOwner() is not { } owner) return true;
 
             double elapsed = (owner.Clock.Now - _blinkStart).TotalMilliseconds;
@@ -57,9 +57,9 @@ public abstract class TextInputControl : InteractiveControl
         StopBlink();
     }
 
-    /// <summary>Каретка обязана быть видна сразу после ввода, перемещения
-    /// или выделения — иначе курсор пропадает именно в тот момент,
-    /// когда на него смотрят.</summary>
+    /// <summary>The caret must be visible right after typing, moving or
+    /// selecting — otherwise the cursor disappears exactly at the moment
+    /// someone is looking at it.</summary>
     protected void ResetCaretBlink()
     {
         if (!IsFocused) return;
@@ -86,7 +86,7 @@ public abstract class TextInputControl : InteractiveControl
 
         _blinkWake = owner.Clock.Schedule(TimeSpan.FromMilliseconds(untilFlip), () =>
         {
-            // фокус мог уйти, пока будильник стоял в очереди
+            // focus may have left while the wake-up was waiting in the queue
             if (!IsFocused)
             {
                 StopBlink();
@@ -106,9 +106,9 @@ public abstract class TextInputControl : InteractiveControl
 
     protected override void OnDetached()
     {
-        // не Dispose: контрол могут вернуть в дерево — при переключении
-        // страницы, пересборке панели, перетаскивании. Будильник снимаем,
-        // а фаза восстановится сама при следующем получении фокуса
+        // not Dispose: the control may be returned to the tree — on a page
+        // switch, a panel rebuild, a drag. The wake-up is removed, and the phase
+        // restores itself the next time focus is gained
         StopBlink();
     }
 }

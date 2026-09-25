@@ -5,7 +5,7 @@ using ZeppelinForms.Forms.Styling;
 namespace ZeppelinForms.Forms.Controls.Base;
 
 // Base/InteractiveControl.cs
-/// <summary>Оформленный контрол, участвующий в фокусе и вводе.</summary>
+/// <summary>A decorated control that takes part in focus and input.</summary>
 public abstract partial class InteractiveControl : DecoratedControl, IInputElement
 {
     public bool IsFocused { get; set; }
@@ -16,8 +16,8 @@ public abstract partial class InteractiveControl : DecoratedControl, IInputEleme
     public partial Color FocusBorderColor { get; set; }
     private static Color FocusBorderColorDefault => Colors.Transparent;
 
-    // единое поведение: рамка в фокусе меняется у всех одинаково,
-    // а не «где-то забыли»
+    // uniform behavior: the focused border changes the same way for everyone,
+    // rather than "somewhere it was forgotten"
     protected override Color CurrentBorderColor =>
         IsFocused && FocusBorderColor.A > 0 ? FocusBorderColor : BorderColor;
 

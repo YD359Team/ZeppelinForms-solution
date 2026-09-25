@@ -7,8 +7,8 @@ public abstract class UnitControl : UIElement
 {
     protected UnitControl()
     {
-        // контейнеры заполняют выделенное место, а конечные контролы —
-        // нет: кнопка в ячейке Grid должна остаться кнопкой
+        // containers fill the space they are given, leaf controls don't:
+        // a button in a Grid cell must stay a button
         SetControlDefault(HorizontalAlignmentProperty, Enums.HorizontalAlignment.Center);
         SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Center);
     }

@@ -5,8 +5,8 @@ using ZeppelinForms.Forms.Interfaces;
 namespace ZeppelinForms.Forms.Controls.Base;
 
 /// <summary>
-/// Панель с фоном, рамкой и скруглением. Оформление рисует сама,
-/// наследники добавляют только своё содержимое.
+/// A panel with a background, a border and a corner radius. Draws the decoration
+/// itself; derived classes add only their own content.
 /// </summary>
 public abstract class DecoratedPanel : PanelControl
 {
@@ -16,24 +16,24 @@ public abstract class DecoratedPanel : PanelControl
 
         FillBackground(g, bounds);
 
-        // содержимое панели рисуется до потомков: рендерер вызывает
-        // Draw, а затем обходит Children
+        // the panel's content is drawn before the children: the renderer calls
+        // Draw and then walks Children
         DrawContent(g);
     }
 
-    /// <summary>Своя отрисовка под потомками — подсветка строк, сетка, направляющие.</summary>
+    /// <summary>Own drawing under the children — row highlighting, a grid, guides.</summary>
     protected virtual void DrawContent(Graphics g) { }
 
     /// <summary>
-    /// Рамка и всё, что поверх потомков. DrawOverlay вызывается после
-    /// обхода Children и вне их отсечения.
+    /// The border and everything on top of the children. DrawOverlay is called
+    /// after walking Children and outside their clip.
     /// </summary>
     protected internal override void DrawOverlay(Graphics g)
     {
         if (BorderWidth > 0 && CurrentBorderColor.A > 0)
             g.DrawRoundRectangle(LocalBounds, CornerRadius, CurrentBorderColor, BorderWidth);
 
-        // полосы прокрутки из PanelControl
+        // scrollbars from PanelControl
         base.DrawOverlay(g);
 
         DrawDecoration(g);

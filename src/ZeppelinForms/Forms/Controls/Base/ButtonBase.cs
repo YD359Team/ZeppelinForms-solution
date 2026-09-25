@@ -8,21 +8,21 @@ using ZeppelinForms.Input.Mouse;
 namespace ZeppelinForms.Forms.Controls.Base;
 
 /// <summary>
-/// Общая основа нажимаемых контролов: состояния, цвета под каждое
-/// состояние и волна нажатия. Содержимое рисуют наследники.
+/// The common basis of pressable controls: states, a color for each state
+/// and the press ripple. The content is drawn by derived classes.
 /// </summary>
 public abstract partial class ButtonBase : InteractiveControl
 {
     private readonly RippleAnimation _ripple;
 
-    /// <summary>Показывать расходящуюся волну от точки нажатия.</summary>
+    /// <summary>Show a ripple spreading from the press point.</summary>
     [Styled(Category = "Button")]
     public partial bool RippleEnabled { get; set; }
 
     private static bool RippleEnabledDefault => true;
 
-    // у волны нет своего поля на кнопке — значение хранит RippleAnimation,
-    // поэтому здесь ручная перегрузка SetValue без ref
+    // the ripple has no field of its own on the button — the value is stored
+    // by RippleAnimation, hence the manual SetValue overload without ref
     public static readonly StyledProperty<Color> RippleColorProperty =
         StyledProperty<Color>.Register<ButtonBase>(
             nameof(RippleColor),
@@ -69,7 +69,7 @@ public abstract partial class ButtonBase : InteractiveControl
     public partial bool ShowFocusRing { get; set; }
     private static bool ShowFocusRingDefault => true;
 
-    /// <summary>Залипшее состояние — для ToggleButton и подобных.</summary>
+    /// <summary>The latched state — for ToggleButton and the like.</summary>
     protected virtual bool IsCheckedState => false;
 
     protected ButtonBase()
@@ -82,8 +82,8 @@ public abstract partial class ButtonBase : InteractiveControl
         SetControlDefault(BorderWidthProperty, 1f);
     }
 
-    /// <summary>Цвет подложки под текущее состояние. Порядок проверок
-    /// определяет приоритет: выключено важнее нажатия, нажатие важнее наведения.</summary>
+    /// <summary>The backdrop color for the current state. The order of checks
+    /// defines priority: disabled beats pressed, pressed beats hover.</summary>
     protected override Color CurrentBackground
     {
         get
@@ -91,8 +91,8 @@ public abstract partial class ButtonBase : InteractiveControl
             if (!IsEnabled && DisabledBackgroundColor.A > 0)
                 return DisabledBackgroundColor;
 
-            // для залипшего состояния нажатие и наведение — свои оттенки,
-            // иначе кнопка на мгновение перекрашивается в цвет выключенного
+            // the latched state has its own shades for pressed and hover,
+            // otherwise the button briefly repaints in the color of the unchecked state
             if (IsCheckedState)
             {
                 if (IsPressed && CheckedPressedBackgroundColor.A > 0) return CheckedPressedBackgroundColor;
@@ -108,9 +108,9 @@ public abstract partial class ButtonBase : InteractiveControl
         }
     }
 
-    /// <summary>Фокус у кнопки показывает кольцо в DrawDecoration.
-    /// Подменять ещё и рамку — двойной сигнал: получаются два кольца
-    /// в двух пикселях друг от друга.</summary>
+    /// <summary>On a button, focus is shown by the ring in DrawDecoration.
+    /// Swapping the border as well is a double signal: you get two rings
+    /// two pixels apart.</summary>
     protected override Color CurrentBorderColor => BorderColor;
 
     protected virtual Color CurrentTextColor => IsEnabled ? TextColor : DisabledTextColor;
@@ -124,8 +124,8 @@ public abstract partial class ButtonBase : InteractiveControl
     }
 
     /// <summary>
-    /// Волна рисуется первой, до содержимого: она должна лежать
-    /// на подложке и под текстом.
+    /// The ripple is drawn first, before the content: it must lie
+    /// on the backdrop and under the text.
     /// </summary>
     protected sealed override void DrawContent(Graphics g)
     {
@@ -134,7 +134,7 @@ public abstract partial class ButtonBase : InteractiveControl
         DrawButtonContent(g);
     }
 
-    /// <summary>Содержимое кнопки поверх подложки и волны.</summary>
+    /// <summary>The button content on top of the backdrop and the ripple.</summary>
     protected abstract void DrawButtonContent(Graphics g);
 
     protected override void DrawDecoration(Graphics g)
@@ -143,7 +143,7 @@ public abstract partial class ButtonBase : InteractiveControl
 
         Rectangle bounds = LocalBounds;
 
-        // кольцо чуть внутри границ, иначе обрежется клипом родителя
+        // the ring sits slightly inside the bounds, otherwise the parent's clip cuts it off
         var ring = new Rectangle(
             new Point(bounds.X + 2, bounds.Y + 2),
             new Size(Math.Max(0, bounds.Width - 4), Math.Max(0, bounds.Height - 4)));
@@ -159,6 +159,6 @@ public abstract partial class ButtonBase : InteractiveControl
         e.Handled = true;
     }
 
-    /// <summary>Контрол нажали — клик, пробел или Enter.</summary>
+    /// <summary>The control was pressed — click, Space or Enter.</summary>
     protected virtual void OnActivated() { }
 }

@@ -5,14 +5,14 @@ using ZeppelinForms.Forms.Interfaces;
 namespace ZeppelinForms.Forms.Controls.Base;
 
 /// <summary>
-/// Контейнер с одним ребёнком, рисующий фон, рамку и скругление.
-/// Порядок как у панели: своё оформление до потомка, рамка после.
+/// A single-child container that draws a background, a border and a corner radius.
+/// Same order as a panel: its own decoration before the child, the border after.
 /// </summary>
 public abstract class DecoratedWrapControl : WrapControl
 {
     protected DecoratedWrapControl() : base()
     {
-        
+
     }
 
     protected DecoratedWrapControl(UIElement child) : base(child)
@@ -27,11 +27,11 @@ public abstract class DecoratedWrapControl : WrapControl
         DrawContent(g);
     }
 
-    /// <summary>Своё содержимое под потомком — заголовок, подложка.</summary>
+    /// <summary>Own content under the child — a header, a backdrop.</summary>
     protected virtual void DrawContent(Graphics g) { }
 
-    /// <summary>Рамка и всё поверх потомка. Вызывается после его отрисовки
-    /// и вне его отсечения.</summary>
+    /// <summary>The border and everything on top of the child. Called after the child
+    /// is drawn and outside its clip.</summary>
     protected internal override void DrawOverlay(Graphics g)
     {
         if (BorderWidth > 0 && CurrentBorderColor.A > 0)

@@ -26,24 +26,33 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
     public ObservableCollection<UIElement> Children { get; } = [];
 
-    /// <summary>Правило переезда для всех детей разом. Его берёт ребёнок,
-    /// у которого нет своего: строке списка неоткуда знать, что список
-    /// умеет перестраиваться плавно.</summary>
+    /// <summary>The children this panel has attached to itself.</summary>
+    /// <remarks>
+    /// ObservableCollection reports Clear() as Reset without OldItems, so the
+    /// collection itself cannot say who left. Without this set the cleared
+    /// children kept Parent pointing here and stayed attached to the form —
+    /// focus, animations and flyouts still saw them.
+    /// </remarks>
+    private readonly HashSet<UIElement> _attached = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>The travel rule for all children at once. A child with no rule
+    /// of its own takes it: a list row has no way to know that the list
+    /// can rearrange smoothly.</summary>
     public LayoutTransition? ChildrenLayoutTransition { get; set; }
 
-    /// <summary>Как появляются дети, добавленные на уже показанную панель.
-    /// Его берёт ребёнок, у которого нет своего.</summary>
+    /// <summary>How children added to an already shown panel appear.
+    /// A child with no rule of its own takes it.</summary>
     public VisibilityTransition? ChildrenEnterTransition { get; set; }
 
-    /// <summary>Как исчезают убранные дети. Его берёт ребёнок, у которого
-    /// нет своего.</summary>
+    /// <summary>How removed children disappear. A child with no rule
+    /// of its own takes it.</summary>
     public VisibilityTransition? ChildrenExitTransition { get; set; }
 
     private List<ExitingChild>? _exiting;
 
-    /// <summary>Уходящие дети: из Children они уже убраны — раскладка,
-    /// попадание и соседи о них не знают, — но дорисовываются поверх,
-    /// пока не доиграет исчезание.</summary>
+    /// <summary>Exiting children: already removed from Children — layout,
+    /// hit testing and the neighbours don't know about them — but still drawn
+    /// on top until their disappearance finishes playing.</summary>
     internal IReadOnlyList<ExitingChild>? Exiting => _exiting;
 
     internal void RemoveExiting(ExitingChild exiting)
@@ -57,19 +66,19 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         InvalidateVisual();
     }
 
-    /// <summary>Начать исчезание убираемого ребёнка, если оно ему положено.
-    /// Зовётся до отвязки от формы: после неё у элемента нет ни владельца,
-    /// ни кадров.</summary>
+    /// <summary>Start the disappearance of a child being removed, if it is entitled
+    /// to one. Called before detaching from the form: after that the element has
+    /// neither an owner nor frames.</summary>
     private void BeginExit(UIElement item, Form? owner)
     {
-        // отметку забираем в любом случае: она одноразовая
+        // the mark is consumed in any case: it is one-shot
         if (item.ConsumeSkipExit()) return;
 
         if (owner is null) return;
         if (!item.CanAnimateExit) return;
         if (item.ExitTransitionIn(this) is not { } rule) return;
 
-        // панель, которую не видно, не показывает и исчезания
+        // a panel that isn't visible doesn't show disappearances either
         if (!IsEffectivelyVisible) return;
 
         var exiting = new ExitingChild(this, item, rule);
@@ -80,8 +89,8 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         owner.AddAnimation(exiting);
     }
 
-    /// <summary>Элемент вернули, пока он ещё исчезал: рисовать его дважды —
-    /// живым и призраком — нельзя.</summary>
+    /// <summary>The element was returned while it was still disappearing:
+    /// it must not be drawn twice — alive and as a ghost.</summary>
     private void CancelExit(UIElement item)
     {
         if (_exiting is null) return;
@@ -93,8 +102,8 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
     protected internal override Rectangle ClipBounds => Viewport;
 
-    // переполнение решает, даём ли мы содержимому расти по оси,
-    // то есть напрямую влияет на измерение
+    // overflow decides whether the content may grow along an axis,
+    // that is, it directly affects measuring
 
     public Overflow OverflowX
     {
@@ -138,9 +147,9 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
     protected bool ScrollsHorizontally => OverflowX is Overflow.Scroll or Overflow.Auto;
     protected bool ScrollsVertically => OverflowY is Overflow.Scroll or Overflow.Auto;
 
-    // _contentSize приходит из MeasureContentOverride вместе с отступами,
-    // поэтому вычитаем полный размер, а не ContentBounds — иначе отступ
-    // засчитается дважды и прокрутить можно будет за конец содержимого
+    // _contentSize comes from MeasureContentOverride including padding,
+    // so the full size is subtracted rather than ContentBounds — otherwise
+    // the padding would be counted twice and you could scroll past the end of the content
     private float MaxScrollX => Math.Max(0, _contentSize.Width - ActualSize.Width + ReservedWidth);
     private float MaxScrollY => Math.Max(0, _contentSize.Height - ActualSize.Height + ReservedHeight);
 
@@ -153,25 +162,25 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
             field = value;
 
-            // в режиме Inline полоса отнимает место у содержимого
+            // in Inline mode the bar takes space away from the content
             Invalidate();
         }
     } = ScrollBarMode.Overlay;
 
-    // видимость считается один раз за раскладку и дальше только читается:
-    // в режиме Inline полосы отнимают место друг у друга, и пересчёт
-    // на каждом обращении давал бы разные ответы в разных местах кадра
+    // visibility is computed once per layout and only read after that:
+    // in Inline mode the bars take space from each other, and recomputing
+    // on every access would give different answers in different places of the frame
     private bool _verticalBar;
     private bool _horizontalBar;
 
-    /// <summary>Видимая область по итогам последнего размещения.</summary>
+    /// <summary>The visible area as of the last arrange.</summary>
     /// <remarks>
-    /// Измерение по прокручиваемой оси получает бесконечность, поэтому
-    /// виртуализации больше неоткуда узнать, сколько строк видно. Viewport
-    /// для этого не годится: он смотрит на ActualSize, который внутри
-    /// ArrangeOverride ещё прошлый. Здесь размер уже текущего размещения —
-    /// в ArrangeContentOverride он точный, в MeasureContentOverride он
-    /// с прошлого прохода.
+    /// Measuring along a scrollable axis gets infinity, so virtualization
+    /// has no other way to learn how many rows are visible. Viewport doesn't
+    /// fit this: it looks at ActualSize, which inside ArrangeOverride is still
+    /// the previous one. Here the size is from the current arrange — exact
+    /// in ArrangeContentOverride, and from the previous pass
+    /// in MeasureContentOverride.
     /// </remarks>
     protected Size ArrangedViewport { get; private set; }
 
@@ -181,8 +190,8 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
     private float ReservedWidth => ScrollBarMode == ScrollBarMode.Inline && _verticalBar ? ScrollBarThickness : 0f;
     private float ReservedHeight => ScrollBarMode == ScrollBarMode.Inline && _horizontalBar ? ScrollBarThickness : 0f;
 
-    /// <summary>Видимая область содержимого: ContentBounds за вычетом места
-    /// под полосы. В режиме Overlay совпадает с ContentBounds.</summary>
+    /// <summary>The visible content area: ContentBounds minus the space
+    /// for the bars. In Overlay mode it equals ContentBounds.</summary>
     protected Rectangle Viewport
     {
         get
@@ -200,47 +209,87 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         Children.CollectionChanged += Children_CollectionChanged;
     }
 
-    /// <summary>Пока больше нуля, изменение состава детей не просит пересчёт
-    /// раскладки. Нужно тем, кто меняет Children прямо в измерении:
-    /// контейнеры там же и меряются, второй проход им не нужен.
-    /// Привязка к дереву при этом происходит как обычно — подавляется
-    /// только просьба о пересчёте.</summary>
+    /// <summary>While greater than zero, changes to the set of children don't
+    /// request a layout pass. Needed by those who change Children right inside
+    /// measuring: the containers are measured there too, and they don't need
+    /// a second pass. Attaching to the tree still happens as usual — only
+    /// the request for a layout pass is suppressed.</summary>
     private protected int SuppressChildrenInvalidate;
 
     private void Children_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         Form? owner = FindOwner();
 
-        if (e.OldItems is not null)
-            foreach (UIElement item in e.OldItems)
-            {
-                // исчезает только настоящее удаление: при перестановке
-                // элемент уходит и тут же возвращается, а при замене
-                // на его место встаёт другой — там уход не виден глазу
-                if (e.Action == NotifyCollectionChangedAction.Remove)
-                    BeginExit(item, owner);
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            ResetChildren(owner);
+        }
+        else
+        {
+            if (e.OldItems is not null)
+                foreach (UIElement item in e.OldItems)
+                {
+                    // only a genuine removal disappears: on a move the element
+                    // leaves and immediately comes back, and on a replace another
+                    // one takes its place — there the departure is not visible to the eye
+                    if (e.Action == NotifyCollectionChangedAction.Remove)
+                        BeginExit(item, owner);
 
-                owner?.DetachTree(item);
-                item.Parent = null;
-            }
+                    owner?.DetachTree(item);
+                    item.Parent = null;
+                    _attached.Remove(item);
+                }
 
-        if (e.NewItems is not null)
-            foreach (UIElement item in e.NewItems)
-            {
-                CancelExit(item);
+            if (e.NewItems is not null)
+                foreach (UIElement item in e.NewItems)
+                {
+                    CancelExit(item);
 
-                item.Parent = this;
-                owner?.AttachTree(item);
-            }
+                    item.Parent = this;
+                    owner?.AttachTree(item);
+                    _attached.Add(item);
+                }
+        }
 
         if (SuppressChildrenInvalidate == 0)
             Invalidate();
     }
 
-    /// <summary>Нужны ли полосы при такой видимой области. В режиме Inline
-    /// одна полоса может вызвать появление второй, поэтому после первой
-    /// проверяем повторно — одного повтора достаточно, дальше размер
-    /// уже не меняется.</summary>
+    /// <summary>Bring attachment in line with Children after a Reset: detach
+    /// those who left, attach those who are new.</summary>
+    /// <remarks>
+    /// A bulk clear gets no exit animation: Reset does not say what exactly
+    /// left, and a wave of ghosts over an emptied panel is not what Clear means.
+    /// </remarks>
+    private void ResetChildren(Form? owner)
+    {
+        var current = new HashSet<UIElement>(Children, ReferenceEqualityComparer.Instance);
+
+        foreach (UIElement item in _attached)
+        {
+            if (current.Contains(item)) continue;
+
+            owner?.DetachTree(item);
+            item.Parent = null;
+        }
+
+        foreach (UIElement item in Children)
+        {
+            if (_attached.Contains(item)) continue;
+
+            CancelExit(item);
+
+            item.Parent = this;
+            owner?.AttachTree(item);
+        }
+
+        _attached.Clear();
+        _attached.UnionWith(Children);
+    }
+
+    /// <summary>Whether bars are needed for this visible area. In Inline mode
+    /// one bar may cause the second to appear, so after the first one we check
+    /// again — one repeat is enough, after that the size no longer changes.</summary>
     private (bool Vertical, bool Horizontal) ResolveBars(Size available)
     {
         bool NeedsVertical(float height) =>
@@ -263,11 +312,11 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         return (vertical, horizontal);
     }
 
-    // ===== прокрутка поверх обычной раскладки =====
+    // ===== scrolling on top of the regular layout =====
 
     protected sealed override Size MeasureOverride(Size availableSize)
     {
-        // по прокручиваемой оси даём содержимому расти сколько нужно
+        // along a scrollable axis the content may grow as much as it needs
         var probe = new Size(
             ScrollsHorizontally ? float.PositiveInfinity : availableSize.Width,
             ScrollsVertically ? float.PositiveInfinity : availableSize.Height);
@@ -286,7 +335,7 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
             }
         }
 
-        // сама панель за пределы выделенного не выходит — излишек уезжает в прокрутку
+        // the panel itself doesn't go beyond what it was given — the excess goes into scrolling
         return new Size(
             ScrollsHorizontally ? Math.Min(_contentSize.Width, availableSize.Width) : _contentSize.Width,
             ScrollsVertically ? Math.Min(_contentSize.Height, availableSize.Height) : _contentSize.Height);
@@ -294,9 +343,9 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
     protected sealed override Size ArrangeOverride(Size finalSize)
     {
-        // ContentBounds здесь ещё смотрит на прошлый ActualSize: он
-        // присваивается только после возврата отсюда. Поэтому и видимость
-        // полос, и предел прокрутки считаем от finalSize
+        // ContentBounds here still looks at the previous ActualSize: it is
+        // assigned only after returning from here. So both bar visibility
+        // and the scroll limit are computed from finalSize
         (_verticalBar, _horizontalBar) = ResolveBars(finalSize);
 
         float reservedW = ScrollBarMode == ScrollBarMode.Inline && _verticalBar ? ScrollBarThickness : 0f;
@@ -306,7 +355,7 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
             Math.Max(0, finalSize.Width - reservedW),
             Math.Max(0, finalSize.Height - reservedH));
 
-        // содержимое раскладывается в полный размер, даже если он больше панели
+        // the content is arranged at its full size, even if it is larger than the panel
         var contentArea = new Size(
             ScrollsHorizontally ? Math.Max(viewport.Width, _contentSize.Width) : viewport.Width,
             ScrollsVertically ? Math.Max(viewport.Height, _contentSize.Height) : viewport.Height);
@@ -314,9 +363,9 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         float maxX = Math.Max(0, _contentSize.Width - viewport.Width);
         float maxY = Math.Max(0, _contentSize.Height - viewport.Height);
 
-        // зажимаем до размещения содержимого, а не после: виртуализация
-        // считает видимый диапазон по ScrollY прямо в ArrangeContentOverride,
-        // и после сворачивания списка она получала бы прокрутку за его концом
+        // clamp before arranging the content, not after: virtualization computes
+        // the visible range from ScrollY right in ArrangeContentOverride, and after
+        // a list collapsed it would get a scroll position past its end
         ScrollX = Math.Clamp(ScrollX, 0, maxX);
         ScrollY = Math.Clamp(ScrollY, 0, maxY);
 
@@ -326,7 +375,7 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
         if (IsRightToLeft)
         {
-            // отражаем детей относительно вертикальной оси панели
+            // mirror the children around the panel's vertical axis
             foreach (UIElement child in Children)
                 child.Position = new Point(
                     contentArea.Width - child.Position.X - child.ActualSize.Width,
@@ -338,10 +387,9 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
         if (shiftX != 0 || shiftY != 0)
         {
-            // сдвигаем уже размещённых детей — так конкретным панелям
-            // не нужно ничего знать про прокрутку. Перелёт за край при
-            // прокрутке пальцем — тот же сдвиг, только за пределами
-            // допустимого диапазона
+            // shift the already arranged children — that way concrete panels
+            // need to know nothing about scrolling. Overscroll when scrolling
+            // with a finger is the same shift, only beyond the allowed range
             foreach (UIElement child in Children)
                 child.Position = new Point(child.Position.X - shiftX, child.Position.Y - shiftY);
         }
@@ -349,15 +397,15 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         return finalSize;
     }
 
-    /// <summary>Измерение содержимого, как в обычной панели.</summary>
+    /// <summary>Measuring the content, as in a regular panel.</summary>
     protected abstract Size MeasureContentOverride(Size availableSize);
 
-    /// <summary>Размещение содержимого. Размер может превышать размер панели при прокрутке.</summary>
+    /// <summary>Arranging the content. The size may exceed the panel's size when scrolling.</summary>
     protected abstract void ArrangeContentOverride(Size contentSize);
 
     public void ScrollTo(float x, float y)
     {
-        // явная прокрутка из кода или колесом главнее инерции броска
+        // an explicit scroll from code or the wheel takes priority over fling inertia
         _touch?.Stop();
 
         ScrollX = Math.Clamp(x, 0, MaxScrollX);
@@ -365,7 +413,7 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         Invalidate();
     }
 
-    // ===== полосы =====
+    // ===== scrollbars =====
 
     private Rectangle VerticalBarRect
     {
@@ -440,7 +488,7 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
     protected internal override bool HitTestSelfFirst(Point localPoint)
     {
-        // клики по полосе принадлежат панели, а не тому, что под ней
+        // clicks on a bar belong to the panel, not to whatever is under it
         if (ShowVerticalBar && Contains(VerticalBarRect, localPoint)) return true;
         if (ShowHorizontalBar && Contains(HorizontalBarRect, localPoint)) return true;
 
@@ -465,8 +513,8 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
                 _draggingVertical = true;
                 _dragOffset = offsetInBar - pos;
 
-                // без захвата перетаскивание обрывается, как только курсор
-                // уходит за окно: движения получает уже не это окно
+                // without capture the drag breaks off as soon as the cursor
+                // leaves the window: the moves go to another window
                 CaptureMouse();
             }
             else
@@ -534,8 +582,8 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
     protected override void OnPointerCanceled(PointerCancelEventArgs e)
     {
-        // отпускания после отмены не будет: без сброса следующее движение
-        // мыши без нажатой кнопки продолжило бы тащить ползунок
+        // there will be no release after a cancel: without a reset the next
+        // mouse move with no button pressed would keep dragging the thumb
         EndThumbDrag();
     }
 
@@ -547,23 +595,23 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         ReleaseMouseCapture();
     }
 
-    // ===== прокрутка касанием =====
+    // ===== touch scrolling =====
 
     private TouchScroller? _touch;
 
-    /// <summary>Перелёт за край: содержимое, оттянутое пальцем дальше
-    /// допустимого. В ScrollX и ScrollY его нет — они всегда в пределах, —
-    /// поэтому раскладка, полосы и код видят честную прокрутку.</summary>
+    /// <summary>Overscroll: content pulled by a finger further than allowed.
+    /// ScrollX and ScrollY don't include it — they are always within range —
+    /// so layout, the bars and code see the honest scroll position.</summary>
     private Point _overscroll;
 
-    /// <summary>Прокручивать ли содержимое пальцем и пером. Мышью — никогда:
-    /// на десктопе протаскивание мышью — это выделение текста
-    /// и перетаскивание, а прокрутка там у колеса.</summary>
+    /// <summary>Whether content scrolls with a finger or a pen. Never with the mouse:
+    /// on the desktop dragging with the mouse means selecting text
+    /// and drag-and-drop, and scrolling belongs to the wheel.</summary>
     public bool PanToScroll { get; set; } = true;
 
-    /// <summary>Распознаватель живёт только у прокручиваемой панели.
-    /// Без этого каждая StackPanel в дереве участвовала бы в борьбе за
-    /// каждое нажатие, и арена создавалась бы на всё подряд.</summary>
+    /// <summary>The recognizer lives only on a scrollable panel. Otherwise every
+    /// StackPanel in the tree would take part in the fight for every press,
+    /// and an arena would be created for everything.</summary>
     private void UpdatePanRecognizer()
     {
         bool scrolls = ScrollsHorizontally || ScrollsVertically;
@@ -602,9 +650,9 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
     protected override void OnPointerDown(PointerEventArgs e)
     {
-        // касание посреди броска останавливает инерцию — как на любом
-        // телефоне. Отскок от края при этом доигрывает: оттянутое
-        // содержимое не должно застыть там, где его застал палец
+        // a touch in the middle of a fling stops the inertia — as on any phone.
+        // The bounce from the edge still plays out, though: pulled content
+        // must not freeze where the finger caught it
         if (e.Kind != PointerKind.Mouse) _touch?.StopFling();
     }
 
@@ -630,11 +678,11 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
 public enum ScrollBarMode
 {
-    /// <summary>Полоса лежит поверх содержимого: места не занимает,
-    /// но перекрывает то, что под ней.</summary>
+    /// <summary>The bar lies on top of the content: it takes no space,
+    /// but covers what is under it.</summary>
     Overlay,
 
-    /// <summary>Место под полосу вычитается из области содержимого:
-    /// содержимое уже, зато ничего не перекрыто.</summary>
+    /// <summary>The space for the bar is subtracted from the content area:
+    /// the content is narrower, but nothing is covered.</summary>
     Inline,
 }
