@@ -52,6 +52,7 @@ public class ExampleMainForm : Form
         root.AddPage("dnd", () => GetView7(), "Drag&Drop");
         root.AddPage("table", () => GetView8(), "Table");
         root.AddPage("sysdnd", () => GetView9(), "System Drag&Drop");
+        root.AddPage("binding", () => GetView10(), "Binding");
         return new DockPanel
         {
             Children =
@@ -765,6 +766,24 @@ public class ExampleMainForm : Form
         };
 
         root.Children.AddRange([zone, dropped]);
+
+        return root;
+    }
+
+    private StackPanel GetView10()
+    {
+        Label label = new Label();
+        TextBox textBox = new TextBox();
+        label.Bind(Label.TextProperty, textBox, nameof(TextBox.Text));
+
+        StackPanel root = new()
+        {
+            Orientation = Orientation.Vertical,
+            Padding = new(16),
+            Spacing = 8,
+        };
+
+        root.Children.AddRange([label, textBox]);
 
         return root;
     }

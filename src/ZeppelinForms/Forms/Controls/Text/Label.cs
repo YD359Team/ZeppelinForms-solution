@@ -3,33 +3,35 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
 /// <summary>
 /// Control with caption
 /// </summary>
-public class Label : DecoratedControl, ITextElement
+public partial class Label : DecoratedControl, ITextElement
 {
-    private string? _text;
     private string[]? _lines;
 
-    public string? Text
+    /// <summary>The caption text. A styled property, so it can be a binding
+    /// target: <c>label.Bind(Label.TextProperty, source, nameof(Source.Name))</c>.</summary>
+    /// <remarks>
+    /// The label's size is computed from its text, so a change needs not just
+    /// a redraw but a layout pass — hence AffectsLayout.
+    /// </remarks>
+    [Styled(Category = "Text", AffectsLayout = true)]
+    public partial string? Text { get; set; }
+
+    protected override void OnStyledPropertyChanged(StyledProperty property)
     {
-        get => _text;
-        set
-        {
-            if (_text == value) return;
-
-            _text = value;
-
-            // разбор на строки устаревает вместе с текстом
+        // the split into lines goes stale together with the text. It is reset
+        // here rather than in a setter: a binding and ClearValue write the value
+        // past the setter, and both come through this hook
+        if (ReferenceEquals(property, TextProperty))
             _lines = null;
 
-            // размер подписи считается по тексту, поэтому нужна
-            // не только перерисовка, но и пересчёт раскладки
-            Invalidate();
-        }
+        base.OnStyledPropertyChanged(property);
     }
 
     public HorizontalContentAlignment HorizontalContentAlign { get; set; }
@@ -44,7 +46,7 @@ public class Label : DecoratedControl, ITextElement
 
             field = value;
 
-            // межстрочный интервал входит в высоту многострочной подписи
+            // line spacing is part of a multi-line label's height
             Invalidate();
         }
     } = 1.2f;
@@ -52,15 +54,15 @@ public class Label : DecoratedControl, ITextElement
     private string[] SplitLines() =>
         (Text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
 
-    /// <summary>Разбор на строки. Считается один раз на текст: и отрисовка,
-    /// и замер спрашивают его по многу раз за кадр, а Split каждый раз
-    /// создаёт новый массив.</summary>
+    /// <summary>The split into lines. Computed once per text: both drawing
+    /// and measuring ask for it many times per frame, and Split creates
+    /// a new array every time.</summary>
     private string[] Lines => _lines ??= SplitLines();
 
     private float LineHeight =>
         TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height * LineSpacing;
 
-    // фон, рамка и скругление рисует база — здесь только текст
+    // the background, border and corner radius are drawn by the base — only the text here
     protected override void DrawContent(Graphics g)
     {
         if (string.IsNullOrEmpty(Text)) return;

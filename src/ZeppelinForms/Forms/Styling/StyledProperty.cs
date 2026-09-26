@@ -4,31 +4,39 @@ using ZeppelinForms.Forms.Controls.Base;
 namespace ZeppelinForms.Forms.Styling;
 
 /// <summary>
-/// Описание свойства, которым может управлять тема или стиль.
-/// Само значение лежит в обычном поле контрола — здесь только метаданные
-/// и доступ к нему без знания конкретного типа.
+/// Describes a property that a theme or a style can control.
+/// The value itself lies in an ordinary field of the control — here there are
+/// only metadata and access to it without knowing the concrete type.
 /// </summary>
 public abstract class StyledProperty
 {
     private static readonly List<StyledProperty> Registry = [];
 
-    /// <summary>Номер в общем реестре. Он же — позиция бита в масках
-    /// источника у элемента. Порядок зависит от того, в каком порядке
-    /// загрузились типы, поэтому сохранять его куда-либо нельзя.</summary>
+    /// <summary>Guards the registry. Properties are registered from static field
+    /// initializers, and type initializers of different types can run on different
+    /// threads at the same time — parallel snapshot tests do exactly that. Without
+    /// the lock two properties could get the same Index, that is, share one bit
+    /// in the source masks, and the theme flag of one would silently switch
+    /// the other.</summary>
+    private static readonly System.Threading.Lock RegistrySync = new();
+
+    /// <summary>The number in the shared registry. It is also the bit position
+    /// in the element's source masks. The order depends on the order in which
+    /// types were loaded, so it must never be persisted anywhere.</summary>
     internal int Index { get; }
 
     public string Name { get; }
     public Type OwnerType { get; }
     public Type ValueType { get; }
 
-    /// <summary>Раздел в PropertyGrid.</summary>
+    /// <summary>The section in PropertyGrid.</summary>
     public string Category { get; }
 
-    /// <summary>Меняет ли значение раскладку. Отсюда решается,
-    /// хватит ли перерисовки или нужен пересчёт размеров.</summary>
+    /// <summary>Whether the value changes layout. This decides whether
+    /// a redraw is enough or sizes must be recomputed.</summary>
     public bool AffectsLayout { get; }
 
-    /// <summary>Наследуется ли вниз по дереву, как шрифт.</summary>
+    /// <summary>Whether it is inherited down the tree, like the font.</summary>
     public bool Inherits { get; }
 
     protected StyledProperty(
@@ -42,37 +50,57 @@ public abstract class StyledProperty
         AffectsLayout = affectsLayout;
         Inherits = inherits;
 
-        Index = Registry.Count;
-        Registry.Add(this);
+        lock (RegistrySync)
+        {
+            Index = Registry.Count;
+            Registry.Add(this);
+        }
     }
 
-    public static IReadOnlyList<StyledProperty> Registered => Registry;
+    /// <summary>A snapshot of the registry: the live list may grow on another
+    /// thread while it is being enumerated.</summary>
+    public static IReadOnlyList<StyledProperty> Registered
+    {
+        get
+        {
+            lock (RegistrySync)
+                return [.. Registry];
+        }
+    }
 
-    /// <summary>Свойства, объявленные этим типом и его предками.</summary>
+    /// <summary>Properties declared by this type and its ancestors.</summary>
     public static IEnumerable<StyledProperty> For(Type type)
     {
-        // регистрация идёт из статических полей, а они инициализируются
-        // при первом обращении к типу. Без этого вызова PropertyGrid
-        // увидел бы пустой список у контрола, которого ещё не касались
+        // registration happens from static fields, and those are initialized
+        // on first access to the type. Without this call PropertyGrid would see
+        // an empty list for a control nobody has touched yet.
+        // It runs before the lock is taken: a type initializer registers its
+        // properties under the same lock, and holding it here while another thread
+        // is initializing that type would deadlock the two
         RuntimeHelpers.RunClassConstructor(type.TypeHandle);
 
-        foreach (StyledProperty property in Registry)
+        StyledProperty[] snapshot;
+
+        lock (RegistrySync)
+            snapshot = [.. Registry];
+
+        foreach (StyledProperty property in snapshot)
             if (property.OwnerType.IsAssignableFrom(type))
                 yield return property;
     }
 
-    /// <summary>Прочитать значение, не зная его типа. Нужно PropertyGrid.</summary>
+    /// <summary>Read the value without knowing its type. Needed by PropertyGrid.</summary>
     public abstract object? GetBoxed(UIElement element);
 
     public abstract void SetBoxedAsUser(UIElement element, object? value);
 
-    /// <summary>Тип значения. Нужен биндингу: он получает значение
-    /// источника через рефлексию и должен привести его к типу свойства.</summary>
+    /// <summary>The value type. Needed by the binding: it gets the source value
+    /// through reflection and must convert it to the property's type.</summary>
     public abstract Type PropertyType { get; }
 
-    /// <summary>Записать значение, не зная его типа статически.
-    /// Единственный потребитель — биндинг: там значение приходит
-    /// из PropertyInfo.GetValue и типизировать его негде.</summary>
+    /// <summary>Write a value without knowing its type statically.
+    /// The only consumer is the binding: there the value comes
+    /// from PropertyInfo.GetValue, and there is nowhere to type it.</summary>
     internal abstract void WriteBoxedDirect(UIElement element, object? value);
 }
 
@@ -94,9 +122,9 @@ public sealed class StyledProperty<T> : StyledProperty
         _set = set;
     }
 
-    /// <param name="set">Пишет в поле напрямую, минуя проверку источника.
-    /// Через него работают ClearValue и восстановление умолчания —
-    /// им проверка была бы помехой.</param>
+    /// <param name="set">Writes to the field directly, bypassing the source check.
+    /// ClearValue and restoring the default work through it —
+    /// the check would only get in their way.</param>
     public static StyledProperty<T> Register<TOwner>(
         string name,
         Func<TOwner, T> get,
@@ -118,12 +146,12 @@ public sealed class StyledProperty<T> : StyledProperty
 
     public override void SetBoxedAsUser(UIElement element, object? value)
     {
-        // из PropertyGrid значение приходит от пользователя, значит должно
-        // помечаться как заданное вручную — как при обычном присваивании.
+        // from PropertyGrid the value comes from the user, so it must be marked
+        // as set manually — as with a regular assignment.
         //
-        // Через сопоставление с типом проверять нельзя: "value is T" на null
-        // даёт false даже когда T допускает null, и очистить строку
-        // или сбросить шрифт из инспектора было бы невозможно
+        // A type pattern can't be used for the check: "value is T" on null gives
+        // false even when T allows null, and clearing a string or resetting
+        // the font from the inspector would be impossible
         if (value is null)
         {
             if (default(T) is null) element.SetStyledValue(this, default!);
@@ -135,6 +163,14 @@ public sealed class StyledProperty<T> : StyledProperty
 
     public override Type PropertyType => typeof(T);
 
+    // the same null trap as in SetBoxedAsUser: "null is T" is false even for
+    // a nullable T, so a binding that brought null into a property with
+    // a non-null default used to write the default instead of null
     internal override void WriteBoxedDirect(UIElement element, object? value) =>
-        Write(element, value is T typed ? typed : DefaultValue);
+        Write(element, value switch
+        {
+            null when default(T) is null => default!,
+            T typed => typed,
+            _ => DefaultValue,
+        });
 }

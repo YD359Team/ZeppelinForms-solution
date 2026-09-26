@@ -1,38 +1,39 @@
 ﻿namespace ZeppelinForms.Forms.Styling;
 
 /// <summary>
-/// Пометка для генератора: развернуть частичное свойство в стилизуемое —
-/// зарегистрировать <see cref="StyledProperty{T}"/>, создать поле
-/// и написать аксессоры с учётом источника значения.
+/// A marker for the generator: expand a partial property into a styled one —
+/// register a <see cref="StyledProperty{T}"/>, create a field and write
+/// accessors that take the value source into account.
 /// </summary>
 /// <remarks>
-/// Свойство должно быть <c>partial</c> с геттером и сеттером, а его тип —
-/// <c>partial</c> наследником <c>UIElement</c>.
-/// Умолчание задаётся статическим свойством с именем <c>&lt;Имя&gt;Default</c>;
-/// если его нет, берётся <c>default</c> для типа значения.
+/// The property must be <c>partial</c> with a getter and a setter, and its type
+/// must be a <c>partial</c> descendant of <c>UIElement</c>.
+/// The default is set by a static property named <c>&lt;Name&gt;Default</c>;
+/// if there is none, <c>default</c> of the value type is used.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property)]
 public sealed class StyledAttribute : Attribute
 {
-    /// <summary>Раздел в PropertyGrid.</summary>
+    /// <summary>The section in PropertyGrid.</summary>
     public string Category { get; set; } = "Other";
 
-    /// <summary>Изменение значения требует пересчёта раскладки,
-    /// а не только перерисовки.</summary>
+    /// <summary>A change of the value requires a layout pass,
+    /// not just a redraw.</summary>
     public bool AffectsLayout { get; set; }
 
-    /// <summary>Значение наследуется вниз по дереву, как шрифт.</summary>
+    /// <summary>The value is inherited down the tree, like the font.</summary>
     public bool Inherits { get; set; }
 
     /// <summary>
-    /// Значение живёт не в поле элемента, а в другом объекте — как текст
-    /// TextBox, который хранится в TextDocument.
+    /// The value lives not in a field of the element but in another object —
+    /// like TextBox's text, which is stored in a TextDocument.
     /// </summary>
     /// <remarks>
-    /// Генератор создаёт только регистрацию StyledProperty; поле и аксессоры
-    /// пишет сам контрол, а свойство остаётся обычным (не partial).
-    /// Сеттер обязан идти через <c>SetValue(Property, value)</c> — иначе
-    /// запись пройдёт мимо темы и биндингов.
+    /// The generator creates only the StyledProperty registration; the field and
+    /// accessors are written by the control itself, and the property stays
+    /// ordinary (not partial). The setter must go through
+    /// <c>SetValue(Property, value)</c> — otherwise the write bypasses
+    /// the theme and bindings.
     /// </remarks>
     public bool External { get; set; }
 }
