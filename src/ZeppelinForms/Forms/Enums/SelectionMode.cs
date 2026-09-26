@@ -2,14 +2,14 @@
 
 public enum SelectionMode
 {
-    /// <summary>Одна строка. Клик переносит выделение.</summary>
+    /// <summary>One row. A click moves the selection.</summary>
     Single,
 
-    /// <summary>Клик переключает строку, не снимая остальные.
-    /// Модификаторы не нужны — удобно для списка с галочками и на тач-экране.</summary>
+    /// <summary>A click toggles a row without clearing the others.
+    /// No modifiers needed — convenient for a list with checkboxes and on a touch screen.</summary>
     Multiple,
 
-    /// <summary>Как в проводнике: клик заменяет выделение,
-    /// Ctrl переключает одну строку, Shift выделяет диапазон от опорной.</summary>
+    /// <summary>Like in Explorer: a click replaces the selection,
+    /// Ctrl toggles one row, Shift selects a range from the anchor.</summary>
     Extended,
 }

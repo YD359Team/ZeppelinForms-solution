@@ -2,8 +2,8 @@
 
 public enum Overflow
 {
-    Visible,   // содержимое не обрезается и не прокручивается
-    Hidden,    // обрезается, прокрутки нет
-    Scroll,    // полоса показывается всегда
-    Auto,      // полоса появляется, когда содержимое не влезает
+    Visible,   // content is neither clipped nor scrolled
+    Hidden,    // clipped, no scrolling
+    Scroll,    // the bar is always shown
+    Auto,      // the bar appears when the content doesn't fit
 }

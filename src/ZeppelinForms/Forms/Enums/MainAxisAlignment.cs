@@ -1,15 +1,15 @@
 ﻿namespace ZeppelinForms.Forms.Enums;
 
-/// <summary>Как распределить детей вдоль главной оси панели.</summary>
+/// <summary>How to distribute children along the panel's main axis.</summary>
 public enum MainAxisAlignment
 {
     Start,
     Center,
     End,
-    /// <summary>Промежутки равны, крайние прижаты к краям.</summary>
+    /// <summary>Equal gaps, the outermost children pressed to the edges.</summary>
     SpaceBetween,
-    /// <summary>Промежутки равны, у краёв — половинные.</summary>
+    /// <summary>Equal gaps, half-size gaps at the edges.</summary>
     SpaceAround,
-    /// <summary>Все промежутки, включая крайние, равны.</summary>
+    /// <summary>All gaps, including the outer ones, are equal.</summary>
     SpaceEvenly,
 }

@@ -8,7 +8,7 @@ namespace ZeppelinForms.Forms.Dispatchers;
 
 public class FocusDispatcher
 {
-    /// <summary>Фокус перешёл. Null — фокуса больше нет.</summary>
+    /// <summary>Focus moved. Null — there is no focus anymore.</summary>
     public event EventHandler<UIElement?>? FocusChanged;
 
     public UIElement? FocusedElement => _focused;
@@ -18,6 +18,13 @@ public class FocusDispatcher
     public bool FocusElement(UIElement element)
     {
         if (element is not IInputElement input || !input.TabStop)
+            return false;
+
+        // a disabled control does not take focus, and neither does anything
+        // inside a disabled container: the Tab walk already skips them, but
+        // a programmatic focus went around it and let keystrokes into
+        // a control that is drawn as unavailable
+        if (!IsEffectivelyEnabled(element))
             return false;
 
         if (ReferenceEquals(_focused, element))
@@ -41,8 +48,8 @@ public class FocusDispatcher
         return true;
     }
 
-    /// <summary>Снять фокус без уведомлений: элемент уже вне дерева,
-    /// звать на нём RaiseLostFocus поздно и опасно.</summary>
+    /// <summary>Remove focus without notifications: the element is already
+    /// out of the tree, and calling RaiseLostFocus on it is too late and dangerous.</summary>
     public void ClearFocus()
     {
         if (_focused is IInputElement input)
@@ -66,9 +73,19 @@ public class FocusDispatcher
 
         int next = current < 0
             ? (forward ? 0 : stops.Count - 1)
-            : (current + (forward ? 1 : -1) + stops.Count) % stops.Count;   // по кругу
+            : (current + (forward ? 1 : -1) + stops.Count) % stops.Count;   // wrapping around
 
         return FocusElement(stops[next]);
+    }
+
+    /// <summary>IsEnabled is not inherited as a value, but a disabled container
+    /// disables everything inside it — the same rule the Tab walk follows.</summary>
+    private static bool IsEffectivelyEnabled(UIElement element)
+    {
+        for (UIElement? node = element; node is not null; node = node.Parent)
+            if (!node.IsEnabled) return false;
+
+        return true;
     }
 
     private static List<UIElement> CollectTabStops(UIElement root)
@@ -76,8 +93,8 @@ public class FocusDispatcher
         List<UIElement> stops = [];
         Walk(root, stops);
 
-        // TabIndex задаёт приоритет, порядок в дереве — тай-брейк.
-        // OrderBy стабилен, поэтому равные TabIndex сохранят порядок обхода.
+        // TabIndex sets the priority, the tree order breaks ties.
+        // OrderBy is stable, so equal TabIndex values keep the walk order.
         return [.. stops.OrderBy(e => ((IInputElement)e).TabIndex)];
     }
 

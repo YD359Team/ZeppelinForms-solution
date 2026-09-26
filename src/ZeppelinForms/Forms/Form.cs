@@ -24,13 +24,13 @@ namespace ZeppelinForms.Forms;
 
 public partial class Form : IDisposable
 {
-    /// <summary>Флаут закрыт — по клику мимо, программно или вместе с формой.
-    /// Контролы, открывшие его, обязаны сбросить свою ссылку здесь.</summary>
+    /// <summary>A flyout was closed — by a click outside, from code or together with the form.
+    /// Controls that opened it must reset their reference here.</summary>
     public event EventHandler<UIElement>? FlyoutClosed;
     public event EventHandler? Shown;
 
-    /// <summary>Окно разрушено. Приходит независимо от того, откуда пришло
-    /// закрытие: Accept, Cancel, крестик в заголовке или сама система.</summary>
+    /// <summary>The window was destroyed. Raised no matter where the closing
+    /// came from: Accept, Cancel, the close button in the title bar or the system itself.</summary>
     public event EventHandler? Closed;
 
     internal IPlatformWindow? PlatformWindow
@@ -42,39 +42,39 @@ public partial class Form : IDisposable
 
             if (value is null) return;
 
-            // новое окно — новая жизнь: форму могли закрыть и показать заново
+            // a new window is a new life: the form may have been closed and shown again
             _isClosed = false;
 
             if (!s_openForms.Contains(this))
                 s_openForms.Add(this);
 
-            // окно только что появилось: если приём перетаскивания включили
-            // до показа, платформа об этом ещё не знает
+            // the window has just appeared: if drag-and-drop was enabled
+            // before it was shown, the platform doesn't know about it yet
             if (AllowDrop)
                 value.SetDragDropEnabled(true);
 
-            // то же с анимациями: добавленные до создания окна лежат
-            // в часах, но выдавать кадры было некому — просим их здесь
+            // the same with animations: those added before the window was created
+            // sit in the clock, but there was nobody to deliver frames — ask for them here
             ReviewFrames();
         }
     }
 
     private static readonly List<Form> s_openForms = [];
 
-    /// <summary>Формы с живым окном. Нужен жизненному циклу приложения:
-    /// уход в фон касается всех окон, а не только главного.</summary>
+    /// <summary>Forms with a live window. Needed by the application life cycle:
+    /// going to the background concerns all windows, not just the main one.</summary>
     public static IReadOnlyList<Form> OpenForms => s_openForms;
 
-    /// <summary>Окно как объект рабочего стола. null там, где рабочего стола
-    /// нет: в браузере и на Android заголовка, прозрачности и состояния
-    /// окна не существует, и молча ничего не делать — правильное поведение.</summary>
+    /// <summary>The window as a desktop object. null where there is no desktop:
+    /// in the browser and on Android there is no title bar, opacity or window
+    /// state, and silently doing nothing is the correct behavior.</summary>
     internal IDesktopWindow? DesktopWindow => PlatformWindow as IDesktopWindow;
 
     public WindowStartupLocation WindowStartupLocation { get; set; }
 
-    /// <summary>Принимать ли перетаскивание из системы в это окно.
-    /// Без этого AllowDrop у элементов не сработает: окно не зарегистрировано
-    /// приёмником, и система о нём не знает.</summary>
+    /// <summary>Whether to accept drag-and-drop from the system into this window.
+    /// Without it AllowDrop on elements won't work: the window is not registered
+    /// as a drop target, and the system doesn't know about it.</summary>
     public bool AllowDrop
     {
         get;
@@ -96,6 +96,12 @@ public partial class Form : IDisposable
     private Point _lastClickPoint;
     private int _clickCount;
     private MouseButton _lastClickButton;
+
+    /// <summary>The element under the press of the right and of the middle button.
+    /// The left one is tracked by the contact itself (PointerContact.Pressed);
+    /// the other buttons share the contact with it and need a slot of their own.</summary>
+    private UIElement? _rightPressed;
+    private UIElement? _middlePressed;
 
     public int DoubleClickIntervalMs { get; set; } = 400;
     public float DoubleClickSlop { get; set; } = 4f;
@@ -121,7 +127,7 @@ public partial class Form : IDisposable
     public Size MinimumSize { get; set; } = Size.Auto;
     public Size MaximumSize { get; set; } = Size.Auto;
 
-    /// <summary>Форма показана как модальный диалог.</summary>
+    /// <summary>The form is shown as a modal dialog.</summary>
     public bool IsDialog { get; private set; }
 
     public Font? Font { get; set; }
@@ -170,8 +176,8 @@ public partial class Form : IDisposable
                 AttachTree(value);
             }
 
-            // смена содержимого — это полная смена геометрии,
-            // нужен пересчёт раскладки и перерисовка всего окна
+            // changing the content is a complete change of geometry:
+            // a layout pass and a redraw of the whole window are needed
             Invalidate();
         }
     }
@@ -180,11 +186,11 @@ public partial class Form : IDisposable
 
     public FlowDirection? FlowDirection { get; set; }
 
-    // Список приватный и меняется только через AttachOverlay/DetachOverlay.
-    // Раньше он был обычным List, и пять методов из шести клали элемент
-    // напрямую — тема до оверлея не доезжала, а при закрытии не звался
-    // DetachTree. Прямого Add больше нет, поэтому забыть про присоединение
-    // нельзя: единственный путь внутрь проходит через него.
+    // The list is private and changes only through AttachOverlay/DetachOverlay.
+    // It used to be a plain List, and five methods out of six added the element
+    // directly — the theme never reached the overlay, and DetachTree was not
+    // called on close. There is no direct Add anymore, so attaching can't be
+    // forgotten: the only way in goes through it.
     private readonly List<UIElement> _overlays = [];
     public IReadOnlyList<UIElement> Overlays => _overlays;
     private readonly List<UIElement> _flyouts = [];
@@ -195,25 +201,25 @@ public partial class Form : IDisposable
     private CursorKind _lastCursor = CursorKind.Arrow;
     private readonly FocusDispatcher _focusDispatcher = new();
 
-    /// <summary>Идентификатор мыши. Единица, а не ноль — так же нумерует
-    /// мышь W3C Pointer Events, и браузерный бэкенд отдаёт pointerId как есть.</summary>
+    /// <summary>The mouse identifier. One rather than zero — W3C Pointer Events
+    /// number the mouse the same way, and the browser backend passes pointerId as is.</summary>
     public const int MousePointerId = 1;
 
-    /// <summary>Живые контакты по идентификатору. Пуст, пока ничего
-    /// не нажато: у большинства форм он таким и остаётся.</summary>
+    /// <summary>Live contacts by identifier. Empty while nothing is pressed:
+    /// for most forms it stays that way.</summary>
     private readonly Dictionary<int, PointerContact> _contacts = [];
 
     private int? _primaryContactId;
 
-    /// <summary>Сколько контактов держат системный захват. Считать нужно
-    /// потому, что IPlatformWindow.CaptureMouse() безаргументен — захват
-    /// в системе один на окно, и второй палец, отпустившись, снял бы
-    /// захват у первого.</summary>
+    /// <summary>How many contacts hold the system capture. It has to be counted
+    /// because IPlatformWindow.CaptureMouse() takes no arguments — there is one
+    /// system capture per window, and a second finger, when released, would take
+    /// the capture away from the first.</summary>
     private int _platformCaptureCount;
 
-    /// <summary>Контакт, который обрабатывается прямо сейчас. Нужен
-    /// CaptureMouse: элемент зовёт его изнутри обработчика и знать
-    /// идентификатор контакта не обязан.</summary>
+    /// <summary>The contact being processed right now. Needed by CaptureMouse:
+    /// an element calls it from inside a handler and does not have to know
+    /// the contact identifier.</summary>
     private PointerContact? _dispatching;
 
     private PointerContact? PrimaryContact =>
@@ -226,7 +232,7 @@ public partial class Form : IDisposable
     private UIElement? _activeToolTip;
     private Point _lastPointerPosition;
 
-    // ===== Инспектор (F12) =====
+    // ===== Inspector (F12) =====
     public bool IsInspectorEnabled { get; private set; }
     public UIElement? InspectedElement { get; private set; }
     private bool IsInsideInspector(Point point) =>
@@ -243,8 +249,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         _focusDispatcher.FocusChanged += OnFocusChangedForKeyboard;
     }
 
-    /// <summary>Клавиатура следует за фокусом: поле получило его — показываем,
-    /// ушёл на кнопку или в никуда — прячем.</summary>
+    /// <summary>The keyboard follows focus: a field got it — show the keyboard,
+    /// focus moved to a button or nowhere — hide it.</summary>
     private void OnFocusChangedForKeyboard(object? sender, UIElement? focused)
     {
         if (PlatformWindow is not ISoftKeyboard keyboard) return;
@@ -255,9 +261,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             keyboard.HideSoftKeyboard();
     }
 
-    // ===== Переходники со старых сигнатур =====
-    // Бэкенды пока присылают мышь позиционными аргументами. Менять их
-    // в этом проходе не нужно: точка входа одна, а конвейер под ней новый.
+    // ===== Adapters from the old signatures =====
+    // The backends still send the mouse as positional arguments. There is no need
+    // to change them in this pass: the entry point is one, and the pipeline under it is new.
 
     internal void OnPointerMove(Point point, KeyModifiers modifiers = KeyModifiers.None) =>
         OnPointerMove(new PointerEventArgs(
@@ -288,9 +294,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             }
         }
 
-        // та же кнопка на живом контакте: мышь прислала второе нажатие
-        // без отпускания. Контакт продолжается, меняется только маска —
-        // заводить второй с тем же идентификатором нельзя
+        // the right and the middle button, like the left one, click only when
+        // the press and the release land on the same element — see OnPointerUp
+        RememberPress(e.Button, hit);
+
+        // the same button on a live contact: the mouse sent a second press
+        // without a release. The contact continues, only the mask changes —
+        // a second contact with the same identifier must not be created
         if (_contacts.TryGetValue(e.PointerId, out PointerContact? existing))
         {
             existing.Buttons |= e.Button.ToFlag();
@@ -320,8 +330,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         if (isPrimary) _primaryContactId = e.PointerId;
 
-        // кратность считаем только по ведущему контакту: два пальца подряд
-        // по одному месту — это не двойной щелчок
+        // the click count is tracked only for the primary contact: two fingers
+        // in a row on the same spot are not a double click
         if (isPrimary) UpdateClickCount(e.Location, e.Button);
 
         DispatchDown(contact, hit, e, isNew: true);
@@ -340,13 +350,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                 if (e.Handled) return;
             }
 
-            // арена собирается один раз на контакт, а не на кнопку
+            // the arena is assembled once per contact, not per button
             if (isNew)
                 contact.Arena = GestureArena.TryCreate(contact, CancelCompatInteraction);
 
-            // арена до совместимых событий: распознаватель, которому хватает
-            // самого нажатия, обязан успеть отменить их раньше, чем кнопка
-            // покрасится нажатой
+            // the arena goes before the compatibility events: a recognizer that
+            // is satisfied by the press itself must manage to cancel them before
+            // the button paints itself pressed
             contact.Arena?.PointerDown(e);
 
             if (contact.IsCompatCancelled) return;
@@ -378,29 +388,29 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         OnPointerUp(new PointerEventArgs(
             MousePointerId, PointerKind.Mouse, point, button, 1f, modifiers));
 
-    // ===== Конвейер контактов =====
+    // ===== Contact pipeline =====
 
     internal void OnPointerMove(PointerEventArgs e)
     {
-        // положение курсора — понятие мыши: тултип и инспектор опираются
-        // на него, и палец двигать его не должен
+        // the cursor position is a mouse concept: the tooltip and the inspector
+        // rely on it, and a finger must not move it
         if (e.Kind == PointerKind.Mouse)
             _lastPointerPosition = e.Location;
 
         _contacts.TryGetValue(e.PointerId, out PointerContact? contact);
         contact?.Update(e.Location, e.Timestamp);
 
-        // при живом контакте цепочка строится от захватившего или нажатого,
-        // а не от того, над кем курсор: иначе предпросмотр посыпался бы
-        // в чужое поддерево
+        // with a live contact the chain is built from the capturing or the pressed
+        // element, not from whatever is under the cursor: otherwise the preview
+        // would spill into someone else's subtree
         UIElement? target = contact?.Target
             ?? (contact is null && e.Kind == PointerKind.Mouse ? HitTestAll(e.Location) : null);
 
         UIElement[] chain = BuildChain(target);
 
-        // сохранить и вернуть, а не обнулить: RaiseMouseDown может открыть
-        // модальный диалог, тот прокрутит вложенный цикл со своими контактами,
-        // и обнуление в его finally оборвало бы наш кадр
+        // save and restore rather than reset: RaiseMouseDown may open a modal
+        // dialog, it will spin a nested loop with its own contacts, and a reset
+        // in its finally would cut our frame short
         PointerContact? previousDispatch = _dispatching;
         _dispatching = contact;
 
@@ -414,15 +424,15 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
             contact?.Arena?.PointerMove(e);
 
-            // контакт достался жесту — совместимой части взаимодействия
-            // больше нет, и наведение с курсором её не касаются
+            // the contact went to a gesture — there is no compatibility part
+            // of the interaction anymore, and hover and the cursor don't concern it
             if (contact is { IsCompatCancelled: true }) return;
 
             var moveArgs = new MouseMoveEventArgs(e.Location);
 
-            // предпросмотр от корня к цели, до того как движение получит
-            // она сама. Работает и с зажатой кнопкой — именно там он и нужен,
-            // чтобы предок мог следить за перетаскиванием над своими потомками
+            // the preview goes from the root to the target, before the target itself
+            // gets the move. It works with a button held down too — that is exactly
+            // where it is needed, so that an ancestor can follow a drag over its descendants
             foreach (UIElement element in chain)
                 element.RaisePreviewMouseMove(moveArgs);
 
@@ -432,16 +442,16 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                 return;
             }
 
-            // дальше только наведение, а его не бывает у касания: палец
-            // либо на экране, либо нет, состояния «над элементом» нет
+            // what follows is only hover, and touch has none: a finger is either
+            // on the screen or not, there is no "over the element" state
             if (e.Kind != PointerKind.Mouse) return;
 
             UIElement? hit = target;
 
             if (hit != _hoveredElement)
             {
-                // в аргументах указываем «откуда» и «куда», чтобы обработчик
-                // мог отличить переход внутрь потомка от выхода наружу
+                // the arguments carry "from" and "to", so that a handler can tell
+                // moving into a descendant from leaving altogether
                 _hoveredElement?.RaiseMouseExit(e.Location, hit);
                 hit?.RaiseMouseEnter(e.Location, _hoveredElement);
 
@@ -487,8 +497,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (e.Kind == PointerKind.Mouse)
             _lastPointerPosition = e.Location;
 
-        // отпускание без нажатия — обычное дело после отмены: захват
-        // отобрали, контакта уже нет, а система всё равно досылает Up
+        // a release without a press is common after a cancel: the capture was
+        // taken away, the contact is gone, and the system still sends Up
         if (!_contacts.TryGetValue(e.PointerId, out PointerContact? contact))
             return;
 
@@ -496,9 +506,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         UIElement? hit = HitTestAll(e.Location);
 
-        // сохранить и вернуть, а не обнулить: RaiseMouseDown может открыть
-        // модальный диалог, тот прокрутит вложенный цикл со своими контактами,
-        // и обнуление в его finally оборвало бы наш кадр
+        // save and restore rather than reset: RaiseMouseDown may open a modal
+        // dialog, it will spin a nested loop with its own contacts, and a reset
+        // in its finally would cut our frame short
         PointerContact? previousDispatch = _dispatching;
         _dispatching = contact;
 
@@ -521,21 +531,21 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
             if (e.Button == MouseButton.Left)
             {
-                // цепочка та же, что при нажатии: кто следил за press через
-                // предпросмотр, должен узнать и об отпускании
+                // the same chain as on the press: whoever followed the press through
+                // the preview must learn about the release too
                 for (UIElement? current = contact.Pressed; current is not null; current = current.Parent)
                     current.RaisePreviewMouseUp(upArgs);
 
                 contact.Pressed?.RaiseMouseUp(upArgs);
 
-                // захвативший должен узнать об отпускании, даже если нажатие
-                // пришлось на его потомка
+                // the capturing element must learn about the release even if
+                // the press landed on its descendant
                 if (contact.Capture is not null && !ReferenceEquals(contact.Capture, contact.Pressed))
                     contact.Capture.RaiseMouseUp(upArgs);
 
                 ReleaseCapture(contact);
 
-                // клик = нажатие и отпускание на одном элементе
+                // click = press and release on the same element
                 if (hit is not null && ReferenceEquals(hit, contact.Pressed))
                     BubbleClick(hit, e.Button, e.Location);
             }
@@ -543,11 +553,15 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             {
                 hit?.RaiseMouseUp(upArgs);
 
-                // правая и средняя не требуют совпадения с нажатием:
-                // захвата для них нет, поэтому клик по факту отпускания.
-                // Поведение сохранено как было — на мой взгляд оно спорное
-                // и просится в список багов первым пунктом
-                if (hit is not null)
+                // the right and the middle button follow the same rule as the left one:
+                // a click is a press and a release on the same element. Previously they
+                // clicked on whatever was under the release, with no match to the press:
+                // pressing the right button on one row and releasing it on another
+                // delivered RightClick to the second row. The system context menu
+                // (OnContextMenu) is a separate path and is not affected
+                UIElement? pressed = TakePress(e.Button);
+
+                if (hit is not null && ReferenceEquals(hit, pressed))
                     BubbleClick(hit, e.Button, e.Location);
             }
         }
@@ -555,33 +569,61 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         {
             _dispatching = previousDispatch;
 
-            // завершение контакта — в finally, а не после try. Выходы выше
-            // (жест забрал контакт, палец не ведущий, обработчик пометил
-            // событие обработанным) обходили этот код стороной, и контакт
-            // оставался в словаре навсегда: следующее движение мыши шло
-            // не тому, кто под курсором, а покойнику из мёртвого контакта,
-            // распознаватели так и не получали Leave, а захват не снимался.
-            // Снаружи это выглядело как пропавшие клики и свайп через раз
+            // ending the contact is in finally rather than after try. The exits above
+            // (a gesture took the contact, the finger is not primary, a handler marked
+            // the event handled) bypassed this code, and the contact stayed in the
+            // dictionary forever: the next mouse move went not to whoever was under
+            // the cursor but to a dead element from a dead contact, recognizers never
+            // got Leave, and the capture was never released.
+            // From the outside it looked like lost clicks and a swipe that worked every other time
             contact.Arena?.Complete();
 
             contact.Buttons &= ~e.Button.ToFlag();
 
-            // у касания и пера кнопок нет — контакт кончается вместе с Up
+            // touch and pen have no buttons — the contact ends together with Up
             if (contact.Kind != PointerKind.Mouse || contact.Buttons == PointerButtons.None)
                 EndContact(contact);
         }
     }
 
-    /// <summary>Платформа сообщила, что контакт отменён: pointercancel
-    /// в браузере, ACTION_CANCEL на Android, жест системной оболочки.</summary>
+    /// <summary>Remember what the right or the middle button was pressed on.
+    /// The left one is not stored here: the contact tracks it itself.</summary>
+    private void RememberPress(MouseButton button, UIElement? hit)
+    {
+        if (button == MouseButton.Right) _rightPressed = hit;
+        else if (button == MouseButton.Middle) _middlePressed = hit;
+    }
+
+    /// <summary>Take the element the button was pressed on. One-shot:
+    /// a release consumes its press.</summary>
+    private UIElement? TakePress(MouseButton button)
+    {
+        UIElement? pressed = null;
+
+        if (button == MouseButton.Right)
+        {
+            pressed = _rightPressed;
+            _rightPressed = null;
+        }
+        else if (button == MouseButton.Middle)
+        {
+            pressed = _middlePressed;
+            _middlePressed = null;
+        }
+
+        return pressed;
+    }
+
+    /// <summary>The platform reported that a contact was cancelled: pointercancel
+    /// in the browser, ACTION_CANCEL on Android, a system shell gesture.</summary>
     internal void OnPointerCancel(int pointerId)
     {
         if (_contacts.TryGetValue(pointerId, out PointerContact? contact))
             CancelContact(contact, PointerCancelReason.Platform);
     }
 
-    /// <summary>Цепочка от корня к элементу. Порядок именно такой:
-    /// и предпросмотр, и pointer-события тоннелируют сверху вниз.</summary>
+    /// <summary>The chain from the root to the element. Exactly this order:
+    /// both the preview and pointer events tunnel from the top down.</summary>
     private static UIElement[] BuildChain(UIElement? element)
     {
         if (element is null) return [];
@@ -596,9 +638,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         return [.. chain];
     }
 
-    /// <summary>Оборвать совместимую часть взаимодействия, оставив контакт живым.
-    /// Нужно победе жеста: кнопке под пальцем надо сообщить, что нажатия
-    /// не было, а контакт продолжает идти — его ведёт распознаватель.</summary>
+    /// <summary>Cut off the compatibility part of the interaction, leaving the contact alive.
+    /// Needed when a gesture wins: the button under the finger must be told that
+    /// there was no press, while the contact goes on — the recognizer drives it.</summary>
     private void CancelCompatInteraction(PointerContact contact, PointerCancelReason reason)
     {
         if (contact.IsCompatCancelled) return;
@@ -608,8 +650,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         var args = new PointerCancelEventArgs(
             contact.Id, contact.Kind, contact.Location, reason);
 
-        // отменяем всю цепочку, а не только цель: предок, следивший
-        // за нажатием через предпросмотр, тоже завёл состояние по нему
+        // cancel the whole chain, not only the target: an ancestor that followed
+        // the press through the preview has set up state for it too
         foreach (UIElement element in contact.Chain)
             element.RaisePointerCanceled(args);
 
@@ -618,7 +660,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         ReleaseCapture(contact);
 
-        // цель обнуляем, иначе движения продолжат уходить в отменённый элемент
+        // reset the target, otherwise moves would keep going to the cancelled element
         contact.Pressed = null;
     }
 
@@ -627,6 +669,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         contact.Arena?.Cancel();
 
         CancelCompatInteraction(contact, reason);
+
+        // a cancelled interaction produces no clicks with any button
+        _rightPressed = null;
+        _middlePressed = null;
 
         EndContact(contact);
     }
@@ -648,7 +694,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         contact.Capture = null;
 
         ZfContract.Require(_platformCaptureCount > 0,
-            "Счётчик системного захвата ушёл в минус: захват отпустили дважды.");
+            "The system capture counter went negative: the capture was released twice.");
 
         if (--_platformCaptureCount == 0)
             PlatformWindow?.ReleaseMouseCapture();
@@ -682,37 +728,36 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         _lastClickButton = button;
     }
 
-    /// <summary>Забрать себе движения мыши до отпускания кнопки.
-    /// Нажатие остаётся у того, на кого попали, поэтому клик по потомку
-    /// захватившего элемента продолжает работать как обычно.</summary>
+    /// <summary>Take mouse moves for itself until the button is released.
+    /// The press stays with whatever was hit, so a click on a descendant
+    /// of the capturing element keeps working as usual.</summary>
     internal void CaptureMouse(UIElement element)
     {
-        // захват берут изнутри обработки контакта — DragList зовёт его
-        // из OnPreviewMouseDown. Вне обработки берём ведущий контакт:
-        // так работает старый код, звавший CaptureMouse из таймера
+        // capture is taken from inside contact processing — DragList calls it
+        // from OnPreviewMouseDown. Outside processing we take the primary contact:
+        // that is how old code that called CaptureMouse from a timer works
         PointerContact? contact = _dispatching ?? PrimaryContact;
 
         if (contact is null)
         {
-            // до 0.11 захват брался безусловно, поэтому тихий отказ здесь —
-            // это молча сломанное перетаскивание у того, кто позвал
-            // CaptureMouse не из обработчика нажатия
-            ZfContract.Require(false, "CaptureMouse вне живого контакта: захватывать нечего.");
+            // before 0.11 capture was taken unconditionally, so a silent refusal
+            // here would be a silently broken drag for whoever called
+            // CaptureMouse outside a press handler
+            ZfContract.Require(false, "CaptureMouse outside a live contact: there is nothing to capture.");
             return;
         }
 
         if (ReferenceEquals(contact.Capture, element)) return;
 
-        // захват означает, что элемент забрал указатель себе, — значит
-        // борьба жестов на этом контакте кончена. Иначе распознаватель
-        // предка спокойно дожидался отпускания и выигрывал уже захваченный
-        // контакт: перетаскивание в DragList заканчивалось свайпом страницы,
-        // а перетаскиваемая строка оставалась висеть, потому что отпускания
-        // захвативший так и не получал.
+        // capture means the element took the pointer for itself — so the fight
+        // of gestures on this contact is over. Otherwise an ancestor's recognizer
+        // calmly waited for the release and won an already captured contact:
+        // a drag in DragList ended as a page swipe, and the dragged row stayed
+        // hanging because the capturing element never got the release.
         //
-        // Но только пока борьба идёт. Если победитель уже есть, захват
-        // берёт он сам — распознаватель прокрутки делает это сразу после
-        // победы, — и отменять арену значило бы снимать его же с контакта
+        // But only while the fight is on. If there is already a winner, it takes
+        // the capture itself — the scroll recognizer does so right after winning —
+        // and cancelling the arena would mean removing the winner from the contact
         if (contact.Arena is { HasWinner: false } arena)
         {
             arena.Cancel();
@@ -736,21 +781,21 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
     }
 
-    /// <summary>Захват отобрала система.</summary>
+    /// <summary>The system took the capture away.</summary>
     /// <remarks>
-    /// Раньше здесь рассылался поддельный MouseUp. Кнопке всё равно —
-    /// Click всплывает отдельно, из BubbleClick. А TrackBar и GridSplitter
-    /// принимали его за настоящее отпускание и фиксировали значение,
-    /// хотя взаимодействие оборвали.
+    /// This used to send a fake MouseUp. The button doesn't care — Click bubbles
+    /// separately, from BubbleClick. But TrackBar and GridSplitter took it for
+    /// a real release and committed the value, even though the interaction
+    /// was cut off.
     /// </remarks>
     internal void OnCaptureLost()
     {
-        // ToArray: CancelContact правит словарь под нами
+        // ToArray: CancelContact modifies the dictionary under us
         foreach (PointerContact contact in _contacts.Values.ToArray())
             CancelContact(contact, PointerCancelReason.CaptureLost);
 
-        // захвата в системе уже нет, счётчик сводим к нулю без вызова
-        // ReleaseMouseCapture — отпускать нечего
+        // there is no system capture anymore, the counter is brought to zero
+        // without calling ReleaseMouseCapture — there is nothing to release
         _platformCaptureCount = 0;
     }
 
@@ -766,7 +811,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         var args = new KeyEventArgs(key, modifiers);
 
-        // превью идёт от корня к сфокусированному элементу
+        // the preview goes from the root to the focused element
         UIElement? focused = _focusDispatcher.FocusedElement;
 
         if (focused is not null)
@@ -818,26 +863,26 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (Content is not null)
             ApplyTheme(Content);
 
-        // оверлеи живут отдельно от Content: без этого открытые инспектор,
-        // меню или флаут остаются в старой теме до закрытия
+        // overlays live separately from Content: without this an open inspector,
+        // menu or flyout stays in the old theme until it is closed
         foreach (UIElement overlay in _overlays.ToArray())
             ApplyTheme(overlay);
 
-        // тема меняет и Font.Default, а он влияет на размер всего, что
-        // не задало шрифт само. Через свойства такой элемент не проходит,
-        // поэтому кэш измерения сбрасываем по всему дереву
+        // the theme changes Font.Default as well, and it affects the size of
+        // everything that didn't set a font itself. Such an element doesn't go
+        // through its properties, so the measure cache is reset for the whole tree
         InvalidateMeasureTree();
 
         Invalidate();
     }
 
-    /// <summary>Отдать фокус тому, кто способен его принять: самому
-    /// нажатому элементу или ближайшему предку, который принимает ввод.</summary>
+    /// <summary>Give focus to whoever can take it: the pressed element itself
+    /// or the nearest ancestor that accepts input.</summary>
     /// <remarks>
-    /// Щелчок почти никогда не попадает прямо в принимающий ввод элемент:
-    /// в списке под курсором строка, в дереве — узел, в гриде — ячейка.
-    /// Раньше фокус в таких случаях просто не переходил, и клавиатура
-    /// продолжала работать на том контроле, где её оставили.
+    /// A click almost never lands directly on the element that accepts input:
+    /// in a list the cursor is over a row, in a tree — over a node, in a grid —
+    /// over a cell. Previously focus simply didn't move in such cases, and the
+    /// keyboard kept working on the control where it had been left.
     /// </remarks>
     private void FocusFromHit(UIElement hit)
     {
@@ -846,16 +891,16 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                 return;
     }
 
-    /// <summary>Оформить поддерево по текущей теме. Вызывается при
-    /// присоединении к форме и при смене темы.</summary>
+    /// <summary>Style a subtree according to the current theme. Called on
+    /// attaching to the form and on a theme change.</summary>
     internal void ApplyTheme(UIElement root)
     {
         Walk(root, App.Theme.Apply);
     }
 
-    /// <summary>Сбросить кэш измерения по всему дереву. Нужно там, где
-    /// размеры зависят не от свойств элементов, а от чего-то общего:
-    /// базового шрифта, масштаба, измерителя текста.</summary>
+    /// <summary>Reset the measure cache for the whole tree. Needed where sizes
+    /// depend not on the elements' properties but on something shared:
+    /// the base font, the scale, the text measurer.</summary>
     internal void InvalidateMeasureTree()
     {
         if (Content is not null)
@@ -865,10 +910,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             Walk(overlay, static element => element.InvalidateMeasure());
     }
 
-    /// <summary>Сменить тему с расходящейся волной от точки.</summary>
+    /// <summary>Switch the theme with a ripple spreading from a point.</summary>
     public void SwitchTheme(Theme theme, Point origin)
     {
-        // волна — украшение: при уменьшенном движении тема меняется сразу
+        // the ripple is decoration: with reduced motion the theme changes at once
         if (Motion.IsReduced)
         {
             App.Theme = theme;
@@ -882,7 +927,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         float maxRadius = MathF.Sqrt(
             ClientSize.Width * ClientSize.Width + ClientSize.Height * ClientSize.Height);
 
-        // тему применяем сразу, а волна прикрывает момент перекраски
+        // the theme is applied at once, and the ripple covers the moment of repainting
         App.Theme = theme;
 
         var animation = new Animation<float>(
@@ -913,23 +958,23 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     public UIElement? FindByName(string name) => NameScope.Find(name);
     public T? FindByName<T>(string name) where T : UIElement => NameScope.Find<T>(name);
 
-    // ===== Присоединение поддерева к форме =====
+    // ===== Attaching a subtree to the form =====
 
-    /// <summary>Показать оверлей: присоединить поддерево (тема, шрифт, имена,
-    /// OnAttached) и положить поверх содержимого. Единственный путь
-    /// в список оверлеев — флауты, тосты, подсказки, меню и инспектор
-    /// проходят через него.</summary>
-    /// <remarks>Присоединение идёт до измерения: тема задаёт шрифты
-    /// и отступы, а позиция оверлея считается из DesiredSize.</remarks>
+    /// <summary>Show an overlay: attach the subtree (theme, font, names,
+    /// OnAttached) and put it on top of the content. The only way into
+    /// the overlay list — flyouts, toasts, tooltips, menus and the inspector
+    /// all go through it.</summary>
+    /// <remarks>Attaching happens before measuring: the theme sets fonts
+    /// and padding, and the overlay's position is computed from DesiredSize.</remarks>
     private void AttachOverlay(UIElement content)
     {
         if (_overlays.Contains(content)) return;
 
         ZfContract.Require(
             content.Owner is null,
-            "Оверлей уже принадлежит форме. Один элемент не может быть " +
-            "оверлеем двух форм одновременно: Owner перезапишется, " +
-            "и первая форма потеряет с ним связь.");
+            "The overlay already belongs to a form. One element cannot be " +
+            "an overlay of two forms at once: Owner would be overwritten, " +
+            "and the first form would lose its link to it.");
 
         content.Owner = this;
         AttachTree(content);
@@ -937,9 +982,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         _overlays.Add(content);
     }
 
-    /// <summary>Убрать оверлей и отсоединить поддерево. Без отсоединения
-    /// закрытый оверлей остаётся в NameScope, его анимации продолжают
-    /// крутиться, а ссылки на него держат диспетчеры ввода и фокуса.</summary>
+    /// <summary>Remove an overlay and detach the subtree. Without detaching,
+    /// a closed overlay stays in the NameScope, its animations keep spinning,
+    /// and the input and focus dispatchers keep references to it.</summary>
     private bool DetachOverlay(UIElement content)
     {
         if (!_overlays.Remove(content)) return false;
@@ -956,8 +1001,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         {
             NameScope.Register(element);
 
-            // тема применяется до первого layout, чтобы размеры считались
-            // уже с правильными шрифтами и отступами
+            // the theme is applied before the first layout, so that sizes
+            // are computed with the right fonts and padding from the start
             App.Theme.Apply(element);
 
             element.RaiseAttached();
@@ -972,13 +1017,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             element.RaiseDetached();
         });
 
-        // иначе выброшенное дерево остаётся живым через ссылки диспетчера
+        // otherwise the discarded tree stays alive through the dispatcher's references
         if (_hoveredElement is not null && IsInTree(root, _hoveredElement))
             _hoveredElement = null;
 
-        // контакт, чья цель уехала из дерева, обязан узнать об отмене.
-        // Раньше поля здесь просто занулялись, и элемент, если его потом
-        // вернули в дерево, оставался нажатым
+        // a contact whose target left the tree must learn about the cancellation.
+        // Previously the fields here were simply nulled, and an element that was
+        // later returned to the tree stayed pressed
         foreach (PointerContact contact in _contacts.Values.ToArray())
         {
             bool affected =
@@ -989,6 +1034,14 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
                 CancelContact(contact, PointerCancelReason.Detached);
         }
 
+        // the remembered press of the right and the middle button is a reference
+        // into the tree too, and a click must not come to an element that left it
+        if (_rightPressed is not null && IsInTree(root, _rightPressed))
+            _rightPressed = null;
+
+        if (_middlePressed is not null && IsInTree(root, _middlePressed))
+            _middlePressed = null;
+
         if (_dropTarget is not null && IsInTree(root, _dropTarget))
         {
             _dropTarget = null;
@@ -998,11 +1051,11 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         if (_focusDispatcher.FocusedElement is { } focused && IsInTree(root, focused))
             _focusDispatcher.ClearFocus();
 
-        // как и остальные ссылки выше — только если сбрасываемый элемент
-        // действительно в отсоединяемом поддереве. Безусловный сброс стал
-        // заметен, когда через DetachTree пошло скрытие подсказки:
-        // оно случается на каждом движении мыши и гасило бы выбор
-        // инспектора вместе с ним
+        // like the other references above — only if the element being reset is
+        // actually in the subtree being detached. An unconditional reset became
+        // noticeable once hiding the tooltip started going through DetachTree:
+        // that happens on every mouse move and would wipe out the inspector's
+        // selection along with it
         if (InspectedElement is not null && IsInTree(root, InspectedElement))
             InspectedElement = null;
 
@@ -1040,24 +1093,24 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     private int _layoutDepth;
 
-    /// <summary>Раскладка устарела и ждёт ближайшего кадра.</summary>
+    /// <summary>The layout is stale and waits for the next frame.</summary>
     private bool _layoutDirty;
 
-    /// <summary>Сколько проходов допускается за один вызов.</summary>
+    /// <summary>How many passes are allowed per call.</summary>
     /// <remarks>
-    /// Двух хватает штатному случаю: первый создаёт контейнеры, второй
-    /// считает по ним итоговый размер. Запас до четырёх — на вложенные
-    /// виртуализующие панели, дерево внутри прокручиваемой панели.
+    /// Two are enough for the regular case: the first creates the containers,
+    /// the second computes the final size from them. The margin up to four is
+    /// for nested virtualizing panels, a tree inside a scrollable panel.
     /// </remarks>
     private const int MaxLayoutPasses = 4;
 
     internal void PerformLayout()
     {
-        // Invalidate во время раскладки — законное явление: виртуализующая
-        // панель создаёт контейнеры прямо в измерении, потому что до него
-        // неизвестно, сколько строк влезет, а создание контейнера меняет
-        // Children. Заново заходить в проход нельзя, а просьба уже записана
-        // в _layoutDirty — её выполнит цикл проходов ниже
+        // Invalidate during layout is legitimate: a virtualizing panel creates
+        // containers right in measuring, because until then it is unknown how
+        // many rows fit, and creating a container changes Children. Re-entering
+        // the pass is not allowed, and the request is already recorded
+        // in _layoutDirty — the pass loop below will fulfil it
         if (_layoutDepth > 0) return;
 
         _layoutDepth++;
@@ -1074,13 +1127,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
                 if (pass + 1 >= MaxLayoutPasses)
                 {
-                    // раскладка не сходится: кто-то просит новый проход
-                    // каждый раз. Молча крутить это значит повесить кадр
+                    // the layout doesn't converge: someone asks for a new pass
+                    // every time. Silently spinning on that would hang the frame
                     ZfContract.Fail(
-                        $"Раскладка не сошлась за {MaxLayoutPasses} проходов: " +
-                        "кто-то продолжает звать Invalidate из MeasureOverride " +
-                        "или ArrangeOverride. Изменяйте там геометрию напрямую " +
-                        "вместо запроса нового прохода.");
+                        $"Layout did not converge in {MaxLayoutPasses} passes: " +
+                        "something keeps calling Invalidate from MeasureOverride " +
+                        "or ArrangeOverride. Change the geometry there directly " +
+                        "instead of requesting a new pass.");
 
                     break;
                 }
@@ -1093,9 +1146,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
     }
 
-    /// <summary>Выполнить отложенную раскладку, если она нужна. Зовётся
-    /// перед отрисовкой и перед попаданием — то есть везде, где геометрия
-    /// должна быть свежей.</summary>
+    /// <summary>Perform the deferred layout if it is needed. Called before
+    /// drawing and before hit testing — that is, everywhere the geometry
+    /// must be fresh.</summary>
     internal void EnsureLayout()
     {
         if (!_layoutDirty) return;
@@ -1103,9 +1156,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         PerformLayout();
     }
 
-    /// <summary>Досчитать отложенную раскладку немедленно. Нужно там, где
-    /// код сразу после изменения читает геометрию: позицию, размер, состав
-    /// контейнеров виртуализующей панели.</summary>
+    /// <summary>Complete the deferred layout immediately. Needed where code reads
+    /// the geometry right after a change: a position, a size, the set of
+    /// containers of a virtualizing panel.</summary>
     public void UpdateLayout() => EnsureLayout();
 
     private void LayoutPass()
@@ -1138,34 +1191,33 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         PlatformWindow?.Invalidate(bounds);
     }
 
-    /// <summary>Перерисовать всю клиентскую область без пересчёта раскладки.</summary>
+    /// <summary>Redraw the whole client area without a layout pass.</summary>
     internal void InvalidateVisual()
     {
         _dirtyRegion = new Rectangle(Point.Empty, ClientSize);
         PlatformWindow?.Invalidate(null);
     }
 
-    /// <summary>Пометить раскладку устаревшей и попросить кадр.</summary>
+    /// <summary>Mark the layout stale and ask for a frame.</summary>
     /// <remarks>
-    /// Раньше здесь же шёл полный проход Measure/Arrange по всему дереву.
-    /// Тогда установка пяти свойств давала пять раскладок, а прокрутка
-    /// пальцем — по раскладке на каждое событие движения, которых
-    /// приходит больше, чем кадров. Теперь проход один и выполняется
-    /// перед кадром: до отрисовки и до попадания геометрия всё равно
-    /// будет свежей, а промежуточные состояния никто не увидит.
-    /// Коду, которому геометрия нужна сразу, — UpdateLayout.
+    /// This used to run a full Measure/Arrange pass over the whole tree right here.
+    /// Then setting five properties meant five layouts, and scrolling with a finger
+    /// meant a layout per move event, and those arrive more often than frames.
+    /// Now there is one pass, and it runs before the frame: before drawing and
+    /// before hit testing the geometry will be fresh anyway, and nobody sees
+    /// the intermediate states. Code that needs the geometry right away uses UpdateLayout.
     /// </remarks>
     internal void Invalidate()
     {
         _layoutDirty = true;
 
-        // видимость элемента — свойство раскладки, поэтому её смена всегда
-        // проходит здесь. Часы пересматривают, нужны ли кадры: анимация
-        // на показавшейся заново странице должна ожить, а на спрятанной —
-        // перестать будить окно
+        // an element's visibility is a layout property, so its change always
+        // passes through here. The clock reconsiders whether frames are needed:
+        // an animation on a page shown again must come alive, and one on a hidden
+        // page must stop waking the window
         ReviewFrames();
 
-        // полная перерисовка: копим всю клиентскую область
+        // a full redraw: accumulate the whole client area
         _dirtyRegion = new Rectangle(Point.Empty, ClientSize);
         PlatformWindow?.Invalidate(null);
     }
@@ -1210,8 +1262,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     {
         if (_flyouts.Count == 0) return;
 
-        // копия: обработчики события могут открыть новый флаут,
-        // и коллекция изменится во время обхода
+        // a copy: event handlers may open a new flyout,
+        // and the collection would change during the walk
         UIElement[] closing = [.. _flyouts];
 
         foreach (UIElement flyout in closing)
@@ -1225,8 +1277,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         Invalidate();
     }
 
-    /// <summary>Положить элемент поверх содержимого. В отличие от ShowFlyout
-    /// не закрывается по клику мимо и не участвует в логике всплывашек.</summary>
+    /// <summary>Put an element on top of the content. Unlike ShowFlyout, it is not
+    /// closed by a click outside and takes no part in the popup logic.</summary>
     public void AddOverlay(UIElement content)
     {
         AttachOverlay(content);
@@ -1244,13 +1296,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     private bool _isClosed;
 
-    /// <summary>Платформа разрушила окно. Единственная точка, где завершается
-    /// ожидание диалога: различать источник закрытия незачем, а вот пропустить
-    /// его нельзя — ShowDialogAsync повиснет навсегда.</summary>
+    /// <summary>The platform destroyed the window. The only point where waiting
+    /// for a dialog completes: there is no need to tell apart where the closing
+    /// came from, but it must not be missed — ShowDialogAsync would hang forever.</summary>
     internal void OnWindowClosed()
     {
-        // DestroyWindow в Win32 шлёт и WM_DESTROY, и WM_NCDESTROY;
-        // на X11 Close() может прийти и от нас, и от WM_DELETE_WINDOW
+        // DestroyWindow in Win32 sends both WM_DESTROY and WM_NCDESTROY;
+        // on X11 Close() may come both from us and from WM_DELETE_WINDOW
         if (_isClosed) return;
         _isClosed = true;
 
@@ -1263,17 +1315,17 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         Closed?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Показать диалог и дождаться результата. Требует платформы
-    /// с вложенным циклом; там, где его нет, используйте ShowDialogAsync.</summary>
+    /// <summary>Show the dialog and wait for the result. Requires a platform
+    /// with a nested loop; where there is none, use ShowDialogAsync.</summary>
     public DialogResult<T> ShowDialog<T>(Form owner)
     {
         IPlatform platform = owner.Platform
-            ?? throw new InvalidOperationException("Владелец диалога ещё не привязан к платформе.");
+            ?? throw new InvalidOperationException("The dialog owner is not bound to a platform yet.");
 
         if (platform is not INestedLoopSupport loop)
             throw new NotSupportedException(
-                $"Платформа {platform.GetType().Name} не поддерживает вложенный цикл. " +
-                "Используйте ShowDialogAsync.");
+                $"Platform {platform.GetType().Name} does not support a nested loop. " +
+                "Use ShowDialogAsync.");
 
         BeginDialog(owner, platform);
 
@@ -1289,12 +1341,12 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         return Result<T>();
     }
 
-    /// <summary>Показать диалог, не блокируя вызывающий код. Работает
-    /// на любой платформе, в том числе там, где вложенного цикла нет.</summary>
+    /// <summary>Show the dialog without blocking the calling code. Works
+    /// on any platform, including those without a nested loop.</summary>
     public async Task<DialogResult<T>> ShowDialogAsync<T>(Form owner)
     {
         IPlatform platform = owner.Platform
-            ?? throw new InvalidOperationException("Владелец диалога ещё не привязан к платформе.");
+            ?? throw new InvalidOperationException("The dialog owner is not bound to a platform yet.");
 
         BeginDialog(owner, platform);
 
@@ -1320,14 +1372,14 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         _dialogAccepted = false;
         _dialogValue = null;
 
-        // завершения ждём и синхронно, и асинхронно: источник один —
-        // закрытие окна, откуда бы оно ни пришло
+        // completion is awaited both synchronously and asynchronously: the source
+        // is one — the window closing, wherever it came from
         _dialogClosed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         platform.CreateWindow(this);
 
-        // модальность — это заглушённый владелец, а не вложенный цикл:
-        // первое нужно везде, второе только на настольных платформах
+        // modality is a disabled owner, not a nested loop:
+        // the first is needed everywhere, the second only on desktop platforms
         owner.PlatformWindow?.SetEnabled(false);
 
         Show();
@@ -1349,7 +1401,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             ? new DialogResult<T>(true, typed)
             : DialogResult<T>.Cancelled();
 
-    /// <summary>Закрыть диалог с результатом.</summary>
+    /// <summary>Close the dialog with a result.</summary>
     public void Accept(object? value = null)
     {
         _dialogAccepted = true;
@@ -1378,7 +1430,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             Child = new Label { Text = message, TextColor = Colors.White },
         };
 
-        toast.Owner = this;
+        // Owner is set by AttachOverlay itself; assigning it here first made
+        // its "not owned yet" contract fail on every toast
         AttachOverlay(toast);
 
         toast.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
@@ -1391,7 +1444,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         {
             DetachOverlay(toast);
             _toasts.Remove(toast);
-            ArrangeToasts(position);   // оставшиеся подтягиваются на освободившееся место
+            ArrangeToasts(position);   // the remaining ones move up into the freed space
             Invalidate();
         });
     }
@@ -1406,7 +1459,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         float offset = margin;
 
-        // снизу — новые появляются ниже, старые уезжают вверх, поэтому идём с конца
+        // at the bottom new ones appear lower and old ones move up, so we go from the end
         IEnumerable<UIElement> order = fromTop ? _toasts : Enumerable.Reverse(_toasts);
 
         foreach (var toast in order)
@@ -1460,19 +1513,16 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         tip.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
 
-        // чуть ниже-правее курсора, как принято в системных подсказках
+        // slightly below and to the right of the cursor, as system tooltips do
         float x = _lastPointerPosition.X + 12;
         float y = _lastPointerPosition.Y + 20;
 
-        // не даём вылезти за пределы клиентской области
+        // don't let it go beyond the client area
         if (x + tip.DesiredSize.Width > ClientSize.Width)
             x = Math.Max(0, ClientSize.Width - tip.DesiredSize.Width);
 
         if (y + tip.DesiredSize.Height > ClientSize.Height)
             y = Math.Max(0, _lastPointerPosition.Y - tip.DesiredSize.Height - 4);
-
-        tip.Position = new Point(x, y);
-        tip.Owner = this;
 
         tip.Position = new Point(x, y);
 
@@ -1483,7 +1533,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     private void HideToolTip()
     {
-        _toolTipWake?.Dispose(); 
+        _toolTipWake?.Dispose();
         _toolTipWake = null;
 
         if (_activeToolTip is not null)
@@ -1494,7 +1544,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
     }
 
-    // ===== Клавиатура =====
+    // ===== Keyboard =====
 
     private PropertyGrid? _inspectorGrid;
 
@@ -1528,12 +1578,12 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         _focusDispatcher.FocusedElement?.RaiseTextInput(c);
     }
 
-    // ===== Диспетчинг ввода =====
+    // ===== Input dispatching =====
 
     private UIElement? HitTestAll(Point point)
     {
-        // попадание считается по геометрии: если раскладка ждёт кадра,
-        // клик попал бы в то, что было на экране до последнего изменения
+        // hit testing works on geometry: if the layout is waiting for a frame,
+        // a click would land on what was on screen before the last change
         EnsureLayout();
 
         for (int i = _overlays.Count - 1; i >= 0; i--)
@@ -1572,12 +1622,12 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         }
     }
 
-    /// <summary>Окно потеряло фокус: об отпусканиях клавиш мы больше
-    /// не узнаем, поэтому считаем, что не нажато ничего.</summary>
+    /// <summary>The window lost focus: we won't learn about key releases
+    /// anymore, so we assume nothing is pressed.</summary>
     internal void OnWindowFocusLost() => Keyboard.Reset();
 
-    // вызывается платформой, когда состояние сменил сам пользователь —
-    // без обратного вызова в SetWindowState, иначе получим петлю
+    // called by the platform when the user changed the state themselves —
+    // without calling back into SetWindowState, otherwise we'd get a loop
     internal void SetWindowStateFromPlatform(WindowState state)
     {
         if (_windowState == state) return;
@@ -1589,8 +1639,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     {
         UIElement? hit = HitTestAll(point);
 
-        // меню ищем вверх по дереву: если у самой кнопки его нет,
-        // спрашиваем панель, потом форму
+        // the menu is searched up the tree: if the button itself has none,
+        // ask the panel, then the form
         for (UIElement? current = hit; current is not null; current = current.Parent)
         {
             if (current.ContextMenu is { Count: > 0 } items)
@@ -1617,22 +1667,22 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         menu.Position = new Point(x, y);
 
-        _flyouts.Add(menu);   // закроется кликом мимо — как и положено меню
+        _flyouts.Add(menu);   // closes on a click outside — as a menu should
 
         Invalidate();
     }
 
     private DragDropEffect _dropEffect;
 
-    /// <summary>Перетаскивание вошло в окно. Возвращённый эффект источник
-    /// показывает курсором.</summary>
+    /// <summary>A drag entered the window. The source shows the returned
+    /// effect with its cursor.</summary>
     internal DragDropEffect OnDragEnterWindow(DragDropData data, Point point, KeyModifiers modifiers) =>
         UpdateDropTarget(data, point, modifiers);
 
     internal DragDropEffect OnDragOverWindow(DragDropData data, Point point, KeyModifiers modifiers) =>
         UpdateDropTarget(data, point, modifiers);
 
-    /// <summary>Перетаскивание ушло из окна или было отменено.</summary>
+    /// <summary>The drag left the window or was cancelled.</summary>
     internal void OnDragLeaveWindow()
     {
         _dropTarget?.RaiseDragLeave();
@@ -1641,8 +1691,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     internal DragDropEffect OnDropWindow(DragDropData data, Point point, KeyModifiers modifiers)
     {
-        // приёмник пересчитываем: бросок может прийти без предшествующего
-        // over — например, если источник дал только enter и сразу drop
+        // the target is recomputed: a drop may come without a preceding over —
+        // for example, if the source sent only enter and then drop right away
         DragDropEffect effect = UpdateDropTarget(data, point, modifiers);
 
         UIElement? target = _dropTarget;
@@ -1659,15 +1709,15 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         target.RaiseDrop(args);
 
-        // DragLeave после броска обязателен: приёмник подсветился на enter,
-        // и снять подсветку ему больше негде
+        // DragLeave after a drop is mandatory: the target highlighted itself
+        // on enter, and it has no other place to remove the highlight
         target.RaiseDragLeave();
 
         return args.Effect;
     }
 
-    /// <summary>Найти приёмник под курсором, разослать enter и leave при
-    /// смене и спросить эффект.</summary>
+    /// <summary>Find the drop target under the cursor, send enter and leave when
+    /// it changes, and ask for the effect.</summary>
     private DragDropEffect UpdateDropTarget(DragDropData data, Point point, KeyModifiers modifiers)
     {
         _lastPointerPosition = point;
@@ -1685,8 +1735,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
                 target.RaiseDragEnter(enterArgs);
 
-                // эффект, выставленный на входе, — начальное значение
-                // для последующих over: приёмнику не нужно повторять его
+                // the effect set on enter is the initial value for the following
+                // over events: the target doesn't need to repeat it
                 _dropEffect = enterArgs.Effect;
             }
         }
@@ -1701,8 +1751,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         return _dropEffect;
     }
 
-    /// <summary>Ближайший элемент с AllowDrop, начиная с попавшего.
-    /// Так подсветку можно включить на панели, не размечая каждую строку.</summary>
+    /// <summary>The nearest element with AllowDrop, starting from the hit one.
+    /// That way highlighting can be enabled on a panel without marking up every row.</summary>
     private static UIElement? FindDropTarget(UIElement? hit)
     {
         for (UIElement? current = hit; current is not null; current = current.Parent)
@@ -1715,16 +1765,19 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     public void Dispose()
     {
         App.ThemeChanged -= OnThemeChanged;
-        _toolTipWake?.Dispose(); 
+        _toolTipWake?.Dispose();
         _clock?.Dispose();
 
         _focusDispatcher.FocusChanged -= OnFocusChangedForKeyboard;
 
-        // контакт держит Chain — весь путь от корня до нажатого элемента.
-        // Форму могли закрыть посреди перетаскивания, и тогда отпускание
-        // не придёт никогда
+        // a contact holds Chain — the whole path from the root to the pressed element.
+        // The form may have been closed in the middle of a drag, and then
+        // the release will never come
         _contacts.Clear();
         _primaryContactId = null;
         _platformCaptureCount = 0;
+
+        _rightPressed = null;
+        _middlePressed = null;
     }
 }

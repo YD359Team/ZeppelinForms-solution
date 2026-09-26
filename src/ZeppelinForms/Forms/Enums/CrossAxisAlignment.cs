@@ -1,6 +1,6 @@
 ﻿namespace ZeppelinForms.Forms.Enums;
 
-/// <summary>Как расположить детей по поперечной оси.</summary>
+/// <summary>How to place children along the cross axis.</summary>
 public enum CrossAxisAlignment
 {
     Stretch,

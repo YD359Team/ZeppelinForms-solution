@@ -6,8 +6,8 @@ using ZeppelinForms.Forms.Controls.Base;
 namespace ZeppelinForms.Forms;
 
 /// <summary>
-/// Область имён в пределах одной формы: имена уникальны внутри формы,
-/// но могут повторяться в разных окнах.
+/// A name scope within one form: names are unique inside a form,
+/// but may repeat across different windows.
 /// </summary>
 public sealed class NameScope
 {
@@ -25,7 +25,7 @@ public sealed class NameScope
         else if (_byName.TryGetValue(element.Name, out var existing) && !ReferenceEquals(existing, element))
         {
             throw new InvalidOperationException(
-                $"Имя '{element.Name}' уже занято другим элементом этой формы.");
+                $"The name '{element.Name}' is already taken by another element of this form.");
         }
 
         _byName[element.Name] = element;
