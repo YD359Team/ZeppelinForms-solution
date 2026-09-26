@@ -158,10 +158,14 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
         SetBit(ref _assigned, property.Index);
 
+        // the element's own reaction goes before the invalidation,
+        // see OnStyledPropertyChanged
+        OnStyledPropertyChanged(property);
+
         if (property.AffectsLayout) Invalidate();
         else InvalidateVisual();
 
-        NotifyStyledPropertyChanged(property);
+        RaisePropertyChanged(property);
     }
 
     // ===
@@ -714,10 +718,14 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         if (ApplyingTheme) ClearBit(_local, property.Index);
         else SetBit(ref _local, property.Index);
 
+        // the element's own reaction goes before the invalidation,
+        // see OnStyledPropertyChanged
+        OnStyledPropertyChanged(property);
+
         if (property.AffectsLayout) Invalidate();
         else InvalidateVisual();
 
-        NotifyStyledPropertyChanged(property);
+        RaisePropertyChanged(property);
         return true;
     }
 
@@ -747,10 +755,12 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         if (ApplyingTheme) ClearBit(_local, property.Index);
         else SetBit(ref _local, property.Index);
 
+        OnStyledPropertyChanged(property);
+
         if (property.AffectsLayout) Invalidate();
         else InvalidateVisual();
 
-        NotifyStyledPropertyChanged(property);
+        RaisePropertyChanged(property);
         return true;
     }
 
@@ -770,16 +780,20 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// <summary>The value of a styled property changed. A hook for reactions that
     /// the write itself doesn't express: stop an animation on hide, reconcile
     /// dependent values, recompute a cache.</summary>
+    /// <remarks>
+    /// Called before the element requests layout or a redraw. A platform may
+    /// paint right inside Invalidate — X11 does — and a reaction that runs after
+    /// it leaves that frame drawn from stale state: Label measured its new text
+    /// with the lines split from the old one and lagged one keystroke behind
+    /// a bound TextBox.
+    /// </remarks>
     protected virtual void OnStyledPropertyChanged(StyledProperty property) { }
 
-    /// <summary>A styled property changed: first the element's own reaction,
-    /// then the outside subscribers — by the time they read the value,
-    /// the element has already reconciled whatever depends on it.</summary>
-    private void NotifyStyledPropertyChanged(StyledProperty property)
-    {
-        OnStyledPropertyChanged(property);
+    /// <summary>Tell outside subscribers that a styled property changed. Goes last,
+    /// after the element's own reaction and the invalidation: by the time
+    /// a subscriber reads the value, the element is already consistent.</summary>
+    private void RaisePropertyChanged(StyledProperty property) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property.Name));
-    }
 
     /// <summary>Forget the manually set value and hand control back to the theme.</summary>
     public void ClearValue<T>(StyledProperty<T> property)
@@ -794,17 +808,20 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
         property.Write(this, property.DefaultValue);
 
+        // the write above bypassed SetValue, so the element's reaction is called
+        // by hand: without it the OnStyledPropertyChanged reactions (Label's line
+        // cache, Loader's animation) would keep the state from before the clear.
+        // It goes before the theme: if the theme sets a value of its own, that
+        // write brings its own notification on top of a consistent element
+        OnStyledPropertyChanged(property);
+
         // the theme may have a value of its own — ask it again
         App.Theme.Apply(this);
 
         if (property.AffectsLayout) Invalidate();
         else InvalidateVisual();
 
-        // the write above bypassed SetValue, so the notification is sent by hand:
-        // without it the OnStyledPropertyChanged reactions (Label's line cache,
-        // Loader's animation) and bindings watching this element would keep
-        // the value from before the clear
-        NotifyStyledPropertyChanged(property);
+        RaisePropertyChanged(property);
     }
 
     /// <summary>The value taking inheritance into account.
