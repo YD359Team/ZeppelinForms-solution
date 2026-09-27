@@ -2,42 +2,42 @@
 
 namespace ZeppelinForms.Forms.Controls.DataGrid;
 
-/// <summary>Столбец грида: заголовок, ширина и способ добраться до значения.</summary>
+/// <summary>A grid column: the header, the width and the way to get to the value.</summary>
 public sealed class DataGridViewColumn
 {
     public string? Header { get; set; }
 
-    /// <summary>Фикс — ширина в логических единицах, звёздочка — доля остатка,
-    /// Auto — по заголовку и видимым строкам.</summary>
+    /// <summary>Fixed — a width in logical units, star — a share of the remainder,
+    /// Auto — by the header and the visible rows.</summary>
     /// <remarks>
-    /// Auto здесь считается не так, как в Table: та меряет все строки, а грид
-    /// виртуализован, и обход всего набора на каждую раскладку сделал бы
-    /// виртуализацию бессмысленной. Поэтому Auto смотрит на заголовок
-    /// и на строки, попавшие в видимый диапазон, — то есть ширина столбца
-    /// может измениться при прокрутке. Если это мешает, задавайте фикс.
+    /// Auto is computed here differently than in Table: that one measures all rows,
+    /// while the grid is virtualized, and walking the whole set on every layout
+    /// would make virtualization pointless. So Auto looks at the header and at the
+    /// rows in the visible range — that is, the column width may change while
+    /// scrolling. If that gets in the way, use a fixed width.
     /// </remarks>
     public GridLength Width { get; set; } = GridLength.Star();
 
     public HorizontalContentAlignment Align { get; set; } = HorizontalContentAlignment.Left;
 
-    /// <summary>Как достать значение из строки данных.</summary>
+    /// <summary>How to get the value out of a data row.</summary>
     /// <remarks>
-    /// Делегат, а не имя свойства: отражение на каждую ячейку каждого кадра —
-    /// это те самые расходы, ради которых в 0.10.0 заводили кэши текста.
-    /// А Binding означал бы подписку на каждую видимую ячейку, которую
-    /// пришлось бы пересоздавать при всякой прокрутке.
+    /// A delegate rather than a property name: reflection for every cell of every
+    /// frame is exactly the cost the text caches were introduced for in 0.10.0.
+    /// And a Binding would mean a subscription per visible cell, which would have
+    /// to be recreated on every scroll.
     /// </remarks>
     public required Func<object, object?> Value { get; init; }
 
-    /// <summary>Как записать значение обратно. Null — столбец только для чтения.</summary>
+    /// <summary>How to write the value back. Null — the column is read-only.</summary>
     public Action<object, object?>? SetValue { get; set; }
 
-    /// <summary>Как превратить значение в текст. Null — ToString с текущей культурой.</summary>
+    /// <summary>How to turn the value into text. Null — ToString with the current culture.</summary>
     public Func<object?, string>? Format { get; set; }
 
     public bool CanSort { get; set; } = true;
 
-    /// <summary>Сравнение для сортировки. Null — Comparer.Default по значению.</summary>
+    /// <summary>The comparison for sorting. Null — Comparer.Default by value.</summary>
     public IComparer<object?>? Comparer { get; set; }
 
     internal string TextOf(object item)
