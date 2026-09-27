@@ -3,37 +3,45 @@ using ZeppelinForms.Drawing.Imaging;
 
 namespace ZeppelinForms.Skia;
 
+/// <summary>Decodes images into <see cref="Image"/>: RGBA, 8 bits per channel,
+/// premultiplied alpha.</summary>
+/// <remarks>
+/// Premultiplied is the contract, not a detail: everyone who uploads an Image into
+/// Skia — SkiaGraphics, SkiaOffscreenRenderer, every platform surface — declares it
+/// as SKAlphaType.Premul. It holds because SKBitmap.Decode(SKCodec) turns an
+/// Unpremul codec into a Premul bitmap by itself. A decoder that produced unpremul
+/// pixels would break nothing loudly: semi-transparent edges would just come out
+/// darker.
+/// </remarks>
 public sealed class SkiaImageDecoder : ImageDecoder
 {
-    // Разумный потолок: десктоп-приложению незачем держать в памяти
-    // разрешение выше того, что физически влезет на экран.
+    // A reasonable ceiling: a desktop application has no reason to keep in memory
+    // a resolution higher than what physically fits on the screen.
     public int MaxDimension { get; set; } = 2048;
 
     public static void Register() => Current = new SkiaImageDecoder();
 
-    /// <summary>Зарегистрировать со своим потолком разрешения. Приложению,
-    /// которое показывает картинки размером в иконку, держать их
-    /// в полном разрешении незачем: 2048×2048 — это 16 МБ пикселей
-    /// независимо от того, какого размера контрол.</summary>
+    /// <summary>Register with a resolution ceiling of your own. An application that
+    /// shows icon-sized pictures has no reason to keep them at full resolution:
+    /// 2048×2048 is 16 MB of pixels regardless of the control's size.</summary>
     public static void Register(int maxDimension) =>
         Current = new SkiaImageDecoder { MaxDimension = maxDimension };
 
     /// <remarks>
-    /// Каждая промежуточная копия — это полный буфер пикселей: для
-    /// изображения 2048×2048 по 16 МБ за копию. Поэтому копируем ровно
-    /// столько раз, сколько нужно: уменьшение — если не влезает в потолок,
-    /// смена формата — если он не Rgba8888, и один перенос в управляемый
-    /// массив, который забирает Image. Прежний код делал Copy безусловно
-    /// и ещё раз Copy для формата, то есть держал в памяти четыре буфера
-    /// вместо двух.
+    /// Every intermediate copy is a full pixel buffer: 16 MB per copy for
+    /// a 2048×2048 image. So we copy exactly as many times as needed: downscaling
+    /// if it doesn't fit under the ceiling, a format change if it isn't Rgba8888,
+    /// and one transfer into the managed array that Image takes. The previous code
+    /// did Copy unconditionally and one more Copy for the format, that is, it held
+    /// four buffers in memory instead of two.
     /// </remarks>
     public override Image Decode(Stream stream)
     {
-        // SKBitmap.Decode(Stream) на неудаче отдаёт null и молчит о причине.
-        // Через SKCodec виден код ошибки, а сигнатура в сообщении сразу
-        // отвечает на главный вопрос: это вообще картинка? Файл, скачанный
-        // по пути, которого на сервере нет, часто оказывается страницей
-        // ошибки, и начинается он с "<!DO"
+        // SKBitmap.Decode(Stream) returns null on failure and keeps quiet about the
+        // reason. Through SKCodec the error code is visible, and the signature in the
+        // message answers the main question right away: is this a picture at all?
+        // A file downloaded from a path that doesn't exist on the server often turns
+        // out to be an error page, and it starts with "<!DO"
         long length = stream.CanSeek ? stream.Length : -1;
         string signature = ReadSignature(stream);
 
@@ -41,13 +49,13 @@ public sealed class SkiaImageDecoder : ImageDecoder
 
         if (codec is null)
             throw new InvalidDataException(
-                $"Не удалось декодировать изображение: {result}, " +
-                $"{length} байт, сигнатура {signature}.");
+                $"Could not decode the image: {result}, " +
+                $"{length} bytes, signature {signature}.");
 
         using SKBitmap decoded = SKBitmap.Decode(codec)
             ?? throw new InvalidDataException(
-                $"Формат распознан как {codec.EncodedFormat}, " +
-                $"но пиксели прочитать не удалось ({length} байт).");
+                $"The format was recognized as {codec.EncodedFormat}, " +
+                $"but the pixels could not be read ({length} bytes).");
 
         SKBitmap? resized = null;
         SKBitmap? converted = null;
@@ -65,13 +73,13 @@ public sealed class SkiaImageDecoder : ImageDecoder
             if (source.ColorType != SKColorType.Rgba8888)
             {
                 converted = source.Copy(SKColorType.Rgba8888)
-                    ?? throw new InvalidDataException("Не удалось привести изображение к Rgba8888.");
+                    ?? throw new InvalidDataException("Could not convert the image to Rgba8888.");
 
                 source = converted;
             }
 
-            // Bytes сам делает управляемую копию — она и уезжает в Image,
-            // а все нативные буферы освобождаются здесь же
+            // Bytes makes a managed copy itself — that is what goes into Image,
+            // and all native buffers are released right here
             return new Image(source.Width, source.Height, source.Bytes);
         }
         finally
@@ -81,11 +89,11 @@ public sealed class SkiaImageDecoder : ImageDecoder
         }
     }
 
-    /// <summary>Первые байты в виде «41 42 43 44 (ABCD)» — по ним видно,
-    /// подсунули ли вместо картинки что-то другое.</summary>
+    /// <summary>The first bytes as "41 42 43 44 (ABCD)" — they show whether
+    /// something other than a picture was passed in.</summary>
     private static string ReadSignature(Stream stream)
     {
-        if (!stream.CanSeek) return "неизвестна";
+        if (!stream.CanSeek) return "unknown";
 
         long position = stream.Position;
 
@@ -94,7 +102,7 @@ public sealed class SkiaImageDecoder : ImageDecoder
             Span<byte> head = stackalloc byte[4];
             int read = stream.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
 
-            if (read == 0) return "пусто";
+            if (read == 0) return "empty";
 
             head = head[..read];
 
@@ -122,6 +130,6 @@ public sealed class SkiaImageDecoder : ImageDecoder
         int height = Math.Max(1, (int)(source.Height * scale));
 
         return source.Resize(new SKSizeI(width, height), SKSamplingOptions.Default)
-            ?? throw new InvalidDataException("Не удалось уменьшить изображение.");
+            ?? throw new InvalidDataException("Could not downscale the image.");
     }
 }

@@ -1,10 +1,12 @@
 ﻿using SkiaSharp;
 using ZeppelinForms.Diagnostics;
 
+namespace ZeppelinForms.Skia;
+
 /// <summary>
-/// Отрезок строки, целиком покрытый одним шрифтом. Хранится индексами,
-/// а не подстрокой: разбор не должен порождать копии — измеряют и рисуют
-/// такой отрезок через ReadOnlySpan, копия там не нужна.
+/// A piece of a line entirely covered by one font. Stored as indices rather than
+/// a substring: parsing must not produce copies — such a piece is measured and
+/// drawn through a ReadOnlySpan, and a copy is not needed there.
 /// </summary>
 internal readonly struct FontRun(int start, int length, SKFont font, float width)
 {
@@ -12,16 +14,16 @@ internal readonly struct FontRun(int start, int length, SKFont font, float width
     public int Length { get; } = length;
     public SKFont Font { get; } = font;
 
-    /// <summary>Ширина продвижения отрезка. Считается один раз при разборе,
-    /// чтобы отрисовка не меряла то же самое повторно.</summary>
+    /// <summary>The piece's advance width. Computed once during parsing,
+    /// so that drawing doesn't measure the same thing again.</summary>
     public float Width { get; } = width;
 }
 
-/// <summary>Разбор строки на отрезки и её габариты при заданном шрифте.</summary>
+/// <summary>A line split into pieces and its extents for a given font.</summary>
 /// <remarks>
-/// Экземпляр принадлежит кэшу и освобождается при вытеснении поколения.
-/// Держать ссылку дольше одного кадра нельзя: блобы к тому времени
-/// могут быть уже уничтожены.
+/// The instance belongs to the cache and is released when its generation is evicted.
+/// A reference must not be held longer than one frame: the blobs may already be
+/// destroyed by then.
 /// </remarks>
 internal sealed class CachedLine : IDisposable
 {
@@ -34,52 +36,52 @@ internal sealed class CachedLine : IDisposable
         Bounds = SKRect.Empty,
     };
 
-    /// <summary>Строка, к которой относится разбор. Это тот же экземпляр,
-    /// что лежит в ключе кэша, поэтому копии не возникает.</summary>
+    /// <summary>The line the parse belongs to. It is the same instance as the one
+    /// in the cache key, so no copy arises.</summary>
     public required string Text { get; init; }
 
     public required FontRun[] Runs { get; init; }
 
-    /// <summary>Сумма ширин продвижения всех отрезков.</summary>
+    /// <summary>The sum of the advance widths of all pieces.</summary>
     public required float Width { get; init; }
 
-    /// <summary>Максимальная высота чернил среди отрезков. Считается ровно
-    /// так же, как считалась до появления кэша: на этой величине стоят
-    /// все эталонные снимки, менять её нельзя.</summary>
+    /// <summary>The maximum ink height among the pieces. Computed exactly as it was
+    /// computed before the cache appeared: all baseline snapshots stand on this value,
+    /// it must not be changed.</summary>
     public required float Height { get; init; }
 
-    /// <summary>Границы чернил всей строки по основному шрифту. Нужны
-    /// SkiaGraphics для вертикального выравнивания по базовой линии.</summary>
+    /// <summary>The ink bounds of the whole line by the primary font. Needed by
+    /// SkiaGraphics for vertical alignment by the baseline.</summary>
     public required SKRect Bounds { get; init; }
 
-    /// <summary>Готовые блобы по одному на отрезок. Создаются лениво:
-    /// изрядная часть строк только измеряется и никогда не рисуется —
-    /// скрытые элементы, служебные замеры высоты строки.</summary>
+    /// <summary>Ready blobs, one per piece. Created lazily: a good share of lines
+    /// are only measured and never drawn — hidden elements, service measurements
+    /// of the line height.</summary>
     private SKTextBlob?[]? _blobs;
 
-    /// <summary>Отрезки, для которых блоб уже пытались построить.
-    /// Отдельный признак нужен потому, что null — законный результат:
-    /// SKTextBlob.Create на пробельном отрезке глифов не даёт, и без
-    /// этого флага такой отрезок пересобирался бы каждый кадр.</summary>
+    /// <summary>Pieces for which building a blob has already been attempted.
+    /// A separate flag is needed because null is a legitimate result:
+    /// SKTextBlob.Create gives no glyphs for a whitespace piece, and without
+    /// this flag such a piece would be rebuilt every frame.</summary>
     private bool[]? _probed;
 
     /// <summary>
-    /// Блоб отрезка — набор глифов с позициями, готовый к выводу.
-    /// SKCanvas.DrawText(string, ...) строит такой блоб на каждый вызов
-    /// и тут же уничтожает, то есть пересобирает раскладку глифов
-    /// на каждом кадре. Здесь он строится один раз на строку.
+    /// A piece's blob — a set of glyphs with positions, ready for output.
+    /// SKCanvas.DrawText(string, ...) builds such a blob on every call and
+    /// destroys it right away, that is, it rebuilds the glyph layout every frame.
+    /// Here it is built once per line.
     /// </summary>
-    /// <remarks>Без блокировки: экземпляр лежит в потоковом кэше и
-    /// принадлежит одному потоку целиком — вместе с SKFont, из которого
-    /// строится блоб. Раньше здесь допускалась гонка с лишним блобом;
-    /// теперь её просто неоткуда взять.</remarks>
+    /// <remarks>No lock: the instance lies in a per-thread cache and belongs to one
+    /// thread entirely — together with the SKFont the blob is built from. There used
+    /// to be a tolerated race here producing an extra blob; now there is simply
+    /// nowhere for it to come from.</remarks>
     public SKTextBlob? GetBlob(int index)
     {
         ZfContract.Require(
             !_disposed,
-            "Обращение к CachedLine после вытеснения из кэша. " +
-            "Ссылку на разобранную строку нельзя держать дольше одного кадра: " +
-            "её блобы уже уничтожены.");
+            "CachedLine accessed after being evicted from the cache. " +
+            "A reference to a parsed line must not be held longer than one frame: " +
+            "its blobs are already destroyed.");
 
         if (_blobs is null)
         {
@@ -104,9 +106,9 @@ internal sealed class CachedLine : IDisposable
 
     private bool _disposed;
 
-    /// <summary>Освободить блобы. Зовётся кэшем при вытеснении:
-    /// SKTextBlob — обёртка над нативным объектом, и ждать финализатора
-    /// означает держать нативную память до ближайшей сборки.</summary>
+    /// <summary>Release the blobs. Called by the cache on eviction: SKTextBlob is
+    /// a wrapper over a native object, and waiting for the finalizer means holding
+    /// native memory until the next collection.</summary>
     public void Dispose()
     {
         _disposed = true;
@@ -125,51 +127,48 @@ internal sealed class CachedLine : IDisposable
 }
 
 /// <summary>
-/// Результат подбора подстановки для символа: найденный шрифт либо
-/// признак, что подстановки нет.
+/// The result of picking a fallback for a character: the font found or
+/// a mark that there is no fallback.
 /// </summary>
 /// <remarks>
-/// Обёртка нужна кэшу поколений: он хранит ссылочные значения, а
-/// «не нашлось» — такой же законный результат, как найденный шрифт,
-/// и кэшировать его обязательно. MatchCharacter стоит дорого именно
-/// на промахах: при успехе он останавливается на первом подходящем
-/// шрифте, при неудаче обходит все установленные.
+/// The wrapper is needed by the generational cache: it stores reference values,
+/// and "not found" is as legitimate a result as a found font, and caching it is
+/// mandatory. MatchCharacter is expensive precisely on misses: on success it stops
+/// at the first suitable font, on failure it walks all installed ones.
 /// </remarks>
 internal sealed class FallbackResult(SKTypeface? typeface)
 {
-    /// <summary>Общий экземпляр для «подстановки нет»: таких записей
-    /// в кэше бывает много, и заводить под каждую свой объект незачем.</summary>
+    /// <summary>A shared instance for "no fallback": there are many such entries
+    /// in the cache, and there is no point creating an object for each.</summary>
     public static readonly FallbackResult None = new(null);
 
     public SKTypeface? Typeface { get; } = typeface;
 }
 
 /// <summary>
-/// Кэш с поколениями вместо LRU: когда горячий словарь перерастает лимит,
-/// он целиком становится холодным, а под новые записи заводится пустой.
-/// Попадание в холодный словарь переносит запись в горячий, поэтому
-/// то, чем пользуются, переживает смену поколения, а разовые строки —
-/// нет. Списка использования нет, значит чтение не перестраивает
-/// структуру и не требует ничего, кроме одной блокировки.
+/// A cache with generations instead of LRU: when the hot dictionary outgrows
+/// the limit, it becomes cold as a whole, and an empty one is started for new
+/// entries. A hit in the cold dictionary moves the entry to the hot one, so what
+/// is used survives a generation change, while one-off lines don't. There is no
+/// usage list, so reading doesn't restructure anything and needs nothing but
+/// one lock.
 /// </summary>
 /// <remarks>
-/// Уничтожать ли вытесняемые значения, задаётся при создании, а не
-/// выводится из типа. Проверка «реализует ли TValue IDisposable» здесь
-/// не годится: SKTypeface его реализует, но подстановки уничтожать
-/// нельзя — MatchCharacter возвращает один и тот же объект для разных
-/// кодпоинтов, и первое же уничтожение испортило бы живые записи
-/// под другими ключами.
+/// Whether evicted values are destroyed is set at creation rather than derived from
+/// the type. The check "does TValue implement IDisposable" doesn't fit here:
+/// SKTypeface implements it, but fallbacks must not be destroyed — MatchCharacter
+/// returns the same object for different codepoints, and the very first
+/// destruction would corrupt live entries under other keys.
 ///
-/// Если уничтожение включено, действует требование: одно значение
-/// не должно лежать в двух поколениях одновременно.
+/// If destruction is on, a requirement holds: one value must not lie in two
+/// generations at once.
 /// </remarks>
 internal sealed class GenerationalCache<TKey, TValue>(int limit, bool disposeEvicted)
     where TKey : notnull
     where TValue : class
 {
-    /// <summary>Записей в обоих поколениях. Только для диагностики:
-    /// по агрегированной удержанной памяти нельзя отличить постоянный
-    /// след структур от настоящего роста.</summary>
+    /// <summary>Entries in both generations. For diagnostics only: aggregate retained
+    /// memory can't tell the constant footprint of the structures from real growth.</summary>
     internal int Count
     {
         get { lock (_sync) return _hot.Count + _cold.Count; }
@@ -178,14 +177,14 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit, bool disposeEvi
     private readonly System.Threading.Lock _sync = new();
     private readonly bool _disposeEvicted = disposeEvicted;
 
-    // Ёмкость задаётся сразу: кэш всегда дорастает до лимита, а рост
-    // с нуля идёт по лестнице удвоений и проскакивает выше, чем берёт
-    // подсказка, попутно выбрасывая прежние массивы в мусор.
+    // The capacity is set up front: the cache always grows up to the limit, and
+    // growing from zero goes up a ladder of doublings, overshoots what the hint
+    // would take, and throws the previous arrays into the garbage along the way.
     private Dictionary<TKey, TValue> _hot = new(limit);
     private Dictionary<TKey, TValue> _cold = new(limit);
 
-    /// <summary>Предельный размер одного поколения. Всего в памяти
-    /// может находиться до двух поколений.</summary>
+    /// <summary>The maximum size of one generation. Up to two generations
+    /// may be in memory in total.</summary>
     public int Limit { get; } = limit;
 
     public bool TryGet(TKey key, out TValue? value)
@@ -198,13 +197,13 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit, bool disposeEvi
             if (!_cold.TryGetValue(key, out value))
                 return false;
 
-            // запись пережила смену поколения — возвращаем её в горячие,
-            // иначе она выпала бы при следующей же ротации
+            // the entry survived a generation change — return it to the hot ones,
+            // otherwise it would drop out at the very next rotation
             _hot[key] = value;
 
-            // и убираем из холодных: один объект в двух поколениях
-            // означает, что уничтожение уходящего поколения освободит
-            // значение, которым ещё пользуется горячее
+            // and remove it from the cold ones: one object in two generations
+            // means that destroying the outgoing generation would release a value
+            // the hot one still uses
             _cold.Remove(key);
 
             return true;
@@ -221,14 +220,14 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit, bool disposeEvi
 
                 _cold = _hot;
 
-                // с ёмкостью, как и первое поколение: новое сразу же
-                // начнёт дорастать до того же лимита, и рост с нуля
-                // стоил бы лестницы перевыделений
+                // with capacity, like the first generation: the new one will
+                // immediately start growing to the same limit, and growing from
+                // zero would cost a ladder of reallocations
                 _hot = new Dictionary<TKey, TValue>(Limit);
             }
 
-            // замена по тому же ключу: прежнее значение больше ниоткуда
-            // не достать, освобождаем сразу
+            // a replacement under the same key: the previous value can't be
+            // reached from anywhere anymore, release it right away
             if (_hot.TryGetValue(key, out TValue? replaced) && !ReferenceEquals(replaced, value))
                 Dispose(replaced);
 
@@ -242,15 +241,14 @@ internal sealed class GenerationalCache<TKey, TValue>(int limit, bool disposeEvi
     public void Clear() => Clear(_disposeEvicted);
 
     /// <summary>
-    /// Опустошить кэш, уничтожая значения или нет вне зависимости
-    /// от настройки вытеснения.
+    /// Empty the cache, destroying the values or not regardless of the eviction setting.
     /// </summary>
     /// <remarks>
-    /// Развязка нужна кэшам шрифтов. При вытеснении уничтожать их
-    /// нельзя: на SKFont ссылаются FontRun внутри разобранных строк,
-    /// которые живут в своём кэше сколь угодно долго. А при полном
-    /// сбросе строки чистятся первыми, ссылок не остаётся —
-    /// и уничтожить шрифты уже можно и нужно.
+    /// The separation is needed by the font caches. On eviction they must not be
+    /// destroyed: FontRuns inside parsed lines refer to SKFonts, and those lines live
+    /// in their own cache as long as they like. On a full reset the lines are cleared
+    /// first, no references remain — and destroying the fonts becomes both possible
+    /// and necessary.
     /// </remarks>
     public void Clear(bool disposeValues)
     {

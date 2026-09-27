@@ -3,69 +3,66 @@ using System.Globalization;
 using System.Text;
 using ZeppelinForms.Drawing;
 
+namespace ZeppelinForms.Skia;
+
 internal static class SkiaFontCache
 {
-    // Общие на процесс: SKTypeface в Skia потокобезопасен, держать его
-    // по экземпляру на поток незачем.
+    // Process-wide: SKTypeface is thread-safe in Skia, there is no point
+    // keeping an instance of it per thread.
     private static readonly Dictionary<string, SKTypeface> FileTypefaces = [];
     private static readonly Dictionary<(string, FontWeight, FontStyle), SKTypeface> Typefaces = [];
     private static readonly Lock Sync = new();
 
     /// <summary>
-    /// Подстановки по кодпоинту. В отличие от остальных словарей здесь
-    /// нужен потолок: ключ включает сам символ, поэтому проход по эмодзи
-    /// или по иероглифике заводит запись на каждый встреченный символ,
-    /// и словарь рос без границы — это и ловит сценарий
-    /// memory.font-fallback-growth.
+    /// Fallbacks by codepoint. Unlike the other dictionaries, a ceiling is needed
+    /// here: the key includes the character itself, so a pass over emoji or CJK
+    /// creates an entry for every character met, and the dictionary grew without
+    /// bound — exactly what the memory.font-fallback-growth scenario catches.
     ///
-    /// Вытеснение без уничтожения: MatchCharacter отдаёт один и тот же
-    /// шрифт для целых диапазонов, и уничтожение по одному ключу
-    /// испортило бы остальные. Вытесненный объект освободит финализатор,
-    /// когда на него не останется ссылок.
+    /// Eviction without destruction: MatchCharacter returns the same font for whole
+    /// ranges, and destroying it under one key would corrupt the rest. An evicted
+    /// object is released by the finalizer once no references to it remain.
     /// </summary>
     private static readonly GenerationalCache<(string, FontWeight, FontStyle, int), FallbackResult> Fallbacks =
         new(1024, disposeEvicted: false);
 
     internal static int FallbackCount => Fallbacks.Count;
 
-    /// <summary>Разрешённых typeface'ов, из файлов и из системы.
-    /// Потолка здесь нет намеренно: их единицы на приложение, ключ —
-    /// семейство с начертанием, а не символ.</summary>
+    /// <summary>Resolved typefaces, from files and from the system.
+    /// There is deliberately no ceiling here: there are a handful of them per
+    /// application, and the key is a family with a style, not a character.</summary>
     internal static int TypefaceCount
     {
         get { lock (Sync) return FileTypefaces.Count + Typefaces.Count; }
     }
 
-    // SKFont, в отличие от SKTypeface, потокобезопасным не является:
-    // MeasureText и ContainsGlyphs меняют его внутреннее состояние.
-    // Поэтому всё, что содержит SKFont, живёт по экземпляру на поток —
-    // по той же причине, по которой в SkiaGraphics [ThreadStatic] сделан
-    // пул кистей: снимковые тесты xunit идут параллельно.
+    // SKFont, unlike SKTypeface, is not thread-safe: MeasureText and
+    // ContainsGlyphs change its internal state. So everything that contains
+    // an SKFont lives as an instance per thread — for the same reason the brush
+    // pool in SkiaGraphics is [ThreadStatic]: xunit snapshot tests run in parallel.
     //
-    // Общая блокировка вместо этого стоила бы захвата на каждый вызов
-    // MeasurePrefix, а он зовётся на каждое положение каретки.
+    // A shared lock instead would cost an acquisition on every MeasurePrefix
+    // call, and it is called for every caret position.
 
     [ThreadStatic] private static GenerationalCache<Font, SKFont>? _fonts;
     [ThreadStatic] private static GenerationalCache<(SKTypeface, float), SKFont>? _sizedFonts;
     [ThreadStatic] private static GenerationalCache<(string Text, Font Font), CachedLine>? _lines;
 
-    /// <summary>Версия подбора шрифтов, увиденная этим потоком.</summary>
+    /// <summary>The font selection version seen by this thread.</summary>
     [ThreadStatic] private static int _localVersion;
 
-    /// <summary>Общая версия подбора шрифтов. Растёт на каждый сброс;
-    /// потоковые кэши подтягиваются к ней лениво, при первом обращении.</summary>
+    /// <summary>The shared font selection version. Grows on every reset;
+    /// per-thread caches catch up with it lazily, on first access.</summary>
     private static int _version;
 
     /// <summary>
-    /// Готовые SKFont. Потолок нужен из-за размера в ключе: Font —
-    /// запись, и Size входит в её равенство, поэтому анимация кегля
-    /// или зум интерфейса заводят отдельный шрифт на каждое
-    /// промежуточное значение.
+    /// Ready SKFonts. The ceiling is needed because of the size in the key: Font is
+    /// a record, and Size is part of its equality, so animating the font size or
+    /// zooming the interface creates a separate font for every intermediate value.
     ///
-    /// Вытеснение без уничтожения: на SKFont ссылаются FontRun внутри
-    /// разобранных строк, а те живут в своём кэше своей жизнью —
-    /// уничтоженный при вытеснении шрифт всплыл бы при отрисовке
-    /// такой строки.
+    /// Eviction without destruction: FontRuns inside parsed lines refer to SKFonts,
+    /// and those lines live their own life in their own cache — a font destroyed on
+    /// eviction would surface when such a line is drawn.
     /// </summary>
     private static GenerationalCache<Font, SKFont> Fonts
     {
@@ -76,8 +73,8 @@ internal static class SkiaFontCache
         }
     }
 
-    /// <summary>Шрифты подстановок, привязанные к кеглю. Потолок и правило
-    /// уничтожения — те же, что у <see cref="Fonts"/>, и по той же причине.</summary>
+    /// <summary>Fallback fonts tied to a size. The ceiling and the destruction rule
+    /// are the same as for <see cref="Fonts"/>, and for the same reason.</summary>
     private static GenerationalCache<(SKTypeface, float), SKFont> SizedFonts
     {
         get
@@ -88,10 +85,9 @@ internal static class SkiaFontCache
     }
 
     /// <summary>
-    /// Разобранные строки. Лимит поколения подобран под интерфейс:
-    /// одновременно на экране редко бывает больше нескольких сотен
-    /// различных строк, а всё сверх того — ввод в поле, который
-    /// устаревает сам.
+    /// Parsed lines. The generation limit is chosen for an interface: there are rarely
+    /// more than a few hundred distinct lines on screen at once, and everything beyond
+    /// that is input into a field, which goes stale by itself.
     /// </summary>
     private static GenerationalCache<(string Text, Font Font), CachedLine> Lines
     {
@@ -99,7 +95,7 @@ internal static class SkiaFontCache
         {
             SyncVersion();
 
-            // блобы — нативные объекты, вытеснение обязано их освобождать
+            // blobs are native objects, eviction must release them
             return _lines ??= new GenerationalCache<(string Text, Font Font), CachedLine>(
                 4096, disposeEvicted: true);
         }
@@ -109,9 +105,8 @@ internal static class SkiaFontCache
     internal static int FontCount => _fonts?.Count ?? 0;
     internal static int SizedFontCount => _sizedFonts?.Count ?? 0;
 
-    /// <summary>Догнать общую версию: если подбор шрифтов менялся,
-    /// потоковые кэши держат устаревшие SKFont и разобранные по ним
-    /// строки.</summary>
+    /// <summary>Catch up with the shared version: if the font selection changed,
+    /// the per-thread caches hold stale SKFonts and lines parsed with them.</summary>
     private static void SyncVersion()
     {
         int current = Volatile.Read(ref _version);
@@ -121,15 +116,15 @@ internal static class SkiaFontCache
         _localVersion = current;
     }
 
-    /// <summary>Освободить потоковые кэши. Порядок важен: сначала строки
-    /// вместе с блобами, потом сами шрифты — строки ссылаются на шрифты
-    /// через FontRun, и обратный порядок оставил бы висячие ссылки.</summary>
+    /// <summary>Release the per-thread caches. The order matters: first the lines
+    /// together with their blobs, then the fonts themselves — lines refer to fonts
+    /// through FontRun, and the reverse order would leave dangling references.</summary>
     private static void DropLocal()
     {
         _lines?.Clear();
 
-        // ссылок на шрифты после очистки строк не осталось,
-        // поэтому здесь уничтожаем, хотя при вытеснении — нет
+        // no references to the fonts remain after the lines are cleared,
+        // so they are destroyed here, although not on eviction
         _fonts?.Clear(disposeValues: true);
         _sizedFonts?.Clear(disposeValues: true);
     }
@@ -144,11 +139,11 @@ internal static class SkiaFontCache
         SKTypeface typeface = ResolveTypeface(font);
         var skFont = new SKFont(typeface, font.Size);
 
-        // Файл шрифта несёт ровно одно начертание, и SKTypeface.FromFile
-        // подбирать по весу и наклону не умеет. Раньше Bold и Italic при
-        // заданном FilePath просто игнорировались — жирный текст рисовался
-        // обычным. Синтезируем: ключ кэша включает Weight и Style, так что
-        // начертания разойдутся по разным SKFont на одном typeface.
+        // A font file carries exactly one style, and SKTypeface.FromFile can't
+        // pick by weight and slant. Bold and Italic used to be simply ignored when
+        // FilePath was set — bold text was drawn regular. So they are synthesized:
+        // the cache key includes Weight and Style, so the styles end up in different
+        // SKFonts over one typeface.
         if (font.FilePath is not null)
         {
             if (font.Weight == FontWeight.Bold)
@@ -163,19 +158,18 @@ internal static class SkiaFontCache
     }
 
     /// <summary>
-    /// Сбросить подбор шрифтов целиком. Нужно там, где он меняется, —
-    /// например, после подгрузки нового файла шрифта.
+    /// Reset the font selection entirely. Needed where it changes —
+    /// for example, after a new font file is loaded.
     /// </summary>
     /// <remarks>
-    /// Typeface'ы намеренно не уничтожаются. Среди них лежит
-    /// SKTypeface.Default, общий на процесс, а MatchFamily умеет вернуть
-    /// подмену, из-за чего один объект оказывается сразу под несколькими
-    /// ключами. Их единицы на сброс, и цена ошибки здесь несопоставима
-    /// с выигрышем.
+    /// Typefaces are deliberately not destroyed. Among them lies SKTypeface.Default,
+    /// shared by the process, and MatchFamily can return a substitute, so one object
+    /// ends up under several keys at once. There are a handful of them per reset,
+    /// and the cost of a mistake here is out of proportion to the gain.
     ///
-    /// Звать можно только когда отрисовка не идёт: потоковые SKFont
-    /// освобождаются сразу, а на них могут ссылаться уже полученные
-    /// вызывающей стороной CachedLine.
+    /// May be called only when drawing is not in progress: per-thread SKFonts are
+    /// released right away, and CachedLines already obtained by the caller may refer
+    /// to them.
     /// </remarks>
     public static void Invalidate()
     {
@@ -189,21 +183,21 @@ internal static class SkiaFontCache
 
         Interlocked.Increment(ref _version);
 
-        // текущий поток чистится сразу, остальные — при первом обращении
+        // the current thread is cleaned right away, the others — on first access
         SyncVersion();
     }
 
-    /// <summary>Сбросить разобранные строки. Нужно там, где меняется
-    /// подбор шрифтов, — например, после подгрузки нового файла шрифта.</summary>
-    /// <remarks>Оставлен ради вызывающего кода. Сбрасывать одни строки
-    /// недостаточно: SKFont и typeface пережили бы сброс, и подбор
-    /// остался бы прежним. Поэтому делает полный сброс.</remarks>
+    /// <summary>Reset the parsed lines. Needed where the font selection changes —
+    /// for example, after a new font file is loaded.</summary>
+    /// <remarks>Kept for the sake of calling code. Resetting only the lines is not
+    /// enough: SKFonts and typefaces would survive the reset, and the selection would
+    /// stay the same. So it does a full reset.</remarks>
     public static void InvalidateLines() => Invalidate();
 
     /// <summary>
-    /// Разбор строки на отрезки вместе с габаритами. Результат кэшируется:
-    /// и раскладка, и отрисовка спрашивают об одной и той же строке
-    /// по многу раз за кадр, а разбор стоит прохода по всем символам.
+    /// A line split into pieces together with its extents. The result is cached:
+    /// both layout and drawing ask about the same line many times per frame,
+    /// and splitting costs a pass over all characters.
     /// </summary>
     public static CachedLine GetLine(string text, Font font)
     {
@@ -227,9 +221,9 @@ internal static class SkiaFontCache
     {
         SKFont primary = Get(font);
 
-        // Быстрый путь: вся строка покрыта основным шрифтом. Один вызов
-        // на строку вместо проверки глифа на каждый символ — для латиницы
-        // и кириллицы это попадание всегда.
+        // The fast path: the whole line is covered by the primary font. One call per
+        // line instead of a glyph check per character — for Latin and Cyrillic this
+        // is always a hit.
         bool wholeLineIsPrimary = primary.ContainsGlyphs(text);
 
         FontRun[] runs = wholeLineIsPrimary
@@ -251,18 +245,18 @@ internal static class SkiaFontCache
 
             width += advance;
 
-            // высота — максимум высоты чернил, ровно как считалось раньше
+            // the height is the maximum ink height, exactly as it was computed before
             height = Math.Max(height, runBounds.Height);
 
-            // на быстром пути единственный отрезок — это вся строка,
-            // измеренная основным шрифтом. Отдельный замер ниже дал бы
-            // тот же прямоугольник, поэтому берём уже посчитанный
+            // on the fast path the only piece is the whole line measured with the
+            // primary font. A separate measurement below would give the same
+            // rectangle, so the one already computed is taken
             if (wholeLineIsPrimary)
                 bounds = runBounds;
         }
 
-        // на смешанном пути границы по-прежнему считаются основным шрифтом:
-        // на этой величине стоят эталонные снимки
+        // on the mixed path the bounds are still computed with the primary font:
+        // the baseline snapshots stand on this value
         if (!wholeLineIsPrimary)
             primary.MeasureText(text.AsSpan(), out bounds);
 
@@ -276,18 +270,18 @@ internal static class SkiaFontCache
         };
     }
 
-    /// <summary>Медленный путь: в строке есть символы вне основного шрифта,
-    /// поэтому подбор идёт по графемным кластерам.</summary>
+    /// <summary>The slow path: the line has characters outside the primary font,
+    /// so the selection goes by grapheme clusters.</summary>
     /// <remarks>
-    /// Единица подбора — кластер, а не руна. Составной эмодзи — семья,
-    /// флаг, модификатор тона кожи — это несколько рун, склеенных ZWJ
-    /// или следующих подряд; их компоненты резолвятся в разные typeface,
-    /// и посимвольный обход рвал такую последовательность на части.
-    /// Вместо одного глифа рисовались отдельные фигурки.
+    /// The unit of selection is a cluster, not a rune. A composite emoji — a family,
+    /// a flag, a skin tone modifier — is several runes glued with ZWJ or following one
+    /// another; their components resolve to different typefaces, and a per-character
+    /// walk tore such a sequence into pieces. Separate figures were drawn instead
+    /// of one glyph.
     ///
-    /// Шрифт спрашивается по первой руне кластера, а кластер уходит
-    /// в run целиком: разорвать соединённую последовательность нельзя
-    /// в принципе, даже если её части формально есть в разных шрифтах.
+    /// The font is asked for by the first rune of the cluster, and the cluster goes
+    /// into the run whole: a joined sequence can't be torn apart in principle, even
+    /// if its parts formally exist in different fonts.
     /// </remarks>
     private static FontRun[] BuildMixedRuns(string text, Font font)
     {
@@ -303,12 +297,12 @@ internal static class SkiaFontCache
         {
             int clusterLength = StringInfo.GetNextTextElementLength(text.AsSpan(position));
 
-            // защита от нуля: иначе цикл не сдвинется и повиснет
+            // protection from zero: otherwise the loop wouldn't advance and would hang
             if (clusterLength <= 0)
                 clusterLength = 1;
 
-            // подбор по первой руне кластера — остальные его части
-            // самостоятельного глифа не имеют
+            // selection by the cluster's first rune — its other parts
+            // have no glyph of their own
             SKTypeface typeface = Resolve(font, FirstRune(text, position));
 
             if (currentTypeface is null)
@@ -331,17 +325,17 @@ internal static class SkiaFontCache
         return [.. segments];
     }
 
-    /// <summary>Кодовая точка, с которой начинается кластер.</summary>
+    /// <summary>The code point a cluster starts with.</summary>
     private static int FirstRune(string text, int index) =>
         Rune.TryGetRuneAt(text, index, out Rune rune)
             ? rune.Value
             : text[index];
 
     /// <summary>
-    /// Ширина начала строки длиной length символов. Подстрока не создаётся:
-    /// целые отрезки берутся из уже посчитанных ширин, и меряется только
-    /// хвостовой кусок. Метод зовётся на каждое положение каретки,
-    /// поэтому аллокаций в нём быть не должно.
+    /// The width of the beginning of a line of length characters. No substring is
+    /// created: whole pieces are taken from already computed widths, and only the tail
+    /// piece is measured. The method is called for every caret position, so there
+    /// must be no allocations in it.
     /// </summary>
     public static float MeasurePrefix(string text, int length, Font font)
     {
@@ -366,9 +360,9 @@ internal static class SkiaFontCache
 
     private static SKTypeface ResolveTypeface(Font font)
     {
-        // Раньше метод звался из Get под общей блокировкой. Теперь словари
-        // шрифтов потоковые и в замке не нуждаются, а разделяемыми остались
-        // только typeface'ы — блокировка переехала сюда, к ним.
+        // This method used to be called from Get under the shared lock. Now the font
+        // dictionaries are per-thread and need no lock, and only the typefaces
+        // remained shared — the lock moved here, to them.
         lock (Sync)
         {
             if (font.FilePath is not null)
@@ -411,8 +405,8 @@ internal static class SkiaFontCache
 
                 SKTypeface? candidate = SKFontManager.Default.MatchFamily(name, style);
 
-                // MatchFamily может вернуть подмену вместо null, если семейства нет —
-                // поэтому проверяем, что это действительно запрошенный шрифт
+                // MatchFamily may return a substitute instead of null if the family is
+                // missing — so we check that it really is the requested font
                 if (candidate is not null &&
                     candidate.FamilyName.Equals(name, StringComparison.OrdinalIgnoreCase))
                 {
@@ -427,24 +421,24 @@ internal static class SkiaFontCache
         }
     }
 
-    /// <summary>Шрифт, в котором есть глиф для символа: сначала основной,
-    /// потом системная подстановка. Результат кэшируется — MatchCharacter
-    /// каждый раз создаёт новый объект и заметно стоит.</summary>
+    /// <summary>A font that has a glyph for the character: first the primary one,
+    /// then the system fallback. The result is cached — MatchCharacter creates a new
+    /// object every time and costs noticeably.</summary>
     public static SKTypeface Resolve(Font font, int codepoint)
     {
         SKFont primary = Get(font);
 
-        // проверка глифа переехала с SKTypeface на SKFont:
-        // SKTypeface.ContainsGlyph объявлен устаревшим.
-        // Вне замка это безопасно: primary принадлежит текущему потоку
+        // the glyph check moved from SKTypeface to SKFont:
+        // SKTypeface.ContainsGlyph is declared obsolete.
+        // It is safe outside the lock: primary belongs to the current thread
         if (primary.ContainsGlyph(codepoint))
             return primary.Typeface;
 
         var key = (font.Family, font.Weight, font.Style, codepoint);
 
-        // У кэша есть собственная блокировка, но общий замок здесь всё
-        // равно нужен: без него два потока на одном промахе позвали бы
-        // MatchCharacter дважды и завели два шрифта вместо одного
+        // The cache has its own lock, but the shared lock is still needed here:
+        // without it two threads on the same miss would call MatchCharacter twice
+        // and create two fonts instead of one
         lock (Sync)
         {
             if (Fallbacks.TryGet(key, out FallbackResult? cached))
@@ -472,10 +466,10 @@ internal static class SkiaFontCache
         return created;
     }
 
-    /// <summary>Разбивает строку на отрезки с одинаковым шрифтом.</summary>
-    /// <remarks>Совместимая обёртка над кэшем разбора: подстроки здесь
-    /// всё ещё создаются, но сам разбор берётся готовым. Отрисовка
-    /// перейдёт на индексы отдельным шагом.</remarks>
+    /// <summary>Splits a line into pieces with the same font.</summary>
+    /// <remarks>A compatibility wrapper over the parse cache: substrings are still
+    /// created here, but the parse itself is taken ready. Drawing will move to indices
+    /// in a separate step.</remarks>
     internal static IEnumerable<(string Text, SKFont Font)> SplitRuns(string text, Font font)
     {
         if (string.IsNullOrEmpty(text)) yield break;
@@ -484,7 +478,7 @@ internal static class SkiaFontCache
 
         foreach (FontRun run in line.Runs)
         {
-            // отрезок на всю строку отдаём как есть: копия была бы лишней
+            // a piece covering the whole line is returned as is: a copy would be extra
             yield return run.Start == 0 && run.Length == text.Length
                 ? (text, run.Font)
                 : (text.Substring(run.Start, run.Length), run.Font);

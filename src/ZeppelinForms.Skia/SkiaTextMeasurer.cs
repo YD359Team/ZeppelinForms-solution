@@ -25,15 +25,15 @@ public sealed class SkiaTextMeasurer : ITextMeasurer
 
         length = Math.Min(length, text.Length);
 
-        // вся строка — это уже посчитанная ширина строки целиком
+        // the whole line is the already computed width of the line as a whole
         if (length == text.Length)
             return SkiaFontCache.GetLine(text, font).Width;
 
         return SkiaFontCache.MeasurePrefix(text, length, font);
     }
 
-    /// <summary>На настольных платформах шрифты берутся из системы
-    /// синхронно — ждать нечего.</summary>
+    /// <summary>On desktop platforms fonts are taken from the system
+    /// synchronously — there is nothing to wait for.</summary>
     public bool IsReady(Font font) => true;
 
     public Task PrepareAsync(Font font) => Task.CompletedTask;
