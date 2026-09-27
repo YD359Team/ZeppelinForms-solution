@@ -3,16 +3,23 @@ using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Input.Gestures;
 
-/// <param name="Scale">Отношение текущего расстояния между пальцами
-/// к расстоянию в момент начала жеста.</param>
-/// <param name="Center">Середина между пальцами — вокруг неё и масштабируют.</param>
+/// <param name="Scale">The ratio of the current distance between the fingers
+/// to the distance at the start of the gesture.</param>
+/// <param name="Center">The midpoint between the fingers — scaling goes around it.</param>
 public sealed record class PinchGestureEventArgs(float Scale, Point Center);
 
-/// <summary>Масштабирование двумя пальцами.</summary>
+/// <summary>Scaling with two fingers.</summary>
 public sealed class PinchGestureRecognizer : GestureRecognizer
 {
     private float _startDistance;
     private float _scale = 1f;
+
+    /// <summary>Started was raised, and neither Completed nor Cancelled has closed
+    /// the gesture yet. Completed goes out when the second finger lifts, while the
+    /// recognizer stays Accepted until the first one lifts too — a cancel of that
+    /// remaining contact used to deliver Cancelled on top of Completed, and
+    /// a subscriber could roll back a scale it had already committed.</summary>
+    private bool _started;
 
     protected override int MaxContacts => 2;
 
@@ -21,12 +28,14 @@ public sealed class PinchGestureRecognizer : GestureRecognizer
     public event EventHandler<PinchGestureEventArgs>? Completed;
     public event EventHandler? Cancelled;
 
+    protected override void OnBegin() => _started = false;
+
     protected override void OnContactAdded(PointerContact contact)
     {
         if (Contacts.Count < 2) return;
 
-        // отсчёт начинается с момента, когда пальцев стало двое,
-        // а не с первого касания: до него расстояния не существует
+        // the count starts from the moment there are two fingers,
+        // not from the first touch: before that there is no distance
         _startDistance = Distance();
         _scale = 1f;
     }
@@ -37,8 +46,11 @@ public sealed class PinchGestureRecognizer : GestureRecognizer
 
         _startDistance = 0;
 
-        if (State == GestureState.Accepted)
+        if (State == GestureState.Accepted && _started)
+        {
+            _started = false;
             Completed?.Invoke(this, MakeArgs());
+        }
     }
 
     protected override void OnPointerMove(PointerEventArgs e)
@@ -54,19 +66,27 @@ public sealed class PinchGestureRecognizer : GestureRecognizer
             return;
         }
 
-        // порог тот же, что у перетаскивания: изменение расстояния между
-        // пальцами — это такой же физический сдвиг, и мерить его другой
-        // меркой не за что
+        // the same threshold as for dragging: a change in the distance between
+        // the fingers is the same physical movement, and there is no reason
+        // to measure it with another yardstick
         if (MathF.Abs(distance - _startDistance) < PointerThresholds.DragSlop(Contacts[0].Kind, Display))
             return;
 
         Accept();
 
         _scale = distance / _startDistance;
+        _started = true;
         Started?.Invoke(this, MakeArgs());
     }
 
-    protected override void OnCancel() => Cancelled?.Invoke(this, EventArgs.Empty);
+    protected override void OnCancel()
+    {
+        // lost or refused before it started — there is nothing to cancel
+        if (!_started) return;
+
+        _started = false;
+        Cancelled?.Invoke(this, EventArgs.Empty);
+    }
 
     private float Distance()
     {
@@ -81,8 +101,8 @@ public sealed class PinchGestureRecognizer : GestureRecognizer
 
     private PinchGestureEventArgs MakeArgs()
     {
-        // после ухода пальца остаётся один — центром считаем его,
-        // иначе Completed пришёл бы с обращением к несуществующему контакту
+        // after a finger leaves, one remains — it is taken as the center,
+        // otherwise Completed would come with a reference to a contact that no longer exists
         Point center = Contacts.Count >= 2
             ? new Point(
                 (Contacts[0].Location.X + Contacts[1].Location.X) / 2f,

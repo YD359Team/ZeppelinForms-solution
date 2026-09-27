@@ -5,8 +5,8 @@ using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Input.Gestures;
 
-/// <summary>Кто умеет прокручиваться пальцем. Реализуют панель и таблица —
-/// у них общая механика и совсем разное внутреннее устройство.</summary>
+/// <summary>Whoever can scroll with a finger. Implemented by the panel and
+/// the grid — they share the mechanics and have quite different internals.</summary>
 internal interface ITouchScrollTarget
 {
     UIElement Element { get; }
@@ -15,34 +15,34 @@ internal interface ITouchScrollTarget
 
     bool CanPanVertically { get; }
 
-    /// <summary>Видимая область содержимого: по ней считается сопротивление
-    /// перелёта за край.</summary>
+    /// <summary>The visible content area: the resistance of pulling
+    /// past the edge is computed from it.</summary>
     Size PanViewport { get; }
 
     Point PanScroll { get; }
 
     Point PanMaxScroll { get; }
 
-    /// <summary>Применить прокрутку в допустимых пределах и перелёт за край
-    /// отдельно. Как показать перелёт — дело самого контрола: панель сдвигает
-    /// детей, таблица рисует строки со смещением.</summary>
+    /// <summary>Apply the scroll within the allowed range and the overscroll
+    /// separately. How to show the overscroll is the control's own business:
+    /// the panel shifts its children, the grid draws its rows with an offset.</summary>
     void ApplyPanScroll(Point scroll, Point overscroll);
 }
 
 /// <summary>
-/// Прокрутка пальцем: перетаскивание, инерция после броска и отскок
-/// от края. Общая для всех, кто прокручивается.
+/// Scrolling with a finger: dragging, inertia after a fling and bouncing
+/// from the edge. Shared by everyone who scrolls.
 /// </summary>
 /// <remarks>
-/// Отдельным объектом, а не методами в панели, ровно по одной причине:
-/// DataGridView прокручивается сам, минуя PanelControl, — он рисует
-/// строки, а не раскладывает контролы. Иначе пришлось бы держать две
-/// копии физики, которые обязаны совпадать до ощущения под пальцем.
+/// A separate object rather than methods in the panel, for exactly one reason:
+/// the data grid scrolls by itself, bypassing PanelControl — it draws rows
+/// rather than laying out controls. Otherwise there would have to be two copies
+/// of the physics that must match down to the feel under the finger.
 /// </remarks>
 internal sealed class TouchScroller
 {
-    /// <summary>Скорость броска, с которой начинается инерция, пикселей
-    /// в секунду. Ниже — палец просто отпустили, а не бросили.</summary>
+    /// <summary>The fling velocity at which inertia starts, pixels per second.
+    /// Below it the finger was simply lifted, not flung.</summary>
     private const float FlingStartVelocity = 50f;
 
     private readonly ITouchScrollTarget _target;
@@ -50,8 +50,8 @@ internal sealed class TouchScroller
 
     private KineticScroll? _kinetic;
 
-    /// <summary>Куда палец хочет увести содержимое, без ограничений.
-    /// Разница с допустимым и превращается в перелёт.</summary>
+    /// <summary>Where the finger wants to take the content, without limits.
+    /// The difference with the allowed position becomes the overscroll.</summary>
     private Point _panPosition;
 
     private TouchScroller(ITouchScrollTarget target)
@@ -66,7 +66,7 @@ internal sealed class TouchScroller
         _pan.Cancelled += OnCancelled;
     }
 
-    /// <summary>Перелёт за край, который контрол должен показать.</summary>
+    /// <summary>The overscroll the control must show.</summary>
     public Point Overscroll { get; private set; }
 
     public static TouchScroller Attach(ITouchScrollTarget target)
@@ -85,18 +85,19 @@ internal sealed class TouchScroller
         Stop();
     }
 
-    /// <summary>Погасить инерцию, оставив отскок доигрывать: палец лёг
-    /// на экран, но содержимое, оттянутое за край, должно вернуться.</summary>
+    /// <summary>Put out the inertia, leaving the bounce to play out: a finger
+    /// touched the screen, but content pulled past the edge must return.</summary>
     public void StopFling() => _kinetic?.StopFling();
 
-    /// <summary>Остановить всё: явная прокрутка из кода или колесом
-    /// главнее инерции броска.</summary>
+    /// <summary>Stop everything: an explicit scroll from code or the wheel
+    /// takes priority over fling inertia.</summary>
     public void Stop(bool keepOverscroll = false)
     {
         if (_kinetic is not null)
         {
-            // сначала отцепляем, потом снимаем с часов: отмена, увидев,
-            // что она уже не текущая, перелёт не тронет — им распоряжаемся здесь
+            // first unhook, then remove from the clock: the cancel, seeing that
+            // it is no longer the current one, won't touch the overscroll —
+            // that is decided here
             _kinetic = null;
             _target.Element.FindOwner()?.RemoveAnimation(_target.Element, KineticScroll.AnimationKey);
         }
@@ -106,9 +107,9 @@ internal sealed class TouchScroller
         Apply(_target.PanScroll, Point.Empty);
     }
 
-    /// <summary>Брать ли контакт. Отказываемся, если прокручивать некуда:
-    /// иначе панель с коротким содержимым отбирала бы жест у внешней,
-    /// которой ехать есть куда.</summary>
+    /// <summary>Whether to take the contact. Refuse if there is nowhere to scroll:
+    /// otherwise a panel with short content would take the gesture away from
+    /// an outer one that has somewhere to go.</summary>
     private bool CanBegin(PointerContact contact)
     {
         if (contact.Kind == PointerKind.Mouse) return false;
@@ -118,8 +119,8 @@ internal sealed class TouchScroller
 
         if (!canX && !canY) return false;
 
-        // направление — по тому, куда вообще можно ехать: вертикальный
-        // список не должен забирать горизонтальный свайп страницы
+        // the direction follows where it is possible to go at all: a vertical
+        // list must not take a horizontal page swipe
         _pan.Direction = canX && canY
             ? PanDirection.Both
             : canX ? PanDirection.Horizontal : PanDirection.Vertical;
@@ -129,14 +130,14 @@ internal sealed class TouchScroller
 
     private void OnStarted(object? sender, PanGestureEventArgs e)
     {
-        // палец схватил содержимое — инерция и отскок больше не ведут его
+        // the finger has grabbed the content — inertia and bounce no longer drive it
         Stop(keepOverscroll: true);
 
         Point scroll = _target.PanScroll;
         _panPosition = new Point(scroll.X + Overscroll.X, scroll.Y + Overscroll.Y);
 
-        // порог срыва — это задержка распознавания, а не потерянное
-        // расстояние: пройденное до него тоже применяем
+        // the break threshold is a recognition delay, not a lost distance:
+        // what was travelled before it is applied too
         Drag(e.Delta);
     }
 
@@ -145,7 +146,10 @@ internal sealed class TouchScroller
     private void OnCompleted(object? sender, PanGestureEventArgs e) =>
         StartKinetic(new Point(-e.Velocity.X, -e.Velocity.Y));
 
-    // оборвали посреди жеста — бросать нечем, но оттянутое надо вернуть
+    // cut off in the middle of the gesture — nothing to fling with, but what
+    // was pulled must return. Comes only for a pan that actually started:
+    // a pan that refused the contact while a bounce was playing out used to
+    // restart the bounce here from zero velocity, and the spring jerked
     private void OnCancelled(object? sender, EventArgs e) => StartKinetic(Point.Empty);
 
     private void Drag(Point delta)
@@ -167,9 +171,10 @@ internal sealed class TouchScroller
         Apply(new Point(x, y), new Point(overX, overY));
     }
 
-    /// <summary>Разложить желаемое положение на допустимую прокрутку
-    /// и перелёт. Перелёт растёт медленнее пальца и упирается в предел —
-    /// так тянется резина, и край ощущается, а не просто наступает.</summary>
+    /// <summary>Split the desired position into the allowed scroll and the
+    /// overscroll. The overscroll grows slower than the finger and approaches
+    /// a limit — that is how rubber stretches, and the edge is felt rather
+    /// than simply reached.</summary>
     private static (float Scroll, float Overscroll) Stretch(float desired, float max, float extent)
     {
         float scroll = Math.Clamp(desired, 0, max);
@@ -177,8 +182,8 @@ internal sealed class TouchScroller
 
         if (excess == 0 || extent <= 0) return (scroll, 0f);
 
-        // та же кривая, что у iOS: при малом перелёте почти линейна,
-        // при большом приближается к размеру окна, но никогда его не достигает
+        // the same curve as in iOS: almost linear for a small overscroll,
+        // for a large one it approaches the window size but never reaches it
         float magnitude = (1f - 1f / (MathF.Abs(excess) * 0.55f / extent + 1f)) * extent;
 
         return (scroll, MathF.CopySign(magnitude, excess));
@@ -195,14 +200,14 @@ internal sealed class TouchScroller
     {
         if (_target.Element.FindOwner() is not { } owner)
         {
-            // контрол уже вне формы — вести отскок некому, а оттянутое
-            // содержимое не должно так и остаться оттянутым
+            // the control is already outside the form — there is nobody to drive
+            // the bounce, and the pulled content must not stay pulled
             Apply(_target.PanScroll, Point.Empty);
             return;
         }
 
-        // скорость по оси, по которой ехать нельзя, выбрасываем сразу:
-        // иначе инерция жила бы, ничего не двигая
+        // the velocity along an axis that can't be scrolled is discarded right away:
+        // otherwise the inertia would live on without moving anything
         velocity = new Point(
             _target.CanPanHorizontally ? velocity.X : 0f,
             _target.CanPanVertically ? velocity.Y : 0f);
@@ -218,34 +223,34 @@ internal sealed class TouchScroller
     }
 
     /// <summary>
-    /// Инерция после броска и отскок от края — одна анимация на контрол.
+    /// Inertia after a fling and the bounce from the edge — one animation per control.
     /// </summary>
     /// <remarks>
-    /// По каждой оси идёт одно из двух. Либо свободный бег с трением:
-    /// скорость гаснет экспоненциально, и дистанция броска пропорциональна
-    /// его скорости. Либо пружина к краю, если содержимое оттянуто за него
-    /// или бег в край упёрся — тогда остаток скорости уходит в отскок.
-    /// Пружина критически затухающая: возвращается быстро и без колебаний
-    /// вокруг края.
+    /// Along each axis one of two things happens. Either a free run with friction:
+    /// the velocity decays exponentially, and the fling distance is proportional
+    /// to its velocity. Or a spring to the edge, if the content is pulled past it
+    /// or the run hit the edge — then the rest of the velocity goes into the bounce.
+    /// The spring is critically damped: it returns fast and without oscillating
+    /// around the edge.
     /// </remarks>
     private sealed class KineticScroll(TouchScroller scroller, Point velocity) : IAnimation
     {
         internal const string AnimationKey = "kinetic-scroll";
 
-        /// <summary>Трение свободного бега, 1/с: за секунду скорость
-        /// падает в e³ ≈ 20 раз.</summary>
+        /// <summary>Free-run friction, 1/s: in a second the velocity
+        /// drops by e³ ≈ 20 times.</summary>
         private const float Friction = 3f;
 
         private const float StopVelocity = 15f;
 
-        /// <summary>Жёсткость пружины отскока, 1/с².</summary>
+        /// <summary>Stiffness of the bounce spring, 1/s².</summary>
         private const float Stiffness = 170f;
 
-        /// <summary>Какая доля скорости удара о край уходит в отскок.</summary>
+        /// <summary>What share of the velocity of hitting the edge goes into the bounce.</summary>
         private const float BounceShare = 0.35f;
 
-        /// <summary>Шаг интегрирования. Кадр бывает и в 100 мс, а пружина
-        /// с такой жёсткостью на крупном шаге идёт вразнос.</summary>
+        /// <summary>The integration step. A frame may take 100 ms, and a spring
+        /// with this stiffness goes haywire on a large step.</summary>
         private const float MaxStep = 0.008f;
 
         private Point _velocity = velocity;
@@ -292,21 +297,21 @@ internal sealed class TouchScroller
             return false;
         }
 
-        /// <summary>Шаг одной оси. true — на ней ещё есть движение.</summary>
+        /// <summary>A step of one axis. true — there is still movement on it.</summary>
         private static bool Step(
             ref float scroll, ref float over, ref float velocity, ref float spring,
             float max, float dt)
         {
             if (over != 0f || spring != 0f)
             {
-                // пружина к краю, критическое затухание: c = 2√k
+                // the spring to the edge, critically damped: c = 2√k
                 float omega = MathF.Sqrt(Stiffness);
                 float acceleration = -Stiffness * over - 2f * omega * spring;
 
                 spring += acceleration * dt;
                 over += spring * dt;
 
-                // пока идёт отскок, свободного бега нет
+                // while the bounce goes on, there is no free run
                 velocity = 0f;
 
                 if (MathF.Abs(over) < 0.5f && MathF.Abs(spring) < 10f)
@@ -332,7 +337,7 @@ internal sealed class TouchScroller
 
             if (next < 0f || next > max)
             {
-                // упёрлись в край на бегу: остаток скорости уходит в отскок
+                // hit the edge while running: the rest of the velocity goes into the bounce
                 scroll = Math.Clamp(next, 0f, max);
                 spring = velocity * BounceShare;
                 velocity = 0f;
@@ -350,7 +355,8 @@ internal sealed class TouchScroller
 
             scroller._kinetic = null;
 
-            // снять могли посреди отскока — оттянутое возвращаем сразу
+            // it may have been removed in the middle of a bounce —
+            // what was pulled is returned right away
             if (scroller.Overscroll == Point.Empty) return;
 
             scroller.Apply(scroller._target.PanScroll, Point.Empty);

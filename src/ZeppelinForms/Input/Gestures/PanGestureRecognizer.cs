@@ -13,25 +13,32 @@ public enum PanDirection
 public sealed record class PanGestureEventArgs(
     Point Location, Point Delta, Point TotalOffset, Point DownLocation)
 {
-    /// <summary>Скорость указателя в пикселях в секунду. На отпускании —
-    /// скорость броска по последним ста миллисекундам.</summary>
+    /// <summary>The pointer velocity in pixels per second. On the release —
+    /// the fling velocity over the last hundred milliseconds.</summary>
     public Point Velocity { get; init; }
 }
 
-/// <summary>Перетаскивание после преодоления порога срыва.</summary>
+/// <summary>Dragging after the break threshold has been passed.</summary>
 public sealed class PanGestureRecognizer : GestureRecognizer
 {
     private readonly VelocityTracker _velocity = new();
     private Point _last;
 
-    /// <summary>Какое направление считать своим. Направленный pan отказывается
-    /// от контакта, если движение идёт преимущественно поперёк — иначе
-    /// вертикальный список отбирал бы горизонтальные жесты у соседа.</summary>
+    /// <summary>Started was raised for the current contact, and neither Completed
+    /// nor Cancelled has closed it yet. Cancelled goes out only while this is set:
+    /// OnCancel also comes for a pan that refused the contact before the threshold
+    /// or lost it to another gesture, and a subscriber must not get the cancel
+    /// of a gesture it never saw start.</summary>
+    private bool _started;
+
+    /// <summary>Which direction counts as ours. A directed pan refuses the contact
+    /// if the movement goes mostly across — otherwise a vertical list would take
+    /// horizontal gestures away from its neighbour.</summary>
     public PanDirection Direction { get; set; } = PanDirection.Both;
 
-    /// <summary>Спрашивается в самом начале контакта: брать ли его вообще.
-    /// Прокручивающая панель отказывается, если прокручивать нечего, —
-    /// иначе она отбирала бы жест у внешней панели, которой есть куда ехать.</summary>
+    /// <summary>Asked at the very start of the contact: whether to take it at all.
+    /// A scrolling panel refuses if there is nothing to scroll — otherwise it would
+    /// take the gesture away from an outer panel that has somewhere to go.</summary>
     public Func<PointerContact, bool>? CanBegin { get; set; }
 
     public event EventHandler<PanGestureEventArgs>? Started;
@@ -41,6 +48,7 @@ public sealed class PanGestureRecognizer : GestureRecognizer
 
     protected override void OnBegin()
     {
+        _started = false;
         _last = Contact?.DownLocation ?? Point.Empty;
         _velocity.Reset();
 
@@ -81,8 +89,8 @@ public sealed class PanGestureRecognizer : GestureRecognizer
 
         if (travel < PointerThresholds.DragSlop(contact.Kind, Display)) return;
 
-        // поперёк ушли дальше, чем вдоль — жест не наш, и держать контакт
-        // дальше значит мешать тому, кто ждёт перпендикулярного
+        // it went further across than along — the gesture isn't ours, and holding
+        // the contact any longer means hindering whoever waits for the perpendicular one
         if (Direction == PanDirection.Horizontal && MathF.Abs(dy) > MathF.Abs(dx))
         {
             Reject();
@@ -97,13 +105,14 @@ public sealed class PanGestureRecognizer : GestureRecognizer
 
         Accept();
 
-        // с этого момента жест наш, и отпускание за пределами окна
-        // обязано до нас дойти
+        // from this moment the gesture is ours, and a release outside
+        // the window must reach us
         CaptureContact();
 
-        // старт отсчитываем от точки нажатия, а не от текущей: порог —
-        // это задержка распознавания, а не потерянное расстояние
+        // the start is counted from the press point, not from the current one:
+        // the threshold is a recognition delay, not a lost distance
         _last = contact.DownLocation;
+        _started = true;
         Started?.Invoke(this, MakeArgs(contact, e.Timestamp));
         _last = contact.Location;
     }
@@ -114,10 +123,19 @@ public sealed class PanGestureRecognizer : GestureRecognizer
 
         _velocity.Add(contact.Location, e.Timestamp);
 
+        // the gesture is closed: a cancel of the contact after this
+        // must not reach the subscriber as a second ending
+        _started = false;
         Completed?.Invoke(this, MakeArgs(contact, e.Timestamp));
     }
 
-    protected override void OnCancel() => Cancelled?.Invoke(this, EventArgs.Empty);
+    protected override void OnCancel()
+    {
+        if (!_started) return;
+
+        _started = false;
+        Cancelled?.Invoke(this, EventArgs.Empty);
+    }
 
     private PanGestureEventArgs MakeArgs(PointerContact contact, long timestamp) => new(
         contact.Location,

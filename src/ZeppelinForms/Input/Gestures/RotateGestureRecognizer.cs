@@ -3,24 +3,28 @@ using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Input.Gestures;
 
-/// <param name="Angle">Поворот от начала жеста, в градусах. По часовой — плюс.</param>
+/// <param name="Angle">The rotation since the start of the gesture, in degrees. Clockwise is plus.</param>
 public sealed record class RotateGestureEventArgs(float Angle, Point Center);
 
-/// <summary>Поворот двумя пальцами.</summary>
+/// <summary>Rotation with two fingers.</summary>
 public sealed class RotateGestureRecognizer : GestureRecognizer
 {
-    /// <summary>Порог в градусах, а не в миллиметрах: угол физической
-    /// длины не имеет, и плотность экрана на него не влияет. Зато влияет
-    /// расстояние между пальцами — при близко сведённых пальцах угол
-    /// скачет, поэтому ниже есть проверка на минимальную базу.</summary>
+    /// <summary>The threshold in degrees rather than millimeters: an angle has no
+    /// physical length, and screen density doesn't affect it. The distance between
+    /// the fingers does, though — with the fingers close together the angle jumps,
+    /// so there is a check for a minimum base below.</summary>
     public float ThresholdDegrees { get; set; } = 8f;
 
-    /// <summary>Минимальное расстояние между пальцами, при котором угол
-    /// вообще имеет смысл. В миллиметрах.</summary>
+    /// <summary>The minimum distance between the fingers at which the angle
+    /// makes sense at all. In millimeters.</summary>
     public float MinimumSpanMm { get; set; } = 12f;
 
     private float _startAngle;
     private float _angle;
+
+    /// <summary>Started was raised, and neither Completed nor Cancelled has closed
+    /// the gesture yet — see the same field in PinchGestureRecognizer.</summary>
+    private bool _started;
 
     protected override int MaxContacts => 2;
 
@@ -28,6 +32,8 @@ public sealed class RotateGestureRecognizer : GestureRecognizer
     public event EventHandler<RotateGestureEventArgs>? Updated;
     public event EventHandler<RotateGestureEventArgs>? Completed;
     public event EventHandler? Cancelled;
+
+    protected override void OnBegin() => _started = false;
 
     protected override void OnContactAdded(PointerContact contact)
     {
@@ -41,8 +47,11 @@ public sealed class RotateGestureRecognizer : GestureRecognizer
     {
         if (Contacts.Count >= 2) return;
 
-        if (State == GestureState.Accepted)
+        if (State == GestureState.Accepted && _started)
+        {
+            _started = false;
             Completed?.Invoke(this, MakeArgs());
+        }
     }
 
     protected override void OnPointerMove(PointerEventArgs e)
@@ -65,10 +74,18 @@ public sealed class RotateGestureRecognizer : GestureRecognizer
         Accept();
 
         _angle = delta;
+        _started = true;
         Started?.Invoke(this, MakeArgs());
     }
 
-    protected override void OnCancel() => Cancelled?.Invoke(this, EventArgs.Empty);
+    protected override void OnCancel()
+    {
+        // lost or refused before it started — there is nothing to cancel
+        if (!_started) return;
+
+        _started = false;
+        Cancelled?.Invoke(this, EventArgs.Empty);
+    }
 
     private float Angle()
     {
@@ -89,8 +106,8 @@ public sealed class RotateGestureRecognizer : GestureRecognizer
         return MathF.Sqrt(dx * dx + dy * dy);
     }
 
-    /// <summary>Свести разность к диапазону от -180 до 180: без этого
-    /// переход через 180 градусов давал бы скачок на полный оборот.</summary>
+    /// <summary>Bring the difference into the range from -180 to 180: without this,
+    /// crossing 180 degrees would give a jump by a full revolution.</summary>
     private static float Normalize(float degrees)
     {
         while (degrees > 180f) degrees -= 360f;
