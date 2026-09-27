@@ -16,16 +16,36 @@ namespace ZeppelinForms.Forms.Controls.Text;
 
 public partial class TextBox : TextInputControl, ITextElement
 {
-    /// <summary>Подсказка в пустом поле.</summary>
-    public string? Watermark { get; set; }
+    /// <summary>A hint in an empty field.</summary>
+    public string? Watermark
+    {
+        get;
+        set
+        {
+            if (field == value) return;
 
-    public Color WatermarkColor { get; set; } = new Color(255, 160, 160, 160);
+            field = value;
+            InvalidateVisual();
+        }
+    }
+
+    public Color WatermarkColor
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = new Color(255, 160, 160, 160);
 
     public ValidationState ValidationState { get; private set; } = ValidationState.None;
 
     public string? ValidationMessage { get; private set; }
 
-    /// <summary>Проверка содержимого. Возвращает null, если всё в порядке.</summary>
+    /// <summary>Content check. Returns null if everything is fine.</summary>
     public Func<string, string?>? Validator { get; set; }
 
     public Color SuccessColor { get; set; } = new Color(255, 0x19, 0x87, 0x54);
@@ -42,6 +62,15 @@ public partial class TextBox : TextInputControl, ITextElement
     private bool _isDragging;
     private char? _pendingHighSurrogate;
 
+    /// <summary>The document is being written through the Text property —
+    /// SetValue, a binding or ClearValue. Each of them raises PropertyChanged
+    /// itself, so the document's Changed must not raise it a second time.</summary>
+    private bool _writingText;
+
+    // the tooltip as it was before a validation error replaced it with its message
+    private string? _toolTipBeforeError;
+    private bool _showingErrorToolTip;
+
     public TextBox()
     {
         SetControlDefault(BackgroundProperty, Colors.White);
@@ -50,9 +79,11 @@ public partial class TextBox : TextInputControl, ITextElement
 
         _document.Changed += (_, _) =>
         {
-            // ввод меняет документ напрямую, минуя присваивание Text,
-            // поэтому биндинг надо толкнуть отсюда
-            NotifyBoundValueChanged(TextProperty, _document.Text);
+            // input changes the document directly, bypassing the assignment
+            // to Text, so the binding has to be pushed from here. A write through
+            // the property notifies on its own path — here it would be a duplicate
+            if (!_writingText)
+                NotifyBoundValueChanged(TextProperty, _document.Text);
 
             TextChanged?.Invoke(this, EventArgs.Empty);
             InvalidateVisual();
@@ -60,17 +91,25 @@ public partial class TextBox : TextInputControl, ITextElement
 
         _document.CaretMoved += (_, _) =>
         {
-            ResetCaretBlink();     // ← из базы
+            ResetCaretBlink();     // ← from the base
             InvalidateVisual();
         };
     }
 
-    // ===== публичный API =====
+    // ===== public API =====
 
     public bool IsMultiline
     {
         get => _document.IsMultiline;
-        set => _document.IsMultiline = value;
+        set
+        {
+            if (_document.IsMultiline == value) return;
+
+            _document.IsMultiline = value;
+
+            // a multi-line field is taller by default
+            Invalidate();
+        }
     }
 
     public int MaxLength
@@ -82,7 +121,18 @@ public partial class TextBox : TextInputControl, ITextElement
     public bool IsEnterAccepted { get; set; } = true;
     public bool IsTabAccepted { get; set; }
     public bool IsReadOnly { get; set; }
-    public char? PasswordChar { get; set; }
+
+    public char? PasswordChar
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    }
 
     public int SelectionStart => _document.SelectionStart;
     public int SelectionLength => _document.SelectionLength;
@@ -90,9 +140,9 @@ public partial class TextBox : TextInputControl, ITextElement
 
     public int CaretIndex => _document.CaretIndex;
 
-    /// <summary>Текст поля. Хранится в документе, поэтому свойство внешнее:
-    /// поле генератору создавать нельзя — ввод с клавиатуры меняет документ
-    /// напрямую, и отдельное поле разъехалось бы с ним.</summary>
+    /// <summary>The field's text. Stored in the document, so the property is external:
+    /// the generator must not create a field for it — keyboard input changes
+    /// the document directly, and a separate field would drift apart from it.</summary>
     [Styled(Category = "Text", AffectsLayout = true, External = true)]
     public string? Text
     {
@@ -101,10 +151,22 @@ public partial class TextBox : TextInputControl, ITextElement
     }
     private static string? TextDefault => string.Empty;
 
-    /// <summary>Запись в хранилище, минуя лестницу источников. Зовётся
-    /// только делегатом StyledProperty — сеттер идёт через SetValue,
-    /// и прямое присваивание Text отсюда дало бы бесконечную рекурсию.</summary>
-    private void WriteText(string? value) => _document.Text = value ?? string.Empty;
+    /// <summary>A write to the storage, bypassing the ladder of sources. Called
+    /// only by the StyledProperty delegate — the setter goes through SetValue,
+    /// and assigning Text directly from here would give infinite recursion.</summary>
+    private void WriteText(string? value)
+    {
+        _writingText = true;
+
+        try
+        {
+            _document.Text = value ?? string.Empty;
+        }
+        finally
+        {
+            _writingText = false;
+        }
+    }
 
     [Styled(Category = "Text")]
     public partial Color CaretColor { get; set; }
@@ -122,12 +184,13 @@ public partial class TextBox : TextInputControl, ITextElement
 
     public void SelectAll() => _document.SelectAll();
 
-    /// <summary>Проверить содержимое сейчас.</summary>
+    /// <summary>Check the content now.</summary>
     public bool Validate()
     {
         if (Validator is null)
         {
             SetValidation(ValidationState.None, null);
+            ShowErrorToolTip(null);
             return true;
         }
 
@@ -135,10 +198,35 @@ public partial class TextBox : TextInputControl, ITextElement
 
         SetValidation(error is null ? ValidationState.Success : ValidationState.Error, error);
 
-        // сообщение об ошибке показываем подсказкой — отдельного места под него нет
-        ToolTip = error;
+        // the error message is shown as a tooltip — there is no separate place for it
+        ShowErrorToolTip(error);
 
         return error is null;
+    }
+
+    /// <summary>Show the validation error in the tooltip, or put the user's tooltip
+    /// back. Previously the tooltip was simply overwritten — with the message on
+    /// an error and with null on success — and a tooltip set by the user was gone
+    /// after the first validation.</summary>
+    private void ShowErrorToolTip(string? error)
+    {
+        if (error is not null)
+        {
+            if (!_showingErrorToolTip)
+            {
+                _toolTipBeforeError = ToolTip;
+                _showingErrorToolTip = true;
+            }
+
+            ToolTip = error;
+            return;
+        }
+
+        if (!_showingErrorToolTip) return;
+
+        ToolTip = _toolTipBeforeError;
+        _toolTipBeforeError = null;
+        _showingErrorToolTip = false;
     }
 
     private void SetValidation(ValidationState state, string? message)
@@ -152,41 +240,51 @@ public partial class TextBox : TextInputControl, ITextElement
         InvalidateVisual();
     }
 
-    // ===== отображение =====
+    /// <summary>The border shows the validation result. SuccessColor and ErrorColor
+    /// were declared but used nowhere, so a field with an error looked like any
+    /// other. An error beats the focus color: it is what needs attention.</summary>
+    protected override Color CurrentBorderColor => ValidationState switch
+    {
+        ValidationState.Error => ErrorColor,
+        ValidationState.Success => SuccessColor,
+        _ => base.CurrentBorderColor,
+    };
+
+    // ===== display =====
 
     private float LineHeight => TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
 
-    // маска строится по видимым символам: одно эмодзи — одна точка
+    // the mask is built by visible characters: one emoji — one dot
     private string DisplayText => PasswordChar is char pc && !IsMultiline
         ? new string(pc, _document.Length)
         : _document.Text;
 
     private string[] DisplayLines => IsMultiline ? _document.Lines : [DisplayText];
 
-    /// <summary>Индекс в тексте → индекс в отображаемой строке. Различаются под маской пароля.</summary>
+    /// <summary>Index in the text → index in the displayed line. They differ under the password mask.</summary>
     private int ToDisplayIndex(int textIndex) =>
         PasswordChar is not null && !IsMultiline
             ? TextElements.Count(_document.Text[..Math.Min(textIndex, _document.Text.Length)])
             : textIndex;
 
-    // ===== фокус и мигание =====
+    // ===== focus and blinking =====
 
     protected override void OnLostFocus()
     {
         base.OnLostFocus();
 
-        // проверяем при уходе из поля, а не на каждый символ:
-        // иначе половина введённого адреса будет краснеть
+        // validate when leaving the field, not on every character:
+        // otherwise half of a typed address would turn red
         Validate();
     }
 
-    // ===== ввод =====
+    // ===== input =====
 
     protected override void OnTextInput(char c)
     {
         if (IsReadOnly || char.IsControl(c)) return;
 
-        // эмодзи приходит двумя сообщениями — собираем пару перед вставкой
+        // an emoji arrives in two messages — the pair is assembled before inserting
         if (char.IsHighSurrogate(c))
         {
             _pendingHighSurrogate = c;
@@ -285,7 +383,7 @@ public partial class TextBox : TextInputControl, ITextElement
                 break;
 
             case Key.V when ctrl && !IsReadOnly:
-                // ... тело без изменений
+                Paste();
                 break;
 
             case Key.Z when ctrl && !shift && !IsReadOnly:
@@ -295,18 +393,51 @@ public partial class TextBox : TextInputControl, ITextElement
             case Key.Y when ctrl && !IsReadOnly:
                 _document.Redo();
                 break;
+
+            // Ctrl+Shift+Z is redo by the common convention;
+            // this branch used to call Undo, the same as plain Ctrl+Z
             case Key.Z when ctrl && shift && !IsReadOnly:
-                _document.Undo();
+                _document.Redo();
                 break;
 
             default:
-                return;   // не наша клавиша — не помечаем как обработанную
+                return;   // not our key — don't mark it as handled
         }
 
         e.Handled = true;
     }
 
-    // ===== мышь =====
+    /// <summary>Insert the clipboard text in place of the selection.</summary>
+    /// <remarks>
+    /// The body of the Ctrl+V branch had been lost — only a placeholder comment
+    /// was left in its place — and pasting did nothing at all.
+    ///
+    /// A single-line field takes only the first line, as the system edit control
+    /// does: a line break has nowhere to go in it, and gluing the lines together
+    /// would silently change what was copied. A multi-line field brings line
+    /// endings to \n — the only separator the document knows.
+    /// </remarks>
+    private void Paste()
+    {
+        if (IsReadOnly) return;
+        if (Clipboard.Current.GetText() is not { Length: > 0 } text) return;
+
+        text = text.ReplaceLineEndings("\n");
+
+        if (!IsMultiline)
+        {
+            int lineBreak = text.IndexOf('\n');
+
+            if (lineBreak >= 0)
+                text = text[..lineBreak];
+        }
+
+        if (text.Length == 0) return;
+
+        _document.Insert(text);
+    }
+
+    // ===== mouse =====
 
     private int IndexFromPoint(Point location)
     {
@@ -320,8 +451,8 @@ public partial class TextBox : TextInputControl, ITextElement
 
         int column = lineText.Length;
 
-        // перебираем границы символов, а не char — иначе каретка встанет
-        // в середину суррогатной пары
+        // boundaries of characters are walked rather than chars —
+        // otherwise the caret would land in the middle of a surrogate pair
         foreach (int boundary in TextElements.Boundaries(lineText))
         {
             if (TextMeasurer.Current.MeasureTextWidth(lineText, boundary, EffectiveFont) >= localX)
@@ -348,7 +479,7 @@ public partial class TextBox : TextInputControl, ITextElement
 
     protected override void OnMouseUp(MouseButtonEventArgs args) => _isDragging = false;
 
-    // ===== отрисовка =====
+    // ===== drawing =====
 
     protected override void DrawContent(Graphics g)
     {
@@ -395,7 +526,7 @@ public partial class TextBox : TextInputControl, ITextElement
             lineStartIndex += lineText.Length + 1;
         }
 
-        // подсказка вместо текста, пока поле пусто и не в фокусе
+        // a hint instead of the text while the field is empty and not focused
         if (_document.Text.Length == 0 && !IsFocused && !string.IsNullOrEmpty(Watermark))
         {
             g.DrawText(Watermark,
@@ -459,7 +590,7 @@ public partial class TextBox : TextInputControl, ITextElement
         else if (caretY - _verticalOffset < 0)
             _verticalOffset = caretY;
 
-        // не отматываем ниже последней строки
+        // don't scroll below the last line
         _verticalOffset = Math.Clamp(_verticalOffset, 0, Math.Max(0, lineCount * lineHeight - content.Height));
     }
 

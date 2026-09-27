@@ -2,7 +2,7 @@
 
 namespace ZeppelinForms.Core.Text;
 
-/// <summary>Границы видимых символов: эмодзи, модификаторы тона, комбинирующие знаки.</summary>
+/// <summary>Boundaries of visible characters: emoji, skin tone modifiers, combining marks.</summary>
 public static class TextElements
 {
     public static int Next(string text, int index)
@@ -16,8 +16,8 @@ public static class TextElements
     {
         if (index <= 0) return 0;
 
-        // кластеры длиннее 32 char практически не встречаются,
-        // поэтому ищем не с начала строки, а с небольшим запасом
+        // clusters longer than 32 chars practically never occur, so the search
+        // starts not from the beginning of the string but with a small margin
         int from = Math.Max(0, index - 32);
         int position = from;
 

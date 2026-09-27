@@ -8,18 +8,30 @@ using ZeppelinForms.Input.Mouse;
 namespace ZeppelinForms.Forms.Controls.Text;
 
 /// <summary>
-/// Текст с пунктирным подчёркиванием: по клику раскрывает пояснение.
+/// Text with a dashed underline: on click it expands an explanation.
 /// </summary>
 public class HintLabel : DecoratedControl
 {
     private readonly FlyoutHost _flyout;
 
-    public string? Text { get; set; }
+    public string? Text
+    {
+        get;
+        set
+        {
+            if (field == value) return;
 
-    /// <summary>Пояснение. Может быть многострочным через \n.</summary>
+            field = value;
+
+            // the label's size is computed from its text
+            Invalidate();
+        }
+    }
+
+    /// <summary>The explanation. May be multi-line via \n.</summary>
     public string? Hint { get; set; }
 
-    /// <summary>Своё содержимое подсказки вместо простого текста.</summary>
+    /// <summary>Custom hint content instead of plain text.</summary>
     public Func<UIElement>? HintContent { get; set; }
 
     public float MaxHintWidth { get; set; } = 320f;
@@ -63,8 +75,8 @@ public class HintLabel : DecoratedControl
 
     private void DrawDashedLine(Graphics g, float from, float to, float y, Color color)
     {
-        // пунктир рисуем отрезками: DrawLine не умеет штриховку,
-        // а заводить ради этого dash-фильтр в Graphics избыточно
+        // the dashes are drawn as segments: DrawLine can't do dashing,
+        // and adding a dash filter to Graphics for this would be excessive
         float x = from;
 
         while (x < to)

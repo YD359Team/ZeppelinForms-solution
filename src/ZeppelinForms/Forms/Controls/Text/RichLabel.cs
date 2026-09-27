@@ -5,7 +5,7 @@ using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
-/// <summary>Строка текста, собранная из прогонов с разным оформлением.</summary>
+/// <summary>A line of text assembled from runs with different formatting.</summary>
 public class RichLabel : DecoratedControl
 {
     public List<TextRun> Inlines { get; init; } = [];

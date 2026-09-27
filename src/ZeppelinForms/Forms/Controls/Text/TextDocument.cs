@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Core.Text;
 
-/// <summary>Текст с кареткой и выделением. Ничего не знает про отрисовку и ввод.</summary>
+/// <summary>Text with a caret and selection. Knows nothing about drawing or input.</summary>
 public sealed class TextDocument
 {
     private readonly Stack<TextEdit> _undo = new();
     private readonly Stack<TextEdit> _redo = new();
     private bool _applyingHistory;
 
-    /// <summary>Окно склейки последовательного набора в одну операцию.</summary>
+    /// <summary>The window for merging sequential typing into one operation.</summary>
     public TimeSpan MergeWindow { get; set; } = TimeSpan.FromSeconds(1);
 
     public bool CanUndo => _undo.Count > 0;
@@ -49,7 +50,7 @@ public sealed class TextDocument
 
     public string[] Lines => _text.Split('\n');
 
-    // ===== перемещение =====
+    // ===== movement =====
 
     public void SetCaret(int index, bool extendSelection = false, bool keepDesiredColumn = false)
     {
@@ -76,8 +77,8 @@ public sealed class TextDocument
     {
         var (line, column) = ToPosition(CaretIndex);
 
-        // держим исходную колонку, пока идём по вертикали: короткая строка
-        // не должна «съедать» позицию навсегда
+        // keep the original column while moving vertically: a short line
+        // must not "eat" the position forever
         _desiredColumn ??= column;
 
         SetCaret(FromPosition(line + delta, _desiredColumn.Value), extend, keepDesiredColumn: true);
@@ -89,7 +90,7 @@ public sealed class TextDocument
         SetCaret(_text.Length, extendSelection: true);
     }
 
-    // ===== правка =====
+    // ===== editing =====
 
     public bool DeleteSelection()
     {
@@ -99,6 +100,15 @@ public sealed class TextDocument
         return true;
     }
 
+    /// <summary>Insert text in place of the selection. What doesn't fit into
+    /// MaxLength is cut off by visible characters.</summary>
+    /// <remarks>
+    /// Previously an insertion that didn't fit was dropped entirely: pasting
+    /// a long text into a field with a limit inserted nothing at all. System
+    /// fields insert as much as fits, and so does this now. The quick check
+    /// by chars goes first: for ordinary typing it is enough, and counting
+    /// text elements is needed only near the limit.
+    /// </remarks>
     public void Insert(string value)
     {
         if (string.IsNullOrEmpty(value)) return;
@@ -106,10 +116,14 @@ public sealed class TextDocument
         int start = SelectionStart;
         int length = SelectionLength;
 
-        if (_text.Length - length + value.Length > MaxLength &&
-            Length - TextElements.Count(SelectedText) + TextElements.Count(value) > MaxLength)
+        if (_text.Length - length + value.Length > MaxLength)
         {
-            return;
+            int room = MaxLength - (Length - TextElements.Count(SelectedText));
+
+            if (room <= 0) return;
+
+            if (TextElements.Count(value) > room)
+                value = new StringInfo(value).SubstringByTextElements(0, room);
         }
 
         Replace(start, length, value);
@@ -135,7 +149,7 @@ public sealed class TextDocument
 
     public int Length => TextElements.Count(_text);
 
-    // ===== координаты =====
+    // ===== coordinates =====
 
     public (int Line, int Column) ToPosition(int index)
     {
@@ -171,8 +185,8 @@ public sealed class TextDocument
         return FromPosition(line, Lines[line].Length);
     }
 
-    /// <summary>Единая точка правки: любое изменение текста проходит здесь
-    /// и попадает в историю.</summary>
+    /// <summary>The single point of editing: any change of the text passes
+    /// through here and goes into the history.</summary>
     private void Replace(int position, int length, string insertion)
     {
         string removed = length > 0 ? _text.Substring(position, length) : string.Empty;
@@ -194,7 +208,7 @@ public sealed class TextDocument
             if (!(_undo.Count > 0 && _undo.Peek().TryMerge(edit, MergeWindow)))
                 _undo.Push(edit);
 
-            _redo.Clear();   // новая правка обрывает ветку повтора
+            _redo.Clear();   // a new edit cuts off the redo branch
         }
 
         Changed?.Invoke(this, EventArgs.Empty);

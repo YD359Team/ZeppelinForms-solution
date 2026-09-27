@@ -1,7 +1,7 @@
 ﻿namespace ZeppelinForms.Core.Text;
 
-/// <summary>Одна операция правки. Хранит и что вставили, и что удалили,
-/// чтобы отмена не требовала пересчёта.</summary>
+/// <summary>One editing operation. Stores both what was inserted and what was
+/// removed, so that undo requires no recomputation.</summary>
 public sealed class TextEdit(int position, string removed, string inserted, int caretBefore, int anchorBefore, int caretAfter)
 {
     public int Position { get; } = position;

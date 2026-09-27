@@ -204,7 +204,12 @@ public static class Themes
             .For<TimePicker>((picker, c) => picker.Background = c.Surface)
             .For<ColorPicker>((picker, c) => picker.Background = c.Surface)
             .For<CheckedComboBox>((combo, c) => combo.Background = c.Surface)
-            .For<MaskedTextBox>((box, c) => box.Background = c.Surface)
+
+            .For<MaskedTextBox>((box, c) =>
+            {
+                box.Background = c.Surface;
+                box.CaretColor = c.Text;
+            })
 
             .For<CheckedListBox>((list, c) =>
             {

@@ -36,14 +36,18 @@ public partial class MaskedTextBox : TextInputControl
             _mask = value;
             _buffer = value.CreateBuffer();
             _caretIndex = value.NextPlaceholder(0);
+
+            // a new mask clears what was entered — whoever follows the text must know
+            TextChanged?.Invoke(this, EventArgs.Empty);
+
             Invalidate();
         }
     }
 
-    /// <summary>Текст вместе с литералами и приглашениями.</summary>
+    /// <summary>The text together with literals and prompts.</summary>
     public string DisplayText => new(_buffer);
 
-    /// <summary>Только введённые символы, без литералов и приглашений.</summary>
+    /// <summary>Only the entered characters, without literals and prompts.</summary>
     public string RawText
     {
         get
@@ -58,7 +62,7 @@ public partial class MaskedTextBox : TextInputControl
         }
     }
 
-    /// <summary>Все обязательные позиции заполнены.</summary>
+    /// <summary>All required positions are filled.</summary>
     public bool IsComplete
     {
         get
@@ -90,7 +94,7 @@ public partial class MaskedTextBox : TextInputControl
         InvalidateVisual();
     }
 
-    /// <summary>Заполнить маску из строки, пропуская несовпадающие символы.</summary>
+    /// <summary>Fill the mask from a string, skipping characters that don't match.</summary>
     public void SetRawText(string value)
     {
         _buffer = _mask.CreateBuffer();
@@ -125,8 +129,8 @@ public partial class MaskedTextBox : TextInputControl
 
         if (position >= _buffer.Length) return;
 
-        // символ не подходит под тип позиции — просто игнорируем ввод,
-        // без звука и мигания, как делают системные поля
+        // a character that doesn't fit the position's type — the input is simply
+        // ignored, without a sound or a blink, as system fields do
         if (!_mask.Accepts(position, c)) return;
 
         _buffer[position] = c;
@@ -230,7 +234,7 @@ public partial class MaskedTextBox : TextInputControl
             }
         }
 
-        // каретка встаёт только на редактируемые позиции
+        // the caret lands only on editable positions
         _caretIndex = _mask.IsPlaceholder(index) ? index : _mask.NextPlaceholder(index);
 
         ResetCaretBlink();
@@ -244,8 +248,8 @@ public partial class MaskedTextBox : TextInputControl
         float lineHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
         float y = content.Y + (content.Height - lineHeight) / 2f;
 
-        // введённое и приглашения рисуем разными цветами, поэтому
-        // идём по символам, а не выводим строку целиком
+        // entered characters and prompts are drawn in different colors, so we go
+        // character by character rather than output the whole string
         float x = content.X;
 
         for (int i = 0; i < _buffer.Length; i++)

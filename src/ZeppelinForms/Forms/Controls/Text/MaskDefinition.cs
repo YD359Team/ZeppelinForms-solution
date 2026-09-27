@@ -1,8 +1,8 @@
 ﻿namespace ZeppelinForms.Forms.Controls.Text;
 
 /// <summary>
-/// Разбор шаблона маски. Символы-заполнители задают, что можно ввести,
-/// остальное — литералы, которые пользователь не редактирует.
+/// Parsing of a mask pattern. Placeholder characters define what can be entered,
+/// the rest are literals the user doesn't edit.
 /// </summary>
 public sealed class MaskDefinition
 {
@@ -15,8 +15,8 @@ public sealed class MaskDefinition
     public int Length => _pattern.Length;
 
     /// <summary>
-    /// 0 — цифра обязательна, 9 — цифра необязательна, L — буква,
-    /// A — буква или цифра, * — любой символ. Литерал экранируется \.
+    /// 0 — a digit is required, 9 — a digit is optional, L — a letter,
+    /// A — a letter or a digit, * — any character. A literal is escaped with \.
     /// </summary>
     public MaskDefinition(string pattern, char promptChar = '_')
     {
@@ -66,7 +66,7 @@ public sealed class MaskDefinition
         };
     }
 
-    /// <summary>Пустая строка по маске: литералы на местах, заполнители — приглашения.</summary>
+    /// <summary>An empty string by the mask: literals in place, placeholders as prompts.</summary>
     public char[] CreateBuffer()
     {
         char[] buffer = new char[_pattern.Length];
