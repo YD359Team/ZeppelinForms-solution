@@ -1,18 +1,18 @@
 ﻿namespace ZeppelinForms.Forms.Controls.Tree;
 
-/// <summary>Разворачивает раскрытые узлы в плоский список — в том порядке,
-/// в котором они видны на экране.</summary>
+/// <summary>Unrolls the expanded nodes into a flat list — in the order
+/// they are seen on screen.</summary>
 /// <remarks>
-/// Плоский список нужен виртуализации: VirtualizingStackPanel вычисляет
-/// видимый диапазон делением прокрутки на высоту строки, и для этого
-/// строки обязаны быть одномерной последовательностью. Вложенные
-/// контейнеры виртуализацию убивают.
+/// The flat list is needed by virtualization: VirtualizingStackPanel computes
+/// the visible range by dividing the scroll by the row height, and for that
+/// the rows must be a one-dimensional sequence. Nested containers kill
+/// virtualization.
 /// </remarks>
 internal static class TreeFlattener
 {
-    /// <summary>Обход итеративный, а не рекурсивный: глубина дерева задаётся
-    /// данными, а не нами, и цепочка из десятков тысяч узлов переполнила бы
-    /// стек прямо в раскладке.</summary>
+    /// <summary>The walk is iterative rather than recursive: the tree depth is set
+    /// by the data, not by us, and a chain of tens of thousands of nodes would
+    /// overflow the stack right in the middle of layout.</summary>
     public static void Flatten(IReadOnlyList<TreeNode> roots, List<object> output)
     {
         output.Clear();
@@ -32,7 +32,7 @@ internal static class TreeFlattener
 
             if (!node.IsExpanded) continue;
 
-            // в обратном порядке: стек вернёт их прямым
+            // in reverse order: the stack will return them in forward order
             for (int i = node.Children.Count - 1; i >= 0; i--)
                 pending.Push(node.Children[i]);
         }

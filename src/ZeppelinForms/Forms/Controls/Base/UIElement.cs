@@ -289,6 +289,24 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         }
     }
 
+    /// <summary>Whether the element is enabled, taking ancestors into account.</summary>
+    /// <remarks>
+    /// IsEnabled is not inherited as a value, but a disabled container disables
+    /// everything inside it. Controls that draw their own rows need this: the hit
+    /// lands on a row, which is itself enabled, so the form's check for a disabled
+    /// hit doesn't stop a click inside a disabled list.
+    /// </remarks>
+    public bool IsEffectivelyEnabled
+    {
+        get
+        {
+            for (UIElement? node = this; node is not null; node = node.Parent)
+                if (!node.IsEnabled) return false;
+
+            return true;
+        }
+    }
+
     [Styled(Category = "Text", AffectsLayout = true)]
     public partial Font? Font { get; set; }
 

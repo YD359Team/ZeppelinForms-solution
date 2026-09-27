@@ -6,16 +6,16 @@ using ZeppelinForms.Input.Keyboard;
 
 namespace ZeppelinForms.Forms.Controls.Tree;
 
-/// <summary>Дерево с виртуализацией.</summary>
+/// <summary>A tree with virtualization.</summary>
 /// <remarks>
-/// Раскрытые узлы разворачиваются в плоский список, который и отдаётся
-/// VirtualizingStackPanel. Вложенные контейнеры были бы проще, но убили бы
-/// виртуализацию: видимый диапазон там вычисляется делением прокрутки
-/// на высоту строки, а это требует одномерной последовательности.
+/// Expanded nodes are unrolled into a flat list, which is given to
+/// VirtualizingStackPanel. Nested containers would be simpler but would kill
+/// virtualization: the visible range there is computed by dividing the scroll
+/// by the row height, and that requires a one-dimensional sequence.
 ///
-/// Панель именно вложена, а не унаследована: у неё публичные ItemsSource
-/// и ItemTemplate, а у дерева они служебные — любая запись снаружи
-/// разъехалась бы с проекцией.
+/// The panel is nested rather than inherited: its ItemsSource and ItemTemplate
+/// are public, while for the tree they are internal — any write from outside
+/// would drift apart from the projection.
 /// </remarks>
 public class TreeView : DecoratedPanel, IInputElement
 {
@@ -23,11 +23,12 @@ public class TreeView : DecoratedPanel, IInputElement
     private readonly List<object> _flat = [];
     private readonly TreeNode _root = new();
 
-    /// <summary>Корневые узлы. Служебный корень наружу не виден: он нужен,
-    /// чтобы подписка на изменения была одна, а не по узлу на каждый.</summary>
+    /// <summary>The root nodes. The service root is not visible from outside:
+    /// it is needed so that there is one subscription to changes rather than
+    /// one per node.</summary>
     public IList<TreeNode> Nodes => _root.Children;
 
-    /// <summary>Отступ на уровень вложенности.</summary>
+    /// <summary>The indent per nesting level.</summary>
     public float Indent
     {
         get;
@@ -37,7 +38,7 @@ public class TreeView : DecoratedPanel, IInputElement
 
             field = value;
 
-            // высота строк фиксированная, поэтому отступ — только отрисовка
+            // the row height is fixed, so the indent is only drawing
             InvalidateVisual();
         }
     } = 16f;
@@ -48,7 +49,7 @@ public class TreeView : DecoratedPanel, IInputElement
         set => _panel.ItemHeight = value;
     }
 
-    /// <summary>Как получить подпись узла. По умолчанию — ToString содержимого.</summary>
+    /// <summary>How to get a node's caption. By default — ToString of the content.</summary>
     public Func<TreeNode, string>? ItemText
     {
         get;
@@ -58,14 +59,14 @@ public class TreeView : DecoratedPanel, IInputElement
 
             field = value;
 
-            // подписи у уже созданных строк устарели
+            // the captions of already created rows are stale
             InvalidateVisual();
         }
     }
 
     public event EventHandler<TreeNode?>? SelectionChanged;
 
-    // дерево принимает фокус: без него нет и клавиатуры
+    // the tree takes focus: without it there is no keyboard
     public bool IsFocused { get; set; }
 
     public bool TabStop { get; set; } = true;
@@ -83,8 +84,8 @@ public class TreeView : DecoratedPanel, IInputElement
 
             SelectionChanged?.Invoke(this, value);
 
-            // перерисовка, а не пересборка: набор видимых строк тот же,
-            // поменялась только заливка двух из них
+            // a redraw rather than a rebuild: the set of visible rows is the same,
+            // only the fill of two of them changed
             InvalidateVisual();
         }
     }
@@ -94,16 +95,16 @@ public class TreeView : DecoratedPanel, IInputElement
         _panel.ItemsSource = _flat;
         _panel.ItemTemplate = CreateRow;
 
-        // без этого дерево выше своей коробки обрезается, и виртуализация
-        // считает диапазон по вечно нулевому ScrollY
+        // without this a tree taller than its box is clipped, and virtualization
+        // computes the range from a forever-zero ScrollY
         _panel.OverflowY = Overflow.Auto;
 
         Children.Add(_panel);
 
         _root.Changed += OnTreeChanged;
 
-        // дерево — контейнер, а не элемент управления по месту: центровать
-        // его незачем, а унаследованный от UnitControl Center делает именно это
+        // the tree is a container, not an in-place control: there is no point
+        // centering it, and the Center inherited from UnitControl does exactly that
         SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Stretch);
 
         Rebuild();
@@ -150,30 +151,30 @@ public class TreeView : DecoratedPanel, IInputElement
     {
         TreeFlattener.Flatten(_root.Children, _flat);
 
-        // Refresh обязателен, а не только Invalidate: UpdateRealizedRange
-        // выходит рано, когда first и count не изменились, а после раскрытия
-        // узла диапазон часто прежний — меняется содержимое списка целиком,
-        // и без сброса строки остались бы от старой проекции.
-        // Сброс не пересоздаёт строки: панель сопоставляет контейнеры
-        // по узлу, поэтому уже видимые строки остаются теми же объектами
-        // и только сдвигаются, а создаются лишь строки новых потомков
+        // Refresh is mandatory, not only Invalidate: UpdateRealizedRange exits early
+        // when first and count haven't changed, and after a node is expanded the range
+        // is often the same — the contents of the list change entirely, and without
+        // the reset the rows would stay from the old projection.
+        // The reset doesn't recreate rows: the panel matches containers by node,
+        // so the already visible rows stay the same objects and only move,
+        // and only the rows of new children are created
         _panel.Refresh();
 
-        // выделенный узел мог уехать вместе со свёрнутым предком
+        // the selected node may have gone away together with a collapsed ancestor
         if (SelectedNode is not null && !_flat.Contains(SelectedNode))
             SelectedNode = null;
     }
 
     private UIElement CreateRow(object item) => new TreeViewItem(this, (TreeNode)item);
 
-    // ===== клавиатура =====
+    // ===== keyboard =====
 
-    /// <summary>Место узла в развёрнутом списке или −1, если он под
-    /// свёрнутым предком и сейчас не показан.</summary>
+    /// <summary>The node's place in the unrolled list, or −1 if it is under
+    /// a collapsed ancestor and not shown right now.</summary>
     private int RowOf(TreeNode? node) => node is null ? -1 : _flat.IndexOf(node);
 
-    /// <summary>Сколько строк помещается в окне — на это двигают
-    /// PageUp и PageDown.</summary>
+    /// <summary>How many rows fit in the window — that is how far
+    /// PageUp and PageDown move.</summary>
     private int PageRows =>
         ItemHeight <= 0 ? 1 : Math.Max(1, (int)(_panel.ActualSize.Height / ItemHeight) - 1);
 
@@ -191,8 +192,8 @@ public class TreeView : DecoratedPanel, IInputElement
                 break;
 
             case Key.Up:
-                // фокус без выделения — первая стрелка выбирает край,
-                // а не прыгает в никуда
+                // focus without a selection — the first arrow picks the edge
+                // rather than jumping into nowhere
                 SelectRow(row < 0 ? _flat.Count - 1 : row - 1);
                 break;
 
@@ -213,7 +214,7 @@ public class TreeView : DecoratedPanel, IInputElement
                 break;
 
             case Key.Right:
-                // закрытый узел раскрывается, раскрытый пускает внутрь
+                // a closed node expands, an expanded one lets you inside
                 if (current is null) SelectRow(0);
                 else if (current.HasChildren && !current.IsExpanded) current.Expand();
                 else if (current.HasChildren) SelectRow(row + 1);
@@ -222,7 +223,7 @@ public class TreeView : DecoratedPanel, IInputElement
                 break;
 
             case Key.Left:
-                // раскрытый сворачивается, свёрнутый отдаёт фокус родителю
+                // an expanded one collapses, a collapsed one hands the focus to its parent
                 if (current is null) SelectRow(0);
                 else if (current.IsExpanded && current.HasChildren) current.Collapse();
                 else if (current.Parent is { } parent && RowOf(parent) >= 0) SelectNode(parent);
@@ -258,8 +259,8 @@ public class TreeView : DecoratedPanel, IInputElement
         ScrollIntoView(node);
     }
 
-    /// <summary>Подтянуть узел в видимую часть. Узел под свёрнутым предком
-    /// не показывается вовсе — его и подтягивать некуда.</summary>
+    /// <summary>Bring a node into the visible part. A node under a collapsed
+    /// ancestor is not shown at all — there is nowhere to bring it.</summary>
     public void ScrollIntoView(TreeNode node)
     {
         int row = RowOf(node);

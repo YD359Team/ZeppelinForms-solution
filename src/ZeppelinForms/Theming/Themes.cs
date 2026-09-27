@@ -6,6 +6,7 @@ using ZeppelinForms.Forms.Controls.DataGrid;
 using ZeppelinForms.Forms.Controls.Navigation;
 using ZeppelinForms.Forms.Controls.Shapes;
 using ZeppelinForms.Forms.Controls.Text;
+using ZeppelinForms.Forms.Controls.Tree;
 
 namespace ZeppelinForms.Theming;
 
@@ -243,8 +244,19 @@ public static class Themes
             {
                 list.Background = c.Surface;
                 list.SelectionColor = c.Accent;
+                list.HoverColor = new Color(24, c.Text.R, c.Text.G, c.Text.B);
                 list.BorderColor = c.Border;
                 list.BorderWidth = 1f;
+            })
+
+            // TreeViewItem had no rule: the light-blue selection and the dark glyph
+            // stayed the same in the dark theme. The hover is tinted by the text color,
+            // so it reads on both backgrounds
+            .For<TreeViewItem>((item, c) =>
+            {
+                item.SelectionColor = c.Selection;
+                item.HoverColor = new Color(24, c.Text.R, c.Text.G, c.Text.B);
+                item.GlyphColor = c.TextSecondary;
             })
 
             .For<Table>((table, c) =>

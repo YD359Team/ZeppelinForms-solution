@@ -134,6 +134,9 @@ public partial class ListBox : ItemsControl, IInputElement
     /// </remarks>
     private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        // the hovered index described the previous rows; the next mouse move sets it again
+        _hoveredIndex = -1;
+
         if (_selected.Count == 0 && _selectedIndex < 0 && _anchor < 0) return;
 
         Func<int, int> map = e.Action switch
@@ -199,6 +202,15 @@ public partial class ListBox : ItemsControl, IInputElement
     public partial Color SelectionColor { get; set; }
     private static Color SelectionColorDefault => new(255, 0x0D, 0x6E, 0xFD);
 
+    /// <summary>The row under the cursor. Drawn under the selection:
+    /// a selected row keeps its color when hovered.</summary>
+    [Styled(Category = "Selection")]
+    public partial Color HoverColor { get; set; }
+    private static Color HoverColorDefault => new(20, 0, 0, 0);
+
+    /// <summary>The row under the cursor, or −1.</summary>
+    private int _hoveredIndex = -1;
+
     [Styled(Category = "Appearance")]
     public partial Color FocusBorderColor { get; set; }
     private static Color FocusBorderColorDefault => new(255, 0x0D, 0x6E, 0xFD);
@@ -212,12 +224,64 @@ public partial class ListBox : ItemsControl, IInputElement
         SetControlDefault(BackgroundProperty, Colors.White);
 
         Items.CollectionChanged += OnItemsChanged;
+        Children.CollectionChanged += OnContainersChanged;
+    }
+
+    /// <summary>Follow the rows' MouseExit. The rows are the hit elements, so when
+    /// the cursor leaves the list across a row, the exit comes to the row — the list
+    /// itself hears nothing, and its hover highlight would stay lit.</summary>
+    private void OnContainersChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+            foreach (UIElement row in e.OldItems)
+                row.MouseExit -= OnRowMouseExit;
+
+        if (e.NewItems is not null)
+            foreach (UIElement row in e.NewItems)
+                row.MouseExit += OnRowMouseExit;
+    }
+
+    private void OnRowMouseExit(object? sender, MouseMoveEventArgs e) => LeaveUnlessInside(e.RelatedElement);
+
+    protected override void OnMouseExit(MouseMoveEventArgs e) => LeaveUnlessInside(e.RelatedElement);
+
+    private void LeaveUnlessInside(object? next)
+    {
+        // moving between rows, or from a row onto the list's own padding, is not leaving
+        for (UIElement? node = next as UIElement; node is not null; node = node.Parent)
+            if (ReferenceEquals(node, this)) return;
+
+        SetHovered(-1);
+    }
+
+    /// <summary>The preview reaches the list while the cursor moves over any of its
+    /// rows, so the hovered row is found here rather than in OnMouseMove.</summary>
+    protected override void OnPreviewMouseMove(MouseMoveEventArgs e) =>
+        SetHovered(IsEffectivelyEnabled ? IndexAt(e.Location) : -1);
+
+    private void SetHovered(int index)
+    {
+        if (index == _hoveredIndex) return;
+
+        _hoveredIndex = index;
+        InvalidateVisual();
     }
 
     protected override void DrawContent(Graphics g)
     {
         // the highlight is drawn before the children: the renderer calls Draw,
-        // then walks Children
+        // then walks Children. The hover goes first, under the selection
+        if (_hoveredIndex >= 0 && _hoveredIndex < Children.Count && !_selected.Contains(_hoveredIndex))
+        {
+            UIElement hovered = Children[_hoveredIndex];
+
+            g.FillRectangle(
+                new Rectangle(
+                    new Point(ContentBounds.X, hovered.Position.Y),
+                    new Size(ContentBounds.Width, hovered.ActualSize.Height)),
+                HoverColor);
+        }
+
         foreach (int index in _selected)
         {
             if (index >= Children.Count) continue;
@@ -238,7 +302,7 @@ public partial class ListBox : ItemsControl, IInputElement
     {
         // the hit lands on a row, which is itself enabled, so the form's check
         // for a disabled hit doesn't stop a disabled list from selecting
-        if (!IsEnabled) return;
+        if (!IsEffectivelyEnabled) return;
 
         int index = IndexAt(e.Location);
         if (index < 0) return;

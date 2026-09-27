@@ -9,11 +9,11 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Tree;
 
-/// <summary>Одна строка дерева: отступ по глубине, раскрыватель, текст.</summary>
+/// <summary>One tree row: indent by depth, expander, text.</summary>
 public partial class TreeViewItem : DecoratedControl
 {
-    /// <summary>Ширина полосы под раскрыватель. Она же — зона его нажатия:
-    /// клик в неё раскрывает узел, клик правее выделяет строку.</summary>
+    /// <summary>The width of the strip for the expander. It is also its click zone:
+    /// a click in it expands the node, a click to the right selects the row.</summary>
     public const float GlyphWidth = 18f;
 
     private readonly TreeView _owner;
@@ -25,11 +25,10 @@ public partial class TreeViewItem : DecoratedControl
         _owner = owner;
         Node = node;
 
-        // ZF0006: styled-свойства в конструкторе только через SetControlDefault.
-        // Выравнивание перебиваем осознанно: UnitControl ставит потомкам
-        // Center, а строка списка обязана занимать всю ширину — иначе
-        // отступ по глубине съедается центрированием, и вложенность
-        // читается наоборот
+        // ZF0006: styled properties in a constructor only through SetControlDefault.
+        // The alignment is overridden deliberately: UnitControl gives its descendants
+        // Center, while a list row must take the whole width — otherwise the depth
+        // indent is eaten by centering, and the nesting reads the wrong way round
         SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Stretch);
         SetControlDefault(SelectionColorProperty, new Color(255, 205, 226, 252));
         SetControlDefault(GlyphColorProperty, new Color(255, 90, 90, 90));
@@ -39,26 +38,35 @@ public partial class TreeViewItem : DecoratedControl
     public partial Color SelectionColor { get; set; }
     private static Color SelectionColorDefault => new(255, 205, 226, 252);
 
+    /// <summary>The row under the cursor. A row is clickable — it selects the node —
+    /// so it shows that before the click.</summary>
+    [Styled]
+    public partial Color HoverColor { get; set; }
+    private static Color HoverColorDefault => new(20, 0, 0, 0);
+
     [Styled]
     public partial Color GlyphColor { get; set; }
     private static Color GlyphColorDefault => new(255, 90, 90, 90);
 
     private string Text => _owner.GetItemText(Node);
 
-    // минус один: у TreeView служебный корень, и узлы верхнего уровня
-    // имеют Level == 1 — без поправки всё дерево смещено на лишний шаг
+    // minus one: TreeView has a service root, and the top-level nodes have
+    // Level == 1 — without the correction the whole tree is shifted by an extra step
     private float IndentWidth => Math.Max(0, Node.Level - 1) * _owner.Indent;
 
-    // фон, рамка и скругление рисует база — здесь выделение, глиф и текст
+    // the background, border and corner radius are drawn by the base — here the selection, the glyph and the text
     protected override void DrawContent(Graphics g)
     {
         Rectangle content = ContentBounds;
 
-        // выделение рисуем сами, а не через Background: Background —
-        // обычное styled-свойство, и присвоение в него навсегда закрыло бы
-        // строку от темы
+        // the selection is drawn by us rather than through Background: Background
+        // is an ordinary styled property, and assigning it would close the row
+        // to the theme forever. The hover goes the same way and yields to the
+        // selection: a selected row keeps its color when hovered
         if (_owner.SelectedNode == Node)
             g.FillRectangle(content, SelectionColor);
+        else if (IsHovered && IsEffectivelyEnabled)
+            g.FillRectangle(content, HoverColor);
 
         float glyphLeft = content.X + IndentWidth;
 
@@ -84,11 +92,15 @@ public partial class TreeViewItem : DecoratedControl
 
     protected override void OnClick(MouseClickEventArgs e)
     {
+        // the hit lands on the row, which is itself enabled, so the form's check
+        // for a disabled hit doesn't stop a click inside a disabled tree
+        if (!IsEffectivelyEnabled) return;
+
         Point abs = GetAbsolutePosition();
         float localX = e.Location.X - abs.X - Padding.Left;
 
-        // попадание в полосу раскрывателя — это переключение, а не выделение:
-        // иначе по узлу с потомками нельзя было бы кликнуть, не свернув его
+        // a hit in the expander strip toggles rather than selects: otherwise
+        // a node with children couldn't be clicked without collapsing it
         if (Node.HasChildren && localX >= IndentWidth && localX < IndentWidth + GlyphWidth)
         {
             Node.IsExpanded = !Node.IsExpanded;
@@ -102,7 +114,7 @@ public partial class TreeViewItem : DecoratedControl
 
     protected override void OnDoubleClick(MouseClickEventArgs e)
     {
-        if (!Node.HasChildren) return;
+        if (!Node.HasChildren || !IsEffectivelyEnabled) return;
 
         Node.IsExpanded = !Node.IsExpanded;
         e.Handled = true;
