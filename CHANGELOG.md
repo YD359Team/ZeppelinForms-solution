@@ -2,7 +2,7 @@
 
 ## [0.13.0] - Siberia
 
-![El Dorado](assets/Logo-0.12.0.jpg)
+![El Dorado](assets/Logo-0.13.0.jpg)
 
 ### Breaking changes
 
