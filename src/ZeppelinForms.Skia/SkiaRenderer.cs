@@ -11,11 +11,11 @@ namespace ZeppelinForms.Skia;
 
 public static class SkiaRenderer
 {
-    /// <param name="clearBackground">Чистить весь холст перед отрисовкой.
-    /// false нужен там, где несколько форм делят одну поверхность: диалог
-    /// не имеет права стирать то, что под ним нарисовало окно-владелец.</param>
-    /// <param name="origin">Смещение формы на поверхности в логических
-    /// единицах. По умолчанию ноль — форма занимает поверхность целиком.</param>
+    /// <param name="clearBackground">Clear the whole canvas before drawing.
+    /// false is needed where several forms share one surface: a dialog has no right
+    /// to erase what the owner window drew under it.</param>
+    /// <param name="origin">The form's offset on the surface in logical units.
+    /// Zero by default — the form takes the whole surface.</param>
     public static void Render(
         Form form,
         SKCanvas canvas,
@@ -24,9 +24,9 @@ public static class SkiaRenderer
         bool clearBackground = true,
         Point origin = default)
     {
-        // единственная точка, через которую рисуют все платформы, — здесь
-        // и досчитывается отложенная раскладка. Рисовать по устаревшей
-        // геометрии нельзя, а знать про отложенность каждому бэкенду незачем
+        // the single point all platforms draw through — this is where the deferred
+        // layout is completed. Drawing with stale geometry is not allowed, and there
+        // is no point for every backend to know about the deferral
         form.EnsureLayout();
 
         canvas.Save();
@@ -40,13 +40,13 @@ public static class SkiaRenderer
 
         if (clearBackground)
         {
-            canvas.Clear(SKColors.White);   // Clear уважает клип
+            canvas.Clear(SKColors.White);   // Clear respects the clip
         }
         else
         {
-            // за пределы своей области форма не рисует и просвечивать
-            // не должна: холст чужой, чистить его нельзя, поэтому
-            // закрашиваем ровно то, что занимаем
+            // the form doesn't draw beyond its area and must not show through:
+            // the canvas belongs to someone else, clearing it is not allowed,
+            // so we paint exactly what we occupy
             canvas.ClipRect(formRect);
 
             using var background = new SKPaint { Color = SKColors.White };
@@ -57,8 +57,8 @@ public static class SkiaRenderer
 
         if (rippleActive)
         {
-            // старый фон остаётся за пределами круга, новый — внутри;
-            // содержимое рисуется поверх уже с новой темой
+            // the old background stays outside the circle, the new one inside;
+            // the content is drawn on top already with the new theme
             canvas.Save();
 
             using var pathBuilder = new SKPathBuilder();
@@ -98,7 +98,7 @@ public static class SkiaRenderer
         Point absolute = target.GetAbsolutePosition();
         var bounds = new Rectangle(absolute, target.ActualSize);
 
-        // полупрозрачная подсветка + рамка поверх элемента
+        // a translucent highlight + a frame on top of the element
         g.FillRectangle(bounds, new Color(60, 80, 160, 255));
         g.DrawRectangle(bounds, new Color(255, 30, 90, 220), 2f);
 

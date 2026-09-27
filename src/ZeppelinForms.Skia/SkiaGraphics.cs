@@ -5,41 +5,42 @@ using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 
+namespace ZeppelinForms.Skia;
+
 public sealed class SkiaGraphics : Graphics
 {
-    // Кэш "наш Image -> уже загруженный в Skia SKImage", чтобы не
-    // перезаливать пиксели на каждый WM_PAINT. ConditionalWeakTable
-    // сам подчистит запись, когда Image перестанет использоваться.
+    // A cache "our Image -> the SKImage already uploaded into Skia", so that the
+    // pixels aren't re-uploaded on every WM_PAINT. ConditionalWeakTable cleans up
+    // the entry by itself when the Image is no longer in use.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Image, SKImage> ImageCache = [];
 
-    // ===== Диагностика =====
+    // ===== Diagnostics =====
 
-    /// <summary>Сколько кистей создано в этом потоке. Ноль или два —
-    /// пул работает; больше означало бы, что кисти пересоздаются.</summary>
+    /// <summary>How many brushes were created on this thread. Zero or two —
+    /// the pool works; more would mean the brushes are being recreated.</summary>
     [ThreadStatic]
     private static int _paintsCreated;
 
     internal static int PaintsCreated => _paintsCreated;
 
-    /// <summary>Изображений в кэше. ConditionalWeakTable не даёт Count,
-    /// поэтому считаем сами: записи добавляются только в GetOrCreate,
-    /// а убирает их сборщик — значение показывает, сколько заливок
-    /// было сделано, а не сколько живо сейчас.</summary>
+    /// <summary>Images in the cache. ConditionalWeakTable gives no Count, so we count
+    /// ourselves: entries are added only in GetOrCreate, and the collector removes
+    /// them — the value shows how many uploads were made, not how many are alive now.</summary>
     private static int _imagesUploaded;
 
     internal static int ImagesUploaded => Volatile.Read(ref _imagesUploaded);
 
-    #region Пул кистей
+    #region Brush pool
 
-    // Кисти переиспользуются вместо создания на каждый примитив: SKPaint —
-    // обёртка над нативным объектом, и её выделение с последующим Dispose
-    // на каждую заливку давало сотни килобайт мусора на кадр.
+    // Brushes are reused instead of being created for every primitive: SKPaint is
+    // a wrapper over a native object, and allocating it followed by a Dispose for
+    // every fill produced hundreds of kilobytes of garbage per frame.
     //
-    // ThreadStatic, а не общий статик: отрисовка идёт с потока интерфейса,
-    // но снимковые тесты xunit выполняются параллельно, и общая кисть
-    // стала бы гонкой. Кисти с шейдерами и фильтрами в пул не попадают —
-    // в них пришлось бы обнулять ссылку на уже уничтоженный шейдер,
-    // а вызываются они редко, на эффектах и градиентах.
+    // ThreadStatic rather than a shared static: drawing goes from the UI thread,
+    // but xunit snapshot tests run in parallel, and a shared brush would become
+    // a race. Brushes with shaders and filters don't go into the pool — the
+    // reference to an already destroyed shader would have to be reset in them,
+    // and they are called rarely, for effects and gradients.
 
     [ThreadStatic]
     private static SKPaint? _fillPaint;
@@ -47,25 +48,24 @@ public sealed class SkiaGraphics : Graphics
     [ThreadStatic]
     private static SKPaint? _strokePaint;
 
+    private const string PoolContract =
+        "The brush pool has created more than two instances. A brush is being lost " +
+        "or reset between frames somewhere — the point of the pool is that there " +
+        "are exactly two of them per thread.";
+
     private static SKPaint FillPaint(Color color)
     {
         SKPaint? paint = _fillPaint;
 
+        // this block used to contain a second, unreachable "paint is null" check
+        // nested inside the first one, and the pool contract below sat in it —
+        // for the fill brush the check never ran at all
         if (paint is null)
         {
             paint = _fillPaint = new SKPaint();
             _paintsCreated++;
-            if (paint is null)
-            {
-                paint = _fillPaint = new SKPaint();
-                _paintsCreated++;
 
-                ZfContract.Require(
-                    _paintsCreated <= 2,
-                    $"Пул кистей создал {_paintsCreated} экземпляров вместо двух. " +
-                    "Кисть где-то теряется или обнуляется между кадрами — " +
-                    "смысл пула в том, что их ровно две на поток.");
-            }
+            ZfContract.Require(_paintsCreated <= 2, PoolContract);
         }
 
         paint.Reset();
@@ -89,11 +89,7 @@ public sealed class SkiaGraphics : Graphics
             paint = _strokePaint = new SKPaint();
             _paintsCreated++;
 
-            ZfContract.Require(
-                _paintsCreated <= 2,
-                $"Пул кистей создал {_paintsCreated} экземпляров вместо двух. " +
-                "Кисть где-то теряется или обнуляется между кадрами — " +
-                "смысл пула в том, что их ровно две на поток.");
+            ZfContract.Require(_paintsCreated <= 2, PoolContract);
         }
 
         paint.Reset();
@@ -109,8 +105,8 @@ public sealed class SkiaGraphics : Graphics
 
     #endregion
 
-    // Канвас меняется на время захвата: элемент рисуется в offscreen-слой,
-    // а не на экран. Стек — потому что эффекты вкладываются друг в друга.
+    // The canvas is swapped for the duration of a capture: the element is drawn
+    // into an offscreen layer, not to the screen. A stack — because effects nest.
     private SKCanvas _canvas;
     private readonly Stack<CaptureFrame> _captures = new();
 
@@ -122,16 +118,15 @@ public sealed class SkiaGraphics : Graphics
         {
             var info = new SKImageInfo(image.Width, image.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
 
-            // FromPixelCopy, а не InstallPixels: закрепление буфера
-            // через GCHandle было бы сильным корнем GC, живущим отдельно
-            // от таблицы. ConditionalWeakTable значения не освобождает,
-            // поэтому такой handle не снимался никогда и массив пикселей
-            // оставался прикреплённым до конца процесса.
-            // Копия стоит одну заливку на изображение и освобождается
-            // финализатором SKImage вместе с записью в таблице.
+            // FromPixelCopy rather than InstallPixels: pinning the buffer through
+            // a GCHandle would be a strong GC root living apart from the table.
+            // ConditionalWeakTable doesn't release its values, so such a handle was
+            // never freed and the pixel array stayed pinned until the process ended.
+            // The copy costs one upload per image and is released by the SKImage
+            // finalizer together with the table entry.
             cached = SKImage.FromPixelCopy(info, image.Pixels, info.RowBytes)
                 ?? throw new InvalidOperationException(
-                    "Не удалось загрузить изображение в Skia.");
+                    "Could not upload the image into Skia.");
 
             ImageCache.Add(image, cached);
             Interlocked.Increment(ref _imagesUploaded);
@@ -158,7 +153,7 @@ public sealed class SkiaGraphics : Graphics
             float sx = flip is ImageFlip.Horizontal or ImageFlip.Both ? -1f : 1f;
             float sy = flip is ImageFlip.Vertical or ImageFlip.Both ? -1f : 1f;
 
-            // масштабируем вокруг центра области, иначе картинка уедет за пределы
+            // scale around the area's center, otherwise the picture would move outside
             _canvas.Translate(cx, cy);
             _canvas.Scale(sx, sy);
             _canvas.Translate(-cx, -cy);
@@ -172,7 +167,7 @@ public sealed class SkiaGraphics : Graphics
             using var paint = new SKPaint { Shader = shader };
 
             _canvas.Save();
-            _canvas.Translate(rect.X, rect.Y);   // мозаика стартует от угла области
+            _canvas.Translate(rect.X, rect.Y);   // the tiling starts from the area's corner
             _canvas.DrawRect(new SKRect(0, 0, rect.Width, rect.Height), paint);
             _canvas.Restore();
         }
@@ -240,8 +235,8 @@ public sealed class SkiaGraphics : Graphics
 
     public override void SaveLayer(float opacity)
     {
-        // SaveLayer копирует кисть себе, поэтому переиспользуемая
-        // из пула здесь безопасна
+        // SaveLayer copies the brush for itself, so the one reused
+        // from the pool is safe here
         SKPaint paint = FillPaint(new Color(
             (byte)Math.Clamp(opacity * 255f, 0, 255), 255, 255, 255));
 
@@ -260,7 +255,7 @@ public sealed class SkiaGraphics : Graphics
 
         if (shadow.Blur > 0)
         {
-            // sigma ≈ blur/2 — так радиус размытия совпадает с интуицией CSS
+            // sigma ≈ blur/2 — this way the blur radius matches the CSS intuition
             paint.MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, shadow.Blur / 2f);
         }
 
@@ -285,8 +280,8 @@ public sealed class SkiaGraphics : Graphics
     {
         if (points.Length < 2) return;
 
-        // SKPath.MoveTo/LineTo объявлены устаревшими: построение пути
-        // переехало в SKPathBuilder, а сам SKPath стал неизменяемым
+        // SKPath.MoveTo/LineTo are declared obsolete: path building
+        // moved to SKPathBuilder, and SKPath itself became immutable
         using var builder = new SKPathBuilder();
         builder.MoveTo(points[0].X, points[0].Y);
 
@@ -295,7 +290,7 @@ public sealed class SkiaGraphics : Graphics
 
         using SKPath path = builder.Detach();
 
-        // StrokeJoin.Round — без него угол галочки выглядит рубленым
+        // StrokeJoin.Round — without it the corner of a check mark looks chopped
         SKPaint paint = StrokePaint(color, width, SKStrokeCap.Round, SKStrokeJoin.Round);
 
         _canvas.DrawPath(path, paint);
@@ -317,7 +312,7 @@ public sealed class SkiaGraphics : Graphics
         SKRect bounds = path.Bounds;
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
 
-        // вписываем path в rect с сохранением пропорций
+        // fit the path into rect keeping the proportions
         float scale = Math.Min(rect.Width / bounds.Width, rect.Height / bounds.Height);
         float dx = rect.X + (rect.Width - bounds.Width * scale) / 2f - bounds.Left * scale;
         float dy = rect.Y + (rect.Height - bounds.Height * scale) / 2f - bounds.Top * scale;
@@ -338,7 +333,7 @@ public sealed class SkiaGraphics : Graphics
         var skRect = new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height);
         var rounded = new SKRoundRect();
 
-        // порядок углов в Skia: TL, TR, BR, BL — по часовой от левого верхнего
+        // the corner order in Skia: TL, TR, BR, BL — clockwise from the top left
         rounded.SetRectRadii(skRect,
         [
             new SKPoint(radius.TopLeft, radius.TopLeft),
@@ -389,8 +384,8 @@ public sealed class SkiaGraphics : Graphics
 
         for (int i = 0; i < line.Runs.Length; i++)
         {
-            // блоб уже собран при первой отрисовке этой строки;
-            // DrawText(string, ...) пересобирал бы его каждый кадр
+            // the blob was already built on the first draw of this line;
+            // DrawText(string, ...) would rebuild it every frame
             if (line.GetBlob(i) is { } blob)
                 _canvas.DrawText(blob, x, position.Y, paint);
 
@@ -407,8 +402,8 @@ public sealed class SkiaGraphics : Graphics
 
         SKPaint paint = FillPaint(color);
 
-        // ширина считается по тем же участкам, что и рисование, иначе
-        // выравнивание разъедется на строках с эмодзи
+        // the width is computed from the same pieces as the drawing, otherwise
+        // the alignment drifts on lines with emoji
         CachedLine line = SkiaFontCache.GetLine(text, font);
 
         float textWidth = line.Width;
@@ -428,10 +423,10 @@ public sealed class SkiaGraphics : Graphics
             _ => rect.Y + rect.Height / 2f - bounds.MidY,
         };
 
-        // прямоугольник задаёт не только выравнивание, но и границы:
-        // без клипа надпись, не влезшая в свою коробку, рисуется поверх
-        // соседей. Клип ставим только при переполнении — безусловный
-        // стоил бы Save/Restore на каждую строку в кадре
+        // the rectangle sets not only the alignment but also the bounds:
+        // without a clip, a caption that doesn't fit its box is drawn over its
+        // neighbours. The clip is set only on overflow — an unconditional one
+        // would cost a Save/Restore for every line in the frame
         bool clipped = textWidth > rect.Width;
 
         if (clipped)
@@ -470,7 +465,7 @@ public sealed class SkiaGraphics : Graphics
         float totalWidth = 0;
         float maxAscent = 0, maxDescent = 0;
 
-        // первый проход — габариты, чтобы знать, откуда начинать
+        // the first pass — the extents, to know where to start from
         foreach (TextRun run in runs)
         {
             Font font = run.Font ?? baseFont;
@@ -498,8 +493,8 @@ public sealed class SkiaGraphics : Graphics
             _ => rect.Y + (rect.Height - lineHeight) / 2f,
         };
 
-        // общая базовая линия: прогоны разного размера должны стоять на одной линии,
-        // а не каждый по центру своего прямоугольника
+        // a shared baseline: runs of different sizes must stand on one line,
+        // not each in the middle of its own rectangle
         float baseline = top + maxAscent;
 
         foreach (TextRun run in runs)
@@ -521,8 +516,8 @@ public sealed class SkiaGraphics : Graphics
                     backgroundPaint);
             }
 
-            // фон уже нарисован, кисть можно перенастроить под текст:
-            // вызовы идут последовательно, наложения нет
+            // the background is already drawn, the brush can be reconfigured for
+            // the text: the calls go one after another, there is no overlap
             SKPaint paint = FillPaint(color);
 
             for (int i = 0; i < line.Runs.Length; i++)
@@ -554,8 +549,8 @@ public sealed class SkiaGraphics : Graphics
 
     public override void SaveDisabledLayer(float opacity, float desaturation)
     {
-        // матрица цвета: смешиваем каждый канал в сторону яркости,
-        // получая частичное обесцвечивание без ручного пересчёта пикселей
+        // a color matrix: each channel is mixed toward the luminance,
+        // giving partial desaturation without recomputing pixels by hand
         float s = 1f - Math.Clamp(desaturation, 0f, 1f);
 
         float rr = 0.213f + 0.787f * s, rg = 0.715f - 0.715f * s, rb = 0.072f - 0.072f * s;
@@ -594,29 +589,50 @@ public sealed class SkiaGraphics : Graphics
         _canvas.SaveLayer(paint);
     }
 
+    /// <summary>A snapshot of what is already drawn under a local rectangle, and the
+    /// part of that rectangle it actually covers, in the same local coordinates.</summary>
+    /// <remarks>
+    /// The area is cut to the visible part of the canvas: beyond the surface's edge
+    /// or the current clip there is nothing, or something stale. The part actually
+    /// taken is mapped back through the inverse matrix, and the caller draws the
+    /// snapshot exactly there. Previously the cut snapshot was drawn back into the
+    /// whole rectangle and came out stretched for an element partially outside
+    /// the window or a scroll clip.
+    /// </remarks>
+    private SKImage? SnapshotUnder(SKRect local, out SKRect taken)
+    {
+        taken = SKRect.Empty;
+
+        // the surface belongs to the caller: it must not be taken into a using,
+        // otherwise the next frame would crash
+        SKSurface? surface = _canvas.Surface;
+        if (surface is null) return null;
+
+        // the area in device pixels: the canvas may be scaled for DPI
+        SKMatrix matrix = _canvas.TotalMatrix;
+        if (!matrix.TryInvert(out SKMatrix inverse)) return null;
+
+        var subset = SKRectI.Round(matrix.MapRect(local));
+        subset.Intersect(_canvas.DeviceClipBounds);
+
+        if (subset.IsEmpty) return null;
+
+        // Snapshot(subset) on the GPU stays a texture and doesn't pull data into
+        // the CPU — that is exactly why a sub-area is taken rather than the whole frame
+        SKImage? snapshot = surface.Snapshot(subset);
+        if (snapshot is null) return null;
+
+        taken = inverse.MapRect(subset);
+        return snapshot;
+    }
+
     public override void BlurBackdrop(Rectangle bounds, float radius)
     {
         if (radius <= 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
 
-        // поверхность принадлежит вызывающей стороне: захватывать её
-        // в using нельзя, иначе следующий кадр упадёт
-        SKSurface? surface = _canvas.Surface;
-        if (surface is null) return;
-
         var rect = new SKRect(bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height);
 
-        // область в пикселях устройства: канвас может быть отмасштабирован под DPI
-        SKMatrix matrix = _canvas.TotalMatrix;
-        SKRect deviceRect = matrix.MapRect(rect);
-
-        var subset = SKRectI.Round(deviceRect);
-        subset.Intersect(new SKRectI(0, 0, surface.Canvas.DeviceClipBounds.Right, surface.Canvas.DeviceClipBounds.Bottom));
-
-        if (subset.IsEmpty) return;
-
-        // Snapshot(subset) на GPU остаётся текстурой и не тянет данные в CPU —
-        // именно поэтому берём подобласть, а не весь кадр
-        using SKImage? snapshot = surface.Snapshot(subset);
+        using SKImage? snapshot = SnapshotUnder(rect, out SKRect taken);
         if (snapshot is null) return;
 
         using var filter = SKImageFilter.CreateBlur(radius / 2f, radius / 2f, SKShaderTileMode.Clamp);
@@ -625,13 +641,13 @@ public sealed class SkiaGraphics : Graphics
         _canvas.Save();
         _canvas.ClipRect(rect);
 
-        // рисуем снимок обратно на его же место, но уже размытым
-        _canvas.DrawImage(snapshot, rect, SKSamplingOptions.Default, paint);
+        // the snapshot is drawn back on its own place, but blurred now
+        _canvas.DrawImage(snapshot, taken, SKSamplingOptions.Default, paint);
 
         _canvas.Restore();
     }
 
-    #region Захват слоя
+    #region Layer capture
 
     public override bool SupportsLayerCapture => true;
 
@@ -642,8 +658,8 @@ public sealed class SkiaGraphics : Graphics
 
         if (width <= 0 || height <= 0)
         {
-            // нечего захватывать, но кадр в стек положить обязаны:
-            // EndCapture должен найти пару своему Begin
+            // nothing to capture, but a frame must be pushed onto the stack:
+            // EndCapture must find a pair for its Begin
             _captures.Push(new CaptureFrame(null, _canvas, bounds));
             return;
         }
@@ -655,8 +671,8 @@ public sealed class SkiaGraphics : Graphics
 
         if (surface is null) return;
 
-        // элемент рисуется в своих обычных координатах, а поверхность
-        // начинается в нуле — сдвигаем её начало к левому верхнему углу области
+        // the element is drawn in its usual coordinates, while the surface starts
+        // at zero — move its origin to the area's top-left corner
         surface.Canvas.Translate(-bounds.X, -bounds.Y);
 
         _canvas = surface.Canvas;
@@ -666,7 +682,7 @@ public sealed class SkiaGraphics : Graphics
     {
         if (_captures.Count == 0)
         {
-            ZfContract.Fail("EndCapture без парного BeginCapture.");
+            ZfContract.Fail("EndCapture without a matching BeginCapture.");
             return null;
         }
 
@@ -692,7 +708,7 @@ public sealed class SkiaGraphics : Graphics
         if (capture is not SkiaLayerCapture skia) return;
         if (opacity <= 0f || target.Width <= 0 || target.Height <= 0) return;
 
-        // кисть с фильтром в пул не идёт: пул держит только простые заливки
+        // a brush with a filter doesn't go into the pool: the pool holds only plain fills
         using var paint = new SKPaint
         {
             Color = new SKColor(255, 255, 255, (byte)Math.Clamp(opacity * 255f, 0, 255)),
@@ -704,7 +720,7 @@ public sealed class SkiaGraphics : Graphics
 
         if (sourceClip is { } clip)
         {
-            // координаты среза — внутри захвата, поэтому от его угла
+            // the slice's coordinates are inside the capture, so from its corner
             var source = new SKRect(
                 clip.X - skia.Bounds.X,
                 clip.Y - skia.Bounds.Y,
@@ -727,8 +743,8 @@ public sealed class SkiaGraphics : Graphics
         filter?.Dispose();
     }
 
-    /// <summary>Матрица, гасящая ненужные каналы. Альфа не трогается,
-    /// иначе прозрачные места станут видимыми.</summary>
+    /// <summary>A matrix that suppresses the unneeded channels. Alpha is not touched,
+    /// otherwise transparent places would become visible.</summary>
     private static SKColorFilter? ChannelFilter(ColorChannels channels)
     {
         if (channels == ColorChannels.All) return null;
@@ -759,8 +775,8 @@ public sealed class SkiaGraphics : Graphics
 
     public override void Skew(float sx, float sy)
     {
-        // SKMatrix.CreateSkew задаёт наклон относительно начала координат;
-        // точку поворота выставляет вызывающий через Translate
+        // SKMatrix.CreateSkew sets the skew relative to the origin;
+        // the pivot point is set by the caller through Translate
         _canvas.Concat(SKMatrix.CreateSkew(sx, sy));
     }
 
@@ -768,7 +784,7 @@ public sealed class SkiaGraphics : Graphics
     {
         if (opacity <= 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
 
-        // шейдер общий и живёт до конца процесса — в using его брать нельзя
+        // the shader is shared and lives until the process ends — it must not be taken into a using
         SKShader shader = NoiseShader;
 
         byte alpha = (byte)Math.Clamp(opacity * 255f, 0, 255);
@@ -784,13 +800,13 @@ public sealed class SkiaGraphics : Graphics
             paint);
     }
 
-    // шум генерируется один раз: процедурная текстура одинакова для всех
-    // элементов, а пересоздавать её на каждый кадр слишком дорого.
+    // the noise is generated once: the procedural texture is the same for all
+    // elements, and recreating it every frame is too expensive.
     //
-    // Именно поле, а не свойство-выражение: со стрелкой каждое обращение
-    // создавало новый шейдер, то есть код делал ровно то, что запрещает
-    // строчка выше. Общий экземпляр безопасен и между потоками —
-    // шейдеры в Skia неизменяемы.
+    // Exactly a field, not an expression-bodied property: with the arrow, every
+    // access created a new shader, that is, the code did exactly what the line
+    // above forbids. A shared instance is safe across threads too —
+    // shaders in Skia are immutable.
     private static readonly SKShader NoiseShader =
         SKShader.CreatePerlinNoiseFractalNoise(0.8f, 0.8f, 2, 0f);
 
@@ -798,17 +814,9 @@ public sealed class SkiaGraphics : Graphics
     {
         if (heightRatio <= 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
 
-        SKSurface? surface = _canvas.Surface;
-        if (surface is null) return;
-
         var source = new SKRect(bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height);
 
-        SKRect deviceRect = _canvas.TotalMatrix.MapRect(source);
-        var subset = SKRectI.Round(deviceRect);
-
-        if (subset.IsEmpty) return;
-
-        using SKImage? snapshot = surface.Snapshot(subset);
+        using SKImage? snapshot = SnapshotUnder(source, out SKRect taken);
         if (snapshot is null) return;
 
         float reflectionHeight = bounds.Height * Math.Clamp(heightRatio, 0f, 1f);
@@ -816,11 +824,15 @@ public sealed class SkiaGraphics : Graphics
 
         var target = new SKRect(bounds.X, top, bounds.X + bounds.Width, top + reflectionHeight);
 
-        // градиент от полупрозрачного к нулю: отражение должно растворяться,
-        // а не обрываться по краю
+        // the fade goes from translucent to zero: the reflection must dissolve rather
+        // than break off at the edge. It is drawn inside the mirrored coordinates below,
+        // where target.Bottom lands right under the element and target.Top furthest
+        // from it — so the opaque end is at target.Bottom. It used to be at target.Top,
+        // and the reflection faded in the wrong direction: invisible right under the
+        // element and brightest away from it
         using SKShader fade = SKShader.CreateLinearGradient(
-            new SKPoint(target.Left, target.Top),
             new SKPoint(target.Left, target.Bottom),
+            new SKPoint(target.Left, target.Top),
             [
                 new SKColor(255, 255, 255, (byte)Math.Clamp(startOpacity * 255f, 0, 255)),
                 new SKColor(255, 255, 255, 0),
@@ -833,17 +845,23 @@ public sealed class SkiaGraphics : Graphics
         _canvas.Save();
         _canvas.ClipRect(target);
 
-        // отражаем по вертикали относительно верхней границы отражения
+        // mirror vertically relative to the reflection's top edge
         _canvas.Translate(0, target.Top);
         _canvas.Scale(1, -1);
         _canvas.Translate(0, -target.Top - reflectionHeight);
 
-        var flipped = new SKRect(
-            bounds.X, target.Top,
-            bounds.X + bounds.Width, target.Top + reflectionHeight);
+        // only the part of the element actually taken is reflected, at its own
+        // share of the reflection's height — a snapshot cut at the surface's edge
+        // must not be stretched over the whole reflection
+        float fromTop = (taken.Top - source.Top) / source.Height;
+        float toTop = (taken.Bottom - source.Top) / source.Height;
 
-        // слой нужен, чтобы затухание применилось к отражению,
-        // а не к тому, что уже нарисовано под ним
+        var flipped = new SKRect(
+            taken.Left, target.Top + fromTop * reflectionHeight,
+            taken.Right, target.Top + toTop * reflectionHeight);
+
+        // the layer is needed so that the fade applies to the reflection,
+        // not to what is already drawn under it
         _canvas.SaveLayer(null);
         _canvas.DrawImage(snapshot, flipped, SKSamplingOptions.Default);
         _canvas.DrawRect(flipped, paint);
@@ -858,7 +876,7 @@ public sealed class SkiaGraphics : Graphics
 
         var rect = new SKRect(bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height);
 
-        // направление задаём углом: 0 — слева направо, 90 — сверху вниз
+        // the direction is set by an angle: 0 — left to right, 90 — top to bottom
         float radians = angle * MathF.PI / 180f;
 
         float halfWidth = bounds.Width / 2f;

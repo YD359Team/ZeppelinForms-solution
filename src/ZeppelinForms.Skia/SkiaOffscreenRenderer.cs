@@ -8,8 +8,8 @@ using ZeppelinForms.Forms.Controls.Base;
 namespace ZeppelinForms.Skia;
 
 /// <summary>
-/// Отрисовка в память без окна и графической сессии. Пригодна и для
-/// снимковых тестов, и для экспорта содержимого в картинку.
+/// Drawing into memory without a window or a graphics session. Suitable both for
+/// snapshot tests and for exporting content into a picture.
 /// </summary>
 public sealed class SkiaOffscreenRenderer : IElementRenderer
 {
@@ -21,8 +21,8 @@ public sealed class SkiaOffscreenRenderer : IElementRenderer
         {
             var g = new SkiaGraphics(canvas);
 
-            // Draw сдвигает канвас на Position — для снимка нужен
-            // элемент в начале координат
+            // Draw moves the canvas by Position — a snapshot needs
+            // the element at the origin
             g.Save();
             g.Translate(-element.Position.X, -element.Position.Y);
             SkiaRenderer.DrawElement(element, g);
@@ -30,7 +30,7 @@ public sealed class SkiaOffscreenRenderer : IElementRenderer
         });
     }
 
-    /// <summary>Снимок всей формы вместе с оверлеями.</summary>
+    /// <summary>A snapshot of the whole form together with its overlays.</summary>
     public Image RenderForm(Form form, int width, int height, float scale = 1f) =>
         RenderCore(width, height, canvas => SkiaRenderer.Render(form, canvas, scale));
 
@@ -42,7 +42,7 @@ public sealed class SkiaOffscreenRenderer : IElementRenderer
         var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
 
         using SKSurface surface = SKSurface.Create(info)
-            ?? throw new InvalidOperationException("Не удалось создать offscreen-поверхность.");
+            ?? throw new InvalidOperationException("Could not create an offscreen surface.");
 
         surface.Canvas.Clear(SKColors.Transparent);
         draw(surface.Canvas);
@@ -57,7 +57,7 @@ public sealed class SkiaOffscreenRenderer : IElementRenderer
         return new Image(width, height, pixels);
     }
 
-    /// <summary>Сохранить в PNG — чтобы результат можно было открыть глазами.</summary>
+    /// <summary>Save as PNG — so that the result can be opened and looked at.</summary>
     public static void SavePng(Image image, string path)
     {
         var info = new SKImageInfo(image.Width, image.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
