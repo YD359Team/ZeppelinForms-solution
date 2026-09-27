@@ -1530,6 +1530,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
     private bool _hasBeenArranged;
 
+    /// <summary>The size of the previous arrange. OnSizeChanged compares with it rather
+    /// than with ActualSize: the Size setter writes ActualSize ahead of layout,
+    /// and a comparison with that would miss a real change.</summary>
+    private Size _arrangedSize;
+
     public void Arrange(Rectangle finalRect)
     {
         // Dock.Fill is an explicit demand to take everything, it overrides alignment
@@ -1585,11 +1590,15 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         _skipEnterTransition = false;
 
         // the first pass only records the size: derived classes that react
-        // to a change must not fire on the transition out of "not laid out"
-        if (_hasBeenArranged)
-            OnSizeChanged();
-        else
+        // to a change must not fire on the transition out of "not laid out".
+        // Later passes call it only on an actual change: Arrange runs on every
+        // layout pass, and most of them leave the size as it was
+        if (!_hasBeenArranged)
             _hasBeenArranged = true;
+        else if (_actualSize != _arrangedSize)
+            OnSizeChanged();
+
+        _arrangedSize = _actualSize;
     }
 
     public void Arrange(Point point, Size size) => Arrange(new Rectangle(point, size));
@@ -1673,7 +1682,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
     protected virtual void OnSizeChanged()
     {
-        // called when size changed. TODO: Dont call this before size assigned first time
+        // called when the arranged size actually changed; never on the first arrange
     }
 
     internal Form? FindOwner()

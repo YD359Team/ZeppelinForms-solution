@@ -95,6 +95,7 @@ public static class Themes
             .For<PropertyGrid>((panel, c) =>
             {
                 panel.Background = c.Surface;
+                panel.AlternateRowColor = c.SurfaceHover;
                 panel.BorderColor = c.Border;
                 panel.BorderWidth = 2f;
             })
@@ -338,6 +339,10 @@ public static class Themes
                 split.SplitterColor = c.Border;
                 split.SplitterHoverColor = c.SurfaceHover;
             })
+
+            // the default separator is translucent white, made for an accent
+            // button; on the theme's neutral button it disappeared
+            .For<SplitButton>((button, c) => button.SeparatorColor = c.Border)
 
             .For<GridSplitter>((splitter, c) =>
             {

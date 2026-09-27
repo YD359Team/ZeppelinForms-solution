@@ -7,8 +7,8 @@ using ZeppelinForms.Forms.Styling;
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Индикатор незавершённой операции. Длительность неизвестна —
-/// для известной есть ProgressBar.
+/// An indicator of an unfinished operation. The duration is unknown —
+/// for a known one there is ProgressBar.
 /// </summary>
 public partial class Loader : DecoratedControl
 {
@@ -16,29 +16,87 @@ public partial class Loader : DecoratedControl
 
     private float _phase;
 
-    public LoaderStyle Style { get; set; } = LoaderStyle.Ring;
+    public LoaderStyle Style
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // every style has its own desired size
+            Invalidate();
+        }
+    } = LoaderStyle.Ring;
 
     [Styled(Category = "Appearance")]
     public partial Color Color { get; set; }
     private static Color ColorDefault => new(255, 0x0D, 0x6E, 0xFD);
 
+    /// <summary>The color of the track under the indicator. Transparent — don't draw it.</summary>
     [Styled(Category = "Appearance")]
-    /// <summary>Цвет дорожки под индикатором. Прозрачный — не рисовать.</summary>
     public partial Color TrackColor { get; set; }
     private static Color TrackColorDefault => Colors.Transparent;
 
-    /// <summary>Толщина линии. Не Thickness: так называется тип отступов,
-    /// и внутри класса имя перекрыло бы его.</summary>
-    public float StrokeWidth { get; set; } = 3f;
+    /// <summary>Line thickness. Not Thickness: that is the name of the padding type,
+    /// and inside the class the name would hide it.</summary>
+    public float StrokeWidth
+    {
+        get;
+        set
+        {
+            if (field == value) return;
 
-    /// <summary>Желаемый размер индикатора без учёта Padding.</summary>
-    public float IndicatorSize { get; set; } = 32f;
+            field = value;
 
-    /// <summary>Длительность одного оборота.</summary>
-    public TimeSpan Period { get; set; } = TimeSpan.FromMilliseconds(1200);
+            // the Bar style takes its height from the stroke
+            Invalidate();
+        }
+    } = 3f;
 
-    /// <summary>Количество лучей у Spinner и точек у Dots.</summary>
-    public int ElementCount { get; set; } = 8;
+    /// <summary>The desired indicator size, not counting Padding.</summary>
+    public float IndicatorSize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = 32f;
+
+    /// <summary>The duration of one revolution.</summary>
+    public TimeSpan Period
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // a running loop keeps the period it was started with — restart it
+            if (IsRunning && IsVisible) Start();
+        }
+    } = TimeSpan.FromMilliseconds(1200);
+
+    /// <summary>The number of rays in Spinner and dots in Dots.</summary>
+    public int ElementCount
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the Dots style takes its width from the count
+            Invalidate();
+        }
+    } = 8;
 
     public bool IsRunning
     {
@@ -59,8 +117,8 @@ public partial class Loader : DecoratedControl
         if (IsRunning && IsVisible) Start();
     }
 
-    // снимать анимацию в OnDetached не нужно: DetachTree выкидывает
-    // всё, чей Target в убираемом поддереве
+    // removing the animation in OnDetached is not needed: DetachTree throws out
+    // everything whose Target is in the subtree being removed
 
     private void Start()
     {
@@ -75,7 +133,7 @@ public partial class Loader : DecoratedControl
         InvalidateVisual();
     }
 
-    // фон, рамку и скругление рисует база
+    // the background, border and corner radius are drawn by the base
     protected override void DrawContent(Graphics g)
     {
         Rectangle content = ContentBounds;
@@ -105,8 +163,8 @@ public partial class Loader : DecoratedControl
         if (TrackColor.A > 0)
             g.DrawEllipse(circle, TrackColor, StrokeWidth);
 
-        // длина дуги пульсирует от 30° до 270°, а её начало проходит
-        // два оборота за период — вместе это даёт «догоняющий хвост»
+        // the arc length pulses from 30° to 270°, and its start makes two
+        // revolutions per period — together that gives a "catching-up tail"
         float grow = (1f - MathF.Cos(_phase * MathF.Tau)) / 2f;
         float sweep = 30f + 240f * grow;
         float start = _phase * 720f - 90f;
@@ -127,8 +185,8 @@ public partial class Loader : DecoratedControl
 
         float inner = radius * 0.5f;
 
-        // ведущий луч дискретен: непрерывное вращение здесь читается
-        // хуже, чем щелчки, — так же ведёт себя системный индикатор
+        // the leading ray is discrete: continuous rotation reads worse here
+        // than clicks — the system indicator behaves the same way
         int head = (int)(_phase * count) % count;
 
         for (int i = 0; i < count; i++)
@@ -160,11 +218,11 @@ public partial class Loader : DecoratedControl
 
         for (int i = 0; i < count; i++)
         {
-            // каждая точка отстаёт от предыдущей на долю периода
+            // each dot lags behind the previous one by a fraction of the period
             float phase = _phase - i / (float)count;
             if (phase < 0f) phase += 1f;
 
-            // всплеск в первой половине своего отрезка, покой во второй
+            // a burst in the first half of its segment, rest in the second
             float pulse = phase < 0.5f ? MathF.Sin(phase * MathF.Tau) : 0f;
 
             float radius = maxRadius * (0.45f + 0.55f * pulse);
@@ -192,7 +250,7 @@ public partial class Loader : DecoratedControl
 
         float segment = Math.Max(height, content.Width * 0.3f);
 
-        // отрезок заходит и уходит за края, поэтому дорожку подрезаем
+        // the segment enters and leaves beyond the edges, so the track clips it
         float x = track.X - segment + _phase * (track.Width + segment);
 
         g.Save();
@@ -209,10 +267,10 @@ public partial class Loader : DecoratedControl
     {
         Size content = Style switch
         {
-            // ряд точек шире, чем высок
+            // a row of dots is wider than it is tall
             LoaderStyle.Dots => new Size(IndicatorSize * Math.Max(2, ElementCount) / 2f, IndicatorSize / 2f),
 
-            // полоса тянется по ширине, своей у неё нет
+            // the bar stretches along the width, it has none of its own
             LoaderStyle.Bar => new Size(float.IsFinite(availableSize.Width) ? availableSize.Width : IndicatorSize * 4f,
                                         StrokeWidth * 2f),
 
@@ -226,10 +284,12 @@ public partial class Loader : DecoratedControl
 
     protected override void OnStyledPropertyChanged(StyledProperty property)
     {
+        base.OnStyledPropertyChanged(property);
+
         if (property != IsVisibleProperty) return;
 
-        // скрытый индикатор не должен держать тикер окна: его анимация
-        // бесконечна, и сама она никогда не завершится
+        // a hidden indicator must not hold the window's ticker: its animation
+        // is endless, and it will never finish by itself
         if (IsVisible && IsRunning) Start();
         else this.StopAnimation(AnimationKey);
     }
@@ -237,15 +297,15 @@ public partial class Loader : DecoratedControl
 
 public enum LoaderStyle
 {
-    /// <summary>Дуга переменной длины, вращается. Material, Windows 11.</summary>
+    /// <summary>An arc of variable length, rotating. Material, Windows 11.</summary>
     Ring,
 
-    /// <summary>Лучи по кругу с затухающей прозрачностью. iOS, macOS.</summary>
+    /// <summary>Rays around a circle with fading opacity. iOS, macOS.</summary>
     Spinner,
 
-    /// <summary>Ряд пульсирующих точек.</summary>
+    /// <summary>A row of pulsing dots.</summary>
     Dots,
 
-    /// <summary>Отрезок, бегущий по дорожке. Неопределённый прогресс.</summary>
+    /// <summary>A segment running along a track. Indeterminate progress.</summary>
     Bar,
 }

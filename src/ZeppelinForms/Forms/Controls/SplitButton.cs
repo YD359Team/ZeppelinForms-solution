@@ -19,33 +19,46 @@ public partial class SplitButton : ButtonBase
     private bool _arrowHovered;
     private MenuItem? _lastInvoked;
 
-    public string? Text { get; set; }
+    public string? Text
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the button's width is computed from its caption
+            Invalidate();
+        }
+    }
+
     public List<MenuItem> Items { get; init; } = [];
 
-    /// <summary>Нажатие на основную часть повторяет последний выбранный пункт.</summary>
+    /// <summary>Pressing the main part repeats the last chosen item.</summary>
     public bool RepeatLastAction { get; set; } = true;
 
     [Styled(Category = "Button")]
     public partial Color SeparatorColor { get; set; }
     private static Color SeparatorColorDefault => new(120, 255, 255, 255);
 
-    /// <summary>Заменять подпись на выбранный пункт. Выключено —
-    /// кнопка всегда показывает Text, как обычная кнопка с меню.</summary>
+    /// <summary>Replace the caption with the chosen item. Off — the button
+    /// always shows Text, like a regular button with a menu.</summary>
     [Styled(Category = "Button", AffectsLayout = true)]
     public partial bool ShowSelectedItem { get; set; }
 
     private static bool ShowSelectedItemDefault => true;
 
-    /// <summary>Держать ширину по самому длинному пункту меню, а не по
-    /// текущей подписи. Иначе кнопка прыгает при каждом выборе — это
-    /// главная неприятность подхода с заменой текста.</summary>
+    /// <summary>Keep the width by the longest menu item rather than by the
+    /// current caption. Otherwise the button jumps on every choice — that is
+    /// the main nuisance of the text-replacement approach.</summary>
     [Styled(Category = "Button", AffectsLayout = true)]
     public partial bool StableWidth { get; set; }
 
     private static bool StableWidthDefault => true;
 
-    /// <summary>Последний выбранный пункт. Его же повторяет
-    /// <see cref="RepeatLastAction"/>, и его подпись видна на кнопке.</summary>
+    /// <summary>The last chosen item. <see cref="RepeatLastAction"/> repeats it,
+    /// and its caption is visible on the button.</summary>
     public MenuItem? SelectedItem
     {
         get => _lastInvoked;
@@ -62,7 +75,7 @@ public partial class SplitButton : ButtonBase
 
     public event EventHandler? SelectionChanged;
 
-    /// <summary>Что реально написано на кнопке.</summary>
+    /// <summary>What is actually written on the button.</summary>
     private string? DisplayText =>
         ShowSelectedItem && _lastInvoked?.Text is { Length: > 0 } header ? header : Text;
 
@@ -76,8 +89,8 @@ public partial class SplitButton : ButtonBase
         SetControlDefault(TextColorProperty, Colors.White);
         SetControlDefault(BorderColorProperty, new Color(255, 0x0D, 0x6E, 0xFD));
 
-        // волна на составной кнопке сбивает с толку: непонятно,
-        // сработала основная часть или стрелка
+        // a ripple on a compound button is confusing:
+        // it is unclear whether the main part or the arrow fired
         SetControlDefault(RippleEnabledProperty, false);
 
         _flyout = new FlyoutHost(this);
@@ -88,8 +101,8 @@ public partial class SplitButton : ButtonBase
         new Point(ActualSize.Width - ArrowZoneWidth, 0),
         new Size(ArrowZoneWidth, ActualSize.Height));
 
-    /// <summary>Наведение на стрелку не должно подсвечивать всю кнопку —
-    /// подложка остаётся обычной, а зона стрелки красится отдельно.</summary>
+    /// <summary>Hovering the arrow must not highlight the whole button —
+    /// the backdrop stays normal, and the arrow zone is painted separately.</summary>
     protected override Color CurrentBackground =>
         _arrowHovered && IsEnabled ? BackgroundColor : base.CurrentBackground;
 
@@ -98,7 +111,7 @@ public partial class SplitButton : ButtonBase
         if (_arrowHovered || _flyout.IsOpen)
             g.FillRectangle(ArrowZone, HoverBackgroundColor);
 
-        // разделитель между основной частью и стрелкой
+        // the separator between the main part and the arrow
         float separatorX = ActualSize.Width - ArrowZoneWidth;
 
         g.DrawLine(
@@ -148,8 +161,9 @@ public partial class SplitButton : ButtonBase
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
     {
-        // волна отключена, но базовый обработчик всё равно вызываем:
-        // он отвечает и за состояние нажатия
+        // the pressed state is set by UIElement.RaiseMouseDown before this hook;
+        // the base only starts the ripple, which is off by default for this button
+        // but can be turned on — so the base is still called
         base.OnMouseDown(e);
     }
 
@@ -228,8 +242,8 @@ public partial class SplitButton : ButtonBase
         ? Size.Empty
         : TextMeasurer.Current.MeasureText(text, EffectiveFont);
 
-    /// <summary>Самая широкая из возможных подписей: начальная и все пункты
-    /// меню. Так ширина кнопки не меняется при выборе.</summary>
+    /// <summary>The widest of the possible captions: the initial one and all
+    /// menu items. That way the button's width doesn't change on a choice.</summary>
     private Size WidestCaption()
     {
         Size widest = Measure(Text);

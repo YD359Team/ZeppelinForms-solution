@@ -4,11 +4,12 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
+using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Две области с перетаскиваемым разделителем между ними.
+/// Two areas with a draggable splitter between them.
 /// </summary>
 public partial class SplitContainer : DecoratedPanel
 {
@@ -19,20 +20,94 @@ public partial class SplitContainer : DecoratedPanel
     private float _dragOffset;
     private bool _splitterHovered;
 
-    public Orientation Orientation { get; set; } = Orientation.Horizontal;
+    // the splitter as it was before the press: a cancelled drag returns to it
+    private float _positionBeforeDrag;
+    private float _ratioBeforeDrag;
 
-    public float SplitterThickness { get; set; } = 6f;
+    // backing fields rather than auto-properties: layout adapts them
+    // directly, without the Invalidate the public setters call
+    private float _splitterPosition = -1f;
+    private float _splitterRatio = 0.5f;
 
-    /// <summary>Положение разделителя от начала. Отрицательное — вычислить по SplitterRatio.</summary>
-    public float SplitterPosition { get; set; } = -1f;
+    /// <summary>The extent the stored position and ratio describe. -1 — nothing
+    /// has been laid out yet.</summary>
+    private float _adaptedExtent = -1f;
 
-    /// <summary>Доля первой области, если позиция не задана явно.</summary>
-    public float SplitterRatio { get; set; } = 0.5f;
+    public Orientation Orientation
+    {
+        get;
+        set
+        {
+            if (field == value) return;
 
-    public float FirstMinSize { get; set; } = 40f;
-    public float SecondMinSize { get; set; } = 40f;
+            field = value;
+            Invalidate();
+        }
+    } = Orientation.Horizontal;
 
-    /// <summary>Панель, которая сохраняет размер при изменении контейнера.</summary>
+    public float SplitterThickness
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = 6f;
+
+    /// <summary>The splitter's position from the start. Negative — compute from SplitterRatio.</summary>
+    public float SplitterPosition
+    {
+        get => _splitterPosition;
+        set
+        {
+            if (_splitterPosition == value) return;
+
+            _splitterPosition = value;
+            Invalidate();
+        }
+    }
+
+    /// <summary>The share of the first area, if the position is not set explicitly.</summary>
+    public float SplitterRatio
+    {
+        get => _splitterRatio;
+        set
+        {
+            if (_splitterRatio == value) return;
+
+            _splitterRatio = value;
+            Invalidate();
+        }
+    }
+
+    public float FirstMinSize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = 40f;
+
+    public float SecondMinSize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = 40f;
+
+    /// <summary>The panel that keeps its size when the container changes.</summary>
     public SplitterFixedPanel FixedPanel { get; set; } = SplitterFixedPanel.None;
 
     [Styled(Category = "Splitter")]
@@ -68,7 +143,7 @@ public partial class SplitContainer : DecoratedPanel
 
         if (value is null) return;
 
-        // порядок в Children определяет слот: 0 — первая область, 1 — вторая
+        // the order in Children defines the slot: 0 — the first area, 1 — the second
         int index = slot == 0 ? 0 : Children.Count;
         Children.Insert(Math.Min(index, Children.Count), value);
     }
@@ -77,18 +152,18 @@ public partial class SplitContainer : DecoratedPanel
 
     private float TotalExtent => IsHorizontal ? ContentBounds.Width : ContentBounds.Height;
 
-    private float ResolvedPosition
+    /// <summary>The splitter position for the given extent, within the minimum sizes
+    /// of both areas. One place for measuring, arranging and hit testing.</summary>
+    private float ClampPosition(float total)
     {
-        get
-        {
-            float total = TotalExtent;
-            float position = SplitterPosition >= 0 ? SplitterPosition : total * SplitterRatio;
+        float position = _splitterPosition >= 0 ? _splitterPosition : total * _splitterRatio;
 
-            float max = Math.Max(FirstMinSize, total - SecondMinSize - SplitterThickness);
+        float max = Math.Max(FirstMinSize, total - SecondMinSize - SplitterThickness);
 
-            return Math.Clamp(position, FirstMinSize, max);
-        }
+        return Math.Clamp(position, FirstMinSize, max);
     }
+
+    private float ResolvedPosition => ClampPosition(TotalExtent);
 
     private Rectangle SplitterRect
     {
@@ -103,17 +178,17 @@ public partial class SplitContainer : DecoratedPanel
         }
     }
 
-    // фон, рамку и скругление рисует база — здесь только сам разделитель
+    // the background, border and corner radius are drawn by the base — only the splitter itself here
     protected override void DrawContent(Graphics g)
     {
         g.FillRectangle(SplitterRect, _splitterHovered || _dragging ? SplitterHoverColor : SplitterColor);
     }
 
-    // ===== ввод =====
+    // ===== input =====
 
     protected internal override bool HitTestSelfFirst(Point localPoint)
     {
-        // разделитель принадлежит контейнеру, а не областям под ним
+        // the splitter belongs to the container, not to the areas under it
         Rectangle rect = SplitterRect;
 
         return localPoint.X >= rect.X && localPoint.X <= rect.X + rect.Width
@@ -130,9 +205,9 @@ public partial class SplitContainer : DecoratedPanel
                 ? args.Location.X - abs.X - ContentBounds.X - _dragOffset
                 : args.Location.Y - abs.Y - ContentBounds.Y - _dragOffset;
 
+            // the setter requests the layout pass
             SplitterPosition = position;
             SplitterMoved?.Invoke(this, EventArgs.Empty);
-            Invalidate();
             return;
         }
 
@@ -151,6 +226,9 @@ public partial class SplitContainer : DecoratedPanel
 
     protected override void OnMouseDown(MouseButtonEventArgs args)
     {
+        // only the left button drags: the right one belongs to the context menu
+        if (args.Button != MouseButton.Left) return;
+
         Point abs = GetAbsolutePosition();
         var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
 
@@ -158,25 +236,96 @@ public partial class SplitContainer : DecoratedPanel
 
         _dragging = true;
 
-        // запоминаем, за какую точку разделителя схватились,
-        // иначе он прыгнет под курсор при первом же движении
+        _positionBeforeDrag = _splitterPosition;
+        _ratioBeforeDrag = _splitterRatio;
+
+        // remember which point of the splitter was grabbed,
+        // otherwise it jumps under the cursor on the first move
         _dragOffset = IsHorizontal
             ? local.X - SplitterRect.X
             : local.Y - SplitterRect.Y;
+
+        // without capture the drag breaks off as soon as the cursor leaves the window
+        CaptureMouse();
     }
 
     protected override void OnMouseUp(MouseButtonEventArgs args)
     {
+        if (!_dragging) return;
+
         _dragging = false;
+
+        ReleaseMouseCapture();
+        InvalidateVisual();
+    }
+
+    /// <summary>The interaction was cut off: nothing was committed, so the splitter
+    /// goes back to where it was before the press.</summary>
+    protected override void OnPointerCanceled(PointerCancelEventArgs e)
+    {
+        if (!_dragging) return;
+
+        _dragging = false;
+
+        SplitterPosition = _positionBeforeDrag;
+        SplitterRatio = _ratioBeforeDrag;
+
+        SplitterMoved?.Invoke(this, EventArgs.Empty);
     }
 
     protected override void OnMouseExit(MouseMoveEventArgs e)
     {
+        if (!_splitterHovered) return;
+
         _splitterHovered = false;
         Cursor = CursorKind.Default;
+
+        // without a redraw the splitter stayed highlighted after the mouse left
+        InvalidateVisual();
     }
 
-    // ===== раскладка =====
+    // ===== layout =====
+
+    /// <summary>Bring the stored position to a new extent of the container.</summary>
+    /// <remarks>
+    /// When the container changes, the fixed panel keeps its size and the other one
+    /// takes the difference; without a fixed panel the proportion is kept.
+    ///
+    /// This used to live in OnSizeChanged and relied on it being called on every
+    /// layout pass. Besides, FixedPanel.Second never worked: the second area's size
+    /// it was supposed to keep was never recorded, and the area shrank to its
+    /// minimum on every resize. FixedPanel.First kept the size only after the first
+    /// drag. Here the position is recomputed from the extent it was set for,
+    /// in every mode, and without any Invalidate — this runs inside layout.
+    /// </remarks>
+    private void AdaptToExtent(float extent)
+    {
+        if (!float.IsFinite(extent)) return;
+
+        float previous = _adaptedExtent;
+        _adaptedExtent = extent;
+
+        if (previous <= 0 || previous == extent) return;
+
+        float position = _splitterPosition >= 0 ? _splitterPosition : previous * _splitterRatio;
+
+        switch (FixedPanel)
+        {
+            case SplitterFixedPanel.First:
+                _splitterPosition = position;
+                break;
+
+            case SplitterFixedPanel.Second:
+                // the second area's extent plus the splitter stays the same
+                _splitterPosition = extent - (previous - position);
+                break;
+
+            default:
+                _splitterRatio = position / previous;
+                _splitterPosition = -1f;
+                break;
+        }
+    }
 
     protected override Size MeasureContentOverride(Size availableSize)
     {
@@ -184,13 +333,42 @@ public partial class SplitContainer : DecoratedPanel
             Math.Max(0, availableSize.Width - Padding.Horizontal),
             Math.Max(0, availableSize.Height - Padding.Vertical));
 
-        float position = SplitterPosition >= 0 ? SplitterPosition : GetExtent(inner) * SplitterRatio;
-        float rest = Math.Max(0, GetExtent(inner) - position - SplitterThickness);
+        float extent = GetExtent(inner);
 
-        _first?.Measure(WithExtent(inner, position));
-        _second?.Measure(WithExtent(inner, rest));
+        AdaptToExtent(extent);
 
-        return inner;
+        if (float.IsFinite(extent))
+        {
+            float position = ClampPosition(extent);
+            float rest = Math.Max(0, extent - position - SplitterThickness);
+
+            _first?.Measure(WithExtent(inner, position));
+            _second?.Measure(WithExtent(inner, rest));
+        }
+        else
+        {
+            // along an unbounded axis there is nothing to split: each area
+            // gets as much as it asks for. Previously the position came out
+            // infinite here, and the second area was measured with NaN
+            _first?.Measure(inner);
+            _second?.Measure(inner);
+        }
+
+        Size first = _first?.DesiredSize ?? Size.Empty;
+        Size second = _second?.DesiredSize ?? Size.Empty;
+
+        Size content = IsHorizontal
+            ? new Size(first.Width + SplitterThickness + second.Width, Math.Max(first.Height, second.Height))
+            : new Size(Math.Max(first.Width, second.Width), first.Height + SplitterThickness + second.Height);
+
+        // a split container fills what it is given; only along an unbounded axis
+        // does it fall back to what its areas need. Padding is part of the size:
+        // it used to be left out, and the container asked for less than it took
+        return ResolveSize(
+            new Size(
+                (float.IsFinite(inner.Width) ? inner.Width : content.Width) + Padding.Horizontal,
+                (float.IsFinite(inner.Height) ? inner.Height : content.Height) + Padding.Vertical),
+            availableSize);
     }
 
     protected override void ArrangeContentOverride(Size contentSize)
@@ -202,11 +380,12 @@ public partial class SplitContainer : DecoratedPanel
                 Math.Max(0, contentSize.Height - Padding.Vertical)));
 
         float total = GetExtent(area.Size);
-        float position = SplitterPosition >= 0 ? SplitterPosition : total * SplitterRatio;
 
-        float max = Math.Max(FirstMinSize, total - SecondMinSize - SplitterThickness);
-        position = Math.Clamp(position, FirstMinSize, max);
+        // usually already done in measuring; here for an arrange
+        // that came with a size measuring didn't see
+        AdaptToExtent(total);
 
+        float position = ClampPosition(total);
         float rest = Math.Max(0, total - position - SplitterThickness);
 
         if (IsHorizontal)
@@ -226,25 +405,6 @@ public partial class SplitContainer : DecoratedPanel
                 new Size(area.Width, rest)));
         }
     }
-
-    protected override void OnSizeChanged()
-    {
-        // при изменении контейнера фиксированная панель сохраняет размер,
-        // а вторая забирает разницу
-        if (FixedPanel == SplitterFixedPanel.Second && SplitterPosition >= 0)
-        {
-            float total = TotalExtent;
-            SplitterPosition = Math.Max(FirstMinSize, total - SecondFixedExtent - SplitterThickness);
-        }
-        else if (FixedPanel == SplitterFixedPanel.None && SplitterPosition >= 0)
-        {
-            // пропорциональный режим: пересчитываем долю
-            SplitterRatio = TotalExtent > 0 ? SplitterPosition / TotalExtent : 0.5f;
-            SplitterPosition = -1f;
-        }
-    }
-
-    private float SecondFixedExtent { get; set; }
 
     private float GetExtent(Size size) => IsHorizontal ? size.Width : size.Height;
 

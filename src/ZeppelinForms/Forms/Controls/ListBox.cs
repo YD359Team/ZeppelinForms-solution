@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -11,8 +12,8 @@ namespace ZeppelinForms.Forms.Controls;
 
 public partial class ListBox : ItemsControl, IInputElement
 {
-    // множество вместо одного индекса: _selectedIndex остаётся ведущим,
-    // именно он двигается стрелками и от него считается диапазон
+    // a set instead of a single index: _selectedIndex stays the lead,
+    // it is moved by the arrows and the range is counted from it
     private readonly SortedSet<int> _selected = [];
 
     private int _selectedIndex = -1;
@@ -21,8 +22,8 @@ public partial class ListBox : ItemsControl, IInputElement
     [Styled(Category = "Selection")]
     public partial SelectionMode SelectionMode { get; set; }
 
-    /// <summary>Ведущая строка. При множественном выделении — та,
-    /// которую выбрали последней.</summary>
+    /// <summary>The lead row. With multiple selection — the one
+    /// selected last.</summary>
     public int SelectedIndex
     {
         get => _selectedIndex;
@@ -32,7 +33,7 @@ public partial class ListBox : ItemsControl, IInputElement
     public object? SelectedItem =>
         _selectedIndex >= 0 && _selectedIndex < Items.Count ? Items[_selectedIndex] : null;
 
-    /// <summary>Все выделенные индексы по возрастанию.</summary>
+    /// <summary>All selected indices in ascending order.</summary>
     public IReadOnlyCollection<int> SelectedIndices => _selected;
 
     public IReadOnlyList<object> SelectedItems =>
@@ -99,7 +100,7 @@ public partial class ListBox : ItemsControl, IInputElement
         RaiseSelectionChanged();
     }
 
-    /// <summary>Диапазон от опорной строки до указанной, остальные снимаются.</summary>
+    /// <summary>A range from the anchor row to the given one, the rest are deselected.</summary>
     private void SelectRange(int to)
     {
         if (_anchor < 0) { SelectOnly(to); return; }
@@ -123,6 +124,77 @@ public partial class ListBox : ItemsControl, IInputElement
         InvalidateVisual();
     }
 
+    /// <summary>Move the selection along with the items. The selection is stored
+    /// by index, and previously the indices stayed in place: after removing
+    /// a row above the selected one, its neighbour became selected, and
+    /// SelectedItem returned someone else's object.</summary>
+    /// <remarks>
+    /// Subscribed after ItemsControl's handler, so the containers are already
+    /// updated by the time SelectionChanged goes out.
+    /// </remarks>
+    private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_selected.Count == 0 && _selectedIndex < 0 && _anchor < 0) return;
+
+        Func<int, int> map = e.Action switch
+        {
+            NotifyCollectionChangedAction.Add =>
+                i => i >= e.NewStartingIndex ? i + (e.NewItems?.Count ?? 0) : i,
+
+            NotifyCollectionChangedAction.Remove =>
+                i => MapRemoved(i, e.OldStartingIndex, e.OldItems?.Count ?? 0),
+
+            // a replaced item is a different item: its selection does not carry over
+            NotifyCollectionChangedAction.Replace =>
+                i => i >= e.OldStartingIndex && i < e.OldStartingIndex + (e.OldItems?.Count ?? 0) ? -1 : i,
+
+            NotifyCollectionChangedAction.Move =>
+                i => MapMoved(i, e.OldStartingIndex, e.NewStartingIndex),
+
+            // Reset does not say what stayed — nothing can be matched
+            _ => static _ => -1,
+        };
+
+        int[] before = [.. _selected];
+        int leadBefore = _selectedIndex;
+
+        _selected.Clear();
+
+        foreach (int index in before)
+            if (map(index) is int mapped and >= 0)
+                _selected.Add(mapped);
+
+        _selectedIndex = _selectedIndex >= 0 ? map(_selectedIndex) : -1;
+
+        // the lead row itself is gone: the last selected one takes its place,
+        // as SetSelected does when the lead is deselected
+        if (_selectedIndex < 0 && _selected.Count > 0)
+            _selectedIndex = _selected.Max;
+
+        _anchor = _anchor >= 0 ? map(_anchor) : -1;
+
+        // a shift alone changes SelectedIndex too, and whoever shows it must know
+        bool changed = _selectedIndex != leadBefore || !before.SequenceEqual(_selected);
+
+        if (changed) RaiseSelectionChanged();
+        else InvalidateVisual();
+    }
+
+    private static int MapRemoved(int index, int start, int count) =>
+        index < start ? index
+        : index < start + count ? -1
+        : index - count;
+
+    // exactly what ObservableCollection.Move does: remove at from, insert at to
+    private static int MapMoved(int index, int from, int to)
+    {
+        if (index == from) return to;
+
+        int shifted = index > from ? index - 1 : index;
+
+        return shifted >= to ? shifted + 1 : shifted;
+    }
+
     [Styled(Category = "Selection")]
     public partial Color SelectionColor { get; set; }
     private static Color SelectionColorDefault => new(255, 0x0D, 0x6E, 0xFD);
@@ -138,12 +210,14 @@ public partial class ListBox : ItemsControl, IInputElement
     public ListBox()
     {
         SetControlDefault(BackgroundProperty, Colors.White);
+
+        Items.CollectionChanged += OnItemsChanged;
     }
 
     protected override void DrawContent(Graphics g)
     {
-        // подсветка рисуется до потомков: рендерер вызывает Draw,
-        // затем обходит Children
+        // the highlight is drawn before the children: the renderer calls Draw,
+        // then walks Children
         foreach (int index in _selected)
         {
             if (index >= Children.Count) continue;
@@ -158,10 +232,14 @@ public partial class ListBox : ItemsControl, IInputElement
         }
     }
 
-    /// <summary>Выбор по нажатию, а не по клику: содержимое строки может
-    /// погасить клик, а выделение всё равно должно смениться.</summary>
+    /// <summary>Selection on press, not on click: the row's content may swallow
+    /// the click, and the selection must change anyway.</summary>
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
+        // the hit lands on a row, which is itself enabled, so the form's check
+        // for a disabled hit doesn't stop a disabled list from selecting
+        if (!IsEnabled) return;
+
         int index = IndexAt(e.Location);
         if (index < 0) return;
 
@@ -201,7 +279,7 @@ public partial class ListBox : ItemsControl, IInputElement
         return -1;
     }
 
-    /// <summary>В фокусе рамку подсвечиваем — база нарисует её сама.</summary>
+    /// <summary>When focused the border is highlighted — the base draws it itself.</summary>
     protected override Color CurrentBorderColor =>
         IsFocused && FocusBorderColor.A > 0 ? FocusBorderColor : BorderColor;
 
@@ -218,8 +296,8 @@ public partial class ListBox : ItemsControl, IInputElement
 
         if (target >= 0)
         {
-            // Shift со стрелками тянет диапазон от опорной строки,
-            // как в любом файловом менеджере
+            // Shift with the arrows extends the range from the anchor row,
+            // as in any file manager
             if (SelectionMode == SelectionMode.Extended && e.Modifiers.HasFlag(KeyModifiers.Shift))
                 SelectRange(target);
             else

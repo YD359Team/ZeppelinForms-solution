@@ -4,10 +4,11 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Controls.Tools;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class PropertyGrid : DecoratedPanel
+public partial class PropertyGrid : DecoratedPanel
 {
     private const float RowHeight = 26f;
     private const float LabelRatio = 0.45f;
@@ -28,7 +29,13 @@ public class PropertyGrid : DecoratedPanel
     }
 
     public Color RowTextColor { get; set; } = Colors.Black;
-    public Color AlternateRowColor { get; set; } = new Color(255, 248, 248, 248);
+
+    /// <summary>The stripe under every other row. A styled property, so the theme
+    /// sets it: the fixed light gray stayed light in the dark theme, under
+    /// the theme's light text.</summary>
+    [Styled(Category = "Appearance")]
+    public partial Color AlternateRowColor { get; set; }
+    private static Color AlternateRowColorDefault => new(255, 248, 248, 248);
 
     public PropertyGrid()
     {
@@ -41,8 +48,8 @@ public class PropertyGrid : DecoratedPanel
         while (Children.Count > 0)
             Children.RemoveAt(Children.Count - 1);
 
-        // пустой грид не показываем: невидимый элемент выпадает
-        // и из отрисовки, и из хит-теста, так что клики пройдут насквозь
+        // an empty grid is not shown: an invisible element drops out
+        // of both drawing and hit testing, so clicks pass through
         IsVisible = _target is not null;
 
         if (_target is null)
@@ -71,8 +78,8 @@ public class PropertyGrid : DecoratedPanel
     {
         object? current = property.GetValue(_target!);
 
-        // редактор выбирается по типу свойства; неизвестные типы
-        // показываем как read-only текст, чтобы грид не падал
+        // the editor is chosen by the property type; unknown types are shown
+        // as read-only text, so that the grid doesn't crash
         if (property.IsReadOnly)
             return ReadOnlyLabel(current);
 
@@ -92,8 +99,8 @@ public class PropertyGrid : DecoratedPanel
 
         if (property.Type == typeof(float) || property.Type == typeof(int))
         {
-            // Size.Auto — это NaN, а decimal не знает ни NaN, ни бесконечностей.
-            // Показываем такие значения как 0, иначе Convert.ToDecimal падает.
+            // Size.Auto is NaN, and decimal knows neither NaN nor infinities.
+            // Such values are shown as 0, otherwise Convert.ToDecimal throws.
             decimal initial = 0m;
 
             if (current is float f)
@@ -158,8 +165,8 @@ public class PropertyGrid : DecoratedPanel
 
     private void Apply(PropertyDescriptor property, object? value)
     {
-        // защита от петли: правка свойства перестраивает целевой контрол,
-        // тот дёргает Invalidate, а мы не должны на это пересобирать грид
+        // loop protection: editing a property rebuilds the target control,
+        // it calls Invalidate, and we must not rebuild the grid because of that
         if (_isUpdating || _target is null) return;
 
         _isUpdating = true;
@@ -177,10 +184,10 @@ public class PropertyGrid : DecoratedPanel
         }
     }
 
-    // фон, рамку и скругление рисует база — здесь только подложка строк
+    // the background, border and corner radius are drawn by the base — only the row stripes here
     protected override void DrawContent(Graphics g)
     {
-        // подложка чётных строк — так глаз не теряет пару «имя/значение»
+        // the stripe under every other row — that way the eye doesn't lose the name/value pair
         var content = this.ContentBounds;
 
         for (int row = 0; row * 2 < Children.Count; row++)
@@ -197,8 +204,8 @@ public class PropertyGrid : DecoratedPanel
 
     protected override Size MeasureContentOverride(Size availableSize)
     {
-        // при бесконечной ширине (так меряются оверлеи) проценты и вычитания
-        // дают NaN, поэтому опираемся на собственный заданный размер
+        // with infinite width (that's how overlays are measured) percentages
+        // and subtractions give NaN, so we rely on our own set size
         float usableWidth = float.IsFinite(availableSize.Width)
             ? availableSize.Width
             : (float.IsFinite(Size.Width) ? Size.Width : 320f);
