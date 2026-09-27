@@ -226,6 +226,7 @@ public static class Themes
                 table.Background = c.Surface;
                 table.BorderColor = c.Border;
                 table.BorderWidth = 1f;
+                table.HeaderColor = c.SurfaceHover;
                 table.HeaderTextColor = c.Text;
             })
 
@@ -290,6 +291,7 @@ public static class Themes
                 numeric.Background = c.Surface;
                 numeric.ButtonColor = c.SurfaceHover;
                 numeric.ButtonHoverColor = c.SurfacePressed;
+                numeric.ArrowColor = c.Text;
             })
 
             .For<ProgressBar>((bar, c) =>

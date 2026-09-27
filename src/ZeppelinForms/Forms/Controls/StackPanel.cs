@@ -6,8 +6,9 @@ namespace ZeppelinForms.Forms.Controls;
 
 public class StackPanel : DecoratedPanel
 {
-    // все четыре участвуют в измерении и размещении, поэтому просят
-    // пересчёт: без него кэш измерения отдал бы размер прежней раскладки
+    // all four take part in measuring and arranging, so they ask for
+    // a recompute: without it the measure cache would return the size
+    // of the previous layout
 
     public Orientation Orientation
     {
@@ -76,7 +77,7 @@ public class StackPanel : DecoratedPanel
         float totalFlex = 0;
         int visibleCount = 0;
 
-        // первый проход: меряем негибких и собираем сумму весов
+        // first pass: measure the non-flexible ones and collect the sum of the weights
         foreach (UIElement child in Children)
         {
             if (!child.IsVisible) continue;
@@ -102,8 +103,8 @@ public class StackPanel : DecoratedPanel
 
         float spacingTotal = visibleCount > 1 ? Spacing * (visibleCount - 1) : 0;
 
-        // гибкие делят остаток; при бесконечной оси делить нечего,
-        // поэтому меряем их по содержимому
+        // the flexible ones share the remainder; along an infinite axis there is
+        // nothing to share, so they are measured by their content
         float freeMain = float.IsFinite(MainOf(inner))
             ? Math.Max(0, MainOf(inner) - fixedMain - spacingTotal)
             : float.PositiveInfinity;
@@ -127,7 +128,7 @@ public class StackPanel : DecoratedPanel
             crossMax = Math.Max(crossMax, CrossOf(child.DesiredSize) + CrossMargin(m));
         }
 
-        // желаемый размер панели: негибкая часть плюс то, что запросили гибкие
+        // the panel's desired size: the non-flexible part plus what the flexible ones asked for
         float desiredMain = fixedMain + spacingTotal;
 
         if (!float.IsFinite(freeMain))
@@ -181,8 +182,8 @@ public class StackPanel : DecoratedPanel
         float spacingTotal = Spacing * (visible.Count - 1);
         float freeMain = Math.Max(0, availableMain - fixedMain - spacingTotal);
 
-        // при наличии гибких детей свободного места не остаётся —
-        // распределять нечего, выравнивание вдоль оси не применяется
+        // with flexible children no free space is left — there is nothing
+        // to distribute, and alignment along the axis doesn't apply
         float leftover = totalFlex > 0 ? 0 : freeMain;
 
         var (startOffset, gap) = Distribute(leftover, visible.Count);
@@ -236,7 +237,7 @@ public class StackPanel : DecoratedPanel
         }
     }
 
-    /// <summary>Начальный отступ и добавочный промежуток между детьми.</summary>
+    /// <summary>The initial offset and the extra gap between children.</summary>
     private (float Start, float Gap) Distribute(float leftover, int count)
     {
         if (leftover <= 0) return (0f, 0f);

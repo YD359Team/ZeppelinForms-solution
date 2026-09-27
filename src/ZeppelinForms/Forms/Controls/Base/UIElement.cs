@@ -1624,13 +1624,25 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     // Default — simply fill everything the parent gave ("stretch").
     protected virtual Size ArrangeOverride(Size finalSize) => finalSize;
 
+    /// <summary>Whether an explicit Size on this axis is set aside for now.
+    /// A scrolling panel measures its content with it set aside: the explicit
+    /// size on a scrolling axis is the size of the viewport, not of the content,
+    /// and letting it through made the content report the viewport's size —
+    /// there was nothing left to scroll.</summary>
+    private protected virtual bool IsExplicitSizeSuspended(bool horizontal) => false;
+
     // Shared helper: an explicitly set Size axis beats contentSize,
     // an auto axis (NaN) takes the size computed from content, and neither
     // can exceed what the parent actually allotted.
     protected Size ResolveSize(Size contentSize, Size availableSize)
     {
-        float w = _explicitSize.IsWidthAuto ? contentSize.Width : _explicitSize.Width;
-        float h = _explicitSize.IsHeightAuto ? contentSize.Height : _explicitSize.Height;
+        float w = _explicitSize.IsWidthAuto || IsExplicitSizeSuspended(horizontal: true)
+            ? contentSize.Width
+            : _explicitSize.Width;
+
+        float h = _explicitSize.IsHeightAuto || IsExplicitSizeSuspended(horizontal: false)
+            ? contentSize.Height
+            : _explicitSize.Height;
 
         w = Math.Min(w, availableSize.Width);
         h = Math.Min(h, availableSize.Height);

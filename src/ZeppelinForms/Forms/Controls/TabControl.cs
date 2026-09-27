@@ -21,10 +21,32 @@ public partial class TabControl : DecoratedPanel, IInputElement
 
     public List<TabItem> Tabs { get; init; } = [];
 
-    public TabStripPlacement TabStripPlacement { get; set; } = TabStripPlacement.Top;
+    public TabStripPlacement TabStripPlacement
+    {
+        get;
+        set
+        {
+            if (field == value) return;
 
-    /// <summary>Ширина полосы вкладок при вертикальном расположении.</summary>
-    public float VerticalStripWidth { get; set; } = 140f;
+            field = value;
+
+            // the strip moves to another side, and the content area with it
+            Invalidate();
+        }
+    } = TabStripPlacement.Top;
+
+    /// <summary>The width of the tab strip in the vertical placement.</summary>
+    public float VerticalStripWidth
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = 140f;
 
     public int SelectedIndex
     {
@@ -41,7 +63,10 @@ public partial class TabControl : DecoratedPanel, IInputElement
         }
     }
 
-    public TabItem? SelectedTab => _selectedIndex >= 0 ? Tabs[_selectedIndex] : null;
+    // Tabs is a plain list and may shrink under a stale index:
+    // indexing it directly threw ArgumentOutOfRangeException
+    public TabItem? SelectedTab =>
+        _selectedIndex >= 0 && _selectedIndex < Tabs.Count ? Tabs[_selectedIndex] : null;
 
     public event EventHandler? SelectionChanged;
 
@@ -80,7 +105,7 @@ public partial class TabControl : DecoratedPanel, IInputElement
     private bool IsVertical =>
         TabStripPlacement is TabStripPlacement.Left or TabStripPlacement.Right;
 
-    /// <summary>Показать первую вкладку, если выбор ещё не сделан.</summary>
+    /// <summary>Show the first tab if no choice has been made yet.</summary>
     public void EnsureSelection()
     {
         if (_selectedIndex < 0 && Tabs.Count > 0)
@@ -89,8 +114,8 @@ public partial class TabControl : DecoratedPanel, IInputElement
 
     private void SwapContent()
     {
-        // держим в дереве только содержимое активной вкладки: остальные
-        // не должны ни измеряться, ни ловить события
+        // only the active tab's content is kept in the tree: the others
+        // must neither be measured nor catch events
         while (Children.Count > 0)
             Children.RemoveAt(Children.Count - 1);
 
@@ -98,7 +123,7 @@ public partial class TabControl : DecoratedPanel, IInputElement
             Children.Add(content);
     }
 
-    // ===== геометрия полосы вкладок =====
+    // ===== tab strip geometry =====
 
     private float HeaderExtent(TabItem tab)
     {
@@ -172,9 +197,9 @@ public partial class TabControl : DecoratedPanel, IInputElement
         };
     }
 
-    // ===== отрисовка =====
+    // ===== drawing =====
 
-    // рамку рисуем сами вокруг области содержимого, а не по границам контрола
+    // the border is drawn by us around the content area, not along the control's bounds
     protected override Color CurrentBorderColor => Colors.Transparent;
 
     protected override void DrawContent(Graphics g)
@@ -229,8 +254,8 @@ public partial class TabControl : DecoratedPanel, IInputElement
     {
         const float thickness = 3f;
 
-        // полоска акцента со стороны содержимого — так видно,
-        // какая вкладка «прилегает» к панели
+        // the accent stripe on the content side — that way it's visible
+        // which tab "adjoins" the panel
         Rectangle marker = TabStripPlacement switch
         {
             TabStripPlacement.Top => new Rectangle(
@@ -247,7 +272,7 @@ public partial class TabControl : DecoratedPanel, IInputElement
         g.FillRectangle(marker, AccentColor);
     }
 
-    // ===== ввод =====
+    // ===== input =====
 
     private int IndexFromPoint(Point location)
     {
@@ -283,10 +308,14 @@ public partial class TabControl : DecoratedPanel, IInputElement
         InvalidateVisual();
     }
 
-    /// <summary>Вкладка выбирается по нажатию: содержимое заголовка
-    /// не должно перехватывать переключение.</summary>
+    /// <summary>A tab is selected on press: the header's content
+    /// must not intercept the switch.</summary>
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
+        // the preview reaches the tab control even when the hit is an enabled
+        // element inside it, so the form's check for a disabled hit doesn't apply
+        if (!IsEnabled) return;
+
         int index = IndexFromPoint(e.Location);
 
         if (index >= 0 && Tabs[index].IsEnabled)
@@ -300,7 +329,7 @@ public partial class TabControl : DecoratedPanel, IInputElement
 
         if (!forward && !backward) return;
 
-        // пропускаем выключенные вкладки, иначе стрелка «застрянет»
+        // skip disabled tabs, otherwise the arrow would "get stuck"
         int step = forward ? 1 : -1;
 
         for (int i = _selectedIndex + step; i >= 0 && i < Tabs.Count; i += step)
@@ -314,7 +343,7 @@ public partial class TabControl : DecoratedPanel, IInputElement
         }
     }
 
-    // ===== раскладка =====
+    // ===== layout =====
 
     protected override Size MeasureContentOverride(Size availableSize)
     {

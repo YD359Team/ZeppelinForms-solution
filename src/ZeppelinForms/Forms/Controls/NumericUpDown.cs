@@ -14,7 +14,14 @@ public partial class NumericUpDown : TextInputControl
 {
     private const float ButtonWidth = 18f;
 
-    private decimal _value;
+    /// <summary>The value as it was assigned, before coercing into the range.</summary>
+    /// <remarks>
+    /// Coercing on read makes the result independent of the order of assignments:
+    /// in <c>new NumericUpDown { Value = 150, Maximum = 200 }</c> the value used to
+    /// be clamped by the default maximum of 100 before the real one arrived.
+    /// </remarks>
+    private decimal _requested;
+
     private bool _hoverUp;
     private bool _hoverDown;
 
@@ -22,39 +29,94 @@ public partial class NumericUpDown : TextInputControl
     private bool _isEditing;
     private int _caretIndex;
 
-    public decimal Minimum { get; set; } = 0;
-    public decimal Maximum { get; set; } = 100;
-    public decimal Step { get; set; } = 1;
-    public int DecimalPlaces { get; set; }
+    public decimal Minimum
+    {
+        get;
+        set
+        {
+            if (field == value) return;
 
-    /// <summary>Разрешить ввод значения с клавиатуры.</summary>
+            decimal before = Value;
+            field = value;
+            OnRangeChanged(before);
+        }
+    } = 0;
+
+    public decimal Maximum
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            decimal before = Value;
+            field = value;
+            OnRangeChanged(before);
+        }
+    } = 100;
+
+    public decimal Step { get; set; } = 1;
+
+    public int DecimalPlaces
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the width is measured by the formatted boundary values
+            Invalidate();
+        }
+    }
+
+    /// <summary>Allow entering the value from the keyboard.</summary>
     public bool IsEditable { get; set; } = true;
 
     public decimal Value
     {
-        get => _value;
+        get => Coerce(_requested);
         set
         {
-            decimal clamped = Minimum <= Maximum
-                ? Math.Clamp(value, Minimum, Maximum)
-                : value;
+            decimal before = Value;
+            _requested = value;
 
-            if (_value == clamped) return;
+            if (before == Value) return;
 
-            _value = clamped;
-
-            // в режиме правки на экран идёт _editText, поэтому его тоже
-            // надо обновить — иначе значение поменяется незаметно
-            if (_isEditing)
-            {
-                _editText = _value.ToString($"F{DecimalPlaces}");
-                _caretIndex = _editText.Length;
-                ResetCaretBlink();
-            }
-
-            ValueChanged?.Invoke(this, EventArgs.Empty);
-            InvalidateVisual();
+            OnValueChanged();
         }
+    }
+
+    // while the range is being reassigned, Minimum may briefly exceed Maximum:
+    // Math.Clamp throws on that, so the value is left as is until the range is valid
+    private decimal Coerce(decimal value) =>
+        Minimum <= Maximum ? Math.Clamp(value, Minimum, Maximum) : value;
+
+    /// <summary>The range changed. If that moved the coerced value,
+    /// whoever listens to ValueChanged must know it.</summary>
+    private void OnRangeChanged(decimal before)
+    {
+        if (before != Value)
+            OnValueChanged();
+
+        // the width is measured by the boundary values
+        Invalidate();
+    }
+
+    private void OnValueChanged()
+    {
+        // in edit mode _editText goes to the screen, so it must be updated
+        // too — otherwise the value would change unnoticed
+        if (_isEditing)
+        {
+            _editText = Formatted;
+            _caretIndex = _editText.Length;
+            ResetCaretBlink();
+        }
+
+        ValueChanged?.Invoke(this, EventArgs.Empty);
+        InvalidateVisual();
     }
 
     public event EventHandler? ValueChanged;
@@ -67,7 +129,11 @@ public partial class NumericUpDown : TextInputControl
     public partial Color ButtonHoverColor { get; set; }
     private static Color ButtonHoverColorDefault => new(255, 220, 220, 220);
 
-    public Color ArrowColor { get; set; } = Colors.Black;
+    /// <summary>The color of the arrows on the buttons. A styled property, so the
+    /// theme sets it: the fixed black disappeared on the dark theme's buttons.</summary>
+    [Styled(Category = "Buttons")]
+    public partial Color ArrowColor { get; set; }
+    private static Color ArrowColorDefault => Colors.Black;
 
     public NumericUpDown()
     {
@@ -76,12 +142,12 @@ public partial class NumericUpDown : TextInputControl
         SetControlDefault(BorderColorProperty, Colors.Black);
         SetControlDefault(BorderWidthProperty, 1f);
 
-        // курсор-текст от TextInputControl тут не к месту: поле в основном
-        // управляется кнопками, а редактирование — вторично
+        // the text cursor from TextInputControl doesn't fit here: the field is
+        // mostly controlled by the buttons, editing is secondary
         Cursor = CursorKind.Arrow;
     }
 
-    private string Formatted => _value.ToString($"F{DecimalPlaces}");
+    private string Formatted => Value.ToString($"F{DecimalPlaces}");
 
     private string DisplayText => _isEditing ? _editText ?? string.Empty : Formatted;
 
@@ -114,7 +180,7 @@ public partial class NumericUpDown : TextInputControl
             float textWidth = TextMeasurer.Current.MeasureText(text, EffectiveFont).Width;
             float caretOffset = TextMeasurer.Current.MeasureTextWidth(text, _caretIndex, EffectiveFont);
 
-            // текст выровнен вправо, поэтому каретку считаем от правого края
+            // the text is right-aligned, so the caret is counted from the right edge
             float right = ActualSize.Width - ButtonWidth - Padding.Right;
 
             g.FillRectangle(
@@ -179,6 +245,9 @@ public partial class NumericUpDown : TextInputControl
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
+        // the form delivers the wheel to disabled elements too
+        if (!IsEnabled) return;
+
         Value += Step * Math.Sign(e.Delta);
         e.Handled = true;
     }
@@ -204,8 +273,8 @@ public partial class NumericUpDown : TextInputControl
         if (decimal.TryParse(_editText, NumberStyles.Number, CultureInfo.CurrentCulture, out decimal parsed))
             Value = Math.Round(parsed, DecimalPlaces, MidpointRounding.AwayFromZero);
 
-        // не распарсилось — молча возвращаем прежнее значение,
-        // ронять приложение из-за опечатки не за что
+        // didn't parse — silently return the previous value,
+        // there is no reason to crash the application over a typo
         _editText = null;
         InvalidateVisual();
     }
@@ -233,11 +302,11 @@ public partial class NumericUpDown : TextInputControl
 
         if (!isDigit && !isSeparator && !isMinus) return;
 
-        // разделитель уже есть — второй не нужен
+        // a separator is already there — a second one is not needed
         if (isSeparator && (_editText?.Contains(DecimalSeparator) ?? false)) return;
 
-        // точку с клавиатуры приводим к разделителю текущей культуры,
-        // иначе decimal.TryParse её не примет
+        // a dot from the keyboard is brought to the current culture's separator,
+        // otherwise decimal.TryParse won't accept it
         char inserted = isSeparator ? DecimalSeparator : c;
 
         _editText = (_editText ?? string.Empty).Insert(_caretIndex, inserted.ToString());
@@ -270,7 +339,7 @@ public partial class NumericUpDown : TextInputControl
         {
             case Key.Enter:
                 CommitEdit();
-                BeginEdit();   // сразу возвращаемся в режим правки
+                BeginEdit();   // go right back into edit mode
                 return true;
 
             case Key.Escape:
@@ -310,8 +379,8 @@ public partial class NumericUpDown : TextInputControl
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        // меряем по самому широкому из граничных значений, чтобы поле
-        // не прыгало по ширине при переборе
+        // measure by the widest of the boundary values, so that the field
+        // doesn't jump in width while stepping
         Size minSize = TextMeasurer.Current.MeasureText(Minimum.ToString($"F{DecimalPlaces}"), EffectiveFont);
         Size maxSize = TextMeasurer.Current.MeasureText(Maximum.ToString($"F{DecimalPlaces}"), EffectiveFont);
 

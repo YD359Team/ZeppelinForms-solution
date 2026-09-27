@@ -7,9 +7,9 @@ using ZeppelinForms.Forms.Styling;
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Таблица только для чтения: строки — текст, столбцы — как в HTML или
-/// Markdown. Прокручивается сама, заголовок остаётся на месте.
-/// Ячейки не могут содержать контролов — для этого есть Grid.
+/// A read-only table: rows are text, columns work as in HTML or Markdown.
+/// Scrolls by itself, the header stays in place.
+/// Cells cannot contain controls — Grid is for that.
 /// </summary>
 public partial class Table : DecoratedPanel
 {
@@ -17,9 +17,19 @@ public partial class Table : DecoratedPanel
 
     private float _headerHeight;
 
+    /// <summary>The row height actually used: RowHeight, or computed from the font.</summary>
+    /// <remarks>
+    /// Not named _rowHeight: that is the field the generator creates for the
+    /// RowHeight property itself. Measuring used to write the computed height
+    /// there, and after the first layout RowHeight stayed non-zero for good —
+    /// a font change no longer recomputed the rows, and PropertyGrid showed
+    /// a value nobody had set.
+    /// </remarks>
+    private float _computedRowHeight;
+
     public List<TableColumn> Columns { get; init; } = [];
 
-    /// <summary>Строки. Лишние ячейки игнорируются, недостающие рисуются пустыми.</summary>
+    /// <summary>Rows. Extra cells are ignored, missing ones are drawn empty.</summary>
     public List<string?[]> Rows { get; init; } = [];
 
     [Styled(Category = "Table", AffectsLayout = true)]
@@ -37,7 +47,7 @@ public partial class Table : DecoratedPanel
 
     private static Thickness CellPaddingDefault => new(8, 4);
 
-    /// <summary>Высота строки. Ноль — считать по шрифту.</summary>
+    /// <summary>Row height. Zero — compute from the font.</summary>
     [Styled(Category = "Table", AffectsLayout = true)]
     public partial float RowHeight { get; set; }
 
@@ -55,43 +65,51 @@ public partial class Table : DecoratedPanel
 
     private static Color GridLineColorDefault => new(255, 224, 224, 224);
 
-    /// <summary>Подсвечивать каждую вторую строку.</summary>
+    /// <summary>Highlight every other row.</summary>
     [Styled(Category = "Table")]
     public partial bool ShowAlternateRows { get; set; }
 
     private static bool ShowAlternateRowsDefault => true;
 
-    /// <summary>Цвет подложки чётных строк. Прозрачный — вывести
-    /// из цвета текста, чтобы работало в любой теме.</summary>
+    /// <summary>The stripe color of even rows. Transparent — derive it
+    /// from the text color, so that it works in any theme.</summary>
     [Styled(Category = "Table")]
     public partial Color AlternateRowColor { get; set; }
 
-    public void AddRow(params string?[] cells) => Rows.Add(cells);
+    /// <summary>Add a row. Rows is a plain list and says nothing about changes,
+    /// so a row added through it directly needs an explicit Invalidate.</summary>
+    public void AddRow(params string?[] cells)
+    {
+        Rows.Add(cells);
 
-    /// <summary>Полупрозрачный оттенок цвета текста. Подложки и линии,
-    /// построенные так, одинаково читаются и на светлой, и на тёмной теме:
-    /// на светлой это лёгкое затемнение, на тёмной — осветление.</summary>
+        // a new row changes the height and possibly the Auto column widths
+        Invalidate();
+    }
+
+    /// <summary>A translucent shade of the text color. Stripes and lines built
+    /// this way read equally well on a light and a dark theme: on a light one
+    /// it's a slight darkening, on a dark one a lightening.</summary>
     private Color Tint(byte alpha) => new(alpha, TextColor.R, TextColor.G, TextColor.B);
 
-    /// <summary>Шрифт заголовка: как у содержимого, но жирный.</summary>
+    /// <summary>The header font: like the content's, but bold.</summary>
     private Font HeaderFont => EffectiveFont.Bold();
 
     public Table()
     {
-        // таблица — по содержимому, как в Markdown. Растянуть можно вручную,
-        // и тогда столбцы со звёздочкой поделят лишнюю ширину
+        // a table sizes to its content, as in Markdown. It can be stretched
+        // manually, and then the star columns share the extra width
         SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Left);
         SetControlDefault(VerticalAlignmentProperty, VerticalAlignment.Top);
     }
 
-    // ===== раскладка =====
+    // ===== layout =====
 
     protected override Size MeasureContentOverride(Size availableSize)
     {
         float lineHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
 
-        _rowHeight = RowHeight > 0 ? RowHeight : lineHeight + CellPadding.Vertical;
-        _headerHeight = ShowHeader ? _rowHeight : 0;
+        _computedRowHeight = RowHeight > 0 ? RowHeight : lineHeight + CellPadding.Vertical;
+        _headerHeight = ShowHeader ? _computedRowHeight : 0;
 
         float inner = Math.Max(0, availableSize.Width - Padding.Horizontal);
 
@@ -102,11 +120,11 @@ public partial class Table : DecoratedPanel
 
         return new Size(
             total + Padding.Horizontal,
-            _headerHeight + _rowHeight * Rows.Count + Padding.Vertical);
+            _headerHeight + _computedRowHeight * Rows.Count + Padding.Vertical);
     }
 
-    /// <summary>Ширины столбцов: сначала Auto и фиксированные,
-    /// остаток делят звёздочки по весу.</summary>
+    /// <summary>Column widths: first Auto and fixed ones,
+    /// the star columns share the remainder by weight.</summary>
     private void ResolveWidths(float available)
     {
         _widths.Clear();
@@ -133,8 +151,8 @@ public partial class Table : DecoratedPanel
 
         if (starWeight <= 0) return;
 
-        // ширина неизвестна — таблица внутри бесконечной оси. Звёздочкам
-        // делить нечего, поэтому ведут себя как Auto
+        // the width is unknown — the table is inside an infinite axis. The star
+        // columns have nothing to share, so they behave like Auto
         float rest = float.IsFinite(available) ? Math.Max(0, available - taken) : 0;
 
         for (int i = 0; i < Columns.Count; i++)
@@ -147,7 +165,7 @@ public partial class Table : DecoratedPanel
         }
     }
 
-    /// <summary>Ширина столбца по самому длинному значению вместе с заголовком.</summary>
+    /// <summary>The column width by the longest value together with the header.</summary>
     private float ContentWidth(int column)
     {
         float widest = ShowHeader && Columns[column].Header is { } header
@@ -164,10 +182,10 @@ public partial class Table : DecoratedPanel
         return widest + CellPadding.Horizontal;
     }
 
-    // потомков нет: раскладывать нечего, всё рисуется напрямую
+    // no children: nothing to arrange, everything is drawn directly
     protected override void ArrangeContentOverride(Size contentSize) { }
 
-    // ===== отрисовка =====
+    // ===== drawing =====
 
     protected override void DrawContent(Graphics g)
     {
@@ -175,7 +193,7 @@ public partial class Table : DecoratedPanel
 
         Rectangle view = Viewport;
 
-        // строки живут ниже заголовка и не должны под него заезжать
+        // rows live below the header and must not slide under it
         var band = new Rectangle(
             new Point(view.X, view.Y + _headerHeight),
             new Size(view.Width, Math.Max(0, view.Height - _headerHeight)));
@@ -185,13 +203,13 @@ public partial class Table : DecoratedPanel
         g.Save();
         g.ClipRect(band);
 
-        // рисуем только видимые строки: на десяти тысячах строк
-        // проход по всем съел бы кадр
-        int first = Math.Max(0, (int)(ScrollY / _rowHeight));
-        int last = Math.Min(Rows.Count, first + (int)(band.Height / _rowHeight) + 2);
+        // only visible rows are drawn: on ten thousand rows
+        // a pass over all of them would eat the frame
+        int first = Math.Max(0, (int)(ScrollY / _computedRowHeight));
+        int last = Math.Min(Rows.Count, first + (int)(band.Height / _computedRowHeight) + 2);
 
         for (int i = first; i < last; i++)
-            DrawRow(g, i, band.Y + i * _rowHeight - ScrollY, view.Width);
+            DrawRow(g, i, band.Y + i * _computedRowHeight - ScrollY, view.Width);
 
         if (ShowGridLines)
             DrawVerticalLines(g, band);
@@ -203,7 +221,7 @@ public partial class Table : DecoratedPanel
     {
         var bounds = new Rectangle(
             new Point(Viewport.X - ScrollX, top),
-            new Size(width + ScrollX, _rowHeight));
+            new Size(width + ScrollX, _computedRowHeight));
 
         if (ShowAlternateRows && index % 2 == 1)
             g.FillRectangle(bounds, AlternateRowColor.A > 0 ? AlternateRowColor : Tint(12));
@@ -211,8 +229,8 @@ public partial class Table : DecoratedPanel
         Color line = GridLineColor.A > 0 ? GridLineColor : Tint(30);
         if (ShowGridLines)
             g.DrawLine(
-                new Point(bounds.X, top + _rowHeight),
-                new Point(bounds.X + bounds.Width, top + _rowHeight),
+                new Point(bounds.X, top + _computedRowHeight),
+                new Point(bounds.X + bounds.Width, top + _computedRowHeight),
                 line, 1f);
 
         string?[] row = Rows[index];
@@ -235,7 +253,7 @@ public partial class Table : DecoratedPanel
     {
         var cell = new Rectangle(
             new Point(x + CellPadding.Left, top),
-            new Size(Math.Max(0, width - CellPadding.Horizontal), _rowHeight));
+            new Size(Math.Max(0, width - CellPadding.Horizontal), _computedRowHeight));
 
         g.DrawText(text, cell, color, font ?? EffectiveFont, align, VerticalContentAlignment.Center);
     }
@@ -245,7 +263,7 @@ public partial class Table : DecoratedPanel
         float x = Viewport.X - ScrollX;
         Color line = GridLineColor.A > 0 ? GridLineColor : Tint(30);
 
-        // последнюю границу не рисуем: она совпала бы с рамкой таблицы
+        // the last boundary is not drawn: it would coincide with the table's border
         for (int c = 0; c < Columns.Count - 1; c++)
         {
             x += _widths[c];
@@ -257,8 +275,15 @@ public partial class Table : DecoratedPanel
         }
     }
 
-    /// <summary>Заголовок. DrawDecoration вызывается после потомков и вне
-    /// их отсечения, поэтому он остаётся на месте при прокрутке.</summary>
+    /// <summary>The header. DrawDecoration is called after the children and
+    /// outside their clip, so it stays in place while scrolling.</summary>
+    /// <remarks>
+    /// The header used to be drawn twice: the background was filled twice, and
+    /// a second pass over the captions continued x from the right edge, so it
+    /// drew in the regular font beyond the border, where the clip threw it away.
+    /// A thin GridLineColor line was also drawn over the thick rule and repainted
+    /// its middle. All three were duplicates and are gone.
+    /// </remarks>
     protected override void DrawDecoration(Graphics g)
     {
         if (!ShowHeader || Columns.Count == 0 || _widths.Count != Columns.Count) return;
@@ -269,8 +294,6 @@ public partial class Table : DecoratedPanel
 
         g.Save();
         g.ClipRect(bounds);
-
-        g.FillRectangle(bounds, HeaderColor);
 
         if (HeaderColor.A > 0)
             g.FillRectangle(bounds, HeaderColor);
@@ -285,26 +308,12 @@ public partial class Table : DecoratedPanel
             x += _widths[c];
         }
 
-        // линейка под заголовком заметно толще сетки — это её роль
-        // в Markdown-таблице, отделять шапку от данных
+        // the rule under the header is noticeably thicker than the grid — that is
+        // its role in a Markdown table, to separate the head from the data
         g.DrawLine(
             new Point(bounds.X, bounds.Y + _headerHeight),
             new Point(bounds.X + bounds.Width, bounds.Y + _headerHeight),
             Tint(110), 2f);
-
-        for (int c = 0; c < Columns.Count; c++)
-        {
-            if (Columns[c].Header is { } header && header.Length > 0)
-                DrawCell(g, header, x, view.Y, _widths[c], Columns[c].Align, HeaderTextColor);
-
-            x += _widths[c];
-        }
-
-        if (ShowGridLines)
-            g.DrawLine(
-                new Point(bounds.X, bounds.Y + _headerHeight),
-                new Point(bounds.X + bounds.Width, bounds.Y + _headerHeight),
-                GridLineColor, 1f);
 
         g.Restore();
     }

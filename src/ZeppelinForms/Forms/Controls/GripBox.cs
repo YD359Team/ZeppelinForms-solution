@@ -4,15 +4,16 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
+using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Обёртка с ручками вокруг содержимого: перетаскиванием меняет размер
-/// и угол поворота ребёнка, как в визуальном редакторе.
-/// Размер пишется в <see cref="UIElement.Size"/> ребёнка, угол — в
-/// <see cref="UIElement.Rotation"/>; и то, и другое рендер и хит-тест
-/// уже понимают, своих трансформаций GripBox не заводит.
+/// A wrapper with handles around its content: dragging changes the child's size
+/// and rotation angle, as in a visual editor.
+/// The size is written to the child's <see cref="UIElement.Size"/>, the angle to
+/// <see cref="UIElement.Rotation"/>; both are already understood by the renderer
+/// and hit testing, GripBox sets up no transforms of its own.
 /// </summary>
 public partial class GripBox : DecoratedWrapControl
 {
@@ -31,9 +32,15 @@ public partial class GripBox : DecoratedWrapControl
     private float _startRotation;
     private float _startAngle;
 
+    /// <summary>The child's Size as it was set before the press — possibly Auto.
+    /// A cancelled resize restores this rather than _startSize: the latter is the
+    /// actual size, and restoring it would turn an auto-sized child into
+    /// a fixed one.</summary>
+    private Size _startExplicitSize;
+
     public float HandleSize { get; set; } = 8f;
 
-    /// <summary>Насколько ручка поворота вынесена над верхним краем.</summary>
+    /// <summary>How far the rotation handle sticks out above the top edge.</summary>
     public float RotateHandleOffset { get; set; } = 24f;
 
     [Styled]
@@ -50,14 +57,14 @@ public partial class GripBox : DecoratedWrapControl
 
     public Size MinChildSize { get; set; } = new(16f, 16f);
 
-    /// <summary>Шаг привязки угла в градусах. 0 — поворот без привязки.</summary>
+    /// <summary>Angle snapping step in degrees. 0 — rotation without snapping.</summary>
     public float RotationSnap { get; set; }
 
     /// <summary>
-    /// Тянуть за левую или верхнюю ручку, оставляя противоположный край на месте.
-    /// Работает через <see cref="UIElement.Margin"/> самого GripBox, поэтому
-    /// осмысленно только в раскладке, где отступ реально смещает элемент,
-    /// и только при нулевом повороте.
+    /// Dragging the left or top handle keeps the opposite edge in place.
+    /// Works through the GripBox's own <see cref="UIElement.Margin"/>, so it is
+    /// meaningful only in a layout where the margin actually moves the element,
+    /// and only at zero rotation.
     /// </summary>
     public bool AnchorOppositeEdge { get; set; } = true;
 
@@ -74,8 +81,8 @@ public partial class GripBox : DecoratedWrapControl
         ReserveGutter();
     }
 
-    /// <summary>Отступ под ручки, чтобы они не наезжали на содержимое.
-    /// Вызывается заново, если поменяли <see cref="HandleSize"/>.</summary>
+    /// <summary>Padding for the handles, so that they don't overlap the content.
+    /// Call it again if <see cref="HandleSize"/> was changed.</summary>
     public void ReserveGutter()
     {
         float gutter = HandleSize;
@@ -87,7 +94,7 @@ public partial class GripBox : DecoratedWrapControl
             gutter);
     }
 
-    /// <summary>Прямоугольник ребёнка в координатах GripBox.</summary>
+    /// <summary>The child's rectangle in GripBox coordinates.</summary>
     private Rectangle ChildBounds => Child is null
         ? Rectangle.Empty
         : new Rectangle(Child.Position, Child.ActualSize);
@@ -132,8 +139,8 @@ public partial class GripBox : DecoratedWrapControl
         }
     }
 
-    /// <summary>Контур ребёнка. При повороте рисуем ломаной по четырём
-    /// повёрнутым углам — прямоугольник холст бы не повернул.</summary>
+    /// <summary>The child's outline. When rotated, it is drawn as a polyline through
+    /// the four rotated corners — the canvas wouldn't rotate a rectangle.</summary>
     private void DrawOutline(Graphics g, Rectangle bounds)
     {
         if (OutlineWidth <= 0 || OutlineColor.A == 0) return;
@@ -168,7 +175,8 @@ public partial class GripBox : DecoratedWrapControl
             new Size(HandleSize, HandleSize));
     }
 
-    /// <summary>Центр ручки в координатах GripBox, уже с учётом поворота ребёнка.</summary>
+    /// <summary>The center of a handle in GripBox coordinates,
+    /// already accounting for the child's rotation.</summary>
     private Point HandleCenter(GripKind grip, Rectangle b)
     {
         Point raw = grip switch
@@ -195,7 +203,7 @@ public partial class GripBox : DecoratedWrapControl
         Rectangle bounds = ChildBounds;
         if (bounds.Width <= 0 || bounds.Height <= 0) return GripKind.None;
 
-        // поворот проверяем первым: его ручка вынесена наружу и ни с чем не спорит
+        // rotation is checked first: its handle sticks out and competes with nothing
         if (AllowRotate && Point.DistanceBetween(local, HandleCenter(GripKind.Rotate, bounds)) <= HitRadius)
             return GripKind.Rotate;
 
@@ -210,8 +218,8 @@ public partial class GripBox : DecoratedWrapControl
         return GripKind.None;
     }
 
-    /// <summary>Клик по ручке не должен проваливаться в ребёнка:
-    /// угловые ручки лежат прямо на его границе.</summary>
+    /// <summary>A click on a handle must not fall through into the child:
+    /// the corner handles lie right on its border.</summary>
     protected internal override bool HitTestSelfFirst(Point localPoint) =>
         GripAt(localPoint) != GripKind.None;
 
@@ -227,11 +235,16 @@ public partial class GripBox : DecoratedWrapControl
         _active = grip;
         _dragStart = local;
 
-        // от стартовых значений, а не от текущих на каждом шаге — иначе копится дрейф
+        // from the starting values, not from the current ones at every step —
+        // otherwise drift accumulates
         _startSize = Child.ActualSize;
+        _startExplicitSize = Child.Size;
         _startMargin = Margin;
         _startRotation = Child.Rotation;
         _startAngle = AngleTo(local);
+
+        // without capture the drag breaks off as soon as the cursor leaves the window
+        CaptureMouse();
 
         args.Handled = true;
     }
@@ -254,7 +267,42 @@ public partial class GripBox : DecoratedWrapControl
             Resize(local);
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs args) => _active = GripKind.None;
+    protected override void OnMouseUp(MouseButtonEventArgs args)
+    {
+        if (_active == GripKind.None) return;
+
+        _active = GripKind.None;
+        ReleaseMouseCapture();
+    }
+
+    /// <summary>The interaction was cut off — the system took the capture away,
+    /// the box left the tree. Previously _active stayed set here, and after that
+    /// simply hovering with no button pressed kept resizing or rotating the child.
+    /// Nothing was committed, so the child goes back to how it was before the press.</summary>
+    protected override void OnPointerCanceled(PointerCancelEventArgs e)
+    {
+        if (_active == GripKind.None) return;
+
+        GripKind interrupted = _active;
+        _active = GripKind.None;
+
+        if (Child is null) return;
+
+        if (interrupted == GripKind.Rotate)
+        {
+            Child.Rotation = _startRotation;
+            ChildRotated?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        Child.Size = _startExplicitSize;
+
+        if (!Margin.Equals(_startMargin))
+            Margin = _startMargin;
+
+        Invalidate();
+        ChildResized?.Invoke(this, EventArgs.Empty);
+    }
 
     protected override void OnMouseExit(MouseMoveEventArgs args)
     {
@@ -271,7 +319,7 @@ public partial class GripBox : DecoratedWrapControl
 
         _hovered = grip;
 
-        // диагональных курсоров в CursorKind нет, для углов берём SizeAll
+        // CursorKind has no diagonal cursors, SizeAll is used for the corners
         Cursor = grip switch
         {
             GripKind.Left or GripKind.Right => CursorKind.SizeWestEast,
@@ -287,8 +335,8 @@ public partial class GripBox : DecoratedWrapControl
     {
         var delta = new Point(local.X - _dragStart.X, local.Y - _dragStart.Y);
 
-        // ручки живут в системе координат повёрнутого ребёнка,
-        // поэтому смещение курсора разворачиваем обратно
+        // the handles live in the rotated child's coordinate system,
+        // so the cursor offset is rotated back
         if (ChildRotation != 0f)
             delta = RotateAround(delta, Point.Empty, -ChildRotation);
 
@@ -317,8 +365,8 @@ public partial class GripBox : DecoratedWrapControl
         ChildResized?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Тянем за левую или верхнюю сторону — противоположный край
-    /// держим на месте, сдвигая себя отступом на ту же величину.</summary>
+    /// <summary>Dragging the left or top side — the opposite edge is held in place
+    /// by shifting ourselves with the margin by the same amount.</summary>
     private void AnchorEdges(float width, float height)
     {
         if (!AnchorOppositeEdge || ChildRotation != 0f) return;
@@ -342,7 +390,8 @@ public partial class GripBox : DecoratedWrapControl
         if (RotationSnap > 0f)
             angle = MathF.Round(angle / RotationSnap) * RotationSnap;
 
-        // нормализуем, иначе за несколько оборотов число уедет в тысячи градусов
+        // normalize, otherwise after a few revolutions the number
+        // would run into thousands of degrees
         angle %= 360f;
         if (angle < 0f) angle += 360f;
 
@@ -354,7 +403,7 @@ public partial class GripBox : DecoratedWrapControl
         ChildRotated?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Угол от центра ребёнка до точки, в градусах.</summary>
+    /// <summary>The angle from the child's center to the point, in degrees.</summary>
     private float AngleTo(Point local)
     {
         Point center = ChildBounds.Center;

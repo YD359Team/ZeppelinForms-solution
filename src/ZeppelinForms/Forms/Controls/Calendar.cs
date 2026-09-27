@@ -10,8 +10,8 @@ namespace ZeppelinForms.Forms.Controls;
 
 public partial class Calendar : DecoratedControl
 {
-    /// <summary>Культура для названий месяца, подписей дней и первого дня
-    /// недели. Null — текущая культура потока.</summary>
+    /// <summary>The culture for the month name, the day captions and the first
+    /// day of the week. Null — the thread's current culture.</summary>
     public CultureInfo? Culture
     {
         get;
@@ -27,12 +27,12 @@ public partial class Calendar : DecoratedControl
 
     private CultureInfo EffectiveCulture => Culture ?? CultureInfo.CurrentCulture;
 
-    // подписи считаются на каждый кадр, а смена культуры — событие редкое
+    // the captions are computed every frame, while a culture change is a rare event
     private CultureInfo? _dayNamesCulture;
     private string[]? _abbreviatedDayNames;
     private string[]? _shortestDayNames;
 
-    // эталонная сетка: размеры, при которых календарь читается без сжатия
+    // the reference grid: the sizes at which the calendar reads without compression
     private const float ReferenceHeaderHeight = 28f;
     private const float ReferenceDayOfWeekHeight = 20f;
     private const float ReferenceArrowWidth = 28f;
@@ -42,17 +42,17 @@ public partial class Calendar : DecoratedControl
     private const int Rows = 6;
     private const int Columns = 7;
 
-    /// <summary>Ниже этого сжатия не опускаемся: мельче сетка перестаёт
-    /// читаться вовсе, и честнее обрезать её краем, чем нарисовать
-    /// неразличимое.</summary>
+    /// <summary>We don't go below this compression: a smaller grid stops being
+    /// readable at all, and it is more honest to cut it off at the edge
+    /// than to draw something indistinguishable.</summary>
     private const float MinimumScale = 0.6f;
 
-    /// <summary>Геометрия одного кадра.</summary>
+    /// <summary>The geometry of one frame.</summary>
     /// <remarks>
-    /// Один источник на рисование и на попадание. До этого DrawContent,
-    /// OnClick и HitFromPoint держали свои копии одних и тех же чисел,
-    /// и любое изменение размеров надо было вносить в три места
-    /// синхронно — а при масштабировании они разъехались бы молча.
+    /// One source for drawing and for hit testing. Before this, DrawContent,
+    /// OnClick and HitFromPoint kept their own copies of the same numbers,
+    /// and any size change had to be made in three places in sync —
+    /// and with scaling they would have drifted apart silently.
     /// </remarks>
     private readonly record struct CalendarLayout(
         float Scale,
@@ -89,8 +89,8 @@ public partial class Calendar : DecoratedControl
             header,
             dayOfWeek,
             ReferenceArrowWidth * scale,
-            // Max: при высоте меньше шапки деление дало бы отрицательную
-            // ячейку, и строки поехали бы вверх
+            // Max: with a height smaller than the header the division would give
+            // a negative cell, and the rows would drift upward
             new Size(width / Columns, Math.Max(0, (height - header - dayOfWeek) / Rows)),
             this.EffectiveFont.WithSize(this.EffectiveFont.Size * scale));
     }
@@ -101,7 +101,7 @@ public partial class Calendar : DecoratedControl
     public event EventHandler<DateTime>? DateSelected;
 
     private int _hoveredCell = -1;
-    private int _hoveredHeaderButton;   // -1 — назад, 1 — вперёд, 0 — нет
+    private int _hoveredHeaderButton;   // -1 — back, 1 — forward, 0 — none
 
     [Styled(Category = "Calendar")]
     public partial Color MutedColor { get; set; }
@@ -135,19 +135,19 @@ public partial class Calendar : DecoratedControl
         {
             var first = new DateTime(_displayMonth.Year, _displayMonth.Month, 1);
 
-            // первый день недели задаёт культура: понедельник в России,
-            // воскресенье в США, суббота в части арабских стран
+            // the first day of the week is set by the culture: Monday in Russia,
+            // Sunday in the US, Saturday in some Arab countries
             int shift = (((int)first.DayOfWeek - (int)EffectiveCulture.DateTimeFormat.FirstDayOfWeek) + 7) % 7;
 
             return first.AddDays(-shift);
         }
     }
 
-    /// <summary>Подписи дней, начиная с первого дня недели культуры.</summary>
+    /// <summary>Day captions, starting from the culture's first day of the week.</summary>
     /// <remarks>
-    /// В .NET массивы дней всегда начинаются с воскресенья независимо
-    /// от культуры, поэтому их надо провернуть на её первый день —
-    /// иначе подписи разойдутся с колонками.
+    /// In .NET the day arrays always start with Sunday regardless of the culture,
+    /// so they must be rotated to its first day — otherwise the captions
+    /// would not match the columns.
     /// </remarks>
     private string[] GetDayNames(bool shortest)
     {
@@ -176,14 +176,14 @@ public partial class Calendar : DecoratedControl
         }
     }
 
-    // фон, рамку и скругление рисует база — здесь только сетка дат
+    // the background, border and corner radius are drawn by the base — only the date grid here
     protected override void DrawContent(Graphics g)
     {
         var content = this.ContentBounds;
         CalendarLayout layout = GetLayout();
         Font font = layout.Font;
 
-        // подсветка стрелки — до текста, иначе заливка закрывает глиф
+        // the arrow highlight goes before the text, otherwise the fill covers the glyph
         if (_hoveredHeaderButton == -1)
         {
             g.FillRectangle(
@@ -199,7 +199,7 @@ public partial class Calendar : DecoratedControl
                 HeaderHoverColor);
         }
 
-        // заголовок: ‹ Месяц Год ›
+        // header: ‹ Month Year ›
         g.DrawText("‹",
             new Rectangle(new Point(content.X, content.Y), new Size(layout.ArrowWidth, layout.HeaderHeight)),
             TextColor, font, HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
@@ -210,14 +210,14 @@ public partial class Calendar : DecoratedControl
                 new Size(layout.ArrowWidth, layout.HeaderHeight)),
             TextColor, font, HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
-        // высоту строки берём по эталонной паре, а не по самому тексту:
-        // иначе центр гуляет из-за выносных элементов букв
+        // the line height is taken from a reference pair rather than the text itself:
+        // otherwise the center wanders because of ascenders and descenders
         float lineHeight = TextMeasurer.Current.MeasureText("Wg", font).Height;
 
         var monthRect = new Rectangle(
             new Point(content.X + layout.ArrowWidth, content.Y + ((layout.HeaderHeight - lineHeight) / 2f)),
-            // Max: на узком календаре стрелки съедают всю ширину,
-            // и прямоугольник ушёл бы в минус
+            // Max: on a narrow calendar the arrows eat the whole width,
+            // and the rectangle would go negative
             new Size(Math.Max(0, content.Width - (2 * layout.ArrowWidth)), lineHeight));
 
         g.DrawText(_displayMonth.ToString("MMMM yyyy", EffectiveCulture), monthRect, TextColor, font,
@@ -225,9 +225,9 @@ public partial class Calendar : DecoratedControl
 
         string[] abbreviated = GetDayNames(shortest: false);
 
-        // сокращения либо влезают все, либо меняются все: разнобой из
-        // «Пн» и «В» в одной строке выглядит поломкой, а не экономией.
-        // Обрезанное DrawText'ом «понед» читается хуже честной одной буквы
+        // the abbreviations either all fit or all change: a mix of "Mon" and "M"
+        // in one row looks like a bug rather than economy. A "Mon" cut to "Mo"
+        // by DrawText reads worse than an honest single letter
         bool fits = true;
 
         foreach (string name in abbreviated)
@@ -263,8 +263,8 @@ public partial class Calendar : DecoratedControl
                 int cellIndex = (row * Columns) + col;
                 bool selected = SelectedDate?.Date == date.Date;
 
-                // ровно одна заливка на ячейку: раньше выделенные заливались
-                // дважды, и полупрозрачный SelectionColor выходил плотнее
+                // exactly one fill per cell: previously selected ones were filled
+                // twice, and a translucent SelectionColor came out denser
                 if (selected)
                     g.FillRectangle(rect, SelectionColor);
                 else if (cellIndex == _hoveredCell)
@@ -326,7 +326,7 @@ public partial class Calendar : DecoratedControl
 
         if (localY < layout.GridTop) return (-1, 0);
 
-        // сжатая до нуля сетка: делить нечем, и попадать не во что
+        // a grid compressed to zero: nothing to divide by, and nothing to hit
         if (layout.Cell.Width <= 0 || layout.Cell.Height <= 0) return (-1, 0);
 
         int col = (int)(localX / layout.Cell.Width);
@@ -350,8 +350,13 @@ public partial class Calendar : DecoratedControl
 
     protected override void OnMouseExit(MouseMoveEventArgs args)
     {
+        if (_hoveredCell < 0 && _hoveredHeaderButton == 0) return;
+
         _hoveredCell = -1;
         _hoveredHeaderButton = 0;
+
+        // without a redraw the cell or arrow stayed highlighted after the mouse left
+        InvalidateVisual();
     }
 
     public void SetSelectedDate(DateTime date)

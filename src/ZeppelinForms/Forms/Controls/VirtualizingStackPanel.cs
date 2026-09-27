@@ -6,17 +6,16 @@ using ZeppelinForms.Forms.Enums;
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Создаёт контейнеры только для видимых элементов. Требует одинаковой
-/// высоты строк — иначе нельзя вычислить видимый диапазон без измерения всех.
+/// Creates containers only for visible items. Requires rows of equal
+/// height — otherwise the visible range can't be computed without measuring all of them.
 /// </summary>
 /// <remarks>
-/// Контейнер принадлежит элементу, а не позиции в списке. Когда состав
-/// источника меняется — узел дерева раскрылся, строку вставили выше
-/// видимого окна, — уже созданные контейнеры не пересоздаются, а просто
-/// переезжают на новый индекс. Пересоздание по индексу отвязывало всё окно
-/// строк от дерева и строило его заново: терялись наведение и нажатие,
-/// заново применялась тема, а строка, по которой кликнули, исчезала прямо
-/// внутри своего OnClick.
+/// A container belongs to an item, not to a position in the list. When the
+/// source's contents change — a tree node expanded, a row inserted above the
+/// visible window — containers already created are not recreated but simply
+/// move to their new index. Recreating by index detached the whole window of
+/// rows from the tree and built it again: hover and press were lost, the theme
+/// was reapplied, and the row that was clicked vanished right inside its own OnClick.
 /// </remarks>
 public class VirtualizingStackPanel : DecoratedPanel
 {
@@ -24,12 +23,12 @@ public class VirtualizingStackPanel : DecoratedPanel
     private Dictionary<int, UIElement> _next = [];
     private readonly Stack<UIElement> _recycled = new();
 
-    // элемент источника, который показывает контейнер. Сравнение по ссылке:
-    // узел дерева с переопределённым Equals не должен забрать чужую строку
+    // the source item a container shows. Compared by reference: a tree node
+    // with an overridden Equals must not take someone else's row
     private readonly Dictionary<UIElement, object?> _itemOf = new(ReferenceEqualityComparer.Instance);
 
-    // рабочие коллекции пересборки диапазона — поля, а не локальные,
-    // чтобы прокрутка не выделяла память на каждую строку
+    // working collections of the range rebuild — fields rather than locals,
+    // so that scrolling doesn't allocate memory per row
     private readonly Dictionary<object, UIElement> _byItem = new(ReferenceEqualityComparer.Instance);
     private readonly List<UIElement> _unmatched = [];
     private readonly List<int> _missing = [];
@@ -38,7 +37,21 @@ public class VirtualizingStackPanel : DecoratedPanel
     private int _visibleCount;
     private bool _rangeValid;
 
-    public IList<object> ItemsSource { get; set; } = [];
+    public IList<object> ItemsSource
+    {
+        get;
+        set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            field = value;
+
+            // a new source is a new set of items: the range must be rebuilt,
+            // as with Refresh. Previously the list kept showing the old rows
+            // until someone called Refresh by hand
+            Refresh();
+        }
+    } = [];
 
     public Func<object, UIElement>? ItemTemplate
     {
@@ -47,8 +60,8 @@ public class VirtualizingStackPanel : DecoratedPanel
         {
             if (field == value) return;
 
-            // контейнеры прежнего шаблона новому не подходят, а пул
-            // подписей бесполезен шаблону — сбрасываем и то, и другое
+            // containers of the previous template don't fit the new one,
+            // and a pool of labels is useless to a template — reset both
             RecycleAll();
             _recycled.Clear();
 
@@ -59,7 +72,7 @@ public class VirtualizingStackPanel : DecoratedPanel
         }
     }
 
-    /// <summary>Высота строки. Одинакова для всех — на этом строится виртуализация.</summary>
+    /// <summary>Row height. Equal for all — virtualization is built on that.</summary>
     public float ItemHeight
     {
         get;
@@ -69,13 +82,14 @@ public class VirtualizingStackPanel : DecoratedPanel
 
             field = value;
 
-            // от высоты строки зависит и общий размер, и видимый диапазон
+            // both the total size and the visible range depend on the row height
             _rangeValid = false;
             Invalidate();
         }
     } = 24f;
 
-    /// <summary>Сколько строк готовить сверх видимых, чтобы прокрутка не мигала.</summary>
+    /// <summary>How many rows to prepare beyond the visible ones,
+    /// so that scrolling doesn't flicker.</summary>
     public int OverscanCount
     {
         get;
@@ -94,13 +108,13 @@ public class VirtualizingStackPanel : DecoratedPanel
         OverflowY = Overflow.Auto;
     }
 
-    /// <summary>Состав или порядок ItemsSource изменились.</summary>
+    /// <summary>The contents or order of ItemsSource changed.</summary>
     public void Refresh()
     {
-        // детей здесь не трогаем: вычистить их сейчас значит показать пустой
-        // список в кадре между Refresh и ближайшим измерением — это и есть
-        // мерцание. Достаточно объявить диапазон недействительным,
-        // а пересоберёт его UpdateRealizedRange в том же проходе раскладки
+        // children are not touched here: clearing them now means showing an empty
+        // list in the frame between Refresh and the next measure — that is
+        // the flicker. It is enough to declare the range invalid,
+        // and UpdateRealizedRange rebuilds it in the same layout pass
         _rangeValid = false;
 
         Invalidate();
@@ -114,8 +128,8 @@ public class VirtualizingStackPanel : DecoratedPanel
         {
             foreach (UIElement container in _realized.Values)
             {
-                // полная пересборка — не удаление строк пользователем,
-                // проводить каждую исчезанием незачем
+                // a full rebuild is not the user removing rows,
+                // there is no point seeing each one off with a disappearance
                 container.SkipNextVisibilityTransitions();
 
                 Children.Remove(container);
@@ -131,11 +145,10 @@ public class VirtualizingStackPanel : DecoratedPanel
         }
     }
 
-    /// <summary>Вернуть контейнер в пул — или выбросить, если пул бесполезен.
-    /// Собственный шаблон переиспользованному контейнеру не подходит
-    /// (Reuse умеет только Label), поэтому такие контейнеры никогда
-    /// не достаются обратно, и складывать их значит копить мусор до
-    /// закрытия окна.</summary>
+    /// <summary>Return a container to the pool — or throw it away if the pool
+    /// is useless. A custom template doesn't fit a reused container
+    /// (Reuse knows only Label), so such containers are never taken back,
+    /// and storing them means hoarding garbage until the window closes.</summary>
     private void Recycle(UIElement container)
     {
         if (ItemTemplate is not null) return;
@@ -143,18 +156,19 @@ public class VirtualizingStackPanel : DecoratedPanel
         _recycled.Push(container);
     }
 
+    // the text color is not set here: it comes from the theme, and a hard-coded
+    // black made the rows invisible on a dark background
     private UIElement CreateContainer(object item) =>
         ItemTemplate?.Invoke(item) ?? new Label
         {
             Text = item?.ToString() ?? string.Empty,
-            TextColor = Colors.Black,
             HorizontalContentAlign = HorizontalContentAlignment.Left,
             VerticalContentAlign = VerticalContentAlignment.Center,
             Padding = new Thickness(6, 3),
         };
 
-    /// <summary>Привести набор контейнеров к видимому окну.</summary>
-    /// <returns>true, если состав контейнеров изменился и их надо измерить.</returns>
+    /// <summary>Bring the set of containers to the visible window.</summary>
+    /// <returns>true if the set of containers changed and they need measuring.</returns>
     private bool UpdateRealizedRange(float viewportHeight)
     {
         if (ItemsSource.Count == 0 || ItemHeight <= 0)
@@ -169,27 +183,27 @@ public class VirtualizingStackPanel : DecoratedPanel
 
         int total = ItemsSource.Count;
 
-        // ScrollY здесь может быть от прошлого состава: список только что
-        // свернулся, а зажмёт прокрутку PanelControl лишь в размещении.
-        // Без зажима first уезжал за конец, и count уходил в минус
+        // ScrollY here may be from the previous contents: the list has just
+        // collapsed, and PanelControl clamps the scroll only when arranging.
+        // Without a clamp first ran past the end, and count went negative
         int first = Math.Clamp((int)(ScrollY / ItemHeight) - OverscanCount, 0, total - 1);
         int count = (int)Math.Ceiling(viewportHeight / ItemHeight) + OverscanCount * 2;
         count = Math.Clamp(count, 0, total - first);
 
-        // ранний выход обязан смотреть на _rangeValid: после Refresh диапазон
-        // часто прежний, а элементы в нём уже другие. Без этой проверки
-        // раскрытие узла оставляло строки от старой проекции
+        // the early exit must look at _rangeValid: after Refresh the range is often
+        // the same, but the items in it are different. Without this check
+        // expanding a node left rows from the old projection
         if (_rangeValid && first == _firstVisible && count == _visibleCount)
             return false;
 
-        // прокрутка при прежнем составе источника: строки не появляются
-        // и не исчезают, а въезжают в окно и выезжают из него. Появлением
-        // и исчезанием это становится только после Refresh
+        // scrolling with the source's contents unchanged: rows don't appear
+        // or disappear, they roll into the window and out of it. It becomes
+        // appearing and disappearing only after Refresh
         bool scrolling = _rangeValid;
 
-        // после Refresh уходящая строка может быть просто вытеснена за край —
-        // её элемент по-прежнему в источнике. Исчезать должна только та,
-        // чей элемент убран. Набор нужен, только если исчезание включено
+        // after Refresh an outgoing row may simply be pushed beyond the edge —
+        // its item is still in the source. Only the row whose item was removed
+        // should disappear. The set is needed only if disappearing is enabled
         HashSet<object>? present = !scrolling && ChildrenExitTransition is not null
             ? new HashSet<object>(ItemsSource.Where(item => item is not null), ReferenceEqualityComparer.Instance)
             : null;
@@ -198,8 +212,8 @@ public class VirtualizingStackPanel : DecoratedPanel
 
         try
         {
-            // 1. прежние контейнеры по их элементам. Повтор той же ссылки
-            // в источнике (одна строка дважды) получает отдельный контейнер
+            // 1. the previous containers by their items. A repeat of the same
+            // reference in the source (one row twice) gets a separate container
             foreach (UIElement container in _realized.Values)
             {
                 object? item = _itemOf.GetValueOrDefault(container);
@@ -208,8 +222,8 @@ public class VirtualizingStackPanel : DecoratedPanel
                     _unmatched.Add(container);
             }
 
-            // 2. новое окно: всё, что было видно, остаётся тем же объектом
-            // и лишь переезжает на свой новый индекс
+            // 2. the new window: everything that was visible stays the same object
+            // and just moves to its new index
             for (int i = first; i < first + count; i++)
             {
                 object item = ItemsSource[i];
@@ -220,13 +234,13 @@ public class VirtualizingStackPanel : DecoratedPanel
                     _missing.Add(i);
             }
 
-            // всё, что в новое окно не попало, свободно
+            // whatever didn't make it into the new window is free
             _unmatched.AddRange(_byItem.Values);
             _byItem.Clear();
 
-            // 3. недостающие строки. Без шаблона свободную подпись
-            // перепривязываем прямо на месте — отвязывать её от дерева,
-            // чтобы тут же привязать обратно, незачем
+            // 3. the missing rows. Without a template a free label is rebound right
+            // in place — there is no point detaching it from the tree only to
+            // attach it back immediately
             int free = 0;
 
             foreach (int index in _missing)
@@ -238,8 +252,8 @@ public class VirtualizingStackPanel : DecoratedPanel
                 {
                     container = Reuse(_unmatched[free++], item);
 
-                    // контейнер сменил элемент, а не переехал: анимировать
-                    // его дорогу с прежнего индекса на новый незачем
+                    // the container changed its item rather than moved: there is
+                    // no point animating its trip from the old index to the new one
                     container.SkipNextLayoutTransition();
                 }
                 else if (ItemTemplate is null && _recycled.Count > 0)
@@ -260,13 +274,13 @@ public class VirtualizingStackPanel : DecoratedPanel
                 _next[index] = container;
             }
 
-            // 4. убираем то, что вышло за окно, в переиспользование
+            // 4. whatever left the window goes into reuse
             for (; free < _unmatched.Count; free++)
             {
                 UIElement container = _unmatched[free];
 
-                // выехала за край — не исчезла. Исчезает только строка,
-                // чьего элемента больше нет в источнике
+                // rolled out beyond the edge — didn't disappear. Only a row
+                // whose item is no longer in the source disappears
                 if (scrolling ||
                     (present is not null &&
                      _itemOf.GetValueOrDefault(container) is { } gone &&
@@ -306,9 +320,9 @@ public class VirtualizingStackPanel : DecoratedPanel
 
     protected override Size MeasureContentOverride(Size availableSize)
     {
-        // по прокручиваемой оси PanelControl даёт бесконечность, и настоящая
-        // высота окна известна только по прошлому размещению. Двадцать строк —
-        // лишь догадка для самого первого прохода: размещение её поправит
+        // along the scrollable axis PanelControl gives infinity, and the real window
+        // height is known only from the previous arrange. Twenty rows is just
+        // a guess for the very first pass: the arrange will correct it
         float viewportHeight = float.IsFinite(availableSize.Height)
             ? availableSize.Height
             : ArrangedViewport.Height > 0 ? ArrangedViewport.Height : ItemHeight * 20;
@@ -327,8 +341,8 @@ public class VirtualizingStackPanel : DecoratedPanel
             maxWidth = Math.Max(maxWidth, container.DesiredSize.Width);
         }
 
-        // высота считается по всему списку, а не по созданным строкам —
-        // иначе полоса прокрутки будет врать
+        // the height is computed for the whole list, not for the created rows —
+        // otherwise the scrollbar would lie
         return new Size(
             maxWidth + Padding.Horizontal,
             ItemsSource.Count * ItemHeight + Padding.Vertical);
@@ -338,11 +352,12 @@ public class VirtualizingStackPanel : DecoratedPanel
     {
         float width = Math.Max(0, contentSize.Width - Padding.Horizontal);
 
-        // здесь высота окна уже точная. Если догадка измерения не совпала —
-        // окно выросло, панель впервые размещается, — досоздаём строки сразу,
-        // а не просим второй проход: контейнеры тут же и меряются.
-        // Ширина панели по авторазмеру при этом не пересчитывается до
-        // следующего прохода — строки одной высоты её почти не меняют
+        // here the window height is already exact. If the measure's guess was
+        // off — the window grew, the panel is arranged for the first time —
+        // the rows are created right away rather than asking for a second pass:
+        // the containers are measured right here. The panel's width under
+        // auto-sizing isn't recomputed until the next pass — rows of equal
+        // height hardly change it
         if (UpdateRealizedRange(ArrangedViewport.Height))
         {
             var itemSize = new Size(width, ItemHeight);

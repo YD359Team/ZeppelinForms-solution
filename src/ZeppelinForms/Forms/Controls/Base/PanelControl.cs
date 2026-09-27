@@ -314,6 +314,13 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
     // ===== scrolling on top of the regular layout =====
 
+    /// <summary>The content is being measured right now: an explicit Size on
+    /// a scrolling axis is set aside, see IsExplicitSizeSuspended.</summary>
+    private bool _measuringContent;
+
+    private protected override bool IsExplicitSizeSuspended(bool horizontal) =>
+        _measuringContent && (horizontal ? ScrollsHorizontally : ScrollsVertically);
+
     protected sealed override Size MeasureOverride(Size availableSize)
     {
         // along a scrollable axis the content may grow as much as it needs
@@ -321,24 +328,40 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
             ScrollsHorizontally ? float.PositiveInfinity : availableSize.Width,
             ScrollsVertically ? float.PositiveInfinity : availableSize.Height);
 
-        _contentSize = MeasureContentOverride(probe);
+        // the content reports its real extent: an explicit Size on a scrolling
+        // axis is the viewport, and it is applied below, to the panel itself.
+        // Previously it went into the content extent, and a list with a set
+        // height — every ComboBox drop-down — had nothing to scroll
+        _measuringContent = true;
 
-        if (ScrollBarMode == ScrollBarMode.Inline)
+        try
         {
-            var (vertical, horizontal) = ResolveBars(availableSize);
+            _contentSize = MeasureContentOverride(probe);
 
-            if (vertical || horizontal)
+            if (ScrollBarMode == ScrollBarMode.Inline)
             {
-                _contentSize = MeasureContentOverride(new Size(
-                    ScrollsHorizontally ? probe.Width : probe.Width - (vertical ? ScrollBarThickness : 0),
-                    ScrollsVertically ? probe.Height : probe.Height - (horizontal ? ScrollBarThickness : 0)));
+                var (vertical, horizontal) = ResolveBars(availableSize);
+
+                if (vertical || horizontal)
+                {
+                    _contentSize = MeasureContentOverride(new Size(
+                        ScrollsHorizontally ? probe.Width : probe.Width - (vertical ? ScrollBarThickness : 0),
+                        ScrollsVertically ? probe.Height : probe.Height - (horizontal ? ScrollBarThickness : 0)));
+                }
             }
+        }
+        finally
+        {
+            _measuringContent = false;
         }
 
         // the panel itself doesn't go beyond what it was given — the excess goes into scrolling
-        return new Size(
+        var own = new Size(
             ScrollsHorizontally ? Math.Min(_contentSize.Width, availableSize.Width) : _contentSize.Width,
             ScrollsVertically ? Math.Min(_contentSize.Height, availableSize.Height) : _contentSize.Height);
+
+        // and now the explicit Size applies — to the panel, not to its content
+        return ResolveSize(own, availableSize);
     }
 
     protected sealed override Size ArrangeOverride(Size finalSize)

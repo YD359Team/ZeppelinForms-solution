@@ -11,7 +11,7 @@ using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Forms.Controls;
 
-/// <summary>Что и куда перенесли.</summary>
+/// <summary>What was moved and where.</summary>
 public sealed record class DragListDropEventArgs(
     object Item,
     DragList Source,
@@ -20,13 +20,13 @@ public sealed record class DragListDropEventArgs(
     int TargetIndex);
 
 /// <summary>
-/// Список с перестановкой строк мышью. Списки с одинаковым
-/// <see cref="Group"/> обмениваются строками между собой.
+/// A list with rows reordered by the mouse. Lists with the same
+/// <see cref="Group"/> exchange rows with each other.
 /// </summary>
 public partial class DragList : ItemsControl
 {
-    // перетаскивание одно на всё приложение: тянуть можно только одну строку,
-    // а список-приёмник должен знать, что к нему летит
+    // one drag for the whole application: only one row can be dragged,
+    // and the receiving list must know what is flying to it
     private static DragList? _source;
     private static DragList? _target;
     private static object? _item;
@@ -38,16 +38,17 @@ public partial class DragList : ItemsControl
 
     private string? _group;
     private bool _attached;
-    /// <summary>Чем ведут текущее взаимодействие. Мышью перенос начинается
-    /// от порога сдвига, пальцем — только после удержания: иначе протянуть
-    /// список пальцем стало бы невозможно, каждое движение уносило бы строку.</summary>
+    /// <summary>What drives the current interaction. With the mouse a move starts
+    /// at the movement threshold, with a finger only after a hold: otherwise
+    /// scrolling the list with a finger would become impossible, every movement
+    /// would carry a row away.</summary>
     private PointerKind _pointerKind = PointerKind.Mouse;
     private bool _dragging;
     private Point _pressOrigin;
     private int _pressIndex = -1;
 
-    /// <summary>Имя группы. Списки одной группы могут передавать строки
-    /// друг другу. Пусто — список замкнут на себя.</summary>
+    /// <summary>The group name. Lists of one group can pass rows
+    /// to each other. Empty — the list is closed on itself.</summary>
     public string? Group
     {
         get => _group;
@@ -61,18 +62,18 @@ public partial class DragList : ItemsControl
         }
     }
 
-    /// <summary>Разрешено ли забирать строки отсюда.</summary>
+    /// <summary>Whether rows may be taken from here.</summary>
     public bool CanSendItem { get; set; } = true;
 
-    /// <summary>Разрешено ли класть строки сюда.</summary>
+    /// <summary>Whether rows may be put here.</summary>
     public bool CanReceiveItem { get; set; } = true;
 
-    /// <summary>Точечный фильтр поверх <see cref="CanReceiveItem"/>:
-    /// решает по конкретной строке и списку-источнику.</summary>
+    /// <summary>A fine-grained filter on top of <see cref="CanReceiveItem"/>:
+    /// decides by the specific row and the source list.</summary>
     public Func<object, DragList, bool>? ReceivePredicate { get; set; }
 
-    /// <summary>Сколько пикселей надо протащить, прежде чем это считается
-    /// перетаскиванием, а не промахом при клике.</summary>
+    /// <summary>How many pixels must be dragged before it counts as dragging
+    /// rather than a miss while clicking.</summary>
     public float DragThreshold { get; set; } = 4f;
 
     public float DropIndicatorHeight { get; set; } = 2f;
@@ -85,25 +86,25 @@ public partial class DragList : ItemsControl
     public partial Color DragPreviewBackground { get; set; }
     private static Color DragPreviewBackgroundDefault => Colors.White;
 
-    /// <summary>Строку унесли отсюда.</summary>
+    /// <summary>A row was taken away from here.</summary>
     public event EventHandler<DragListDropEventArgs>? ItemSent;
 
-    /// <summary>Строку принесли сюда.</summary>
+    /// <summary>A row was brought here.</summary>
     public event EventHandler<DragListDropEventArgs>? ItemReceived;
 
     public DragList()
     {
-        // на сенсоре перенос начинается с удержания — так же, как
-        // в списках системных приложений. Выиграв борьбу, удержание
-        // отбирает контакт у прокрутки, и дальше строку ведут
-        // события указателя, а не совместимые события мыши
+        // on a touch screen a move starts with a hold — the same as in the system
+        // apps' lists. Having won the fight, the hold takes the contact away from
+        // scrolling, and from then on the row is driven by pointer events,
+        // not by the compatibility mouse events
         var longPress = new LongPressGestureRecognizer();
         longPress.Triggered += OnLongPressed;
 
         AddGesture(longPress);
     }
 
-    // ===== регистрация в группе =====
+    // ===== group registration =====
 
     protected override void OnAttached()
     {
@@ -118,8 +119,8 @@ public partial class DragList : ItemsControl
         Unregister();
         _attached = false;
 
-        // список уносят из дерева прямо во время перетаскивания —
-        // бросаем всё, иначе статика останется со ссылкой на мертвеца
+        // the list is carried out of the tree right in the middle of a drag —
+        // drop everything, otherwise the static state would keep a reference to a dead one
         if (ReferenceEquals(_source, this) || ReferenceEquals(_target, this))
             CancelDrag();
     }
@@ -146,7 +147,7 @@ public partial class DragList : ItemsControl
             Groups.Remove(_group);
     }
 
-    /// <summary>Куда вообще можно уронить: сам список плюс его группа.</summary>
+    /// <summary>Where dropping is possible at all: the list itself plus its group.</summary>
     private IEnumerable<DragList> DropCandidates()
     {
         yield return this;
@@ -159,14 +160,21 @@ public partial class DragList : ItemsControl
                 yield return list;
     }
 
-    // ===== мышь =====
+    // ===== mouse =====
 
-    /// <summary>Нажатие только запоминаем. Захват брать рано: пока это может
-    /// оказаться обычным кликом, а захват на время клика замораживает
-    /// наведение и курсор для всей формы.</summary>
+    /// <summary>The press is only remembered. Taking capture is too early: this may
+    /// still turn out to be an ordinary click, and capture for the duration
+    /// of a click freezes hover and the cursor for the whole form.</summary>
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
-        if (!CanSendItem || Children.Count == 0) return;
+        // only the left button moves rows. A drag with the right button used to
+        // start a move too, while only a left release completes it — after
+        // releasing the right button the preview kept following the cursor
+        if (e.Button != MouseButton.Left) return;
+
+        // the hit lands on a row, which is itself enabled,
+        // so the form's check for a disabled hit doesn't stop us
+        if (!IsEnabled || !CanSendItem || Children.Count == 0) return;
 
         int index = IndexAt(ToLocal(e.Location));
         if (index < 0) return;
@@ -176,23 +184,25 @@ public partial class DragList : ItemsControl
         _dragging = false;
     }
 
-    /// <summary>Движение приходит предпросмотром, потому что попадание
-    /// досталось строке: перехватывать его мы не хотим — кнопки внутри
-    /// строк должны продолжать работать.</summary>
+    /// <summary>The move comes through the preview because the hit went to a row:
+    /// we don't want to intercept it — buttons inside rows must keep working.</summary>
     protected override void OnPreviewMouseMove(MouseMoveEventArgs e)
     {
         if (_pressIndex < 0) return;
 
-        // пальцем перенос начинается только с удержания: движение —
-        // это прокрутка, и отбирать её у списка нельзя
+        // with a finger a move starts only with a hold: movement is scrolling,
+        // and it must not be taken away from the list
         if (_pointerKind != PointerKind.Mouse) return;
 
         if (!_dragging)
         {
-            // порог: без него любой клик дрожащей рукой станет переносом
+            // the threshold: without it any click with a shaky hand would become a move
             if (Point.DistanceBetween(e.Location, _pressOrigin) < DragThreshold) return;
 
             BeginDrag();
+
+            // BeginDrag may refuse — the row is gone, the list is empty
+            if (!_dragging) return;
         }
 
         UpdateDrag(e.Location);
@@ -212,10 +222,10 @@ public partial class DragList : ItemsControl
         _dragging = false;
     }
 
-    /// <summary>Контакт оборвали: жест забрал его себе, платформа прислала
-    /// отмену, окно потеряло фокус. Отпускания после этого не будет,
-    /// поэтому прибираем за собой сами — иначе перетаскиваемая строка
-    /// останется висеть поверх формы навсегда.</summary>
+    /// <summary>The contact was cut off: a gesture took it, the platform sent
+    /// a cancel, the window lost focus. There will be no release after that,
+    /// so we clean up ourselves — otherwise the dragged row would hang
+    /// over the form forever.</summary>
     protected override void OnPointerCanceled(PointerCancelEventArgs e)
     {
         _pressIndex = -1;
@@ -225,10 +235,10 @@ public partial class DragList : ItemsControl
         CancelDrag();
     }
 
-    /// <summary>Идёт ли перенос строки прямо сейчас.</summary>
+    /// <summary>Whether a row is being moved right now.</summary>
     public bool IsDragging => _dragging;
 
-    // ===== касание =====
+    // ===== touch =====
 
     protected override void OnPointerDown(PointerEventArgs e)
     {
@@ -237,15 +247,15 @@ public partial class DragList : ItemsControl
         _pointerKind = e.Kind;
     }
 
-    /// <summary>Удержание победило: строка берётся на перенос отсюда,
-    /// а не от порога сдвига.</summary>
+    /// <summary>The hold won: the row is taken for moving from here,
+    /// not from the movement threshold.</summary>
     private void OnLongPressed(object? sender, LongPressGestureEventArgs e)
     {
-        if (!CanSendItem || Children.Count == 0) return;
+        if (!IsEnabled || !CanSendItem || Children.Count == 0) return;
 
-        // индекс берём заново по точке удержания: отмена совместимых
-        // событий, которая идёт вместе с победой жеста, уже сбросила
-        // запомненное нажатие
+        // the index is taken anew from the hold point: the cancellation of
+        // compatibility events that comes with the gesture's victory has
+        // already reset the remembered press
         int index = IndexAt(ToLocal(e.Location));
         if (index < 0) return;
 
@@ -253,11 +263,13 @@ public partial class DragList : ItemsControl
         _pressIndex = index;
 
         BeginDrag();
-        UpdateDrag(e.Location);
+
+        if (_dragging)
+            UpdateDrag(e.Location);
     }
 
-    /// <summary>Перенос пальцем ведут события указателя: совместимые
-    /// события мыши после победы жеста уже не приходят.</summary>
+    /// <summary>A move by finger is driven by pointer events: compatibility
+    /// mouse events no longer arrive after the gesture's victory.</summary>
     protected override void OnPointerMove(PointerEventArgs e)
     {
         if (!_dragging || _pointerKind == PointerKind.Mouse) return;
@@ -276,25 +288,37 @@ public partial class DragList : ItemsControl
         _dragging = false;
     }
 
-    // ===== перетаскивание =====
+    // ===== dragging =====
 
     private void BeginDrag()
     {
-        // предыдущее перетаскивание могло не завершиться — например,
-        // если элемент убрали из дерева на полпути
+        // CancelDrag resets _pressIndex of the list that owned the unfinished
+        // drag, and that may be this very list — then Items[_pressIndex] below
+        // read -1 and threw. So the press is taken before the cleanup
+        int index = _pressIndex;
+
+        // the previous drag may not have finished — for example,
+        // if the element was removed from the tree halfway
         CancelDrag();
 
+        if (index < 0 || index >= Items.Count || index >= Children.Count)
+        {
+            _pressIndex = -1;
+            return;
+        }
+
+        _pressIndex = index;
         _dragging = true;
         _source = this;
-        _sourceIndex = _pressIndex;
-        _item = Items[_pressIndex];
+        _sourceIndex = index;
+        _item = Items[index];
 
-        _preview = CreatePreview(Children[_pressIndex], _item);
+        _preview = CreatePreview(Children[index], _item);
 
         FindOwner()?.AddOverlay(_preview);
 
-        // захват — с этого момента: отпускание кнопки за пределами окна
-        // должно дойти до нас, иначе перетаскивание залипнет
+        // capture from this moment on: releasing the button outside the window
+        // must reach us, otherwise the drag would get stuck
         CaptureMouse();
     }
 
@@ -322,7 +346,7 @@ public partial class DragList : ItemsControl
 
         if (!ReferenceEquals(target, _target))
         {
-            // перерисовать надо оба: со старого убрать полоску, на новый добавить
+            // both must be redrawn: remove the stripe from the old one, add it to the new one
             _target?.InvalidateVisual();
             target?.InvalidateVisual();
         }
@@ -334,8 +358,8 @@ public partial class DragList : ItemsControl
         _target = target;
         _targetIndex = index;
 
-        // именно Invalidate, а не InvalidateVisual: превью — оверлей,
-        // его позицию подхватывает только проход раскладки
+        // exactly Invalidate, not InvalidateVisual: the preview is an overlay,
+        // and its position is picked up only by a layout pass
         FindOwner()?.Invalidate();
     }
 
@@ -343,7 +367,7 @@ public partial class DragList : ItemsControl
     {
         if (!CanReceiveItem) return false;
 
-        // в себя роняем всегда: это перестановка, а не передача между списками
+        // we always drop into ourselves: that is reordering, not transfer between lists
         if (!ReferenceEquals(source, this) && !SameGroup(source)) return false;
 
         return ReceivePredicate?.Invoke(item, source) ?? true;
@@ -353,8 +377,8 @@ public partial class DragList : ItemsControl
         !string.IsNullOrEmpty(_group) &&
         string.Equals(_group, other._group, StringComparison.Ordinal);
 
-    /// <summary>Завершить перетаскивание переносом строки. Имя не Drop:
-    /// так называется событие UIElement, и совпадение перекрывало бы его.</summary>
+    /// <summary>Finish the drag by moving the row. Not named Drop:
+    /// that is the name of a UIElement event, and the name would hide it.</summary>
     private void CompleteDrop()
     {
         DragList? target = _target;
@@ -368,8 +392,8 @@ public partial class DragList : ItemsControl
 
         if (ReferenceEquals(target, this))
         {
-            // строку сначала вынимают, поэтому при переносе вниз
-            // все индексы после неё съезжают на один
+            // the row is taken out first, so when moving down
+            // all indices after it shift by one
             int corrected = to > from ? to - 1 : to;
 
             if (corrected == from) return;
@@ -413,9 +437,9 @@ public partial class DragList : ItemsControl
         _targetIndex = -1;
     }
 
-    // ===== геометрия =====
+    // ===== geometry =====
 
-    /// <summary>Индекс строки под точкой, или -1.</summary>
+    /// <summary>The index of the row under the point, or -1.</summary>
     private int IndexAt(Point local)
     {
         for (int i = 0; i < Children.Count; i++)
@@ -430,7 +454,7 @@ public partial class DragList : ItemsControl
         return -1;
     }
 
-    /// <summary>Куда вставить: по середине строки решаем, до неё или после.</summary>
+    /// <summary>Where to insert: the middle of a row decides whether before it or after.</summary>
     private int InsertionIndexAt(Point local)
     {
         for (int i = 0; i < Children.Count; i++)
@@ -451,10 +475,10 @@ public partial class DragList : ItemsControl
         return new Point(absolute.X - origin.X, absolute.Y - origin.Y);
     }
 
-    // ===== отрисовка =====
+    // ===== drawing =====
 
-    /// <summary>Полоска места вставки. DrawDecoration зовётся из DrawOverlay,
-    /// то есть после потомков — линию не перекроют строки.</summary>
+    /// <summary>The insertion stripe. DrawDecoration is called from DrawOverlay,
+    /// that is, after the children — the rows won't cover the line.</summary>
     protected override void DrawDecoration(Graphics g)
     {
         if (!ReferenceEquals(_target, this) || _targetIndex < 0) return;
@@ -483,16 +507,16 @@ public partial class DragList : ItemsControl
             Padding = new Thickness(2f),
             Opacity = 0.85f,
 
-            // оверлеи хит-тестятся первыми: без этого превью
-            // перехватит курсор у списков под ним
+            // overlays are hit tested first: without this the preview
+            // would intercept the cursor from the lists under it
             IsHitTestVisible = false,
 
             Child = Snapshot(container) ?? Caption(item),
         };
     }
 
-    /// <summary>Снимок строки. Если рендерер не зарегистрирован —
-    /// обойдёмся подписью, ронять перетаскивание из-за превью незачем.</summary>
+    /// <summary>A snapshot of the row. If no renderer is registered — make do with
+    /// a caption, there is no point crashing the drag because of the preview.</summary>
     private static UIElement? Snapshot(UIElement container)
     {
         try
