@@ -94,6 +94,7 @@ public static class Themes
 
             .For<PropertyGrid>((panel, c) =>
             {
+                panel.Background = c.Surface;
                 panel.BorderColor = c.Border;
                 panel.BorderWidth = 2f;
             })
@@ -193,6 +194,22 @@ public static class Themes
             {
                 combo.Background = c.Surface;
                 combo.PlaceholderColor = c.TextSecondary;
+            })
+
+            // controls that set a white background as their own default and had
+            // no rule here: in the dark theme they stayed white while their text
+            // took the theme's light color and became unreadable
+            .For<DateTimePicker>((picker, c) => picker.Background = c.Surface)
+            .For<TimePicker>((picker, c) => picker.Background = c.Surface)
+            .For<ColorPicker>((picker, c) => picker.Background = c.Surface)
+            .For<CheckedComboBox>((combo, c) => combo.Background = c.Surface)
+            .For<MaskedTextBox>((box, c) => box.Background = c.Surface)
+
+            .For<CheckedListBox>((list, c) =>
+            {
+                list.BoxBackground = c.Surface;
+                list.BoxBorderColor = c.Border;
+                list.CheckColor = c.Accent;
             })
 
             .For<ListBox>((list, c) =>

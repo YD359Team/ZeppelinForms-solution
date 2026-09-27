@@ -8,8 +8,25 @@ public class Grid : DecoratedPanel
     private float[] _rowHeights = [];
     private float[] _colWidths = [];
 
-    public string Columns { set => ColumnDefinitions = GridLength.Parse(value); }
-    public string Rows { set => RowDefinitions = GridLength.Parse(value); }
+    // new track definitions mean a new layout: without Invalidate a grid
+    // that was already shown kept its old tracks until something else moved
+    public string Columns
+    {
+        set
+        {
+            ColumnDefinitions = GridLength.Parse(value);
+            Invalidate();
+        }
+    }
+
+    public string Rows
+    {
+        set
+        {
+            RowDefinitions = GridLength.Parse(value);
+            Invalidate();
+        }
+    }
 
     public List<GridLength> RowDefinitions { get; private set; } = [];
     public List<GridLength> ColumnDefinitions { get; private set; } = [];
@@ -67,7 +84,7 @@ public class Grid : DecoratedPanel
         }
     }
 
-    /// <summary>Суммарный размер треков, которые занимает элемент.</summary>
+    /// <summary>The total size of the tracks the element occupies.</summary>
     private static float SpanExtent(float[] tracks, int start, int span)
     {
         if (tracks.Length == 0) return 0;
@@ -87,13 +104,13 @@ public class Grid : DecoratedPanel
     {
         float[] sizes = new float[defs.Count];
 
-        // 1. фиксированные — известны сразу
+        // 1. fixed — known right away
         for (int i = 0; i < defs.Count; i++)
             if (defs[i].Unit == GridUnit.Fixed)
                 sizes[i] = defs[i].Value;
 
-        // 2. Auto — по самому крупному ребёнку в треке; для этого детей
-        //    надо предварительно измерить без ограничения по этой оси
+        // 2. Auto — by the largest child in the track; for that the children
+        //    must be measured beforehand without a constraint along this axis
         bool hasAuto = defs.Any(d => d.IsAuto);
 
         if (hasAuto)
@@ -115,13 +132,13 @@ public class Grid : DecoratedPanel
                     ? child.DesiredSize.Width + child.Margin.Horizontal
                     : child.DesiredSize.Height + child.Margin.Vertical;
 
-                // растянутый на несколько треков элемент делит свои запросы
-                // между ними, иначе первый трек станет шириной всей кнопки «=»
+                // an element spanning several tracks splits its request between them,
+                // otherwise the first track would become as wide as the whole "=" button
                 sizes[track] = Math.Max(sizes[track], desired / span);
             }
         }
 
-        // 3. Star — делят то, что осталось после Fixed и Auto
+        // 3. Star — share what is left after Fixed and Auto
         float used = 0;
         for (int i = 0; i < defs.Count; i++)
             if (!defs[i].IsStar)

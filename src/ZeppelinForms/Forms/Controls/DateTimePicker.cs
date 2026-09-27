@@ -16,7 +16,20 @@ public class DateTimePicker : InteractiveControl
     private readonly FlyoutHost _flyout;
 
     public DateTime Value { get; private set; } = DateTime.Today;
-    public string Format { get; set; } = "dd.MM.yyyy";
+
+    public string Format
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the picker's size is computed from the formatted date
+            Invalidate();
+        }
+    } = "dd.MM.yyyy";
 
     public event EventHandler? ValueChanged;
 
@@ -70,7 +83,7 @@ public class DateTimePicker : InteractiveControl
         var body = new Rectangle(new Point(x, y + size * 0.15f), new Size(size, size * 0.85f));
         g.DrawRectangle(body, color, 1.2f);
 
-        // «шапка» с датой — заливка верхней полосы
+        // the "header" with the date — a fill of the top strip
         g.FillRectangle(
             new Rectangle(new Point(x, y + size * 0.15f), new Size(size, size * 0.22f)), color);
 

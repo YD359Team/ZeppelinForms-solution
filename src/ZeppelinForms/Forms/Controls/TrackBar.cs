@@ -5,6 +5,7 @@ using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
+using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -13,30 +14,93 @@ public partial class TrackBar : InteractiveControl
     private const float ThumbSize = 14f;
     private const float TrackThickness = 4f;
 
-    private float _value;
+    /// <summary>The value as it was assigned, before coercing into the range.</summary>
+    /// <remarks>
+    /// Coercing on read makes the result independent of the order of assignments:
+    /// in <c>new TrackBar { Value = 150, Maximum = 200 }</c> the value used to be
+    /// clamped by the default maximum of 100 before the real one arrived.
+    /// </remarks>
+    private float _requested;
+
     private bool _isDragging;
 
-    public float Minimum { get; set; } = 0f;
-    public float Maximum { get; set; } = 100f;
+    /// <summary>The value before the press: a cancelled drag returns to it.</summary>
+    private float _valueBeforeDrag;
+
+    public float Minimum
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            float before = Value;
+            field = value;
+            OnRangeChanged(before);
+        }
+    } = 0f;
+
+    public float Maximum
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            float before = Value;
+            field = value;
+            OnRangeChanged(before);
+        }
+    } = 100f;
+
     public float Step { get; set; } = 1f;
 
     public float Value
     {
-        get => _value;
+        get => Coerce(_requested);
         set
         {
-            float clamped = Math.Clamp(value, Minimum, Maximum);
-            if (Math.Abs(_value - clamped) < 0.001f) return;
+            float before = Value;
+            _requested = value;
 
-            _value = clamped;
+            if (Math.Abs(before - Value) < 0.001f) return;
+
             ValueChanged?.Invoke(this, EventArgs.Empty);
-            Invalidate();
+
+            // the value moves the thumb, not the geometry
+            InvalidateVisual();
         }
+    }
+
+    // Min/Max rather than Math.Clamp: while the range is being reassigned,
+    // Minimum may briefly exceed Maximum, and Math.Clamp throws on that
+    private float Coerce(float value) => Math.Min(Math.Max(value, Minimum), Maximum);
+
+    /// <summary>The range changed. If that moved the coerced value,
+    /// whoever listens to ValueChanged must know it.</summary>
+    private void OnRangeChanged(float before)
+    {
+        if (Math.Abs(before - Value) >= 0.001f)
+            ValueChanged?.Invoke(this, EventArgs.Empty);
+
+        InvalidateVisual();
     }
 
     public event EventHandler? ValueChanged;
 
-    public Orientation Orientation { get; set; } = Orientation.Horizontal;
+    public Orientation Orientation
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the default size swaps its axes together with the orientation
+            Invalidate();
+        }
+    } = Orientation.Horizontal;
 
     [Styled(Category = "Track")]
     public partial Color TrackColor { get; set; }
@@ -65,11 +129,11 @@ public partial class TrackBar : InteractiveControl
         get
         {
             float range = Maximum - Minimum;
-            return range <= 0 ? 0 : Math.Clamp((_value - Minimum) / range, 0f, 1f);
+            return range <= 0 ? 0 : Math.Clamp((Value - Minimum) / range, 0f, 1f);
         }
     }
 
-    // длина, по которой реально ездит центр ползунка
+    // the length the center of the thumb actually travels
     private float TravelLength => Math.Max(0,
         (Orientation == Orientation.Horizontal ? ActualSize.Width : ActualSize.Height) - ThumbSize);
 
@@ -127,7 +191,7 @@ public partial class TrackBar : InteractiveControl
 
         float fraction = Orientation == Orientation.Horizontal
             ? (location.X - abs.X - ThumbSize / 2f) / travel
-            // вертикальный трек растёт вверх, поэтому инвертируем
+            // a vertical track grows upward, so invert
             : 1f - (location.Y - abs.Y - ThumbSize / 2f) / travel;
 
         Value = Minimum + (Maximum - Minimum) * Math.Clamp(fraction, 0f, 1f);
@@ -135,7 +199,15 @@ public partial class TrackBar : InteractiveControl
 
     protected override void OnMouseDown(MouseButtonEventArgs args)
     {
+        // only the left button drags: the right one belongs to the context menu
+        if (args.Button != MouseButton.Left) return;
+
+        _valueBeforeDrag = Value;
         _isDragging = true;
+
+        // without capture the drag breaks off as soon as the cursor leaves the window
+        CaptureMouse();
+
         SetValueFromPoint(args.Location);
     }
 
@@ -145,7 +217,25 @@ public partial class TrackBar : InteractiveControl
             SetValueFromPoint(args.Location);
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs args) => _isDragging = false;
+    protected override void OnMouseUp(MouseButtonEventArgs args)
+    {
+        if (!_isDragging) return;
+
+        _isDragging = false;
+        ReleaseMouseCapture();
+    }
+
+    /// <summary>The interaction was cut off. Previously _isDragging stayed true
+    /// here, and after that simply hovering with no button pressed kept moving
+    /// the thumb. Nothing was committed, so the value goes back to what it was
+    /// before the press.</summary>
+    protected override void OnPointerCanceled(PointerCancelEventArgs e)
+    {
+        if (!_isDragging) return;
+
+        _isDragging = false;
+        Value = _valueBeforeDrag;
+    }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {

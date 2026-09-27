@@ -25,7 +25,7 @@ public partial class CheckBox : InteractiveControl, ITextElement
 
             _isThreeState = value;
 
-            // выключили третье состояние, а сами в нём — приводим к валидному
+            // the third state was turned off while we are in it — bring it to a valid one
             if (!value && _checkState == CheckedState.Intermediate)
                 SetState(CheckedState.Unchecked);
         }
@@ -44,7 +44,7 @@ public partial class CheckBox : InteractiveControl, ITextElement
         {
             if (!IsThreeState && value == CheckedState.Intermediate)
                 throw new ArgumentException(
-                    $"Состояние {value} допустимо только при IsThreeState = true.", nameof(value));
+                    $"The {value} state is allowed only with IsThreeState = true.", nameof(value));
 
             SetState(value);
         }
@@ -52,7 +52,19 @@ public partial class CheckBox : InteractiveControl, ITextElement
 
     public event EventHandler? CheckedChanged;
 
-    public string? Text { get; set; }
+    public string? Text
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the check box's size is computed from its text
+            Invalidate();
+        }
+    }
 
     [Styled(Category = "Box")]
     public partial Color BoxBorderColor { get; set; }
@@ -85,8 +97,12 @@ public partial class CheckBox : InteractiveControl, ITextElement
 
     protected override void OnClick(MouseClickEventArgs e)
     {
-        // как в WinForms: без третьего состояния — переключение,
-        // с ним — цикл Unchecked → Checked → Intermediate
+        // Space and Enter come here too, bypassing hit testing:
+        // a disabled check box must not toggle from the keyboard
+        if (!IsEnabled) return;
+
+        // as in WinForms: without the third state — a toggle,
+        // with it — the cycle Unchecked → Checked → Intermediate
         SetState(_checkState switch
         {
             CheckedState.Unchecked => CheckedState.Checked,
@@ -104,7 +120,7 @@ public partial class CheckBox : InteractiveControl, ITextElement
         float boxY = content.Y + (content.Height - BoxSize) / 2f;
         var boxRect = new Rectangle(new Point(content.X, boxY), new Size(BoxSize, BoxSize));
 
-        // залитая рамка при отмеченном состоянии смотрится ближе к системным
+        // a filled box in the checked state looks closer to the system ones
         bool filled = _checkState != CheckedState.Unchecked;
         var radius = new CornerRadius(3f);
 
@@ -133,7 +149,7 @@ public partial class CheckBox : InteractiveControl, ITextElement
 
     private static void DrawCheckMark(Graphics g, Rectangle box)
     {
-        // доли от стороны квадрата — галочка масштабируется вместе с BoxSize
+        // fractions of the square's side — the check mark scales together with BoxSize
         ReadOnlySpan<Point> points =
         [
             new(box.X + box.Width * 0.22f, box.Y + box.Height * 0.52f),

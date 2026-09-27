@@ -7,9 +7,9 @@ using ZeppelinForms.Core.Collections;
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Делегирует выбор файла диалогу и показывает результат рядом с кнопкой,
-/// как input type=file на сайтах. Потомки создаются в конструкторе —
-/// добавлять свои в Children не нужно.
+/// Delegates file picking to a dialog and shows the result next to the button,
+/// like input type=file on websites. The children are created in the constructor —
+/// there is no need to add your own to Children.
 /// </summary>
 public partial class AttachButton : StackPanel
 {
@@ -19,20 +19,23 @@ public partial class AttachButton : StackPanel
 
     private string[] _files = [];
 
-    /// <summary>Подпись на кнопке. Описывает действие, а не состояние.</summary>
+    /// <summary>A dialog is open: a second press must not open another one on top.</summary>
+    private bool _browsing;
+
+    /// <summary>The caption on the button. Describes the action, not the state.</summary>
     [Styled(Category = "Attach", AffectsLayout = true)]
     public partial string BrowseText { get; set; }
 
     private static string BrowseTextDefault => "Выбрать файл…";
 
-    /// <summary>Текст, когда ничего не выбрано.</summary>
+    /// <summary>Text when nothing is selected.</summary>
     [Styled(Category = "Attach", AffectsLayout = true)]
     public partial string EmptyText { get; set; }
 
     private static string EmptyTextDefault => "Файл не выбран";
 
-    /// <summary>Показывать крестик сброса, когда что-то выбрано.
-    /// В родном контроле такого нет, и это его известная беда.</summary>
+    /// <summary>Show a clear cross when something is selected.
+    /// The native control has none, and that is its well-known flaw.</summary>
     [Styled(Category = "Attach")]
     public partial bool AllowClear { get; set; }
 
@@ -40,14 +43,14 @@ public partial class AttachButton : StackPanel
 
     public bool AllowMultiple { get; set; }
 
-    /// <summary>Выбирать папку, а не файл.</summary>
+    /// <summary>Pick a folder rather than a file.</summary>
     public bool SelectFolder { get; set; }
 
     public string? InitialDirectory { get; set; }
 
     public List<FileFilter> Filters { get; init; } = [];
 
-    /// <summary>Выбранные пути. Пустой массив — ничего не выбрано.</summary>
+    /// <summary>The selected paths. An empty array — nothing is selected.</summary>
     public IReadOnlyList<string> Files => _files;
 
     public string? FileName => _files.Length > 0 ? _files[0] : null;
@@ -85,8 +88,14 @@ public partial class AttachButton : StackPanel
         FilesChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void Browse()
+    /// <remarks>
+    /// The asynchronous path works on every platform. The synchronous FileDialog
+    /// methods throw where the platform has a system file picker, so in the browser
+    /// the button used to fail on the very first press.
+    /// </remarks>
+    private async void Browse()
     {
+        if (_browsing) return;
         if (FindOwner() is not { } owner) return;
 
         var options = new FileDialogOptions
@@ -98,13 +107,25 @@ public partial class AttachButton : StackPanel
 
         options.Filters.AddRange(Filters);
 
-        string[] picked = SelectFolder
-            ? FileDialog.SelectFolder(owner, options) is { } folder ? [folder] : []
-            : AllowMultiple
-                ? FileDialog.OpenFiles(owner, options)
-                : FileDialog.OpenFile(owner, options) is { } file ? [file] : [];
+        string[] picked;
 
-        // отмена диалога не должна сбрасывать прежний выбор
+        _browsing = true;
+
+        try
+        {
+            if (SelectFolder)
+                picked = await FileDialog.SelectFolderAsync(owner, options) is { } folder ? [folder] : [];
+            else if (AllowMultiple)
+                picked = await FileDialog.OpenFilesAsync(owner, options);
+            else
+                picked = await FileDialog.OpenFileAsync(owner, options) is { } file ? [file] : [];
+        }
+        finally
+        {
+            _browsing = false;
+        }
+
+        // cancelling the dialog must not reset the previous selection
         if (picked.Length == 0) return;
 
         _files = picked;
@@ -126,7 +147,7 @@ public partial class AttachButton : StackPanel
             return;
         }
 
-        // имя, а не путь: путь растягивает раскладку и всё равно обрежется
+        // the name, not the path: a path stretches the layout and gets cut off anyway
         _status.Text = _files.Length == 1
             ? Path.GetFileName(_files[0].TrimEnd(Path.DirectorySeparatorChar))
             : $"{_files.Length} {Plural(_files.Length, "файл", "файла", "файлов")}";
@@ -135,8 +156,9 @@ public partial class AttachButton : StackPanel
         _clear.IsVisible = AllowClear;
     }
 
-    /// <summary>Форма существительного при числе. Без этого «3 файлов»
-    /// и «1 файла» бросаются в глаза сильнее, чем кажется.</summary>
+    /// <summary>The noun form for a number. Without it a wrong form next to a number
+    /// is more glaring than it seems. Russian rules for now; general plural rules
+    /// come with localization.</summary>
     private static string Plural(int count, string one, string few, string many)
     {
         int tail = count % 100;
@@ -157,5 +179,7 @@ public partial class AttachButton : StackPanel
             property == EmptyTextProperty ||
             property == AllowClearProperty)
             UpdateStatus();
+
+        base.OnStyledPropertyChanged(property);
     }
 }

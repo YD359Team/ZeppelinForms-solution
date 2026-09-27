@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Styling;
@@ -26,7 +27,7 @@ public partial class CheckedListBox : ListBox
     public partial Color CheckColor { get; set; }
     private static Color CheckColorDefault => new(255, 0x0D, 0x6E, 0xFD);
 
-    /// <summary>Отметка ставится по клику в любом месте строки, а не только по квадратику.</summary>
+    /// <summary>The check is toggled by a click anywhere on the row, not only on the box.</summary>
     public bool ToggleOnRowClick { get; set; }
 
     public event EventHandler<int>? ItemCheckedChanged;
@@ -45,9 +46,11 @@ public partial class CheckedListBox : ListBox
 
     public CheckedListBox()
     {
-        // место под квадратик слева от содержимого строки
+        // room for the box to the left of the row content
         SetControlDefault(PaddingProperty, new(BoxSize + BoxGap + 4f, 2f, 4f, 2f));
 
+        // checks are stored by index, so they must follow the items
+        Items.CollectionChanged += OnItemsChanged;
     }
 
     public bool IsChecked(int index) => _checked.Contains(index);
@@ -73,9 +76,87 @@ public partial class CheckedListBox : ListBox
 
     public void UncheckAll()
     {
-        // копия, потому что SetChecked меняет коллекцию во время обхода
+        // a copy, because SetChecked changes the collection during the walk
         foreach (int index in _checked.ToArray())
             SetChecked(index, false);
+    }
+
+    /// <summary>Move the checks along with their items. Previously the indices stayed
+    /// in place: after removing the first row the check jumped to its neighbour.
+    /// No ItemCheckedChanged here — the items kept their state,
+    /// only their positions changed.</summary>
+    private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_checked.Count == 0) return;
+
+        switch (e.Action)
+        {
+            case NotifyCollectionChangedAction.Add:
+                Shift(e.NewStartingIndex, e.NewItems?.Count ?? 0);
+                break;
+
+            case NotifyCollectionChangedAction.Remove:
+                RemoveChecks(e.OldStartingIndex, e.OldItems?.Count ?? 0);
+                break;
+
+            case NotifyCollectionChangedAction.Replace:
+                // a replaced item is a different item: its check does not carry over
+                for (int i = 0; i < (e.OldItems?.Count ?? 0); i++)
+                    _checked.Remove(e.OldStartingIndex + i);
+                break;
+
+            case NotifyCollectionChangedAction.Move:
+                MoveCheck(e.OldStartingIndex, e.NewStartingIndex);
+                break;
+
+            default:
+                // Reset does not say what stayed — nothing can be matched
+                _checked.Clear();
+                break;
+        }
+
+        InvalidateVisual();
+    }
+
+    /// <summary>Indices at and after start move by count (negative — towards the start).</summary>
+    private void Shift(int start, int count)
+    {
+        if (count == 0) return;
+
+        int[] moved = [.. _checked.Where(i => i >= start)];
+
+        // remove all first, then add: otherwise a shifted index could collide
+        // with one that hasn't moved yet
+        foreach (int index in moved) _checked.Remove(index);
+        foreach (int index in moved) _checked.Add(index + count);
+    }
+
+    /// <summary>The items in [start, start + count) are gone: their checks go with
+    /// them, and the checks after them close the gap.</summary>
+    /// <remarks>Not named Drop: UIElement already has a Drop event (drag-and-drop),
+    /// and hiding it would break dropping onto the list.</remarks>
+    private void RemoveChecks(int start, int count)
+    {
+        if (count == 0) return;
+
+        for (int i = start; i < start + count; i++)
+            _checked.Remove(i);
+
+        Shift(start + count, -count);
+    }
+
+    private void MoveCheck(int from, int to)
+    {
+        if (from == to) return;
+
+        bool wasChecked = _checked.Remove(from);
+
+        // close the gap the item left, then open one where it lands —
+        // exactly what ObservableCollection.Move does with the items
+        Shift(from + 1, -1);
+        Shift(to, 1);
+
+        if (wasChecked) _checked.Add(to);
     }
 
     private Rectangle BoxRect(UIElement container)
@@ -86,8 +167,9 @@ public partial class CheckedListBox : ListBox
 
     protected override void DrawContent(Graphics g)
     {
-        // подсветка выбранной строки — из ListBox. Фон и рамку рисует
-        // DecoratedPanel сам: фон до DrawContent, рамку в DrawOverlay
+        // the selected row highlight comes from ListBox. DecoratedPanel draws
+        // the background and the border itself: the background before DrawContent,
+        // the border in DrawOverlay
         base.DrawContent(g);
 
         for (int i = 0; i < Children.Count; i++)
@@ -140,7 +222,7 @@ public partial class CheckedListBox : ListBox
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        // пробел переключает отметку текущей строки
+        // space toggles the check of the current row
         if (e.Key == Key.Space && SelectedIndex >= 0)
         {
             ToggleChecked(SelectedIndex);

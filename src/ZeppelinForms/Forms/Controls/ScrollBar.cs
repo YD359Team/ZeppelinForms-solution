@@ -16,13 +16,43 @@ public partial class ScrollBar : DecoratedControl
     private float _dragOffset;
     private float _value;
 
-    public Orientation Orientation { get; set; } = Orientation.Vertical;
+    public Orientation Orientation
+    {
+        get;
+        set
+        {
+            if (field == value) return;
 
-    /// <summary>Полный размер прокручиваемого содержимого.</summary>
-    public float ContentSize { get; set; }
+            field = value;
+            Invalidate();
+        }
+    } = Orientation.Vertical;
 
-    /// <summary>Видимая часть содержимого.</summary>
-    public float ViewportSize { get; set; }
+    /// <summary>The full size of the scrollable content.</summary>
+    public float ContentSize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            OnRangeChanged();
+        }
+    }
+
+    /// <summary>The visible part of the content.</summary>
+    public float ViewportSize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            OnRangeChanged();
+        }
+    }
 
     public float MaxValue => Math.Max(0, ContentSize - ViewportSize);
 
@@ -36,7 +66,9 @@ public partial class ScrollBar : DecoratedControl
 
             _value = clamped;
             ValueChanged?.Invoke(this, EventArgs.Empty);
-            Invalidate();
+
+            // scrolling moves the thumb, not the geometry
+            InvalidateVisual();
         }
     }
 
@@ -51,6 +83,22 @@ public partial class ScrollBar : DecoratedControl
     private static Color ThumbColorDefault => new(255, 170, 170, 170);
 
     public ScrollBar() => Size = new Size(12, 12);
+
+    /// <summary>The range changed: the value is brought back into it. Previously it
+    /// stayed beyond the new limit when the content shrank, and the thumb was drawn
+    /// past the end of the track.</summary>
+    private void OnRangeChanged()
+    {
+        float clamped = Math.Clamp(_value, 0, MaxValue);
+
+        if (clamped != _value)
+        {
+            _value = clamped;
+            ValueChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        InvalidateVisual();
+    }
 
     private float TrackLength => Orientation == Orientation.Vertical ? ActualSize.Height : ActualSize.Width;
 
@@ -68,7 +116,7 @@ public partial class ScrollBar : DecoratedControl
 
     public bool IsScrollable => ContentSize > ViewportSize;
 
-    // фон, рамку и скругление рисует база — здесь только пункты меню
+    // the background, border and corner radius are drawn by the base — only the track and the thumb here
     protected override void DrawContent(Graphics g)
     {
         g.FillRectangle(this.LocalBounds, TrackColor);
@@ -84,6 +132,9 @@ public partial class ScrollBar : DecoratedControl
 
     protected override void OnMouseDown(MouseButtonEventArgs args)
     {
+        // only the left button scrolls: the right one belongs to the context menu
+        if (args.Button != MouseButton.Left) return;
+
         if (!IsScrollable) return;
 
         Point abs = GetAbsolutePosition();
@@ -96,15 +147,15 @@ public partial class ScrollBar : DecoratedControl
         if (local >= thumbPos && local <= thumbPos + ThumbLength)
         {
             _isDragging = true;
-            _dragOffset = local - thumbPos;   // тянем за ту точку, где схватили
+            _dragOffset = local - thumbPos;   // drag by the point where it was grabbed
 
-            // без захвата перетаскивание обрывается, как только курсор
-            // уходит за окно
+            // without capture the drag breaks off as soon as the cursor
+            // leaves the window
             CaptureMouse();
         }
         else
         {
-            // клик по дорожке — страница вверх/вниз
+            // a click on the track — a page up/down
             Value += local < thumbPos ? -ViewportSize : ViewportSize;
         }
     }
@@ -126,7 +177,7 @@ public partial class ScrollBar : DecoratedControl
 
     protected override void OnMouseUp(MouseButtonEventArgs location) => EndDrag();
 
-    // отпускания после отмены не будет — сбрасываем сами
+    // there will be no release after a cancel — reset ourselves
     protected override void OnPointerCanceled(PointerCancelEventArgs e) => EndDrag();
 
     private void EndDrag()

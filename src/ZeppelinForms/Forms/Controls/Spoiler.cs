@@ -16,8 +16,31 @@ public partial class Spoiler : DecoratedWrapControl
 {
     private bool _headerHovered;
 
-    public string? Header { get; set; }
-    public float HeaderHeight { get; set; } = 26f;
+    public string? Header
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    }
+
+    public float HeaderHeight
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the header is part of the spoiler's height
+            Invalidate();
+        }
+    } = 26f;
 
     [Styled(Category = "Header")]
     public partial Color HeaderColor { get; set; }
@@ -45,24 +68,27 @@ public partial class Spoiler : DecoratedWrapControl
 
     public Spoiler()
     {
-        // свёрнутый спойлер должен схлопываться до заголовка,
-        // а не растягиваться на всю выделенную высоту
+        // a collapsed spoiler must shrink to its header
+        // rather than stretch over the whole allotted height
         SetControlDefault(VerticalAlignmentProperty, VerticalAlignment.Top);
 
         SetControlDefault(BorderColorProperty, new Color(255, 200, 200, 200));
         SetControlDefault(BorderWidthProperty, 1f);
     }
 
-    public Spoiler(UIElement child) : base()
+    // this(), not base(): the defaults above must apply to a spoiler created
+    // with content too. With base() a collapsed spoiler from this constructor
+    // stretched over the whole height and had no border
+    public Spoiler(UIElement child) : this()
     {
         Child = child;
     }
 
     private Rectangle HeaderRect => new(Point.Empty, new Size(ActualSize.Width, HeaderHeight));
 
-    // Ребёнок прячется через IsVisible, а не через "пропустим Arrange":
-    // рендер и панели уважают этот флаг, а неразмещённый элемент
-    // сохранил бы старую геометрию и продолжил рисоваться.
+    // The child is hidden via IsVisible rather than by "skipping Arrange":
+    // the renderer and panels respect this flag, while an unarranged element
+    // would keep its old geometry and keep being drawn.
     private void SyncChildVisibility()
     {
         if (Child is not null)
@@ -75,7 +101,7 @@ public partial class Spoiler : DecoratedWrapControl
 
         g.FillRectangle(header, _headerHovered ? HeaderHoverColor : HeaderColor);
 
-        // треугольник-указатель: вправо когда свёрнут, вниз когда раскрыт
+        // the pointer triangle: right when collapsed, down when expanded
         Glyphs.DrawChevron(g, new Point(12f, HeaderHeight / 2f), 4f, !IsCollapsed, HeaderTextColor);
 
         if (!string.IsNullOrEmpty(Header))
@@ -97,18 +123,28 @@ public partial class Spoiler : DecoratedWrapControl
         if (inHeader != _headerHovered)
         {
             _headerHovered = inHeader;
-            Invalidate();
+
+            // hover changes only the header's color, not the geometry
+            InvalidateVisual();
         }
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args) => _headerHovered = false;
+    protected override void OnMouseExit(MouseMoveEventArgs args)
+    {
+        if (!_headerHovered) return;
+
+        _headerHovered = false;
+
+        // without a redraw the header stayed highlighted after the mouse left
+        InvalidateVisual();
+    }
 
     protected override void OnClick(MouseClickEventArgs e)
     {
         Point abs = GetAbsolutePosition();
 
-        // переключаем только по клику в заголовок — клики по содержимому
-        // должны доставаться самому содержимому
+        // toggle only on a click in the header — clicks on the content
+        // must go to the content itself
         if (e.Location.Y - abs.Y <= HeaderHeight)
         {
             IsCollapsed = !IsCollapsed;

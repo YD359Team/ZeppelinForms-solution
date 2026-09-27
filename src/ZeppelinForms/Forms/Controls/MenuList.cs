@@ -7,8 +7,8 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-/// <summary>Вертикальный список пунктов меню. Рисуется целиком сам,
-/// без вложенных контролов — так проще с наведением и разделителями.</summary>
+/// <summary>A vertical list of menu items. Draws everything itself,
+/// without nested controls — that is simpler with hover and separators.</summary>
 public partial class MenuList : DecoratedControl
 {
     private const float ItemHeight = 26f;
@@ -41,7 +41,7 @@ public partial class MenuList : DecoratedControl
 
     private float HeightOf(MenuItem item) => item.IsSeparator ? SeparatorHeight : ItemHeight;
 
-    // фон, рамку и скругление рисует база — здесь только пункты меню
+    // the background, border and corner radius are drawn by the base — only the menu items here
     protected override void DrawContent(Graphics g)
     {
         var content = this.ContentBounds;
@@ -111,12 +111,19 @@ public partial class MenuList : DecoratedControl
         if (index == _hoveredIndex) return;
 
         _hoveredIndex = index;
-        Invalidate();
+
+        // hover changes only the highlight, not the geometry
+        InvalidateVisual();
     }
 
     protected override void OnMouseExit(MouseMoveEventArgs args)
     {
+        if (_hoveredIndex < 0) return;
+
         _hoveredIndex = -1;
+
+        // without a redraw the hover highlight stayed on after the mouse left
+        InvalidateVisual();
     }
 
     protected override void OnClick(MouseClickEventArgs e)
