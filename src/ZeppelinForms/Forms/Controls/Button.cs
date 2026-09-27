@@ -19,7 +19,7 @@ public class Button : ButtonBase, ITextElement
 
             field = value;
 
-            // размер кнопки по авторазмеру считается по тексту
+            // a button's auto-size is computed from its text
             Invalidate();
         }
     }
@@ -27,7 +27,7 @@ public class Button : ButtonBase, ITextElement
     public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Center;
     public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
 
-    /// <summary>Иконка слева от текста — path data одиночного SVG-контура.</summary>
+    /// <summary>An icon to the left of the text — path data of a single SVG contour.</summary>
     public string? IconPathData
     {
         get;
@@ -37,7 +37,7 @@ public class Button : ButtonBase, ITextElement
 
             field = value;
 
-            // появление или пропажа иконки меняет и ширину, и отступ
+            // an icon appearing or disappearing changes both the width and the gap
             Invalidate();
         }
     }
@@ -116,8 +116,8 @@ public class SecondaryButton : Button
 
 }
 
-public class DangerButton : Button 
-{ 
+public class DangerButton : Button
+{
 
 }
 

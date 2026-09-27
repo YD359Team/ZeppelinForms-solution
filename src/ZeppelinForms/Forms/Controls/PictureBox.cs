@@ -10,26 +10,48 @@ namespace ZeppelinForms.Forms.Controls;
 /// </summary>
 public class PictureBox : DecoratedControl
 {
-    public ImageFlip Flip { get; set; } = ImageFlip.None;
-    public ImageLayout Layout { get; set; } = ImageLayout.Stretch;
+    public ImageFlip Flip
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = ImageFlip.None;
+
+    public ImageLayout Layout
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = ImageLayout.Stretch;
+
     public string? Source { get; private set; }
 
     private Image? _image;
 
-    /// <summary>Разобранные ресурсы живут до конца процесса: повторный
-    /// LoadAsset той же картинки не должен декодировать её заново.
-    /// Расплата — удержанная память: буфер пикселей не зависит от размера
-    /// контрола, и картинка 2048×2048 занимает 16 МБ, даже если показана
-    /// в квадрате сто на сто. Приложение, которое перебирает много крупных
-    /// ресурсов, может освободить их через ClearAssetCache.</summary>
+    /// <summary>Parsed assets live until the process ends: a repeated
+    /// LoadAsset of the same picture must not decode it again.
+    /// The price is retained memory: the pixel buffer doesn't depend on
+    /// the control's size, and a 2048×2048 picture takes 16 MB even when
+    /// shown in a hundred-by-hundred square. An application that goes
+    /// through many large assets can release them via ClearAssetCache.</summary>
     private static readonly Dictionary<string, Image> AssetCache = [];
 
-    /// <summary>Забыть разобранные ресурсы. Уже показываемые картинки
-    /// остаются живыми: их держат сами контролы.</summary>
+    /// <summary>Forget the parsed assets. Pictures already being shown
+    /// stay alive: the controls themselves hold them.</summary>
     public static void ClearAssetCache() => AssetCache.Clear();
 
-    /// <summary>Показать уже готовое изображение: снимок другого элемента,
-    /// результат обработки, кадр из видео.</summary>
+    /// <summary>Show an already prepared image: a snapshot of another element,
+    /// a processing result, a video frame.</summary>
     public void SetImage(Image? image)
     {
         _image = image;

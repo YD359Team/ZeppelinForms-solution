@@ -13,8 +13,8 @@ public class Panel : DecoratedPanel
 {
     protected override Size MeasureContentOverride(Size availableSize)
     {
-        // canvas-style: дети сами решают, какого они размера,
-        // панель их не ужимает и под них не подстраивается
+        // canvas-style: children decide their own size,
+        // the panel neither shrinks them nor adapts to them
         foreach (UIElement child in Children)
         {
             if (!child.IsVisible) continue;

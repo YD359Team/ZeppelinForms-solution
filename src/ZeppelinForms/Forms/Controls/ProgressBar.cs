@@ -9,30 +9,95 @@ namespace ZeppelinForms.Forms.Controls;
 
 public partial class ProgressBar : DecoratedControl
 {
-    private float _value;
+    /// <summary>The value as it was assigned, before coercing into the range.</summary>
+    /// <remarks>
+    /// Coercing on read rather than on write makes the result independent of the
+    /// order of assignments: in <c>new ProgressBar { Value = 150, Maximum = 200 }</c>
+    /// the value used to be clamped by the default maximum of 100 before
+    /// the real one arrived.
+    /// </remarks>
+    private float _requested;
 
-    public float Minimum { get; set; } = 0f;
-    public float Maximum { get; set; } = 100f;
+    public float Minimum
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = 0f;
+
+    public float Maximum
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = 100f;
 
     public float Value
     {
-        get => _value;
+        get => Coerce(_requested);
         set
         {
-            float clamped = Math.Clamp(value, Minimum, Maximum);
-            if (Math.Abs(_value - clamped) < 0.001f) return;
+            float before = Value;
+            _requested = value;
 
-            _value = clamped;
+            if (Math.Abs(before - Value) < 0.001f) return;
+
             InvalidateVisual();
         }
     }
 
-    public Orientation Orientation { get; set; } = Orientation.Horizontal;
+    // Min/Max rather than Math.Clamp: while the range is being reassigned,
+    // Minimum may briefly exceed Maximum, and Math.Clamp throws on that
+    private float Coerce(float value) => Math.Min(Math.Max(value, Minimum), Maximum);
 
-    public bool ShowPercentage { get; set; }
+    public Orientation Orientation
+    {
+        get;
+        set
+        {
+            if (field == value) return;
 
-    /// <summary>Своё форматирование подписи: доля (0..1) и текущее значение.</summary>
-    public Func<float, float, string>? TextFormatter { get; set; }
+            field = value;
+
+            // the default size swaps its axes together with the orientation
+            Invalidate();
+        }
+    } = Orientation.Horizontal;
+
+    public bool ShowPercentage
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    }
+
+    /// <summary>Custom label formatting: the fraction (0..1) and the current value.</summary>
+    public Func<float, float, string>? TextFormatter
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    }
 
     [Styled(Category = "Progress")]
     public partial Color FillColor { get; set; }
@@ -42,11 +107,21 @@ public partial class ProgressBar : DecoratedControl
     public partial Color TrackColor { get; set; }
     private static Color TrackColorDefault => new(255, 230, 230, 230);
 
-    public Color FilledTextColor { get; set; } = Colors.White;
+    public Color FilledTextColor
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = Colors.White;
 
     public ProgressBar()
     {
-        // полоса прогресса по своей природе тянется вдоль, а не сохраняет размер
+        // a progress bar by its nature stretches along, rather than keeping its size
         SetControlDefault(HorizontalAlignmentProperty, Enums.HorizontalAlignment.Stretch);
         SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Center);
         SetControlDefault(BorderColorProperty, new Color(255, 180, 180, 180));
@@ -58,7 +133,7 @@ public partial class ProgressBar : DecoratedControl
         get
         {
             float range = Maximum - Minimum;
-            return range <= 0 ? 0 : Math.Clamp((_value - Minimum) / range, 0f, 1f);
+            return range <= 0 ? 0 : Math.Clamp((Value - Minimum) / range, 0f, 1f);
         }
     }
 
@@ -67,11 +142,11 @@ public partial class ProgressBar : DecoratedControl
         get
         {
             float fraction = Fraction;
-            return TextFormatter?.Invoke(fraction, _value) ?? $"{fraction * 100:0}%";
+            return TextFormatter?.Invoke(fraction, Value) ?? $"{fraction * 100:0}%";
         }
     }
 
-    // дорожка — это фон полосы, поэтому подменяем его целиком
+    // the track is the bar's background, so it is replaced entirely
     protected override Color CurrentBackground => TrackColor;
 
     protected override void DrawContent(Graphics g)
@@ -83,7 +158,7 @@ public partial class ProgressBar : DecoratedControl
         {
             Rectangle fill = Orientation == Orientation.Horizontal
                 ? new Rectangle(bounds.Position, new Size(bounds.Width * fraction, bounds.Height))
-                // вертикальная растёт снизу вверх, как и ожидает глаз
+                // a vertical one grows bottom-up, as the eye expects
                 : new Rectangle(
                     new Point(bounds.X, bounds.Y + bounds.Height * (1 - fraction)),
                     new Size(bounds.Width, bounds.Height * fraction));
@@ -95,8 +170,8 @@ public partial class ProgressBar : DecoratedControl
 
         string label = DisplayText;
 
-        // тот же текст двумя цветами: контраст сохраняется
-        // и на заполненной части, и на дорожке
+        // the same text in two colors: contrast is kept
+        // both on the filled part and on the track
         g.Save();
         g.ClipRect(new Rectangle(bounds.Position, new Size(bounds.Width * fraction, bounds.Height)));
         g.DrawText(label, bounds, FilledTextColor, EffectiveFont,

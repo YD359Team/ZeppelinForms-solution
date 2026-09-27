@@ -3,9 +3,9 @@
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Содержимое, зависящее от класса размера. Пересобирается только при
-/// смене класса — то есть на повороте экрана или на настоящем переходе
-/// через границу, а не при каждом движении рамки окна.
+/// Content that depends on the size class. Rebuilt only when the class
+/// changes — that is, on a screen rotation or a real crossing of a boundary,
+/// not on every movement of the window frame.
 /// </summary>
 public sealed class AdaptiveLayout : LayoutBuilder
 {

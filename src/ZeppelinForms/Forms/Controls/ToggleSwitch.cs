@@ -17,7 +17,7 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
     private const float Gap = 8f;
 
     private bool _isOn;
-    private float _thumbProgress;   // 0 — выключен, 1 — включён
+    private float _thumbProgress;   // 0 — off, 1 — on
 
     public bool IsOn
     {
@@ -34,7 +34,19 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
 
     public event EventHandler? Toggled;
 
-    public string? Text { get; set; }
+    public string? Text
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the switch's size is computed from its text, as with a button
+            Invalidate();
+        }
+    }
 
     [Styled(Category = "States")]
     public partial Color OnColor { get; set; }
@@ -63,6 +75,10 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
 
     protected override void OnClick(MouseClickEventArgs e)
     {
+        // Space and Enter come here too, bypassing hit testing:
+        // a disabled switch must not toggle from the keyboard
+        if (!IsEnabled) return;
+
         IsOn = !IsOn;
         e.Handled = true;
     }
@@ -74,7 +90,7 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
         float trackY = content.Y + (content.Height - TrackHeight) / 2f;
         var track = new Rectangle(new Point(content.X, trackY), new Size(TrackWidth, TrackHeight));
 
-        // цвет дорожки перетекает вместе с ползунком
+        // the track color flows along with the thumb
         var trackColor = Interpolators.Color(OffColor, OnColor, _thumbProgress);
         g.FillRoundRectangle(track, new CornerRadius(TrackHeight / 2f), trackColor);
 

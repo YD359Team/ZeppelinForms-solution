@@ -7,14 +7,17 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-/// <summary>Горизонтальная строка меню окна. Подменю открывает через
-/// тот же overlay-слой, что и контекстное меню.</summary>
+/// <summary>The window's horizontal menu bar. Opens submenus through
+/// the same overlay layer as the context menu.</summary>
 public partial class MenuBar : DecoratedControl
 {
     private const float ItemPadding = 12f;
 
     private int _hoveredIndex = -1;
     private int _openIndex = -1;
+
+    /// <summary>The form whose FlyoutClosed we listen to while a submenu is open.</summary>
+    private Form? _menuOwner;
 
     public List<MenuItem> Items { get; init; } = [];
 
@@ -38,7 +41,7 @@ public partial class MenuBar : DecoratedControl
     private float WidthOf(MenuItem item) =>
         TextMeasurer.Current.MeasureText(item.Text, EffectiveFont).Width + ItemPadding * 2;
 
-    // фон, рамку и скругление рисует база — здесь только пункты меню
+    // the background, border and corner radius are drawn by the base — only the menu items here
     protected override void DrawContent(Graphics g)
     {
         float x = 0;
@@ -84,15 +87,24 @@ public partial class MenuBar : DecoratedControl
 
         _hoveredIndex = index;
 
-        // мышь ведут вдоль строки при уже открытом меню — переключаем на лету,
-        // как это делают системные меню
+        // the mouse is moved along the bar with a menu already open —
+        // switch on the fly, as system menus do
         if (_openIndex >= 0 && index >= 0 && index != _openIndex)
             OpenSubmenu(index);
 
-        Invalidate();
+        // hover changes only the highlight, not the geometry
+        InvalidateVisual();
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args) => _hoveredIndex = -1;
+    protected override void OnMouseExit(MouseMoveEventArgs args)
+    {
+        if (_hoveredIndex < 0) return;
+
+        _hoveredIndex = -1;
+
+        // without a redraw the hover highlight stayed on after the mouse left
+        InvalidateVisual();
+    }
 
     protected override void OnClick(MouseClickEventArgs e)
     {
@@ -105,7 +117,7 @@ public partial class MenuBar : DecoratedControl
         {
             FindOwner()?.CloseAllFlyouts();
             _openIndex = -1;
-            Invalidate();
+            InvalidateVisual();
             return;
         }
 
@@ -127,7 +139,55 @@ public partial class MenuBar : DecoratedControl
             new Point(x, GetAbsolutePosition().Y + ActualSize.Height));
 
         _openIndex = index;
-        Invalidate();
+
+        // after ShowContextMenu, not before: it closes the open flyouts itself,
+        // and the notification about that must not reset the index just set
+        TrackClosing(owner);
+
+        InvalidateVisual();
+    }
+
+    /// <summary>Learn about the submenu closing, however it happens: a click
+    /// outside, a chosen item, the form closing all flyouts. Previously
+    /// _openIndex stayed set after that: the item kept the open highlight,
+    /// and hovering over the bar reopened submenus by itself.</summary>
+    private void TrackClosing(Form owner)
+    {
+        if (ReferenceEquals(_menuOwner, owner)) return;
+
+        StopTrackingClosing();
+
+        _menuOwner = owner;
+        owner.FlyoutClosed += OnFlyoutClosed;
+    }
+
+    private void StopTrackingClosing()
+    {
+        if (_menuOwner is null) return;
+
+        _menuOwner.FlyoutClosed -= OnFlyoutClosed;
+        _menuOwner = null;
+    }
+
+    private void OnFlyoutClosed(object? sender, UIElement closed)
+    {
+        // a bar has at most one submenu open, and switching to a neighbour
+        // closes it first — so any closing means ours is gone
+        StopTrackingClosing();
+
+        if (_openIndex < 0) return;
+
+        _openIndex = -1;
+        InvalidateVisual();
+    }
+
+    protected override void OnDetached()
+    {
+        // the subscription must not keep the bar alive through the form
+        StopTrackingClosing();
+
+        _openIndex = -1;
+        _hoveredIndex = -1;
     }
 
     protected override Size MeasureOverride(Size availableSize)

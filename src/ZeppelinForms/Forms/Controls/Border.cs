@@ -5,12 +5,12 @@ using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms.Controls;
 
-/// <summary>Рамка вокруг одного элемента.</summary>
+/// <summary>A border around a single element.</summary>
 public class Border : DecoratedWrapControl
 {
     public Border()
     {
-        
+
     }
 
     public Border(UIElement child) : base(child)

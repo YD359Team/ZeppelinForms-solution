@@ -5,8 +5,8 @@ using ZeppelinForms.Forms.Controls.Base;
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Строит содержимое, зная выделенный размер. Позволяет менять раскладку
-/// в зависимости от доступного места без подписки на изменение размера.
+/// Builds content knowing the allotted size. Allows changing the layout
+/// depending on the available space without subscribing to size changes.
 /// </summary>
 public class LayoutBuilder : DecoratedWrapControl
 {
@@ -14,25 +14,25 @@ public class LayoutBuilder : DecoratedWrapControl
     private object? _builtKey;
     private bool _hasBuilt;
 
-    /// <summary>Получает доступный размер, возвращает содержимое.</summary>
+    /// <summary>Receives the available size, returns the content.</summary>
     public Func<Size, UIElement>? Builder { get; set; }
 
-    /// <summary>Что считать поводом пересобрать содержимое.
-    /// Null — изменение размера больше <see cref="RebuildThreshold"/>.</summary>
+    /// <summary>What counts as a reason to rebuild the content.
+    /// Null — a size change larger than <see cref="RebuildThreshold"/>.</summary>
     /// <remarks>
-    /// Порог в единицах размера годится, пока пересборка дешёвая, и плох
-    /// для адаптивности: при перетаскивании рамки окна он срабатывает почти
-    /// каждый кадр, а пересборка заменяет Child целиком — вместе с фокусом,
-    /// позицией прокрутки и набранным текстом. Ключ позволяет пересобираться
-    /// только когда меняется то, от чего раскладка действительно зависит:
-    /// класс размера, ориентация, число влезающих колонок.
+    /// A threshold in size units is fine while rebuilding is cheap, and bad
+    /// for adaptivity: when the window frame is dragged it fires almost every
+    /// frame, and a rebuild replaces Child entirely — together with focus,
+    /// scroll position and typed text. A key allows rebuilding only when what
+    /// the layout actually depends on changes: the size class, the orientation,
+    /// the number of columns that fit.
     /// </remarks>
     public Func<Size, object?>? RebuildKey { get; set; }
 
     /// <summary>
-    /// Насколько должен измениться размер, чтобы содержимое пересобралось.
-    /// Защищает от пересборки на каждый пиксель при перетаскивании рамки окна.
-    /// Не действует, когда задан <see cref="RebuildKey"/>.
+    /// How much the size must change for the content to be rebuilt.
+    /// Protects against rebuilding on every pixel while the window frame is dragged.
+    /// Has no effect when <see cref="RebuildKey"/> is set.
     /// </summary>
     public float RebuildThreshold { get; set; } = 1f;
 
@@ -48,8 +48,8 @@ public class LayoutBuilder : DecoratedWrapControl
 
     }
 
-    /// <summary>Пересобрать содержимое принудительно — например, после
-    /// изменения данных, от которых зависит раскладка.</summary>
+    /// <summary>Rebuild the content forcibly — for example, after a change
+    /// of the data the layout depends on.</summary>
     public void Rebuild()
     {
         _hasBuilt = false;
@@ -60,12 +60,12 @@ public class LayoutBuilder : DecoratedWrapControl
     {
         if (!_hasBuilt) return true;
 
-        // бесконечность приходит от прокручиваемых панелей: строить
-        // содержимое по ней бессмысленно, ждём конечного размера
+        // infinity comes from scrollable panels: building content
+        // for it is meaningless, wait for a finite size
         if (!float.IsFinite(available.Width) && !float.IsFinite(available.Height))
             return false;
 
-        // ключ задан — размер сам по себе поводом не считается
+        // a key is set — the size by itself doesn't count as a reason
         if (RebuildKey is not null)
             return !Equals(key, _builtKey);
 
@@ -89,8 +89,8 @@ public class LayoutBuilder : DecoratedWrapControl
                 _builtKey = key;
                 _hasBuilt = true;
 
-                // присваивание Child само отвяжет прежнее поддерево
-                // и привяжет новое через WrapControl
+                // assigning Child detaches the previous subtree
+                // and attaches the new one through WrapControl by itself
                 Child = Builder(inner);
 
                 ContentRebuilt?.Invoke(this, EventArgs.Empty);

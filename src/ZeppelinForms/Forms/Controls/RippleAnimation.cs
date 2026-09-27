@@ -6,8 +6,8 @@ using ZeppelinForms.Forms.Controls.Base;
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Волна, расходящаяся от точки нажатия. Держит своё состояние отдельно,
-/// чтобы любой контрол мог подмешать её в отрисовку.
+/// A ripple spreading from the press point. Keeps its state separately,
+/// so that any control can mix it into its drawing.
 /// </summary>
 public sealed class RippleAnimation
 {
@@ -23,7 +23,7 @@ public sealed class RippleAnimation
     public Color Color { get; set; } = new Color(60, 255, 255, 255);
     public int DurationMs { get; set; } = 420;
 
-    /// <summary>Запустить волну из точки в координатах контрола.</summary>
+    /// <summary>Start the ripple from a point in the control's coordinates.</summary>
     public void Start(Point localOrigin)
     {
         _origin = localOrigin;
@@ -31,7 +31,7 @@ public sealed class RippleAnimation
 
         Size size = _owner.ActualSize;
 
-        // радиус до самого дальнего угла: волна должна накрыть контрол целиком
+        // radius to the farthest corner: the ripple must cover the whole control
         float maxRadius = MathF.Sqrt(
             MathF.Max(localOrigin.X, size.Width - localOrigin.X) * MathF.Max(localOrigin.X, size.Width - localOrigin.X) +
             MathF.Max(localOrigin.Y, size.Height - localOrigin.Y) * MathF.Max(localOrigin.Y, size.Height - localOrigin.Y));
@@ -45,8 +45,8 @@ public sealed class RippleAnimation
             {
                 _radius = maxRadius * value;
 
-                // прозрачность спадает быстрее радиуса, иначе волна
-                // резко обрывается на границе
+                // opacity falls off faster than the radius,
+                // otherwise the ripple cuts off sharply at the edge
                 _alpha = 1f - value * value;
 
                 _owner.InvalidateVisual();
@@ -59,7 +59,7 @@ public sealed class RippleAnimation
             });
     }
 
-    /// <summary>Нарисовать волну поверх содержимого контрола.</summary>
+    /// <summary>Draw the ripple on top of the control's content.</summary>
     public void Draw(Graphics g, Rectangle bounds, CornerRadius radius)
     {
         if (!_active || _radius <= 0f || _alpha <= 0f) return;
@@ -68,7 +68,7 @@ public sealed class RippleAnimation
 
         g.Save();
 
-        // двойное отсечение: по форме контрола и по кругу волны
+        // double clipping: by the control's shape and by the ripple's circle
         g.ClipRoundRect(bounds, radius);
         g.ClipCircle(_origin, _radius);
 

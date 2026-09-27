@@ -1,6 +1,6 @@
 ﻿namespace ZeppelinForms.Forms.Controls;
 
-/// <summary>Ручка вокруг элемента в <c>GripBox</c>.</summary>
+/// <summary>A handle around the element in <c>GripBox</c>.</summary>
 public enum GripKind
 {
     None,

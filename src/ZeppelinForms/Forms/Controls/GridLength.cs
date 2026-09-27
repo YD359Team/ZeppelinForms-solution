@@ -26,16 +26,16 @@ public readonly record struct GridLength(float Value, GridUnit Unit)
             if (float.TryParse(weight, NumberStyles.Float, CultureInfo.InvariantCulture, out float w))
                 return Star(w);
 
-            throw new FormatException($"Не удалось разобрать вес звезды: '{chars}'.");
+            throw new FormatException($"Could not parse the star weight: '{chars}'.");
         }
 
         if (float.TryParse(chars, NumberStyles.Float, CultureInfo.InvariantCulture, out float px))
             return Fixed(px);
 
-        throw new FormatException($"Не удалось разобрать размер трека: '{chars}'.");
+        throw new FormatException($"Could not parse the track size: '{chars}'.");
     }
 
-    /// <summary>Разбирает описание треков: "100", "*", "2*", "auto", "auto,*,2.5*".</summary>
+    /// <summary>Parses a track definition: "100", "*", "2*", "auto", "auto,*,2.5*".</summary>
     public static List<GridLength> Parse(string definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
@@ -52,7 +52,7 @@ public readonly record struct GridLength(float Value, GridUnit Unit)
         }
 
         if (sizes.Count == 0)
-            throw new FormatException($"Пустое описание треков: '{definition}'.");
+            throw new FormatException($"Empty track definition: '{definition}'.");
 
         return sizes;
     }

@@ -9,29 +9,17 @@ namespace ZeppelinForms.Forms.Controls;
 
 public partial class ToggleButton : Button
 {
-    /// <summary>Цвет текста во включённом состоянии.</summary>
+    /// <summary>Text color in the checked state.</summary>
     [Styled(Category = "States")]
     public partial Color CheckedTextColor { get; set; }
 
     private static Color CheckedTextColorDefault => Colors.White;
 
-    protected override Color CurrentBackground
-    {
-        get
-        {
-            if (!IsEnabled && DisabledBackgroundColor.A > 0) return DisabledBackgroundColor;
-            if (IsPressed && PressedBackgroundColor.A > 0) return PressedBackgroundColor;
-
-            if (IsCheckedState)
-                return IsHovered && CheckedHoverBackgroundColor.A > 0
-                    ? CheckedHoverBackgroundColor
-                    : CheckedBackgroundColor;
-
-            if (IsHovered && HoverBackgroundColor.A > 0) return HoverBackgroundColor;
-
-            return BackgroundColor;
-        }
-    }
+    // The backdrop color is chosen by ButtonBase.CurrentBackground through
+    // IsCheckedState. There used to be an override here that checked the press
+    // before the checked state: CheckedPressedBackgroundColor from the theme was
+    // never shown, and pressing a checked toggle briefly flashed the color of
+    // a pressed unchecked one
 
     protected override Color CurrentTextColor =>
     !IsEnabled ? DisabledTextColor
@@ -57,15 +45,15 @@ public partial class ToggleButton : Button
 
     public event EventHandler? CheckedChanged;
 
-    // база сама подставит CheckedBackgroundColor — подмена цвета
-    // во время отрисовки больше не нужна
+    // the base itself substitutes CheckedBackgroundColor —
+    // swapping the color during drawing is no longer needed
     protected override bool IsCheckedState => _isChecked;
 
     protected override void OnActivated()
     {
         if (GroupName is not null)
         {
-            if (_isChecked) return;   // в группе повторное нажатие не выключает
+            if (_isChecked) return;   // in a group a repeated press doesn't uncheck
 
             UncheckGroupSiblings();
             IsChecked = true;

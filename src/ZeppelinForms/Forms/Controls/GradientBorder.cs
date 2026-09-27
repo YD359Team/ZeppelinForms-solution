@@ -5,20 +5,31 @@ using ZeppelinForms.Forms.Controls.Base;
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Рамка с градиентной заливкой вокруг одного элемента.
-/// Обводки градиентом в Graphics нет, поэтому кольцо собирается из двух
-/// заливок: градиент на весь прямоугольник и фон поверх внутренней части.
-/// Отсюда требование: <see cref="UIElement.Padding"/> не меньше
-/// <see cref="DecoratedWrapControl.BorderWidth"/>, иначе ребёнок наедет на рамку.
+/// A border with a gradient fill around a single element.
+/// Graphics has no gradient stroke, so the ring is assembled from two
+/// fills: the gradient over the whole rectangle and the background on top
+/// of the inner part. Hence the requirement: <see cref="UIElement.Padding"/>
+/// no less than <see cref="DecoratedWrapControl.BorderWidth"/>, otherwise
+/// the child will overlap the border.
 /// </summary>
 public class GradientBorder : DecoratedWrapControl
 {
-    /// <summary>Точки градиента. Меньше двух — рамка рисуется обычным
-    /// <see cref="DecoratedWrapControl.BorderColor"/>, как у Border.</summary>
+    /// <summary>Gradient stops. Fewer than two — the border is drawn with the plain
+    /// <see cref="DecoratedWrapControl.BorderColor"/>, like Border.</summary>
     public List<GradientStop> Stops { get; init; } = [];
 
-    /// <summary>Направление градиента в градусах: 0 — слева направо.</summary>
-    public float Angle { get; set; }
+    /// <summary>Gradient direction in degrees: 0 — left to right.</summary>
+    public float Angle
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    }
 
     private bool HasGradient => Stops.Count >= 2;
 
@@ -42,15 +53,16 @@ public class GradientBorder : DecoratedWrapControl
         return this;
     }
 
-    /// <summary>Ровный переход между двумя цветами.</summary>
+    /// <summary>An even transition between two colors.</summary>
     public GradientBorder SetStops(Color from, Color to) =>
         SetStops(new GradientStop(from, 0f), new GradientStop(to, 1f));
 
-    /// <summary>Фон заливаем сами, внутри кольца — иначе он лёг бы
-    /// поверх всей площади и закрасил градиент.</summary>
+    /// <summary>The background is filled by us, inside the ring — otherwise
+    /// it would lie over the whole area and paint over the gradient.</summary>
     protected override Color CurrentBackground => Colors.Transparent;
 
-    /// <summary>Пока точек хватает на градиент, сплошную рамку базы гасим.</summary>
+    /// <summary>While there are enough stops for a gradient,
+    /// the base's solid border is suppressed.</summary>
     protected override Color CurrentBorderColor =>
         HasGradient ? Colors.Transparent : base.CurrentBorderColor;
 

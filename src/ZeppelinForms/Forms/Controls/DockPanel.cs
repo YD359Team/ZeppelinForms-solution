@@ -40,9 +40,9 @@ public class DockPanel : DecoratedPanel
                     break;
 
                 default:
-                    // Fill/None занимают остаток при размещении, но в желаемый
-                    // размер панели их вклад входить обязан — иначе панель
-                    // окажется высотой только под пришвартованные элементы
+                    // Fill/None take the remainder when arranged, but their
+                    // contribution must be part of the panel's desired size —
+                    // otherwise the panel ends up tall enough only for the docked elements
                     fillWidth = Math.Max(fillWidth, child.DesiredSize.Width + m.Horizontal);
                     fillHeight = Math.Max(fillHeight, child.DesiredSize.Height + m.Vertical);
                     break;
@@ -65,8 +65,8 @@ public class DockPanel : DecoratedPanel
                 Math.Max(0, finalSize.Width - Padding.Horizontal),
                 Math.Max(0, finalSize.Height - Padding.Vertical)));
 
-        // Fill/None откладываем на конец — им достаётся то, что осталось
-        // после того, как все "пришвартованные" стороны отъели своё
+        // Fill/None are deferred to the end — they get what is left
+        // after all the "docked" sides have taken their share
         var docked = Children.Where(c => c.IsVisible && c.Docking is not (Dock.None or Dock.Fill));
         var fillers = Children.Where(c => c.IsVisible && c.Docking is Dock.None or Dock.Fill);
 
@@ -97,7 +97,7 @@ public class DockPanel : DecoratedPanel
 
             child.Arrange(slot);
 
-            // "съедаем" использованное пространство из общего прямоугольника
+            // "eat" the used space out of the common rectangle
             rect = child.Docking switch
             {
                 Dock.Left => new Rectangle(new Point(rect.X + slot.Width + m.Horizontal, rect.Y), new Size(rect.Width - slot.Width - m.Horizontal, rect.Height)),
