@@ -10,8 +10,8 @@ public static class PropertyCatalog
     public static void Register(Type type, PropertyDescriptor[] properties) =>
         Registry[type] = properties;
 
-    /// <summary>Явная регистрация плюс всё из реестра стилизуемых свойств.
-    /// При совпадении имён выигрывает явная: там задан порядок и редакторы.</summary>
+    /// <summary>Explicit registration plus everything from the styled property registry.
+    /// On a name match the explicit one wins: it defines the order and the editors.</summary>
     public static PropertyDescriptor[] For(Type type)
     {
         PropertyDescriptor[] declared = Registry.TryGetValue(type, out var props) ? props : [];

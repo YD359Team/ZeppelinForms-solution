@@ -4,8 +4,8 @@ using ZeppelinForms.Forms.Controls.Base;
 namespace ZeppelinForms.Forms.Controls.Navigation;
 
 /// <summary>
-/// Одно представление внутри PageControl. Содержимое создаётся один раз
-/// и переживает переключения — введённый текст и прокрутка сохраняются.
+/// One view inside PageControl. The content is created once and survives
+/// switches — typed text and scroll position are kept.
 /// </summary>
 public class Page : DecoratedWrapControl
 {
@@ -15,7 +15,7 @@ public class Page : DecoratedWrapControl
     public string? Title { get; set; }
     public string? IconPathData { get; set; }
 
-    /// <summary>Ленивое создание: содержимое строится при первом показе.</summary>
+    /// <summary>Lazy creation: the content is built on first show.</summary>
     public Func<UIElement>? ContentFactory
     {
         get => _factory;
@@ -29,8 +29,8 @@ public class Page : DecoratedWrapControl
     public event EventHandler? Appearing;
     public event EventHandler? Disappearing;
 
-    /// <summary>Содержимое уже создано. PageControl смотрит на это,
-    /// когда готовит страницы заранее.</summary>
+    /// <summary>The content has already been created. PageControl looks at this
+    /// when preparing pages in advance.</summary>
     internal bool IsBuilt => _built;
 
     internal void EnsureBuilt()

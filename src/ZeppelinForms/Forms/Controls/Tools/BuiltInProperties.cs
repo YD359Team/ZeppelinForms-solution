@@ -7,23 +7,23 @@ using ZeppelinForms.Forms.Enums;
 namespace ZeppelinForms.Forms.Controls.Tools;
 
 /// <summary>
-/// Временная ручная регистрация свойств — до появления генератора.
-/// Служит образцом того, что генератор должен выпускать.
+/// Temporary manual registration of properties — until the generator arrives.
+/// Serves as a model of what the generator should produce.
 /// </summary>
 internal static class BuiltInProperties
 {
-    // CA2255: инициализатор модуля здесь намеренный. Каталог свойств должен
-    // быть заполнен до первого обращения к любому контролу, а точки входа,
-    // где это можно сделать явно, у библиотеки нет. Уйдёт вместе с переходом
-    // на генератор, который выпустит регистрацию по месту объявления свойств
+    // CA2255: the module initializer here is intentional. The property catalog must
+    // be filled before the first access to any control, and the library has no entry
+    // point where this could be done explicitly. It will go away together with the
+    // move to the generator, which will emit registration where the properties are declared
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Usage", "CA2255:The 'ModuleInitializer' attribute should not be used in libraries",
-        Justification = "Каталог свойств должен быть готов до первого контрола")]
+        Justification = "The property catalog must be ready before the first control")]
     [ModuleInitializer]
     internal static void Register()
     {
-        // общие для всех UIElement — регистрируем на каждый конкретный тип,
-        // потому что PropertyCatalog ищет по точному типу, без обхода иерархии
+        // common to all UIElements — registered for each concrete type, because
+        // PropertyCatalog looks up by the exact type, without walking the hierarchy
         RegisterFor<Button>();
         RegisterFor<Label>();
         RegisterFor<CheckBox>();
@@ -58,7 +58,7 @@ internal static class BuiltInProperties
             o => float.IsFinite(((T)o).Size.Height) ? ((T)o).Size.Height : 0f,
             (o, v) => ((T)o).Size = new Size(((T)o).Size.Width, (float)(v ?? 0f))),
 
-        // фактический размер после раскладки — только для чтения
+        // the actual size after layout — read-only
         new("ActualWidth", typeof(float), o => ((T)o).ActualSize.Width),
         new("ActualHeight", typeof(float), o => ((T)o).ActualSize.Height),
 
@@ -82,7 +82,7 @@ internal static class BuiltInProperties
             o => ((T)o).VerticalAlignment,
             (o, v) => ((T)o).VerticalAlignment = (VerticalAlignment)(v ?? VerticalAlignment.Stretch)),
 
-        // только чтение — Position выставляет layout, руками менять бессмысленно
+        // read-only — Position is set by layout, changing it by hand makes no sense
         new("Position", typeof(Point), o => ((T)o).Position),
         new("DesiredSize", typeof(Size), o => ((T)o).DesiredSize),
     ];

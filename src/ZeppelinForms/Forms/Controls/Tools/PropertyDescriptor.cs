@@ -6,7 +6,11 @@ public sealed class PropertyDescriptor(
     Action<object, object?>? set = null)
 {
     public string Name { get; } = name;
-    public string Category { get; init; } = "Прочее";
+
+    // the same default as StyledAttribute.Category: PropertyCatalog merges descriptors
+    // from both, and two different defaults split one category into two
+    public string Category { get; init; } = "Other";
+
     public Type Type { get; } = type;
     public bool IsReadOnly => set is null;
 

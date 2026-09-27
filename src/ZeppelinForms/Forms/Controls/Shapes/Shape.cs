@@ -8,18 +8,53 @@ namespace ZeppelinForms.Forms.Controls.Shapes;
 
 public abstract class Shape : UnitControl
 {
-    public Color Fill { get; set; } = Colors.Transparent;
-    public Color Stroke { get; set; } = Colors.Transparent;
-    public float StrokeThickness { get; set; } = 1f;
+    // all three change only the picture, so each asks for a redraw:
+    // previously a shape kept its old colors until something else redrew it
 
-    /// <summary>Размер фигуры по умолчанию, когда Size не задан.</summary>
+    public Color Fill
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = Colors.Transparent;
+
+    public Color Stroke
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = Colors.Transparent;
+
+    public float StrokeThickness
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = 1f;
+
+    /// <summary>The shape's default size when Size is not set.</summary>
     protected virtual Size DefaultSize => new(64, 64);
 
     protected bool HasFill => Fill.A > 0;
     protected bool HasStroke => Stroke.A > 0 && StrokeThickness > 0;
 
-    /// <summary>Обводка рисуется по центру контура, поэтому половина
-    /// её толщины вылезает за границы — сжимаем область.</summary>
+    /// <summary>The stroke is drawn centered on the outline, so half of its
+    /// thickness sticks out of the bounds — shrink the area.</summary>
     protected Rectangle StrokeAwareBounds
     {
         get

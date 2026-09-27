@@ -12,16 +12,15 @@ internal static class HitTester
         if (!root.IsVisible || !root.IsHitTestVisible)
             return null;
 
-        // рендер сдвигает, поворачивает и масштабирует холст, значит точку
-        // надо провести через то же преобразование в обратную сторону.
-        // Само преобразование живёт в UIElement — в одном месте с прямым,
-        // чтобы картинка и клики не разъехались
+        // the renderer shifts, rotates and scales the canvas, so the point must be
+        // taken through the same transform in reverse. The transform itself lives
+        // in UIElement — in one place with the forward one, so that the picture
+        // and the clicks don't drift apart.
+        //
+        // The rotation is part of it. The point used to be rotated here once more
+        // on top of that, and on a rotated element clicks landed where it would
+        // have been at twice the angle
         Point local = root.TransformPointToLocal(pointInParentSpace);
-
-        // рендер поворачивает холст, значит курсор надо повернуть в обратную
-        // сторону — иначе клики уедут тем сильнее, чем больше угол
-        if (root.Rotation != 0f)
-            local = UIElement.RotateAround(local, root.Center, -root.Rotation);
 
         if (local.X < 0 || local.Y < 0 || local.X > root.ActualSize.Width || local.Y > root.ActualSize.Height)
             return null;
@@ -34,7 +33,7 @@ internal static class HitTester
                 return HitTest(single.Child, single.TransformPointToChild(local)) ?? root;
 
             case PanelControl panel:
-                // с конца — последний добавленный рисуется поверх остальных
+                // from the end — the last added one is drawn on top of the others
                 for (int i = panel.Children.Count - 1; i >= 0; i--)
                 {
                     var hit = HitTest(panel.Children[i], local);

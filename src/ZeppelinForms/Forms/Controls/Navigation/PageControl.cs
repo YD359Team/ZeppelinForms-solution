@@ -6,8 +6,8 @@ using ZeppelinForms.Input.Gestures;
 namespace ZeppelinForms.Forms.Controls.Navigation;
 
 /// <summary>
-/// Контейнер представлений с историей переходов. Скрытые страницы
-/// остаются в дереве, но не рисуются и не получают события.
+/// A container of views with a navigation history. Hidden pages stay
+/// in the tree but are neither drawn nor receive events.
 /// </summary>
 public class PageControl : DecoratedPanel
 {
@@ -17,25 +17,25 @@ public class PageControl : DecoratedPanel
 
     private float _progress = 1f;
 
-    /// <summary>Создать индикатор, привязанный к этому контейнеру.</summary>
+    /// <summary>Create an indicator bound to this container.</summary>
     public PageIndicator CreateIndicator(PageIndicatorStyle style = PageIndicatorStyle.Dots) =>
         new() { Target = this, Style = style };
 
     public PageTransition Transition { get; set; } = PageTransition.SlideLeft;
     public int TransitionDurationMs { get; set; } = 220;
 
-    /// <summary>Готовить содержимое ещё не показанных страниц в простое.</summary>
+    /// <summary>Prepare the content of pages not yet shown while idle.</summary>
     /// <remarks>
-    /// Фабрика страницы отрабатывает при первом показе — прямо в обработчике
-    /// нажатия. Для страницы из трёх десятков контролов с картинками
-    /// и графиками это заметная пауза между кликом и началом перехода,
-    /// и видна она только в первый раз: дальше содержимое уже построено.
-    /// Поэтому строим остальные страницы заранее, пока пользователь читает
-    /// текущую, и по одной за раз — чтобы не собрать все паузы в одну.
+    /// A page's factory runs on first show — right in the press handler. For a page
+    /// of three dozen controls with pictures and charts that is a noticeable pause
+    /// between the click and the start of the transition, and it is visible only
+    /// the first time: after that the content is already built. So the other pages
+    /// are built in advance while the user reads the current one, and one at a
+    /// time — so as not to gather all the pauses into one.
     /// </remarks>
     public bool PreloadPages { get; set; } = true;
 
-    /// <summary>Пауза перед очередной порцией подготовки.</summary>
+    /// <summary>The pause before the next portion of preparation.</summary>
     public int PreloadDelayMs { get; set; } = 150;
 
     private IDisposable? _preloadWake;
@@ -48,8 +48,8 @@ public class PageControl : DecoratedPanel
 
     private SwipeGestureRecognizer? _swipe;
 
-    /// <summary>Как реагировать на свайп по содержимому. Работает и мышью:
-    /// распознаватель различает пальцы и мышь только порогами.</summary>
+    /// <summary>How to react to a swipe over the content. Works with the mouse too:
+    /// the recognizer tells fingers from the mouse only by thresholds.</summary>
     public PageSwipeMode SwipeMode
     {
         get;
@@ -68,7 +68,7 @@ public class PageControl : DecoratedPanel
     {
         base.OnAttached();
 
-        // до присоединения часов нет, а значит и отложить подготовку некуда
+        // before attaching there is no clock, which means nowhere to defer the preparation to
         SchedulePreload(PreloadDelayMs);
     }
 
@@ -89,10 +89,10 @@ public class PageControl : DecoratedPanel
         _preloadWake = owner.Schedule(delayMs, PreloadNext);
     }
 
-    /// <summary>Построить одну неготовую страницу и записаться на следующую
-    /// порцию. Именно по одной: построение страницы — это создание десятков
-    /// контролов с загрузкой их ресурсов, и пачкой это даст ту же заметную
-    /// паузу, только в другом месте.</summary>
+    /// <summary>Build one unprepared page and sign up for the next portion.
+    /// Exactly one at a time: building a page means creating dozens of controls
+    /// with loading of their resources, and doing it in a batch gives the same
+    /// noticeable pause, just somewhere else.</summary>
     private void PreloadNext()
     {
         _preloadWake = null;
@@ -107,14 +107,13 @@ public class PageControl : DecoratedPanel
             }
             catch (Exception exception)
             {
-                // подготовка — работа на опережение, и ронять из неё
-                // приложение нельзя: страницу, которую пользователь
-                // ещё не открывал, он не должен и терять. Страница
-                // остаётся непостроенной, так что при переходе на неё
-                // ошибка возникнет там же, где и без подготовки
+                // preparation is work done ahead of time, and it must not crash
+                // the application: a page the user hasn't opened yet must not be
+                // lost either. The page stays unbuilt, so on navigating to it the
+                // error will occur in the same place as without preparation
                 System.Diagnostics.Debug.WriteLine(
-                    $"ZF: страницу \"{page.Title ?? "без заголовка"}\" " +
-                    $"не удалось подготовить заранее. {exception}");
+                    $"ZF: page \"{page.Title ?? "untitled"}\" " +
+                    $"could not be prepared in advance. {exception}");
             }
 
             SchedulePreload(PreloadDelayMs);
@@ -149,8 +148,8 @@ public class PageControl : DecoratedPanel
 
     private void OnSwiped(object? sender, SwipeGestureEventArgs e)
     {
-        // переход уже идёт: второй поверх него оставит _outgoing
-        // недорисованным на полпути
+        // a transition is already running: a second one on top of it
+        // would leave _outgoing drawn halfway
         if (_progress < 1f) return;
 
         if (SwipeMode == PageSwipeMode.Back)
@@ -159,7 +158,7 @@ public class PageControl : DecoratedPanel
             return;
         }
 
-        // влево — вперёд: содержимое уезжает в ту же сторону, что палец
+        // left — forward: the content moves in the same direction as the finger
         int step = e.Direction == SwipeDirection.Left ? 1 : -1;
 
         if (PageAtOffset(step) is not Page target) return;
@@ -180,12 +179,12 @@ public class PageControl : DecoratedPanel
 
         int next = index + offset;
 
-        // по кругу не листаем: перескок с последней на первую читается
-        // как сбой, а не как переход
+        // no wrap-around: jumping from the last page to the first
+        // reads as a glitch, not as a transition
         return next >= 0 && next < pages.Count ? pages[next] : null;
     }
 
-    /// <summary>Добавить страницу. Первая добавленная становится текущей.</summary>
+    /// <summary>Add a page. The first one added becomes the current one.</summary>
     public Page AddPage(string name, Func<UIElement> factory, string? title = null)
     {
         var page = new Page
@@ -224,7 +223,7 @@ public class PageControl : DecoratedPanel
         Page? target = FindPage(_history[^1]);
         if (target is null) return;
 
-        // назад — зеркальный переход, чтобы движение читалось как возврат
+        // back is a mirrored transition, so that the movement reads as a return
         Switch(target, Mirror(Transition));
     }
 
@@ -248,17 +247,23 @@ public class PageControl : DecoratedPanel
 
     private Rectangle _baseSlot;
 
-    /// <summary>Довести незакрытый переход до конца. Animate заменяет
-    /// анимацию с тем же ключом, не вызывая её completed, поэтому уходящая
-    /// страница иначе осталась бы видимой и сдвинутой навсегда.</summary>
+    /// <summary>Bring an unfinished transition to its end.</summary>
+    /// <remarks>
+    /// A new animation with the same key does displace the old one, and the old
+    /// one's completed does run — but only when the new one is added, and by then
+    /// Switch has already written the new outgoing page into _outgoing. The old
+    /// completed would finish the new transition, and the old outgoing page would
+    /// stay visible and shifted forever. So the previous transition is closed
+    /// explicitly, before Switch touches any state.
+    /// </remarks>
     private void FinishTransition()
     {
         if (_outgoing is not Page outgoing) return;
 
-        // состояние сбрасываем первым делом: StopAnimation вызовет Cancel,
-        // тот — completed, а он снова зайдёт сюда. Обнулённое _outgoing
-        // обрывает повторный вход на первой строке, а захваченная
-        // сопоставлением ссылка от этого не страдает
+        // the state is reset first: StopAnimation calls Cancel, which calls
+        // completed, and that comes back here. A nulled _outgoing cuts off the
+        // re-entry on the first line, and the reference captured by the pattern
+        // match doesn't suffer from it
         _outgoing = null;
         _progress = 1f;
         _activeTransition = PageTransition.None;
@@ -276,20 +281,21 @@ public class PageControl : DecoratedPanel
 
         Page? previous = _current;
 
-        // без окна тик кадра не идёт: анимация не завершится
-        // и уходящая страница останется висеть поверх новой
+        // without a window the frame tick doesn't run: the animation won't finish
+        // and the outgoing page would hang over the new one
         bool canAnimate = transition != PageTransition.None
             && TransitionDurationMs > 0
             && previous is not null
             && FindOwner()?.PlatformWindow is not null
-            // смена страницы — движение ради красоты: при уменьшенном
-            // движении новая страница просто появляется на месте старой
+            // a page change is motion for the sake of looks: with reduced motion
+            // the new page simply appears in place of the old one
             && !Motion.IsReduced;
 
-        // состояние перехода выставляем до IsVisible. Его сеттер запускает
-        // раскладку синхронно, а ArrangeContentOverride восстанавливает
-        // смещения только при заполненных _outgoing и _progress — иначе обе
-        // страницы окажутся в одном слоте, и этот кадр успеет отрисоваться
+        // the transition state is set before IsVisible. Its setter can lead to
+        // a layout right away — Win32 and X11 paint inside Invalidate — and
+        // ArrangeContentOverride restores the offsets only when _outgoing and
+        // _progress are filled in: otherwise both pages would end up in one slot,
+        // and that frame would get drawn
         if (canAnimate)
         {
             _outgoing = previous;
@@ -321,9 +327,9 @@ public class PageControl : DecoratedPanel
             return;
         }
 
-        // раскладка отложена до кадра, а первый же кадр перехода сдвигает
-        // страницы от их слота — значит слот должен быть посчитан сейчас.
-        // Invalidate для этого не годится: он только помечает
+        // layout is deferred until the frame, and the very first frame of the
+        // transition shifts the pages from their slot — so the slot must be
+        // computed now. Invalidate doesn't fit: it only marks
         FindOwner()?.UpdateLayout();
 
         Page outgoing = previous!;
@@ -344,13 +350,13 @@ public class PageControl : DecoratedPanel
 
                 Invalidate();
             });
-        // не во время перехода: построение страницы посреди анимации
-        // съело бы ровно те кадры, которые она показывает
+        // not during the transition: building a page in the middle of an animation
+        // would eat exactly the frames it shows
         SchedulePreload(TransitionDurationMs + PreloadDelayMs);
     }
 
-    /// <summary>Сдвигает и подкрашивает страницы по текущему прогрессу.
-    /// Меняет только Position и Opacity — полная раскладка на каждый кадр не нужна.</summary>
+    /// <summary>Shifts and tints the pages by the current progress.
+    /// Changes only Position and Opacity — a full layout per frame isn't needed.</summary>
     private void ApplyTransition(Page incoming, Page outgoing)
     {
         if (_activeTransition == PageTransition.Fade)
@@ -383,7 +389,7 @@ public class PageControl : DecoratedPanel
 
     private PageTransition _activeTransition = PageTransition.None;
 
-    // ===== раскладка =====
+    // ===== layout =====
 
     protected override Size MeasureContentOverride(Size availableSize)
     {
@@ -393,8 +399,8 @@ public class PageControl : DecoratedPanel
 
         float width = 0, height = 0;
 
-        // меряем только видимые: скрытые страницы не должны влиять
-        // на размер контейнера
+        // only the visible ones are measured: hidden pages
+        // must not affect the container's size
         foreach (UIElement child in Children)
         {
             if (!child.IsVisible) continue;
@@ -418,7 +424,7 @@ public class PageControl : DecoratedPanel
                 Math.Max(0, contentSize.Width - Padding.Horizontal),
                 Math.Max(0, contentSize.Height - Padding.Vertical)));
 
-        // запоминаем базовый слот: анимация двигает страницы относительно него
+        // remember the base slot: the animation moves pages relative to it
         _baseSlot = area;
 
         foreach (UIElement child in Children)
@@ -428,7 +434,7 @@ public class PageControl : DecoratedPanel
             child.Arrange(area);
         }
 
-        // если раскладка случилась посреди перехода, восстанавливаем смещения
+        // if the layout happened in the middle of a transition, restore the offsets
         if (_progress < 1f && _outgoing is not null && _current is not null)
             ApplyTransition(_current, _outgoing);
     }

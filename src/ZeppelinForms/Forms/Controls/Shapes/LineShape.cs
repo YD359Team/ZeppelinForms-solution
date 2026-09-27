@@ -5,10 +5,31 @@ namespace ZeppelinForms.Forms.Controls.Shapes;
 
 public class LineShape : Shape
 {
-    /// <summary>Начало и конец в долях от размера контрола (0..1),
-    /// чтобы линия масштабировалась вместе с ним.</summary>
-    public Point From { get; set; } = new(0, 0);
-    public Point To { get; set; } = new(1, 1);
+    /// <summary>Start and end as fractions of the control's size (0..1),
+    /// so that the line scales with it.</summary>
+    public Point From
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = new(0, 0);
+
+    public Point To
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = new(1, 1);
 
     public override void Draw(Graphics g)
     {

@@ -8,19 +8,64 @@ using ZeppelinForms.Input.Mouse;
 namespace ZeppelinForms.Forms.Controls.Navigation;
 
 /// <summary>
-/// Точки-переключатели страниц. Привязывается к PageControl и следит
-/// за его текущей страницей.
+/// Page switcher dots. Binds to a PageControl and follows
+/// its current page.
 /// </summary>
 public partial class PageIndicator : DecoratedControl
 {
     private PageControl? _target;
     private int _hoveredIndex = -1;
 
-    public PageIndicatorStyle Style { get; set; } = PageIndicatorStyle.Dots;
+    // the style and all the sizes define the indicator's desired size,
+    // so each asks for a layout pass
 
-    public float DotSize { get; set; } = 9f;
-    public float ActiveDotSize { get; set; } = 11f;
-    public float Spacing { get; set; } = 8f;
+    public PageIndicatorStyle Style
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = PageIndicatorStyle.Dots;
+
+    public float DotSize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = 9f;
+
+    public float ActiveDotSize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = 11f;
+
+    public float Spacing
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    } = 8f;
 
     [Styled(Category = "Navigation")]
     public partial Color ActiveColor { get; set; }
@@ -122,8 +167,8 @@ public partial class PageIndicator : DecoratedControl
 
                 case PageIndicatorStyle.Dashes:
                     {
-                        // активная черта шире остальных — так позиция читается
-                        // даже при большом числе страниц
+                        // the active dash is wider than the others — that way
+                        // the position reads even with many pages
                         float width = active ? itemWidth : itemWidth * 0.55f;
                         float height = DotSize * 0.45f;
 
@@ -149,7 +194,7 @@ public partial class PageIndicator : DecoratedControl
                         }
                         else
                         {
-                            // неактивные — контуром, чтобы активная выделялась заливкой
+                            // inactive ones as outlines, so that the active one stands out with its fill
                             g.DrawEllipse(rect, color, 1.4f);
                         }
 
@@ -179,8 +224,8 @@ public partial class PageIndicator : DecoratedControl
         {
             float left = startX + i * (itemWidth + Spacing);
 
-            // зона попадания включает половину промежутка с каждой стороны:
-            // точки мелкие, и целиться точно в них неудобно
+            // the hit zone includes half of the gap on each side:
+            // the dots are small, and aiming exactly at them is inconvenient
             if (localX >= left - Spacing / 2f && localX <= left + itemWidth + Spacing / 2f)
                 return i;
         }
@@ -216,8 +261,8 @@ public partial class PageIndicator : DecoratedControl
 
         e.Handled = true;
 
-        // направление перехода зависит от того, вперёд или назад идём —
-        // иначе слайд будет всегда в одну сторону
+        // the transition direction depends on whether we go forward or back —
+        // otherwise the slide would always go one way
         int currentIndex = pages.FindIndex(p => ReferenceEquals(p, _target.CurrentPage));
 
         PageTransition transition = _target.Transition;
@@ -235,6 +280,23 @@ public partial class PageIndicator : DecoratedControl
         }
 
         _target.Navigate(pages[index].Name, transition);
+    }
+
+    /// <summary>Subscribe again after coming back into the tree. OnDetached drops
+    /// the subscription so that a discarded indicator doesn't live on through the
+    /// PageControl, but the Target setter sees the same value and does nothing —
+    /// so an indicator that was detached and attached again (a TabControl tab,
+    /// a rebuilt panel) stopped following the pages for good.</summary>
+    protected override void OnAttached()
+    {
+        if (_target is null) return;
+
+        // -= first: an indicator attached for the first time is already subscribed
+        // by the Target setter, and a second subscription would double every redraw
+        _target.Navigated -= OnTargetNavigated;
+        _target.Navigated += OnTargetNavigated;
+
+        InvalidateVisual();
     }
 
     protected override void OnDetached()

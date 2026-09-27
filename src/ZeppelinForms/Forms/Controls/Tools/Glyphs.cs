@@ -3,12 +3,12 @@ using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Forms.Controls.Tools;
 
-/// <summary>Мелкие указатели, общие для нескольких контролов.</summary>
+/// <summary>Small pointers shared by several controls.</summary>
 public static class Glyphs
 {
-    /// <summary>Уголок: вправо когда свёрнуто, вниз когда раскрыто.
-    /// Рисуется ломаной, а не символом шрифта — глиф в шрифте может
-    /// отсутствовать, и вместо стрелки пользователь увидит квадрат.</summary>
+    /// <summary>A chevron: right when collapsed, down when expanded.
+    /// Drawn as a polyline rather than a font character — the glyph may be
+    /// missing from the font, and the user would see a box instead of an arrow.</summary>
     public static void DrawChevron(
         Graphics g, Point center, float radius, bool expanded, Color color, float thickness = 1.8f)
     {

@@ -4,11 +4,11 @@ public enum PageSwipeMode
 {
     None,
 
-    /// <summary>Свайп вправо возвращает на предыдущую страницу истории.
-    /// Влево не реагирует: вперёд в стеке идти некуда.</summary>
+    /// <summary>A swipe to the right returns to the previous page of the history.
+    /// Left does nothing: there is nowhere to go forward in the stack.</summary>
     Back,
 
-    /// <summary>Свайп листает страницы по порядку добавления.
-    /// Каждое перелистывание — обычный переход, то есть история растёт.</summary>
+    /// <summary>The swipe flips pages in the order they were added.
+    /// Each flip is an ordinary transition, that is, the history grows.</summary>
     Sequential,
 }
