@@ -12,7 +12,7 @@ public class PieChart : ChartBase
 
     public List<PieSlice> Slices { get; init; } = [];
 
-    /// <summary>Доля радиуса, вырезаемая в центре. 0 — обычный пирог, 0.5 — кольцо.</summary>
+    /// <summary>The fraction of the radius cut out in the center. 0 — a regular pie, 0.5 — a ring.</summary>
     public float HoleRatio { get; set; }
 
     public bool ShowLegend { get; set; } = true;
@@ -46,7 +46,28 @@ public class PieChart : ChartBase
         }
     }
 
-    // фон, рамка и скругление рисует база — здесь только заголовок, секторы и легенда
+    /// <summary>The color behind the chart: its own background, otherwise that of
+    /// the nearest opaque ancestor, otherwise the theme's. The ring's hole is painted
+    /// with it — there is no "clip out" in Graphics, and the hole must look like
+    /// an opening.</summary>
+    /// <remarks>
+    /// The hole used to be painted with the chart's own background, or white if it
+    /// was transparent — which it is by default. On a dark page the ring got
+    /// a white center.
+    /// </remarks>
+    private Color BackdropColor
+    {
+        get
+        {
+            for (UIElement? node = this; node is not null; node = node.Parent)
+                if (node.Background.A == 255)
+                    return node.Background;
+
+            return App.Theme.Colors.Background;
+        }
+    }
+
+    // the background, border and corner radius are drawn by the base — only the title, the slices and the legend here
     protected override void DrawContent(Graphics g)
     {
         DrawTitle(g);
@@ -55,7 +76,7 @@ public class PieChart : ChartBase
         if (total <= 0 || Slices.Count == 0) return;
 
         Rectangle circle = PieBounds;
-        float angle = -90f;   // начинаем с 12 часов
+        float angle = -90f;   // start from 12 o'clock
 
         for (int i = 0; i < Slices.Count; i++)
         {
@@ -67,7 +88,7 @@ public class PieChart : ChartBase
 
             if (i == _hoveredSlice)
             {
-                // выдвигаем сектор наружу вдоль его биссектрисы
+                // push the slice outward along its bisector
                 float mid = (angle + sweep / 2f) * MathF.PI / 180f;
                 sliceBounds = new Rectangle(
                     new Point(
@@ -105,7 +126,7 @@ public class PieChart : ChartBase
                         circle.X + (circle.Width - hole) / 2f,
                         circle.Y + (circle.Height - hole) / 2f),
                     new Size(hole, hole)),
-                Background.A > 0 ? Background : Colors.White);
+                BackdropColor);
         }
 
         if (ShowLegend)
@@ -173,7 +194,7 @@ public class PieChart : ChartBase
 
         if (distance <= radius && distance >= radius * HoleRatio && Total > 0)
         {
-            // угол от 12 часов по часовой стрелке, как рисуем секторы
+            // the angle from 12 o'clock clockwise, the same way the slices are drawn
             float angle = MathF.Atan2(dy, dx) * 180f / MathF.PI + 90f;
             if (angle < 0) angle += 360f;
 
@@ -193,7 +214,15 @@ public class PieChart : ChartBase
         InvalidateVisual();
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args) => _hoveredSlice = -1;
+    protected override void OnMouseExit(MouseMoveEventArgs args)
+    {
+        if (_hoveredSlice < 0) return;
+
+        _hoveredSlice = -1;
+
+        // without a redraw the pushed-out slice stayed out after the mouse left
+        InvalidateVisual();
+    }
 
     protected override Size MeasureOverride(Size availableSize) =>
         ResolveSize(new Size(260 + LegendWidth + Padding.Horizontal, 200 + Padding.Vertical), availableSize);

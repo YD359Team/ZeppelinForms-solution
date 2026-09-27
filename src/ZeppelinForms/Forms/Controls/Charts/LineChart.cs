@@ -9,7 +9,7 @@ public class LineChart : CartesianChartBase
     public List<string> Categories { get; init; } = [];
     public List<ChartSeries> Series { get; init; } = [];
 
-    /// <summary>Функция для построения графика. Если задана, Series игнорируются.</summary>
+    /// <summary>A function to plot. If set, Series are ignored.</summary>
     public Func<float, float>? Function { get; set; }
 
     public float FunctionMinX { get; set; } = -10f;
@@ -30,7 +30,7 @@ public class LineChart : CartesianChartBase
             {
                 foreach (float y in SampleFunction().Select(p => p.Y))
                 {
-                    if (!float.IsFinite(y)) continue;   // разрывы вроде 1/x
+                    if (!float.IsFinite(y)) continue;   // discontinuities like 1/x
                     min = Math.Min(min, y);
                     max = Math.Max(max, y);
                 }
@@ -83,6 +83,10 @@ public class LineChart : CartesianChartBase
 
     private void DrawFunction(Graphics g)
     {
+        // an empty or inverted argument range has nothing to plot, and the
+        // mapping to the plot's width below would divide by zero
+        if (FunctionMaxX <= FunctionMinX) return;
+
         Rectangle plot = PlotArea;
 
         List<Point> segment = [];
@@ -91,7 +95,7 @@ public class LineChart : CartesianChartBase
         {
             if (!float.IsFinite(y))
             {
-                // разрыв: обрываем линию и начинаем новую
+                // a discontinuity: break the line and start a new one
                 FlushSegment(g, segment);
                 continue;
             }
@@ -99,7 +103,7 @@ public class LineChart : CartesianChartBase
             float px = plot.X + plot.Width * (x - FunctionMinX) / (FunctionMaxX - FunctionMinX);
             float py = ValueToY(y);
 
-            // за пределами области рисовать незачем
+            // there is no point drawing beyond the area
             if (py < plot.Y - plot.Height || py > plot.Y + plot.Height * 2)
             {
                 FlushSegment(g, segment);
@@ -111,7 +115,7 @@ public class LineChart : CartesianChartBase
 
         FlushSegment(g, segment);
 
-        // подписи оси X по краям и в середине
+        // X axis labels at the edges and in the middle
         for (int i = 0; i <= 2; i++)
         {
             float t = i / 2f;

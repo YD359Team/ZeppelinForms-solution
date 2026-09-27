@@ -1,42 +1,48 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls.Charts;
 
 /// <summary>
-/// Лепестковая диаграмма: несколько рядов по одним и тем же осям.
+/// A radar chart: several series along the same axes.
 /// </summary>
 /// <remarks>
-/// Оси расходятся из центра, по одной на категорию, и значения ряда
-/// соединяются в замкнутый контур. Такая диаграмма отвечает на вопрос
-/// «где сильнее, где слабее», а не «насколько больше» — сравнивать
-/// площади на глаз нельзя, они растут как квадрат значения.
-/// Поэтому ряды рисуются полупрозрачной заливкой поверх друг друга,
-/// а не сплошной: важна форма, а не размер пятна.
+/// The axes spread from the center, one per category, and the values of a series
+/// are joined into a closed outline. Such a chart answers the question "where is it
+/// stronger, where weaker" rather than "how much more" — areas can't be compared
+/// by eye, they grow as the square of the value. So the series are drawn with
+/// a translucent fill on top of each other rather than a solid one: the shape
+/// matters, not the size of the patch.
 /// </remarks>
-public class RadarChart : ChartBase
+public partial class RadarChart : ChartBase
 {
-    /// <summary>Подписи осей. Их количество задаёт число лучей.</summary>
+    /// <summary>Axis labels. Their count sets the number of rays.</summary>
     public List<string> Categories { get; init; } = [];
 
     public List<ChartSeries> Series { get; init; } = [];
 
-    /// <summary>Верх шкалы. null — по наибольшему значению рядов.</summary>
+    /// <summary>The top of the scale. null — by the largest value of the series.</summary>
     public float? MaxValue { get; set; }
 
-    /// <summary>Сколько колец рисовать внутри — они же деления шкалы.</summary>
+    /// <summary>How many rings to draw inside — they are also the scale divisions.</summary>
     public int RingCount { get; set; } = 4;
 
     public bool ShowLegend { get; set; } = true;
 
-    /// <summary>Непрозрачность заливки ряда. Контур всегда сплошной.</summary>
+    /// <summary>The opacity of a series fill. The outline is always solid.</summary>
     public float FillOpacity { get; set; } = 0.22f;
 
     public float PointRadius { get; set; } = 3f;
 
-    public Color GridColor { get; set; } = new(255, 224, 224, 224);
-    public Color AxisColor { get; set; } = new(255, 190, 190, 190);
+    [Styled(Category = "Chart")]
+    public partial Color GridColor { get; set; }
+    private static Color GridColorDefault => new(255, 224, 224, 224);
+
+    [Styled(Category = "Chart")]
+    public partial Color AxisColor { get; set; }
+    private static Color AxisColorDefault => new(255, 190, 190, 190);
 
     private float Scale
     {
@@ -50,8 +56,8 @@ public class RadarChart : ChartBase
                 foreach (float value in series.Values)
                     max = Math.Max(max, value);
 
-            // всё по нулям — шкала всё равно должна быть ненулевой,
-            // иначе делить будет не на что
+            // all zeros — the scale must still be non-zero,
+            // otherwise there would be nothing to divide by
             return max > 0 ? max : 1f;
         }
     }
@@ -72,8 +78,8 @@ public class RadarChart : ChartBase
         }
     }
 
-    /// <summary>Место под подписи осей: самая длинная подпись уходит вбок
-    /// на свою половину, плюс отступ от конца луча.</summary>
+    /// <summary>Room for the axis labels: the longest label extends sideways
+    /// by its half, plus a gap from the end of the ray.</summary>
     private float LabelMargin
     {
         get
@@ -106,8 +112,8 @@ public class RadarChart : ChartBase
         }
     }
 
-    /// <summary>Точка на луче категории. Луч 0 смотрит вверх, дальше
-    /// по часовой стрелке — так же, как в круговой диаграмме.</summary>
+    /// <summary>A point on a category's ray. Ray 0 points up, then clockwise —
+    /// the same as in the pie chart.</summary>
     private static Point At(Point center, float radius, int index, int count)
     {
         float angle = (-90f + 360f * index / count) * MathF.PI / 180f;
@@ -140,8 +146,8 @@ public class RadarChart : ChartBase
 
             for (int i = 0; i < axes; i++)
             {
-                // ряд короче списка осей — недостающее считаем нулём,
-                // иначе диаграмма просто не нарисуется
+                // a series shorter than the list of axes — the missing values count
+                // as zero, otherwise the chart simply wouldn't be drawn
                 float value = i < series.Values.Count ? series.Values[i] : 0f;
 
                 vertices[i] = At(center, radius * Math.Clamp(value / scale, 0f, 1f), i, axes);
@@ -149,10 +155,10 @@ public class RadarChart : ChartBase
 
             g.FillPolygon(vertices, color.WithA((byte)(255 * Math.Clamp(FillOpacity, 0f, 1f))));
 
-            #pragma warning disable CA2014
-            // контур замыкаем сами: DrawPolyline линию не закрывает
+#pragma warning disable CA2014
+            // the outline is closed by us: DrawPolyline doesn't close the line
             Span<Point> outline = axes + 1 <= 33 ? stackalloc Point[axes + 1] : new Point[axes + 1];
-            #pragma warning restore CA2014
+#pragma warning restore CA2014
             vertices.CopyTo(outline);
             outline[axes] = vertices[0];
 
@@ -198,8 +204,8 @@ public class RadarChart : ChartBase
         {
             Point anchor = At(center, radius + 10f, i, axes);
 
-            // подпись вешаем на конец луча и выравниваем по той стороне,
-            // с которой луч подошёл: иначе текст наедет на диаграмму
+            // the label is hung on the end of the ray and aligned by the side
+            // the ray came from: otherwise the text would run over the chart
             float width = LabelMargin * 2f;
 
             var rect = new Rectangle(

@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Controls.Charts;
 using ZeppelinForms.Forms.Controls.DataGrid;
 using ZeppelinForms.Forms.Controls.Navigation;
 using ZeppelinForms.Forms.Controls.Shapes;
@@ -404,6 +405,33 @@ public static class Themes
                 list.BorderWidth = 1f;
                 list.DropIndicatorColor = c.Accent;
                 list.DragPreviewBackground = c.Surface;
+            })
+
+            // chart colors used to be fixed for the light theme: a black title
+            // vanished on a dark page. The grid and the hover band are tinted by
+            // the text color, so they read on either background
+            .For<ChartBase>((chart, c) =>
+            {
+                chart.TitleColor = c.Text;
+                chart.LabelColor = c.TextSecondary;
+            })
+
+            .For<CartesianChartBase>((chart, c) =>
+            {
+                chart.AxisColor = c.TextSecondary;
+                chart.GridColor = new Color(28, c.Text.R, c.Text.G, c.Text.B);
+            })
+
+            .For<CandlestickChart>((chart, c) =>
+            {
+                chart.HoverColor = new Color(24, c.Text.R, c.Text.G, c.Text.B);
+                chart.ReadoutBackground = new Color(230, c.Surface.R, c.Surface.G, c.Surface.B);
+            })
+
+            .For<RadarChart>((chart, c) =>
+            {
+                chart.GridColor = new Color(28, c.Text.R, c.Text.G, c.Text.B);
+                chart.AxisColor = new Color(60, c.Text.R, c.Text.G, c.Text.B);
             });
     }
 }

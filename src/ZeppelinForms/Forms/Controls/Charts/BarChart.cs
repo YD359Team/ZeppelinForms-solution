@@ -9,7 +9,7 @@ public class BarChart : CartesianChartBase
     public List<string> Categories { get; init; } = [];
     public List<ChartSeries> Series { get; init; } = [];
 
-    public float BarGap { get; set; } = 0.25f;      // доля от ширины группы
+    public float BarGap { get; set; } = 0.25f;      // a fraction of the group width
     public CornerRadius BarCornerRadius { get; set; } = new(3f, 3f, 0f, 0f);
 
     protected override (float Min, float Max) DataRange
@@ -53,7 +53,7 @@ public class BarChart : CartesianChartBase
                 float value = Series[s].Values[c];
                 float y = ValueToY(value);
 
-                // столбики умеют уходить вниз от нуля при отрицательных значениях
+                // bars can go down from zero for negative values
                 var bar = new Rectangle(
                     new Point(groupX + barWidth * s, Math.Min(y, zeroY)),
                     new Size(barWidth - 1f, Math.Abs(zeroY - y)));

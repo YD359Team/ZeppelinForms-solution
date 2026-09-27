@@ -1,22 +1,22 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Charts;
 
 /// <summary>
-/// Биржевая диаграмма: свеча на период, тень от минимума до максимума
-/// и тело между открытием и закрытием.
+/// A stock chart: a candle per period, a wick from the low to the high
+/// and a body between the open and the close.
 /// </summary>
 /// <remarks>
-/// Ось значений здесь не тянется до нуля, в отличие от столбцов: цены
-/// живут в узком коридоре, и нулевая отметка сплющила бы всю картину
-/// в полоску под верхним краем. Вместо этого диапазон берётся по данным
-/// с небольшим запасом сверху и снизу, чтобы крайние тени не упирались
-/// в рамку.
+/// The value axis here doesn't extend down to zero, unlike bars: prices live in
+/// a narrow corridor, and the zero mark would flatten the whole picture into a strip
+/// under the top edge. Instead the range is taken from the data with a small margin
+/// above and below, so that the outermost wicks don't touch the border.
 /// </remarks>
-public class CandlestickChart : CartesianChartBase
+public partial class CandlestickChart : CartesianChartBase
 {
     private int _hovered = -1;
 
@@ -25,22 +25,34 @@ public class CandlestickChart : CartesianChartBase
     public Color BullColor { get; set; } = new(255, 0x19, 0x87, 0x54);
     public Color BearColor { get; set; } = new(255, 0xDC, 0x35, 0x45);
 
-    /// <summary>Рисовать растущие свечи пустыми — так их принято показывать
-    /// на биржевых терминалах.</summary>
+    /// <summary>The band behind the hovered candle. Was a fixed translucent black,
+    /// invisible on a dark background.</summary>
+    [Styled(Category = "Chart")]
+    public partial Color HoverColor { get; set; }
+    private static Color HoverColorDefault => new(24, 0, 0, 0);
+
+    /// <summary>The backing of the price readout. Was a fixed translucent white,
+    /// a bright patch on a dark background.</summary>
+    [Styled(Category = "Chart")]
+    public partial Color ReadoutBackground { get; set; }
+    private static Color ReadoutBackgroundDefault => new(220, 255, 255, 255);
+
+    /// <summary>Draw rising candles hollow — that is how stock terminals
+    /// usually show them.</summary>
     public bool HollowBullish { get; set; }
 
-    /// <summary>Доля шага, которую занимает тело свечи.</summary>
+    /// <summary>The fraction of the step the candle body takes.</summary>
     public float BodyRatio { get; set; } = 0.62f;
 
     public float WickWidth { get; set; } = 1.4f;
 
-    /// <summary>Запас по краям шкалы, долей от размаха цен.</summary>
+    /// <summary>The margin at the edges of the scale, as a fraction of the price range.</summary>
     public float RangePadding { get; set; } = 0.06f;
 
-    /// <summary>Показывать цены наведённой свечи в углу поля.</summary>
+    /// <summary>Show the prices of the hovered candle in the corner of the plot.</summary>
     public bool ShowReadout { get; set; } = true;
 
-    // цена нулём не бывает: диапазон считаем по самим данным
+    // a price is never zero: the range is computed from the data itself
     protected override bool IncludeZero => false;
 
     protected override (float Min, float Max) DataRange
@@ -97,12 +109,12 @@ public class CandlestickChart : CartesianChartBase
             float open = ValueToY(candle.Open);
             float close = ValueToY(candle.Close);
 
-            // наведённую свечу подсвечиваем полосой на всю высоту поля:
-            // так видно, к какому периоду относится подпись цен
+            // the hovered candle is highlighted with a band over the whole height
+            // of the plot: that way it's clear which period the price readout belongs to
             if (i == _hovered)
                 g.FillRectangle(
                     new Rectangle(new Point(center - step / 2f, plot.Y), new Size(step, plot.Height)),
-                    new Color(24, 0, 0, 0));
+                    HoverColor);
 
             g.DrawLine(new Point(center, high), new Point(center, low), color, WickWidth);
 
@@ -123,8 +135,8 @@ public class CandlestickChart : CartesianChartBase
             DrawReadout(g, plot, Candles[_hovered]);
     }
 
-    /// <summary>Подписи периодов. Рисуем не все: подписей всегда больше,
-    /// чем влезает, и слипшийся ряд читается хуже, чем редкий.</summary>
+    /// <summary>Period labels. Not all of them are drawn: there are always more
+    /// labels than fit, and a stuck-together row reads worse than a sparse one.</summary>
     private void DrawPeriodLabels(Graphics g, Rectangle plot, float step)
     {
         float widest = 0;
@@ -163,7 +175,7 @@ public class CandlestickChart : CartesianChartBase
             new Point(plot.X + 6f, plot.Y + 6f),
             new Size(size.Width + 12f, size.Height + 8f));
 
-        g.FillRoundRectangle(box, new CornerRadius(4f), new Color(220, 255, 255, 255));
+        g.FillRoundRectangle(box, new CornerRadius(4f), ReadoutBackground);
 
         g.DrawText(text, box, candle.IsBullish ? BullColor : BearColor, EffectiveFont,
             HorizontalContentAlignment.Center, VerticalContentAlignment.Center);

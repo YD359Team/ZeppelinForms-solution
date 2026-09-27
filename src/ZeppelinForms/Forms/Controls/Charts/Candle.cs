@@ -1,11 +1,10 @@
 ﻿namespace ZeppelinForms.Forms.Controls.Charts;
 
-/// <summary>Одна свеча: цены открытия, максимума, минимума и закрытия
-/// за период.</summary>
+/// <summary>One candle: the open, high, low and close prices for a period.</summary>
 /// <remarks>
-/// Подпись хранится рядом со значениями, а не отдельным списком категорий:
-/// свечи приходят и уходят целиком, и разъехаться с подписями они
-/// при таком хранении не могут.
+/// The label is stored next to the values rather than in a separate list of
+/// categories: candles come and go whole, and stored this way they can't
+/// drift apart from their labels.
 /// </remarks>
 public sealed class Candle
 {
@@ -16,6 +15,6 @@ public sealed class Candle
     public float Low { get; set; }
     public float Close { get; set; }
 
-    /// <summary>Закрытие выше открытия — свеча растущая.</summary>
+    /// <summary>The close is above the open — a rising candle.</summary>
     public bool IsBullish => Close >= Open;
 }

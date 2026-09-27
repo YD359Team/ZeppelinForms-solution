@@ -1,34 +1,44 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls.Charts;
 
 /// <summary>
-/// Диаграмма с осью значений и сеткой: столбцы, линии и всё,
-/// что раскладывается по координатной плоскости.
+/// A chart with a value axis and a grid: bars, lines and everything
+/// that is laid out on a coordinate plane.
 /// </summary>
-public abstract class CartesianChartBase : ChartBase
+public abstract partial class CartesianChartBase : ChartBase
 {
     protected const float AxisLabelGap = 4f;
 
-    public Color AxisColor { get; set; } = new Color(255, 150, 150, 150);
-    public Color GridColor { get; set; } = new Color(255, 232, 232, 232);
+    [Styled(Category = "Chart")]
+    public partial Color AxisColor { get; set; }
+    private static Color AxisColorDefault => new(255, 150, 150, 150);
+
+    [Styled(Category = "Chart")]
+    public partial Color GridColor { get; set; }
+    private static Color GridColorDefault => new(255, 232, 232, 232);
 
     public bool ShowGrid { get; set; } = true;
     public int GridLineCount { get; set; } = 4;
 
-    /// <summary>Нижняя граница оси значений. null — считать по данным.</summary>
+    /// <summary>The lower bound of the value axis. null — compute from the data.</summary>
     public float? MinValue { get; set; }
     public float? MaxValue { get; set; }
+
+    /// <summary>The number of grid divisions, never below one: with zero divisions
+    /// the axis was divided by zero, and its labels and lines went to NaN.</summary>
+    private int Divisions => Math.Max(1, GridLineCount);
 
     protected float LabelHeight => TextMeasurer.Current.MeasureText("0", EffectiveFont).Height;
 
     protected abstract (float Min, float Max) DataRange { get; }
 
-    /// <summary>Тянуть ли ось значений до нуля. Столбцам без нуля нельзя:
-    /// их длина и есть значение. Ценам — наоборот: нулевая цена не бывает
-    /// нужна, а с ней все свечи схлопнутся в полоску наверху.</summary>
+    /// <summary>Whether to extend the value axis down to zero. Bars can't do without
+    /// zero: their length is the value. Prices are the opposite: a zero price is
+    /// never needed, and with it all the candles collapse into a strip at the top.</summary>
     protected virtual bool IncludeZero => true;
 
     protected (float Min, float Max) EffectiveRange
@@ -40,7 +50,7 @@ public abstract class CartesianChartBase : ChartBase
             min = MinValue ?? (IncludeZero ? Math.Min(0, min) : min);
             max = MaxValue ?? max;
 
-            // вырожденный диапазон растянем, иначе делить будем на ноль
+            // a degenerate range is stretched, otherwise we would divide by zero
             if (Math.Abs(max - min) < 0.0001f)
                 max = min + 1f;
 
@@ -48,17 +58,18 @@ public abstract class CartesianChartBase : ChartBase
         }
     }
 
-    /// <summary>Ширина полосы под подписи оси значений — по самой длинной из них.</summary>
+    /// <summary>The width of the strip for the value axis labels — by the longest of them.</summary>
     protected float ValueAxisWidth
     {
         get
         {
             var (min, max) = EffectiveRange;
+            int divisions = Divisions;
 
             float widest = 0;
-            for (int i = 0; i <= GridLineCount; i++)
+            for (int i = 0; i <= divisions; i++)
             {
-                float value = min + (max - min) * i / GridLineCount;
+                float value = min + (max - min) * i / divisions;
                 widest = Math.Max(widest, TextMeasurer.Current.MeasureText(FormatValue(value), EffectiveFont).Width);
             }
 
@@ -89,10 +100,11 @@ public abstract class CartesianChartBase : ChartBase
     {
         Rectangle plot = PlotArea;
         var (min, max) = EffectiveRange;
+        int divisions = Divisions;
 
-        for (int i = 0; i <= GridLineCount; i++)
+        for (int i = 0; i <= divisions; i++)
         {
-            float t = i / (float)GridLineCount;
+            float t = i / (float)divisions;
             float y = plot.Y + plot.Height * (1 - t);
             float value = min + (max - min) * t;
 
