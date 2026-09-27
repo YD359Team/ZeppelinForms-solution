@@ -772,6 +772,7 @@ public class ExampleMainForm : Form
 
     private StackPanel GetView10()
     {
+        Label hint = new Label().With(x => x.Text = "Just press any text in textbox");
         Label label = new Label();
         TextBox textBox = new TextBox();
         label.Bind(Label.TextProperty, textBox, nameof(TextBox.Text));
@@ -783,7 +784,7 @@ public class ExampleMainForm : Form
             Spacing = 8,
         };
 
-        root.Children.AddRange([label, textBox]);
+        root.Children.AddRange([hint, label, textBox]);
 
         return root;
     }
