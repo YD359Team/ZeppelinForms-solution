@@ -9,6 +9,27 @@
 - `Theme` moved from the global namespace to `ZeppelinForms.Theming`. Code that
   names the type needs `using ZeppelinForms.Theming;`
 
+### Fixes
+
+- Now `TextBox.Text` is styled property
+- Add hover\\pressed visual effects for controls where was he meant
+- Now `TextBox` will be focused if first interactive control in view
+- Fix `Form` invalidation pipeline
+- Fix gestures kinetic
+- Add missing themes for controls
+
+### Features
+
+- Add `TextTransform` property for case transforming in text controls
+
+### Examples
+
+- Add binding example
+
+### Translation
+
+- More comments translated to English language
+
 ## [0.12.0] - El Dorado
 
 ![El Dorado](assets/Logo-0.12.0.jpg)
