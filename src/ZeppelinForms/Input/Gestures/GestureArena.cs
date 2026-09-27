@@ -3,7 +3,7 @@ using ZeppelinForms.Input.Pointer;
 
 namespace ZeppelinForms.Input.Gestures;
 
-/// <summary>Борьба за один контакт. Победитель ровно один.</summary>
+/// <summary>The fight for one contact. There is exactly one winner.</summary>
 internal sealed class GestureArena
 {
     private readonly PointerContact _contact;
@@ -12,7 +12,7 @@ internal sealed class GestureArena
 
     private GestureRecognizer? _winner;
 
-    /// <summary>Борьба уже решена: кто-то заявил права на контакт.</summary>
+    /// <summary>The fight is already decided: someone has claimed the contact.</summary>
     public bool HasWinner => _winner is not null;
 
     private GestureArena(
@@ -25,17 +25,17 @@ internal sealed class GestureArena
         _onWon = onWon;
     }
 
-    /// <summary>Собрать арену по цепочке контакта. Null, если распознавателей
-    /// нет ни на одном элементе — а это обычный случай, и лишнего объекта
-    /// на каждое нажатие в нём не появится.</summary>
+    /// <summary>Assemble an arena along the contact's chain. Null if there are no
+    /// recognizers on any element — and that is the usual case, so no extra
+    /// object appears per press.</summary>
     public static GestureArena? TryCreate(
         PointerContact contact, Action<PointerContact, PointerCancelReason> onWon)
     {
         List<GestureRecognizer>? candidates = null;
 
-        // от цели к корню: более конкретный элемент получает право
-        // отказаться первым. Предок не должен перехватывать то,
-        // с чем потомок справляется сам
+        // from the target to the root: the more specific element gets the right
+        // to refuse first. An ancestor must not intercept what the descendant
+        // handles by itself
         for (int i = contact.Chain.Length - 1; i >= 0; i--)
         {
             IReadOnlyList<GestureRecognizer>? recognizers = contact.Chain[i].GestureRecognizersOrNull;
@@ -46,8 +46,8 @@ internal sealed class GestureArena
             {
                 if (!recognizer.IsEnabled) continue;
 
-                // многоконтактный распознаватель мог набрать своё на прошлых
-                // пальцах: лишний ему не нужен, и мешать остальным он не должен
+                // a multi-contact recognizer may have taken its share on previous
+                // fingers: it doesn't need an extra one and must not hinder the others
                 candidates ??= [];
                 candidates.Add(recognizer);
             }
@@ -66,8 +66,8 @@ internal sealed class GestureArena
 
         if (members.Count == 0) return null;
 
-        // участник мог выиграть ещё на предыдущем пальце: новый контакт
-        // не открывает борьбу заново, он присоединяется к уже выигранному
+        // a participant may have won already on a previous finger: a new contact
+        // doesn't reopen the fight, it joins the one already won
         foreach (GestureRecognizer recognizer in members)
         {
             if (recognizer.State != GestureState.Accepted) continue;
@@ -93,16 +93,16 @@ internal sealed class GestureArena
             return;
         }
 
-        // копии списка не делаем: Accept меняет состояния участников,
-        // но не сам список — он собран один раз при создании арены
+        // no copy of the list: Accept changes the participants' states,
+        // but not the list itself — it is assembled once when the arena is created
         foreach (GestureRecognizer recognizer in _members)
         {
             if (recognizer.State != GestureState.Possible) continue;
 
             action(recognizer, e);
 
-            // победа во время обхода: остальным этот же обход не нужен,
-            // они уже получили LoseToOther из Accept
+            // a victory during the walk: the others don't need this same walk,
+            // they have already got LoseToOther from Accept
             if (_winner is not null) return;
         }
     }
@@ -120,8 +120,8 @@ internal sealed class GestureArena
         _onWon(_contact, PointerCancelReason.GestureWon);
     }
 
-    /// <summary>Признать победителем того, кто выиграл в другой арене.
-    /// Борьбы здесь не было — она кончилась раньше, на другом пальце.</summary>
+    /// <summary>Acknowledge as the winner the one who won in another arena.
+    /// There was no fight here — it ended earlier, on another finger.</summary>
     internal void AdoptWinner(GestureRecognizer winner)
     {
         if (_winner is not null) return;
@@ -135,14 +135,14 @@ internal sealed class GestureArena
         _onWon(_contact, PointerCancelReason.GestureWon);
     }
 
-    /// <summary>Контакт кончился штатно.</summary>
+    /// <summary>The contact ended normally.</summary>
     public void Complete()
     {
         foreach (GestureRecognizer recognizer in _members)
             recognizer.Leave(this);
     }
 
-    /// <summary>Контакт оборвали.</summary>
+    /// <summary>The contact was cut off.</summary>
     public void Cancel()
     {
         foreach (GestureRecognizer recognizer in _members)

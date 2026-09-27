@@ -1,10 +1,10 @@
 ﻿namespace ZeppelinForms.Input.DragDrop;
 
-/// <summary>Что произойдёт, если отпустить здесь. Источник показывает это
-/// курсором, поэтому значение надо выставлять уже в DragOver, а не в Drop.</summary>
+/// <summary>What will happen if released here. The source shows this with
+/// the cursor, so the value must already be set in DragOver, not in Drop.</summary>
 public enum DragDropEffect
 {
-    /// <summary>Здесь бросать нельзя.</summary>
+    /// <summary>Dropping here is not allowed.</summary>
     None,
 
     Copy,

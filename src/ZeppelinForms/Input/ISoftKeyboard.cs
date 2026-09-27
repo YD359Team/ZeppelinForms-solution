@@ -1,6 +1,6 @@
 ﻿namespace ZeppelinForms;
 
-/// <summary>Какую раскладку просить у экранной клавиатуры.</summary>
+/// <summary>Which layout to ask of the on-screen keyboard.</summary>
 public enum SoftKeyboardKind
 {
     Text,
@@ -12,13 +12,13 @@ public enum SoftKeyboardKind
     Password,
 }
 
-/// <summary>Окно, умеющее показывать экранную клавиатуру.</summary>
+/// <summary>A window that can show the on-screen keyboard.</summary>
 /// <remarks>
-/// Отдельным интерфейсом, а не методами в IPlatformWindow, по той же
-/// причине, по которой в 0.9 отделили IDesktopWindow: четыре настольных
-/// бэкенда получили бы два метода, которые нечем наполнить, кроме пустого
-/// тела, — и пустое тело врёт, потому что неотличимо от «показал».
-/// Проверяется приведением: if (PlatformWindow is ISoftKeyboard keyboard).
+/// A separate interface rather than methods in IPlatformWindow, for the same
+/// reason IDesktopWindow was split out in 0.9: four desktop backends would get
+/// two methods with nothing to fill them with except an empty body — and an
+/// empty body lies, because it is indistinguishable from "shown".
+/// Checked by a cast: if (PlatformWindow is ISoftKeyboard keyboard).
 /// </remarks>
 public interface ISoftKeyboard
 {

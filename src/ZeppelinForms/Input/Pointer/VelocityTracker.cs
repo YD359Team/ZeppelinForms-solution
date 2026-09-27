@@ -3,23 +3,24 @@
 namespace ZeppelinForms.Input.Pointer;
 
 /// <summary>
-/// Скорость указателя по последним отсчётам — для инерции после броска.
+/// The pointer velocity from the latest samples — for inertia after a fling.
 /// </summary>
 /// <remarks>
-/// Берётся не средняя скорость всего жеста, а скорость последних
-/// ста миллисекунд: палец мог долго тянуть медленно и в конце резко
-/// бросить, и прокрутка должна ответить на бросок, а не на всё движение.
+/// Not the average velocity of the whole gesture but the velocity of the last
+/// hundred milliseconds: a finger may have dragged slowly for a long time and
+/// then flung sharply at the end, and scrolling must respond to the fling,
+/// not to the whole movement.
 ///
-/// Окно, а не два последних отсчёта: метки времени у событий грубые
-/// (на Windows — шаг около 16 мс), и скорость по двум соседним точкам
-/// прыгает вдвое от события к событию.
+/// A window rather than the two latest samples: event timestamps are coarse
+/// (about 16 ms steps on Windows), and a velocity from two neighbouring points
+/// jumps twofold from event to event.
 /// </remarks>
 public sealed class VelocityTracker
 {
     private const int Capacity = 20;
     private const long WindowMs = 100;
 
-    /// <summary>Палец замер дольше этого перед отпусканием — броска не было.</summary>
+    /// <summary>The finger was still longer than this before the release — there was no fling.</summary>
     private const long StillMs = 40;
 
     private readonly (Point Location, long Timestamp)[] _samples = new (Point, long)[Capacity];
@@ -39,7 +40,7 @@ public sealed class VelocityTracker
         _count = Math.Min(_count + 1, Capacity);
     }
 
-    /// <summary>Скорость в пикселях в секунду на момент releaseMs.</summary>
+    /// <summary>The velocity in pixels per second at the moment releaseMs.</summary>
     public Point GetVelocity(long releaseMs)
     {
         if (_count < 2) return Point.Empty;
@@ -48,7 +49,7 @@ public sealed class VelocityTracker
 
         if (releaseMs - newest.Timestamp > StillMs) return Point.Empty;
 
-        // самый старый отсчёт, ещё попадающий в окно
+        // the oldest sample still inside the window
         var oldest = newest;
 
         for (int i = 2; i <= _count; i++)

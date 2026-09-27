@@ -5,11 +5,11 @@ namespace ZeppelinForms.Input.Gestures;
 
 public sealed record class LongPressGestureEventArgs(Point Location);
 
-/// <summary>Удержание без движения.</summary>
+/// <summary>Holding without movement.</summary>
 /// <remarks>
-/// Единственный жест, которому нужен внешний будильник: пока палец
-/// неподвижен, событий не приходит вовсе, и отмерить полсекунды
-/// по входящему потоку нечем.
+/// The only gesture that needs an external wake-up: while the finger is still,
+/// no events come at all, and there is nothing in the incoming stream
+/// to measure half a second by.
 /// </remarks>
 public sealed class LongPressGestureRecognizer : GestureRecognizer
 {
@@ -27,13 +27,13 @@ public sealed class LongPressGestureRecognizer : GestureRecognizer
     {
         if (Contact is not PointerContact contact) return;
 
-        // допуск тот же, что у касания: удержание — это нажатие, которое
-        // просто затянулось, и дрожать ему позволено ровно столько же
+        // the same tolerance as a tap: a hold is a press that simply lasted
+        // longer, and it may tremble exactly as much
         if (contact.TravelDistance > PointerThresholds.TapSlop(contact.Kind, Display))
             Reject();
     }
 
-    /// <summary>Отпустили раньше срока — это обычное нажатие, не наше.</summary>
+    /// <summary>Released before the time is up — that's an ordinary press, not ours.</summary>
     protected override void OnPointerUp(PointerEventArgs e) => Reject();
 
     protected override void OnCancel()
@@ -46,9 +46,9 @@ public sealed class LongPressGestureRecognizer : GestureRecognizer
 
     private void Fire()
     {
-        // будильник мог сработать уже после ухода пальца: Dispose не
-        // догоняет вызов, уже стоящий в очереди UI, поэтому решает
-        // проверка состояния, а не отмена таймера
+        // the wake-up may fire after the finger has already left: Dispose doesn't
+        // catch up with a call already waiting in the UI queue, so the state check
+        // decides, not the cancellation of the timer
         if (State != GestureState.Possible || Contact is not PointerContact contact) return;
 
         Accept();

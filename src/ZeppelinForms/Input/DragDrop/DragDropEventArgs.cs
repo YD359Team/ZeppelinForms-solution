@@ -9,9 +9,9 @@ public sealed record class DragDropEventArgs(
     Point Location,
     KeyModifiers Modifiers = KeyModifiers.None) : ZfEventArgs
 {
-    /// <summary>Что приёмник готов сделать. Выставляется в DragEnter или
-    /// DragOver — источник по этому значению рисует курсор. Осталось None —
-    /// бросок не состоится.</summary>
+    /// <summary>What the target is ready to do. Set in DragEnter or DragOver —
+    /// the source draws the cursor by this value. Left at None —
+    /// the drop won't happen.</summary>
     public DragDropEffect Effect { get; set; } = DragDropEffect.None;
 
     public bool Handled { get; set; }

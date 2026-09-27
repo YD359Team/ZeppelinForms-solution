@@ -13,22 +13,22 @@ public sealed record class PointerEventArgs(
     float Pressure = 1f,
     KeyModifiers Modifiers = KeyModifiers.None) : ZfEventArgs
 {
-    /// <summary>Момент события по <see cref="Environment.TickCount64"/>.
-    /// Проставляет платформа, а не получатель: между приходом события
-    /// из системы и его разбором проходит время, и скорость, посчитанная
-    /// по времени разбора, будет тем неправдивее, чем сильнее подтормаживает
-    /// кадр — а скорость нужна swipe и fling.</summary>
+    /// <summary>The moment of the event by <see cref="Environment.TickCount64"/>.
+    /// Set by the platform, not by the receiver: time passes between the event
+    /// arriving from the system and its processing, and a velocity computed from
+    /// the processing time is the less truthful the more the frame stutters —
+    /// and swipe and fling need the velocity.</summary>
     public long Timestamp { get; init; } = Environment.TickCount64;
 
-    /// <summary>Ведущий контакт — тот, от которого поднимаются совместимые
-    /// события мыши. Первый коснувшийся; когда он отпускается, ведущий
-    /// не переназначается, иначе контрол получил бы нажатие от одного
-    /// пальца и отпускание от другого.</summary>
+    /// <summary>The primary contact — the one the compatibility mouse events are
+    /// raised from. The first to touch; when it is released, the primary is not
+    /// reassigned, otherwise a control would get the press from one finger
+    /// and the release from another.</summary>
     public bool IsPrimary { get; init; } = true;
 
-    /// <summary>Размер пятна контакта в логических единицах. У мыши нулевой.
-    /// Нужен там, где попадание пальцем шире точки: увеличенная зона
-    /// нажатия мелких элементов.</summary>
+    /// <summary>The size of the contact patch in logical units. Zero for the mouse.
+    /// Needed where a finger hit is wider than a point: an enlarged press zone
+    /// for small elements.</summary>
     public Size ContactSize { get; init; }
 
     public bool Handled { get; set; }

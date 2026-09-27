@@ -4,57 +4,58 @@ using ZeppelinForms.Input.Gestures;
 
 namespace ZeppelinForms.Input.Pointer;
 
-/// <summary>Живой контакт: палец на экране, нажатая кнопка мыши, перо.
-/// Существует от нажатия до отпускания или отмены.</summary>
+/// <summary>A live contact: a finger on the screen, a pressed mouse button,
+/// a pen. Exists from the press until the release or a cancel.</summary>
 public sealed class PointerContact
 {
     public required int Id { get; init; }
     public required PointerKind Kind { get; init; }
 
-    /// <summary>Ведущий контакт поднимает совместимые события мыши.</summary>
+    /// <summary>The primary contact raises the compatibility mouse events.</summary>
     public required bool IsPrimary { get; init; }
 
     public required Point DownLocation { get; init; }
     public required long DownTimestamp { get; init; }
 
-    /// <summary>Удерживаемые кнопки. У касания и пера всегда Left.</summary>
+    /// <summary>The held buttons. For touch and pen always Left.</summary>
     public PointerButtons Buttons { get; set; }
 
     public Point Location { get; private set; }
     public long Timestamp { get; private set; }
 
-    /// <summary>Элемент, на который пришлось нажатие.</summary>
+    /// <summary>The element the press landed on.</summary>
     public UIElement? Pressed { get; set; }
 
-    /// <summary>Цепочка от корня к <see cref="Pressed"/>, снятая в момент
-    /// нажатия и дальше не пересчитываемая.</summary>
+    /// <summary>The chain from the root to <see cref="Pressed"/>, taken at the
+    /// moment of the press and not recomputed after that.</summary>
     /// <remarks>
-    /// Пересчитывать её по текущей точке нельзя: раскладка за время
-    /// удержания могла поехать, а предок, следивший за нажатием через
-    /// предпросмотр, обязан получить и отпускание, и отмену — даже если
-    /// палец давно уехал за его границы.
+    /// It must not be recomputed from the current point: the layout may have
+    /// shifted while the contact was held, and an ancestor that followed the
+    /// press through the preview must get both the release and the cancel —
+    /// even if the finger has long left its bounds.
     /// </remarks>
     public UIElement[] Chain { get; set; } = [];
 
-    /// <summary>Элемент, забравший себе этот контакт до отпускания.</summary>
+    /// <summary>The element that took this contact for itself until the release.</summary>
     public UIElement? Capture { get; set; }
 
-    /// <summary>Куда идут события контакта: захвативший, иначе нажатый.</summary>
+    /// <summary>Where the contact's events go: the capturing element, otherwise the pressed one.</summary>
     public UIElement? Target => Capture ?? Pressed;
 
-    /// <summary>Сколько контакт уехал от точки нажатия. Основа порога
-    /// срыва в pan: до него взаимодействие принадлежит потомку,
-    /// после — претендовать может предок.</summary>
+    /// <summary>How far the contact has moved from the press point. The basis of
+    /// the threshold for breaking into a pan: before it the interaction belongs
+    /// to the descendant, after it an ancestor may claim it.</summary>
     public float TravelDistance => Point.DistanceBetween(DownLocation, Location);
 
     public long Duration => Timestamp - DownTimestamp;
 
-    /// <summary>Создаётся только конвейером ввода: снаружи контакт
-    /// придумать нельзя, иначе арена и захват разъедутся с реальностью.</summary>
+    /// <summary>Created only by the input pipeline: a contact can't be invented
+    /// from outside, otherwise the arena and the capture would drift apart
+    /// from reality.</summary>
     internal PointerContact() { }
 
-    /// <summary>Совместимые события мыши по этому контакту отменены —
-    /// его ведёт выигравший распознаватель. Сам контакт при этом жив.</summary>
+    /// <summary>The compatibility mouse events of this contact are cancelled —
+    /// the winning recognizer drives it. The contact itself is alive.</summary>
     internal bool IsCompatCancelled { get; set; }
 
     internal GestureArena? Arena { get; set; }

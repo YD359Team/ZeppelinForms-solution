@@ -4,13 +4,13 @@ using System.Text;
 
 namespace ZeppelinForms.Input.Keyboard;
 
-// Значения совпадают с Win32 Virtual-Key Codes, чтобы приведение
-// из wParam было прямым, без таблицы соответствия.
+// The values match Win32 Virtual-Key Codes, so that the cast
+// from wParam is direct, without a mapping table.
 public enum Key : int
 {
     None = 0,
 
-    // управление
+    // control
     Backspace = 0x08,
     Tab = 0x09,
     Clear = 0x0C,
@@ -20,7 +20,7 @@ public enum Key : int
     Escape = 0x1B,
     Space = 0x20,
 
-    // навигация
+    // navigation
     PageUp = 0x21,
     PageDown = 0x22,
     End = 0x23,
@@ -33,19 +33,19 @@ public enum Key : int
     Insert = 0x2D,
     Delete = 0x2E,
 
-    // цифровой ряд
+    // digit row
     D0 = 0x30, D1, D2, D3, D4, D5, D6, D7, D8, D9,
 
-    // буквы
+    // letters
     A = 0x41, B, C, D, E, F, G, H, I, J, K, L, M,
     N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
 
-    // системные клавиши
+    // system keys
     LeftWindows = 0x5B,
     RightWindows = 0x5C,
     Apps = 0x5D,
 
-    // цифровой блок
+    // numeric keypad
     NumPad0 = 0x60, NumPad1, NumPad2, NumPad3, NumPad4,
     NumPad5, NumPad6, NumPad7, NumPad8, NumPad9,
     Multiply = 0x6A,
@@ -61,8 +61,8 @@ public enum Key : int
     NumLock = 0x90,
     ScrollLock = 0x91,
 
-    // конкретная сторона: приходит там, где система различает левую и правую.
-    // Обобщённые Shift/Control/Alt ниже — для случаев, когда не различает
+    // a specific side: comes where the system tells left from right.
+    // The generic Shift/Control/Alt below are for cases where it doesn't
     LeftShift = 0xA0,
     RightShift = 0xA1,
     LeftControl = 0xA2,
@@ -74,8 +74,8 @@ public enum Key : int
     Control = 0x11,
     Alt = 0x12,
 
-    // знаки: раскладка на них влияет, поэтому имена по физическому
-    // положению на американской клавиатуре, как это принято в Win32
+    // punctuation: the layout affects these, so the names follow the physical
+    // position on a US keyboard, as is customary in Win32
     OemSemicolon = 0xBA,      // ;
     OemPlus = 0xBB,           // =
     OemComma = 0xBC,          // ,
@@ -87,5 +87,5 @@ public enum Key : int
     OemPipe = 0xDC,           // \
     OemCloseBrackets = 0xDD,  // ]
     OemQuotes = 0xDE,         // '
-    OemBackslash = 0xE2,      // < > на 102-клавишной
+    OemBackslash = 0xE2,      // < > on a 102-key keyboard
 }

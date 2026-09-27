@@ -2,12 +2,12 @@
 
 namespace ZeppelinForms.Input.Gestures;
 
-/// <summary>Короткое касание без смещения.</summary>
+/// <summary>A short touch without movement.</summary>
 /// <remarks>
-/// Для ведущего контакта это почти дубль обычного Click — тот приходит
-/// раньше и работает как работал. Смысл распознавателя в остальном:
-/// он видит и неведущие контакты, и участвует в арбитраже, то есть
-/// умеет проиграть pan, чего Click не умеет.
+/// For the primary contact this is almost a duplicate of the regular Click —
+/// that one comes earlier and works as it always did. The point of the recognizer
+/// is in the rest: it sees non-primary contacts too, and it takes part in
+/// arbitration, that is, it can lose to a pan, which Click can't.
 /// </remarks>
 public sealed class TapGestureRecognizer : GestureRecognizer
 {
@@ -31,9 +31,9 @@ public sealed class TapGestureRecognizer : GestureRecognizer
             return;
         }
 
-        // принимаем на отпускании: до него отличить касание от начала
-        // перетаскивания нельзя, и ранняя победа отобрала бы контакт
-        // у pan, который ещё не набрал порога
+        // accepted on the release: before it a tap can't be told apart from the
+        // start of a drag, and an early victory would take the contact away from
+        // a pan that hasn't reached its threshold yet
         Accept();
         Tapped?.Invoke(this, EventArgs.Empty);
     }

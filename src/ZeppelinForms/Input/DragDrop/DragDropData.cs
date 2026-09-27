@@ -1,13 +1,13 @@
 ﻿namespace ZeppelinForms.Input.DragDrop;
 
 /// <summary>
-/// Что тащат в окно из системы. Сейчас источники дают файлы и текст;
-/// когда понадобятся картинки или свои форматы, тип расширяется, а
-/// обработчики продолжат смотреть на нужные им свойства.
+/// What is being dragged into the window from the system. For now the sources
+/// give files and text; when pictures or custom formats are needed, the type
+/// is extended, and handlers keep looking at the properties they need.
 /// </summary>
 public sealed class DragDropData
 {
-    /// <summary>Пути перетаскиваемых файлов и папок. Пусто — тащат не файлы.</summary>
+    /// <summary>Paths of the dragged files and folders. Empty — not files are being dragged.</summary>
     public IReadOnlyList<string> Files { get; init; } = [];
 
     public string? Text { get; init; }

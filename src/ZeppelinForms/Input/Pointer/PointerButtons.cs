@@ -1,8 +1,8 @@
 ﻿namespace ZeppelinForms.Input.Pointer;
 
-/// <summary>Кнопки, удерживаемые одним контактом. Отдельный тип, потому что
-/// <see cref="Mouse.MouseButton"/> — перечисление значений, а не флагов:
-/// Left равен нулю, и маску из него не собрать.</summary>
+/// <summary>Buttons held by one contact. A separate type, because
+/// <see cref="Mouse.MouseButton"/> is an enumeration of values, not flags:
+/// Left equals zero, and a mask can't be built from it.</summary>
 [Flags]
 public enum PointerButtons
 {

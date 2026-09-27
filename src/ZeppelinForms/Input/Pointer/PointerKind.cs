@@ -4,10 +4,10 @@ using System.Text;
 
 namespace ZeppelinForms.Input.Pointer;
 
-/// <summary>Природа контакта. Мышь отличается от пальца не точностью,
-/// а наличием состояния «над элементом, но не нажат»: у касания его нет,
-/// и код, который этого не различает, оставляет подсветку и тултип
-/// висеть после отпускания.</summary>
+/// <summary>The nature of a contact. The mouse differs from a finger not in
+/// precision but in having the state "over the element, but not pressed":
+/// touch has no such state, and code that doesn't tell them apart leaves
+/// the highlight and the tooltip hanging after the release.</summary>
 public enum PointerKind
 {
     Mouse,

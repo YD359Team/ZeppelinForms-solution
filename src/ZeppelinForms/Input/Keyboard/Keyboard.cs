@@ -1,8 +1,8 @@
 ﻿namespace ZeppelinForms.Input.Keyboard;
 
-/// <summary>Состояние клавиатуры на текущий момент. Обновляется формой
-/// из событий ввода — это не опрос системы, а слепок последнего
-/// известного состояния.</summary>
+/// <summary>The keyboard state at the current moment. Updated by the form
+/// from input events — this is not polling the system but a snapshot
+/// of the last known state.</summary>
 public static class Keyboard
 {
     private static readonly HashSet<Key> Down = [];
@@ -27,8 +27,8 @@ public static class Keyboard
         Modifiers = modifiers;
     }
 
-    /// <summary>Окно потеряло фокус: о отпусканиях мы больше не узнаем,
-    /// поэтому считаем, что не нажато ничего. Иначе Shift «залипнет».</summary>
+    /// <summary>The window lost focus: we won't learn about releases anymore,
+    /// so we assume nothing is pressed. Otherwise Shift would "stick".</summary>
     internal static void Reset()
     {
         Down.Clear();

@@ -4,7 +4,7 @@ using ZeppelinForms.Input.Keyboard;
 
 namespace ZeppelinForms.Input.Mouse;
 
-/// <summary>Нажатие или отпускание конкретной кнопки мыши.</summary>
+/// <summary>A press or release of a specific mouse button.</summary>
 public sealed record class MouseButtonEventArgs(
     MouseButton Button,
     MouseButtonState State,
