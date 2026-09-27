@@ -45,6 +45,19 @@ public partial class Form : IDisposable
             // a new window is a new life: the form may have been closed and shown again
             _isClosed = false;
 
+            // the theme subscription is renewed with every window: it is dropped
+            // at close (see OnWindowClosed), and a form shown again must follow
+            // the theme again. -= first, so that the subscription from the
+            // constructor is not doubled on the first show
+            App.ThemeChanged -= OnThemeChanged;
+            App.ThemeChanged += OnThemeChanged;
+
+            // the theme was switched while the form was closed — apply it now
+            if (_themeAtUnsubscribe is not null && !ReferenceEquals(_themeAtUnsubscribe, App.Theme))
+                OnThemeChanged(null, EventArgs.Empty);
+
+            _themeAtUnsubscribe = null;
+
             if (!s_openForms.Contains(this))
                 s_openForms.Add(this);
 
@@ -1296,6 +1309,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     private bool _isClosed;
 
+    /// <summary>The theme at the moment the form stopped listening to theme changes —
+    /// that is, at window close. Null while the form is subscribed.</summary>
+    private Theme? _themeAtUnsubscribe;
+
     /// <summary>The platform destroyed the window. The only point where waiting
     /// for a dialog completes: there is no need to tell apart where the closing
     /// came from, but it must not be missed — ShowDialogAsync would hang forever.</summary>
@@ -1307,6 +1324,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         _isClosed = true;
 
         s_openForms.Remove(this);
+
+        // App.ThemeChanged is static: while the form stays subscribed, the event
+        // holds it together with its whole tree. A closed form nobody disposes —
+        // every MessageBox, every InputBox — was never collected. The subscription
+        // is dropped here and renewed if the form is shown again
+        App.ThemeChanged -= OnThemeChanged;
+        _themeAtUnsubscribe = App.Theme;
 
         _clock?.Stop();
 

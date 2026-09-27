@@ -2,29 +2,29 @@
 
 namespace ZeppelinForms;
 
-/// <summary>Встроенные ресурсы фреймворка.</summary>
+/// <summary>Built-in resources of the framework.</summary>
 public static class Assets
 {
     private const string IconResource = "ZeppelinForms.Resources.ZF.ico";
 
     private static Icon? _logo;
 
-    /// <summary>Иконка ZeppelinForms. Читается один раз: ICO разбирается
-    /// при первом обращении, дальше отдаётся тот же объект.</summary>
+    /// <summary>The ZeppelinForms icon. Read once: the ICO is parsed on first
+    /// access, and the same object is returned after that.</summary>
     public static Icon Logo => _logo ??= Icon.FromStream(
         typeof(Assets).Assembly.GetManifestResourceStream(IconResource)
-            ?? throw new InvalidOperationException($"Ресурс {IconResource} не найден."));
+            ?? throw new InvalidOperationException($"Resource {IconResource} not found."));
 
-    /// <summary>Логотип как изображение нужного размера.</summary>
+    /// <summary>The logo as an image of the required size.</summary>
     public static Image LogoImage(int size = 256) => Logo.ToImage(size, size);
 
-    /// <summary>Каталог, откуда читаются ресурсы приложения.</summary>
+    /// <summary>The directory application resources are read from.</summary>
     /// <remarks>
-    /// Настраивается, потому что «рядом с исполняемым файлом» — допущение
-    /// настольных платформ. В APK ресурсы лежат внутри архива и путём
-    /// не адресуются: бэкенд копирует их в каталог приложения и ставит
-    /// сюда его. То же понадобится там, где приложение упаковано
-    /// в единый файл или запущено из песочницы.
+    /// Configurable, because "next to the executable" is an assumption of desktop
+    /// platforms. In an APK resources lie inside the archive and are not addressed
+    /// by path: the backend copies them into the application directory and puts it
+    /// here. The same will be needed where the application is packed into a single
+    /// file or launched from a sandbox.
     /// </remarks>
     public static string Root { get; set; } = Path.Combine(AppContext.BaseDirectory, "Assets");
 }

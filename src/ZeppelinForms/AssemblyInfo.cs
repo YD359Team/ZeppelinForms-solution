@@ -5,6 +5,6 @@
 [assembly: InternalsVisibleTo("ZeppelinForms.Browser")]
 [assembly: InternalsVisibleTo("ZeppelinForms.Android")]
 [assembly: InternalsVisibleTo("ZeppelinForms.Skia")]
-// тестам — чтобы проверять внутренние механизмы там, где они и живут:
-// шаг часов кадра по команде вместо секундомера, состояние переходов
+// for tests — to check internal mechanisms where they live: stepping
+// the frame clock on command instead of a stopwatch, the state of transitions
 [assembly: InternalsVisibleTo("ZeppelinForms.UnitTests")]

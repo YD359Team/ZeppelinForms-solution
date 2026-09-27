@@ -1,21 +1,20 @@
 ﻿namespace ZeppelinForms;
 
 /// <summary>
-/// Системная настройка «уменьшить движение»: пользователь попросил
-/// интерфейс меньше анимировать — из-за вестибулярных расстройств,
-/// мигрени или просто потому, что так ему удобнее.
+/// The system "reduce motion" setting: the user asked the interface to animate
+/// less — because of vestibular disorders, migraines or simply because it is
+/// more comfortable for them.
 /// </summary>
 /// <remarks>
-/// Платформа реализует это по возможности, как и IClipboard или
-/// IAppLifecycle: у Windows это «Показывать анимацию в Windows»,
-/// у Android — масштаб длительности анимаций, равный нулю, у браузера —
-/// медиазапрос prefers-reduced-motion. Где настройки нет, приложение
-/// решает само через Motion.Preference.
+/// A platform implements this where possible, like IClipboard or IAppLifecycle:
+/// on Windows it's "Show animations in Windows", on Android — an animation duration
+/// scale of zero, in the browser — the prefers-reduced-motion media query. Where
+/// there is no setting, the application decides itself through Motion.Preference.
 /// </remarks>
 public interface ISystemMotionSettings
 {
     bool PrefersReducedMotion { get; }
 
-    /// <summary>Пользователь поменял настройку, пока приложение работало.</summary>
+    /// <summary>The user changed the setting while the application was running.</summary>
     event EventHandler? Changed;
 }

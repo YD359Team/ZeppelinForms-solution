@@ -17,7 +17,7 @@ public class App
     private readonly IPlatform _platform;
     private static Theme _theme = Themes.Light;
 
-    /// <summary>Текущая тема. Смена применяется ко всем открытым формам.</summary>
+    /// <summary>The current theme. A change applies to all open forms.</summary>
     public static Theme Theme
     {
         get => _theme;
@@ -27,9 +27,10 @@ public class App
 
             _theme = value;
 
-            // путь к файлу шрифта — свойство платформы, а не оформления:
-            // в браузере системных шрифтов нет, и тема не должна отбирать
-            // уже загруженный файл. Свой путь тема, конечно, вправе задать
+            // the path to the font file is a property of the platform, not of the
+            // styling: in the browser there are no system fonts, and a theme must
+            // not take away an already loaded file. A theme is of course entitled
+            // to set a path of its own
             Font.Default = value.BaseFont.FilePath is null && Font.Default.FilePath is { } path
                 ? value.BaseFont.WithFile(path)
                 : value.BaseFont;
@@ -50,8 +51,8 @@ public class App
 
         IPlatformWindow window = _platform.CreateWindow(this.MainForm);
 
-        // продолжения await должны возвращаться в поток UI: на этом держится
-        // ShowDialogAsync и вообще весь async-код в обработчиках
+        // await continuations must come back to the UI thread:
+        // ShowDialogAsync and all async code in handlers rely on this
         SynchronizationContext.SetSynchronizationContext(
         new ZfSynchronizationContext(window));
 

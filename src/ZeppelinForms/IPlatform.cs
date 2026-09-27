@@ -6,9 +6,9 @@ public interface IPlatform
 {
     IPlatformWindow CreateWindow(Form form);
 
-    /// <summary>Запустить приложение. На настольных платформах не возвращает
-    /// управление до выхода; там, где циклом владеет хост — браузер, Android —
-    /// возвращает сразу, а кадры приходят через IFrameDriver.</summary>
+    /// <summary>Start the application. On desktop platforms it doesn't return until
+    /// exit; where the host owns the loop — the browser, Android — it returns
+    /// immediately, and frames come through IFrameDriver.</summary>
     void Start();
 
     void Exit();

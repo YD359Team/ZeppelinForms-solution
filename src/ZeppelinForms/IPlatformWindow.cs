@@ -3,48 +3,48 @@ using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms;
 
-/// <summary>Минимум, без которого не обойдётся ни одна платформа.</summary>
+/// <summary>The minimum no platform can do without.</summary>
 public interface IPlatformWindow
 {
-    /// <summary>Показать окно. В браузере и на Android это не создание окна,
-    /// а подключение формы к уже существующей поверхности хоста.</summary>
+    /// <summary>Show the window. In the browser and on Android this is not creating
+    /// a window but connecting the form to an existing host surface.</summary>
     void Show();
 
-    /// <summary>Закрыть окно. Платформа обязана после разрушения поверхности
-    /// вызвать Form.OnWindowClosed: на этом держится и async-диалог,
-    /// и подсчёт живых окон.</summary>
+    /// <summary>Close the window. After the surface is destroyed the platform must
+    /// call Form.OnWindowClosed: both the async dialog and the count of live
+    /// windows rely on it.</summary>
     void Close();
 
     void Invalidate(Rectangle? rect);
 
-    /// <summary>Отношение физических пикселей к логическим.</summary>
+    /// <summary>The ratio of physical pixels to logical ones.</summary>
     float Scale { get; }
 
-    /// <summary>Выполнить действие в потоке UI.</summary>
+    /// <summary>Run an action on the UI thread.</summary>
     void Invoke(Action action);
 
     void CaptureMouse();
     void ReleaseMouseCapture();
     void SetCursor(CursorKind cursor);
 
-    /// <summary>Зарегистрировать окно приёмником системного перетаскивания.
-    /// Без этого AllowDrop у элементов не сработает.</summary>
+    /// <summary>Register the window as a system drag-and-drop target.
+    /// Without this AllowDrop on elements won't work.</summary>
     void SetDragDropEnabled(bool enabled);
 
-    /// <summary>Запретить или разрешить ввод в это окно. Так делается
-    /// модальность: владелец диалога глохнет, пока диалог открыт.</summary>
+    /// <summary>Disable or enable input into this window. This is how modality
+    /// is done: the dialog's owner goes deaf while the dialog is open.</summary>
     void SetEnabled(bool enabled);
 
-    /// <summary>Сделать окно активным.</summary>
+    /// <summary>Make the window active.</summary>
     void Activate();
 
     IFrameDriver Frames { get; }
 }
 
-/// <summary>Оформление окна как объекта рабочего стола. В браузере
-/// и на Android не реализуется — там этих понятий нет.</summary>
+/// <summary>The window's appearance as a desktop object. Not implemented in the
+/// browser and on Android — those concepts don't exist there.</summary>
 // TODO: SetIcon, SetResizable, SetTopMost, CenterOnScreen —
-// когда появятся реализации в Win32Window и X11Window
+// when implementations appear in Win32Window and X11Window
 public interface IDesktopWindow
 {
     void SetTitle(string? title);

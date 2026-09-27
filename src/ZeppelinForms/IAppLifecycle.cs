@@ -2,13 +2,13 @@
 
 public interface IAppLifecycle
 {
-    /// <summary>Приложение уходит в фон. Здесь останавливают анимации
-    /// и освобождают то, что дорого держать.</summary>
+    /// <summary>The application goes to the background. This is where animations
+    /// are stopped and what is expensive to hold is released.</summary>
     event EventHandler? Paused;
 
     event EventHandler? Resumed;
 
-    /// <summary>Последняя возможность сохранить состояние.
-    /// На Android приложение после этого может быть убито без предупреждения.</summary>
+    /// <summary>The last chance to save the state.
+    /// On Android the application may be killed after this without warning.</summary>
     event EventHandler? Saving;
 }

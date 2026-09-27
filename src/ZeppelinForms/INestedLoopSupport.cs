@@ -1,13 +1,12 @@
 ﻿namespace ZeppelinForms;
 
 /// <summary>
-/// Вложенный цикл событий. Есть только там, где циклом владеет платформа:
-/// в браузере заблокировать поток и продолжать получать события невозможно,
-/// поэтому синхронная модальность там не поддерживается в принципе.
+/// A nested event loop. Exists only where the platform owns the loop:
+/// in the browser it is impossible to block the thread and keep receiving
+/// events, so synchronous modality isn't supported there in principle.
 /// </summary>
 public interface INestedLoopSupport
 {
-    /// <summary>Крутить события, пока окно живо. Возвращает управление
-    /// после его закрытия.</summary>
+    /// <summary>Spin events while the window is alive. Returns after it closes.</summary>
     void RunNestedLoop(IPlatformWindow until);
 }

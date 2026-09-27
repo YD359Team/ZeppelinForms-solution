@@ -4,35 +4,35 @@ using System.Runtime.CompilerServices;
 namespace ZeppelinForms.Diagnostics;
 
 /// <summary>
-/// Нарушен внутренний контракт фреймворка: не ошибка пользователя,
-/// а признак того, что код контрола или платформы делает что-то,
-/// на что остальной код не рассчитан.
+/// An internal framework contract was violated: not a user error, but a sign
+/// that a control's or platform's code does something the rest of the code
+/// doesn't expect.
 /// </summary>
 public sealed class ZfContractException(string message) : InvalidOperationException(message);
 
 /// <summary>
-/// Проверки внутренних контрактов. Правила вроде «кисть из пула нельзя
-/// держать через чужой вызов отрисовки» до сих пор жили в комментариях,
-/// то есть соблюдались ровно до первого нового контрола.
+/// Checks of internal contracts. Rules like "a pooled brush must not be held
+/// across someone else's draw call" used to live in comments, that is, were
+/// followed exactly until the first new control.
 /// </summary>
 /// <remarks>
-/// Все методы помечены [Conditional("DEBUG")]: в релизной сборке
-/// вызовы вырезаются компилятором вместе с вычислением аргументов,
-/// поэтому проверку можно ставить и на горячем пути.
+/// All methods are marked [Conditional("DEBUG")]: in a release build the calls
+/// are cut out by the compiler together with evaluating the arguments, so a check
+/// can be placed on a hot path too.
 ///
-/// Именно поэтому в них нельзя выносить работу, нужную самому коду:
-/// в релизе её просто не будет.
+/// That is exactly why no work the code itself needs may be moved into them:
+/// in release it simply won't happen.
 /// </remarks>
 public static class ZfContract
 {
-    /// <summary>Что делать при нарушении. По умолчанию — исключение:
-    /// контракт нарушается кодом фреймворка, и продолжать после этого
-    /// значит отлаживать последствия вместо причины.</summary>
+    /// <summary>What to do on a violation. By default — an exception: the contract
+    /// is violated by framework code, and continuing after that means debugging
+    /// consequences instead of the cause.</summary>
     public static ContractViolationBehavior Behavior { get; set; }
         = ContractViolationBehavior.Throw;
 
-    /// <summary>Нарушение контракта. Подписка нужна тестам: проверить,
-    /// что нарушение случилось, не роняя прогон.</summary>
+    /// <summary>A contract violation. The subscription is needed by tests: to check
+    /// that a violation happened without failing the run.</summary>
     public static event EventHandler<string>? Violated;
 
     [Conditional("DEBUG")]
@@ -45,10 +45,10 @@ public static class ZfContract
     {
         if (condition) return;
 
-        Report($"{message}\n  в {member}, {System.IO.Path.GetFileName(file)}:{line}");
+        Report($"{message}\n  in {member}, {System.IO.Path.GetFileName(file)}:{line}");
     }
 
-    /// <summary>Безусловное нарушение: код дошёл туда, куда не должен был.</summary>
+    /// <summary>An unconditional violation: the code got where it shouldn't have.</summary>
     [Conditional("DEBUG")]
     public static void Fail(
         string message,
@@ -56,7 +56,7 @@ public static class ZfContract
         [CallerFilePath] string? file = null,
         [CallerLineNumber] int line = 0)
     {
-        Report($"{message}\n  в {member}, {System.IO.Path.GetFileName(file)}:{line}");
+        Report($"{message}\n  in {member}, {System.IO.Path.GetFileName(file)}:{line}");
     }
 
     private static void Report(string message)
@@ -69,7 +69,7 @@ public static class ZfContract
                 throw new ZfContractException(message);
 
             case ContractViolationBehavior.Log:
-                Debug.WriteLine($"[ZF] нарушен контракт: {message}");
+                Debug.WriteLine($"[ZF] contract violated: {message}");
                 break;
 
             case ContractViolationBehavior.Silent:
@@ -80,15 +80,14 @@ public static class ZfContract
 
 public enum ContractViolationBehavior
 {
-    /// <summary>Бросить <see cref="ZfContractException"/>.</summary>
+    /// <summary>Throw <see cref="ZfContractException"/>.</summary>
     Throw,
 
-    /// <summary>Написать в отладочный вывод и продолжить. Нужно там,
-    /// где нарушение уже известно и чинится отдельно, а прогон ронять
-    /// нежелательно.</summary>
+    /// <summary>Write to the debug output and continue. Needed where the violation
+    /// is already known and fixed separately, and failing the run is undesirable.</summary>
     Log,
 
-    /// <summary>Только событие, без вывода. Для тестов, которые нарушение
-    /// провоцируют намеренно.</summary>
+    /// <summary>Only the event, without output. For tests that provoke
+    /// the violation on purpose.</summary>
     Silent,
 }
