@@ -3,8 +3,8 @@
 namespace ZeppelinForms.Drawing.Effects;
 
 /// <summary>
-/// Матовое стекло: размытая подложка плюс полупрозрачный тон и шум.
-/// Читает уже нарисованное под элементом, поэтому требует слоя.
+/// Frosted glass: a blurred backdrop plus a translucent tint and noise.
+/// Reads what is already drawn under the element, so it requires a layer.
 /// </summary>
 public sealed class AcrylicEffect : VisualEffect
 {
@@ -14,8 +14,8 @@ public sealed class AcrylicEffect : VisualEffect
 
     public override void Begin(Graphics g, Rectangle bounds)
     {
-        // подложка размывается до отрисовки элемента: сам элемент
-        // должен лечь поверх матового стекла, а не под него
+        // the backdrop is blurred before the element is drawn: the element itself
+        // must lie on top of the frosted glass, not under it
         g.BlurBackdrop(bounds, BlurRadius);
 
         if (TintColor.A > 0)

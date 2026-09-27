@@ -10,7 +10,7 @@ public abstract class ImageDecoder
     {
         public override Image Decode(Stream stream) =>
             throw new InvalidOperationException(
-                "Декодер изображений не зарегистрирован. Вызовите " +
-                "SkiaImageDecoder.Register() при старте приложения.");
+                "No image decoder is registered. Call " +
+                "SkiaImageDecoder.Register() at application startup.");
     }
 }

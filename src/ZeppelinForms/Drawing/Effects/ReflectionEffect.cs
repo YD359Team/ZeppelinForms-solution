@@ -2,16 +2,16 @@
 
 namespace ZeppelinForms.Drawing.Effects;
 
-/// <summary>Отражение под элементом с затуханием.</summary>
+/// <summary>A fading reflection under the element.</summary>
 public sealed class ReflectionEffect : VisualEffect
 {
-    /// <summary>Высота отражения в долях от высоты элемента.</summary>
+    /// <summary>The reflection's height as a fraction of the element's height.</summary>
     public float Height { get; set; } = 0.4f;
 
     public float Gap { get; set; } = 2f;
     public float StartOpacity { get; set; } = 0.35f;
 
-    // отражение уходит только вниз, вбок и вверх не вылезает
+    // the reflection goes only downward, it doesn't stick out sideways or up
     public override Thickness Bleed(Rectangle bounds) =>
         new(0f, 0f, 0f, bounds.Height * Height + Gap);
 
@@ -19,8 +19,8 @@ public sealed class ReflectionEffect : VisualEffect
 
     public override void End(Graphics g, Rectangle bounds)
     {
-        // отражение строится по уже отрисованному элементу,
-        // поэтому только в End
+        // the reflection is built from the already drawn element,
+        // so it happens only in End
         g.DrawReflection(bounds, Height, Gap, StartOpacity);
     }
 }

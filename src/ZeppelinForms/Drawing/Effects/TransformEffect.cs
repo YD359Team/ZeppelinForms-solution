@@ -2,7 +2,7 @@
 
 namespace ZeppelinForms.Drawing.Effects;
 
-/// <summary>Произвольное аффинное преобразование: сдвиг, масштаб, наклон, поворот.</summary>
+/// <summary>An arbitrary affine transform: translation, scale, skew, rotation.</summary>
 public sealed class TransformEffect : VisualEffect
 {
     public float TranslateX { get; set; }
@@ -13,17 +13,17 @@ public sealed class TransformEffect : VisualEffect
     public float SkewY { get; set; }
     public float Rotation { get; set; }
 
-    /// <summary>Точка, вокруг которой всё происходит, в долях от размера.</summary>
+    /// <summary>The point everything happens around, as fractions of the size.</summary>
     public Point Origin { get; set; } = new(0.5f, 0.5f);
 
-    /// <summary>Описанный прямоугольник вокруг преобразованного:
-    /// считаем по четырём углам, точная форма тут не нужна.</summary>
+    /// <summary>The bounding rectangle around the transformed one: computed from
+    /// the four corners, the exact shape is not needed here.</summary>
     public override Thickness Bleed(Rectangle bounds)
     {
         float scaleW = bounds.Width * MathF.Max(1f, MathF.Abs(ScaleX)) - bounds.Width;
         float scaleH = bounds.Height * MathF.Max(1f, MathF.Abs(ScaleY)) - bounds.Height;
 
-        // поворот и наклон в худшем случае уводят угол на половину диагонали
+        // rotation and skew in the worst case take a corner away by half the diagonal
         float spin = Rotation != 0f || SkewX != 0f || SkewY != 0f
             ? MathF.Sqrt(bounds.Width * bounds.Width + bounds.Height * bounds.Height) / 2f
             : 0f;
@@ -41,8 +41,8 @@ public sealed class TransformEffect : VisualEffect
 
         g.Save();
 
-        // все преобразования вокруг заданной точки: сдвигаем начало
-        // координат туда, работаем, возвращаем обратно
+        // all transforms around the given point: move the origin there,
+        // do the work, move it back
         g.Translate(cx + TranslateX, cy + TranslateY);
 
         if (Rotation != 0f) g.Rotate(Rotation);

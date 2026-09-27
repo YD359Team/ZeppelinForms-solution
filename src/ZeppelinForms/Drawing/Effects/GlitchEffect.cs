@@ -1,40 +1,40 @@
-﻿using ZeppelinForms.Drawing;
-using ZeppelinForms.Drawing.Effects;
-using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing.Primitives;
+
+namespace ZeppelinForms.Drawing.Effects;
 
 /// <summary>
-/// Сбой сигнала: разделение цветовых каналов и горизонтальные срезы,
-/// съехавшие вбок.
+/// A signal failure: color channel separation and horizontal slices
+/// shifted sideways.
 /// </summary>
 /// <remarks>
-/// Элемент рисуется в захват и на экран не попадает напрямую — вместо него
-/// выводятся копии. Поэтому канвас без поддержки захвата обрабатывается
-/// отдельно: иначе элемент просто исчез бы.
+/// The element is drawn into a capture and doesn't get onto the screen directly —
+/// copies are drawn instead. So a canvas without capture support is handled
+/// separately: otherwise the element would simply disappear.
 ///
-/// Случайность выводится из Seed и шага фазы, а не из Random: снимковые
-/// тесты обязаны получать одну и ту же картинку при одной фазе.
+/// The randomness is derived from Seed and the phase step rather than from Random:
+/// snapshot tests must get the same picture for the same phase.
 /// </remarks>
 public sealed class GlitchEffect : VisualEffect
 {
-    /// <summary>Общая сила, 0 — эффекта нет.</summary>
+    /// <summary>The overall strength, 0 — no effect.</summary>
     public float Intensity { get; set; } = 1f;
 
-    /// <summary>На сколько пикселей расходятся красный и голубой каналы.</summary>
+    /// <summary>How many pixels the red and cyan channels move apart.</summary>
     public float ChromaticOffset { get; set; } = 3f;
 
-    /// <summary>Предельный сдвиг среза вбок.</summary>
+    /// <summary>The maximum sideways shift of a slice.</summary>
     public float SliceDisplacement { get; set; } = 12f;
 
-    /// <summary>На сколько полос режется элемент.</summary>
+    /// <summary>How many bands the element is cut into.</summary>
     public int SliceCount { get; set; } = 8;
 
-    /// <summary>Доля полос, которые съезжают на текущем шаге.</summary>
+    /// <summary>The fraction of bands that shift on the current step.</summary>
     public float SliceChance { get; set; } = 0.35f;
 
     public int Seed { get; set; } = 1;
 
-    /// <summary>Шаг анимации. Меняется скачками, а не плавно: глитч
-    /// дёргается, а не переползает.</summary>
+    /// <summary>The animation step. Changes in jumps rather than smoothly:
+    /// a glitch twitches rather than crawls.</summary>
     public int Step { get; set; }
 
     private bool _capturing;
@@ -58,16 +58,16 @@ public sealed class GlitchEffect : VisualEffect
 
         using LayerCapture? capture = g.EndCapture();
 
-        // захват не получился — элемент уже нарисован в никуда,
-        // и вернуть его неоткуда; хотя бы не падаем
+        // the capture failed — the element has already been drawn into nowhere,
+        // and there is nowhere to get it back from; at least we don't crash
         if (capture is null) return;
 
         float intensity = Math.Clamp(Intensity, 0f, 1f);
 
-        // основа: целый элемент на своём месте
+        // the base: the whole element in its place
         g.DrawCapture(capture, bounds);
 
-        // расхождение каналов — обе половины поверх основы с осветлением
+        // channel separation — both halves on top of the base, blended with screen
         float offset = ChromaticOffset * intensity;
 
         if (offset > 0f)
@@ -79,7 +79,7 @@ public sealed class GlitchEffect : VisualEffect
                 channels: ColorChannels.Cyan, blend: CaptureBlend.Screen);
         }
 
-        // срезы: часть полос перерисовывается со сдвигом поверх основы
+        // slices: some of the bands are redrawn with a shift on top of the base
         if (SliceCount <= 0 || SliceDisplacement <= 0f) return;
 
         float sliceHeight = bounds.Height / SliceCount;
@@ -88,8 +88,8 @@ public sealed class GlitchEffect : VisualEffect
         {
             uint noise = Hash((uint)Seed, (uint)Step, (uint)i);
 
-            // съезжает не каждая полоса — сплошной сдвиг выглядит как рябь,
-            // а не как сбой
+            // not every band shifts — a solid shift looks like ripples,
+            // not like a failure
             if (Unit(noise) > SliceChance) continue;
 
             float shift = (Unit(noise >> 8) * 2f - 1f) * SliceDisplacement * intensity;
@@ -105,8 +105,8 @@ public sealed class GlitchEffect : VisualEffect
     private static Rectangle Shift(Rectangle rect, float dx) =>
         new(new Point(rect.X + dx, rect.Y), new Size(rect.Width, rect.Height));
 
-    /// <summary>Свой хэш вместо Random: результат обязан совпадать между
-    /// платформами и прогонами, иначе снимки станут недетерминированными.</summary>
+    /// <summary>An own hash instead of Random: the result must match across
+    /// platforms and runs, otherwise snapshots would become non-deterministic.</summary>
     private static uint Hash(uint a, uint b, uint c)
     {
         uint h = a * 374761393u + b * 668265263u + c * 2246822519u;

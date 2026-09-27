@@ -38,43 +38,42 @@ public abstract class Graphics
     IReadOnlyList<TextRun> runs, Rectangle rect, Font baseFont, Color baseColor,
     HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
     VerticalContentAlignment vAlign = VerticalContentAlignment.Center);
-    /// <summary>Слой с приглушением: всё нарисованное внутри теряет
-    /// насыщенность и прозрачность.</summary>
+    /// <summary>A dimmed layer: everything drawn inside loses saturation
+    /// and opacity.</summary>
     public abstract void SaveDisabledLayer(float opacity, float desaturation);
-    /// <summary>Ограничить отрисовку кругом. Нужно для эффекта волны.</summary>
+    /// <summary>Restrict drawing to a circle. Needed for the ripple effect.</summary>
     public abstract void ClipCircle(Point center, float radius);
     public abstract void Skew(float sx, float sy);
 
-    /// <summary>Слой, содержимое которого будет размыто при закрытии.</summary>
+    /// <summary>A layer whose content will be blurred when it is closed.</summary>
     public abstract void SaveBlurLayer(float radius);
 
-    /// <summary>Размыть то, что уже нарисовано под указанной областью.</summary>
+    /// <summary>Blur what is already drawn under the given area.</summary>
     public abstract void BlurBackdrop(Rectangle bounds, float radius);
 
-    /// <summary>Наложить шум — фактура матового стекла.</summary>
+    /// <summary>Overlay noise — the texture of frosted glass.</summary>
     public abstract void FillNoise(Rectangle bounds, float opacity);
 
-    /// <summary>Отражение содержимого области с затуханием вниз.</summary>
+    /// <summary>A reflection of the area's content fading downward.</summary>
     public abstract void DrawReflection(Rectangle bounds, float heightRatio, float gap, float startOpacity);
 
-    /// <summary>Заливка градиентом.</summary>
+    /// <summary>A gradient fill.</summary>
     public abstract void FillGradient(Rectangle bounds, CornerRadius radius, GradientStop[] stops, float angle);
-    /// <summary>Умеет ли этот канвас уводить отрисовку в отдельный слой
-    /// и отдавать его содержимое. Эффекты, строящиеся на повторной
-    /// отрисовке, обязаны спрашивать: без поддержки элемент,
-    /// нарисованный в захват, просто исчезнет.</summary>
+    /// <summary>Whether this canvas can divert drawing into a separate layer
+    /// and hand over its content. Effects built on redrawing must ask:
+    /// without support an element drawn into a capture simply disappears.</summary>
     public virtual bool SupportsLayerCapture => false;
 
-    /// <summary>Увести дальнейшую отрисовку в отдельный слой размером
-    /// с указанную область. На канвас она не попадёт.</summary>
+    /// <summary>Divert further drawing into a separate layer the size of the given
+    /// area. It won't get onto the canvas.</summary>
     public virtual void BeginCapture(Rectangle bounds) { }
 
-    /// <summary>Закрыть слой и забрать его содержимое. Ничего не выводит:
-    /// что делать со снимком, решает вызывающий.</summary>
+    /// <summary>Close the layer and take its content. Draws nothing:
+    /// what to do with the snapshot is up to the caller.</summary>
     public virtual LayerCapture? EndCapture() => null;
 
-    /// <summary>Нарисовать захват. sourceClip — часть захвата в его
-    /// собственных координатах; null означает «целиком».</summary>
+    /// <summary>Draw a capture. sourceClip — a part of the capture in its own
+    /// coordinates; null means "whole".</summary>
     public virtual void DrawCapture(
         LayerCapture capture,
         Rectangle target,
@@ -83,8 +82,8 @@ public abstract class Graphics
         CaptureBlend blend = CaptureBlend.Normal,
         float opacity = 1f)
     { }
-    /// <summary>Залить замкнутый многоугольник. Контур замыкается сам:
-    /// повторять первую точку в конце не нужно.</summary>
+    /// <summary>Fill a closed polygon. The outline closes by itself:
+    /// there is no need to repeat the first point at the end.</summary>
     public abstract void FillPolygon(ReadOnlySpan<Point> points, Color color);
 
     public abstract void ClipRoundRect(Rectangle rect, CornerRadius radius);
@@ -95,7 +94,7 @@ public abstract class Graphics
     public abstract void Translate(float dx, float dy);
     public abstract void Scale(float sx, float sy);
 
-    /// <summary>Начинает слой с прозрачностью: всё нарисованное до Restore() смешается как единое целое.</summary>
+    /// <summary>Starts a layer with opacity: everything drawn until Restore() blends as a single whole.</summary>
     public abstract void SaveLayer(float opacity);
 
 }

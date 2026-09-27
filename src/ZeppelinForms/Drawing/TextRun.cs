@@ -5,8 +5,8 @@ using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Drawing;
 
-/// <summary>Отрезок текста со своим оформлением. Незаданные свойства
-/// берутся у контрола — так задаётся только отличающееся.</summary>
+/// <summary>A piece of text with its own formatting. Unset properties are taken
+/// from the control — this way only what differs is set.</summary>
 public sealed record TextRun(string Text)
 {
     public Font? Font { get; init; }

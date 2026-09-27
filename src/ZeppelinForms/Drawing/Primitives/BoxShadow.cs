@@ -1,6 +1,6 @@
 ﻿namespace ZeppelinForms.Drawing.Primitives;
 
-/// <summary>Тень под элементом, по смыслу как CSS box-shadow.</summary>
+/// <summary>A shadow under an element, in meaning like CSS box-shadow.</summary>
 public sealed record BoxShadow(
     float OffsetX,
     float OffsetY,

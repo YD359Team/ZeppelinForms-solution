@@ -5,9 +5,9 @@ using System.Text;
 namespace ZeppelinForms.Drawing;
 
 /// <summary>
-/// Family — список семейств через запятую, как в CSS:
-/// "Consolas, Courier New, monospace". Берётся первое найденное в системе.
-/// Обобщённые имена: sans-serif, serif, monospace.
+/// Family — a comma-separated list of families, as in CSS:
+/// "Consolas, Courier New, monospace". The first one found in the system is used.
+/// Generic names: sans-serif, serif, monospace.
 /// </summary>
 public sealed record Font(
     string Family,
@@ -15,7 +15,7 @@ public sealed record Font(
     FontWeight Weight = FontWeight.Normal,
     FontStyle Style = FontStyle.Normal)
 {
-    /// <summary>Путь к файлу шрифта. Задан — используется он, а не системный поиск.</summary>
+    /// <summary>The path to the font file. If set, it is used instead of the system lookup.</summary>
     public string? FilePath { get; init; }
 
     public Font WithFile(string path) => this with { FilePath = path };

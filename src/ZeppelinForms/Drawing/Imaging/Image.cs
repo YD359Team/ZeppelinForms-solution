@@ -2,6 +2,10 @@
 
 public sealed class Image
 {
+    /// <summary>One client for all network loads. A client per call exhausts
+    /// sockets: a closed connection keeps its port for a while longer.</summary>
+    private static readonly Lazy<HttpClient> Http = new(() => new HttpClient());
+
     public int Width { get; }
     public int Height { get; }
     public byte[] Pixels { get; }
@@ -9,10 +13,10 @@ public sealed class Image
     public Image(int width, int height, byte[] pixels)
     {
         if (width <= 0 || height <= 0)
-            throw new ArgumentException("Width/Height должны быть положительными.");
+            throw new ArgumentException("Width and height must be positive.");
 
         if (pixels.Length < width * height * 4)
-            throw new ArgumentException("Буфер пикселей меньше, чем width*height*4.", nameof(pixels));
+            throw new ArgumentException("The pixel buffer is smaller than width*height*4.", nameof(pixels));
 
         Width = width;
         Height = height;
@@ -31,9 +35,9 @@ public sealed class Image
         }
         catch (InvalidDataException exception)
         {
-            // декодер знает только поток: без пути сообщение не говорит,
-            // какой из ресурсов приложения сломан
-            throw new InvalidDataException($"{exception.Message} Файл: {path}.", exception);
+            // the decoder knows only the stream: without the path the message
+            // doesn't say which of the application's resources is broken
+            throw new InvalidDataException($"{exception.Message} File: {path}.", exception);
         }
     }
 
@@ -43,16 +47,15 @@ public sealed class Image
             return LoadFromFile(uri.LocalPath);
 
         throw new NotSupportedException(
-            "Для сетевых URI используйте Image.LoadFromUriAsync.");
+            "Use Image.LoadFromUriAsync for network URIs.");
     }
 
     public static async Task<Image> LoadFromUriAsync(Uri uri)
     {
         if (uri.IsFile)
-            throw new NotSupportedException("Для файлов используйте Image.LoadFromUri");
+            throw new NotSupportedException("Use Image.LoadFromUri for files.");
 
-        using HttpClient client = new HttpClient();
-        using var res = await client.GetAsync(uri);
+        using var res = await Http.Value.GetAsync(uri);
         res.EnsureSuccessStatusCode();
         return Load(await res.Content.ReadAsStreamAsync());
     }
@@ -63,30 +66,35 @@ public sealed class Image
         return LoadFromFile(fullPath);
     }
 
+    /// <summary>An absolute URI is loaded as a URI, anything else as a path
+    /// to an application asset.</summary>
+    /// <remarks>
+    /// This used to call new Uri(value) first, and that constructor doesn't accept
+    /// relative paths: <c>Image picture = "logo.png";</c> threw UriFormatException
+    /// on every asset it was meant for.
+    /// </remarks>
     public static implicit operator Image(string relativePath)
     {
-        Uri uri = new(relativePath);
-        if (uri.IsFile)
-        {
-            return LoadAsset(relativePath);
-        }
-        return LoadFromUri(uri);
+        if (Uri.TryCreate(relativePath, UriKind.Absolute, out Uri? uri))
+            return LoadFromUri(uri);
+
+        return LoadAsset(relativePath);
     }
 }
 
 public enum ImageFlip
 {
     None,
-    Horizontal,   // отражение по вертикальной оси (бывший FlipX)
+    Horizontal,   // a mirror over the vertical axis (formerly FlipX)
     Vertical,
     Both,
 }
 
 public enum ImageLayout
 {
-    Stretch,   // растянуть на весь контрол (текущее поведение)
-    None,      // рисовать в натуральную величину от левого верхнего угла
+    Stretch,   // stretch over the whole control (the current behavior)
+    None,      // draw at natural size from the top-left corner
     Center,
     Tile,
-    Zoom,      // вписать целиком, сохранив пропорции
+    Zoom,      // fit whole, keeping the proportions
 }

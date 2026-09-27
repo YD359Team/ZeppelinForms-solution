@@ -2,7 +2,7 @@
 
 namespace ZeppelinForms.Drawing.Effects;
 
-/// <summary>Набор эффектов элемента. Применяются в порядке добавления.</summary>
+/// <summary>An element's set of effects. Applied in the order they were added.</summary>
 public sealed class EffectChain
 {
     private readonly List<VisualEffect> _effects = [];
@@ -11,7 +11,7 @@ public sealed class EffectChain
 
     public bool IsEmpty => _effects.Count == 0;
 
-    /// <summary>Максимальный вылет по каждой стороне среди всех эффектов.</summary>
+    /// <summary>The maximum bleed on each side among all effects.</summary>
     public Thickness TotalBleed(Rectangle bounds)
     {
         float left = 0, top = 0, right = 0, bottom = 0;
@@ -72,7 +72,7 @@ public sealed class EffectChain
 
     internal void End(Graphics g, Rectangle bounds)
     {
-        // в обратном порядке: слои закрываются как скобки
+        // in reverse order: layers close like brackets
         for (int i = _effects.Count - 1; i >= 0; i--)
             _effects[i].End(g, bounds);
     }

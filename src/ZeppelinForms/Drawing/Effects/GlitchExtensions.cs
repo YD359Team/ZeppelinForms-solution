@@ -1,84 +1,122 @@
-﻿using System.Diagnostics;
+﻿using System.Runtime.CompilerServices;
 using ZeppelinForms.Animation;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls.Base;
 
+namespace ZeppelinForms.Drawing.Effects;
+
 public static class GlitchExtensions
 {
-    /// <summary>Убрать глитч и остановить его анимацию.</summary>
-    public static void StopGlitch(this UIElement element)
-    {
-        if (element.Effects.Get<GlitchEffect>() is not { } effect) return;
+    private const string AnimationKey = "glitch";
 
-        element.FindOwner()?.RemoveAnimation(element, "glitch");
-        element.Effects.Remove(effect);
+    /// <summary>A glitch attached to an element: the effect and the handlers that
+    /// keep its animation in step with the element's presence in the tree.</summary>
+    private sealed class Attachment(GlitchEffect effect)
+    {
+        public GlitchEffect Effect { get; } = effect;
+
+        public EventHandler? Attached { get; set; }
+
+        public EventHandler? Detached { get; set; }
     }
 
-    /// <summary>Запустить непрерывный глитч.</summary>
+    /// <summary>Glitches by element. Weak on the element: a discarded element must
+    /// not be kept alive by its glitch.</summary>
     /// <remarks>
-    /// Целью анимации выступает сам элемент, а не эффект: Form.Tick
-    /// перерисовывает цель по типу, и эффект, не будучи UIElement,
-    /// перерисовки бы не вызвал.
+    /// The handlers used to be anonymous and were never unsubscribed. StopGlitch
+    /// removed the effect and the animation, but the next time the element came
+    /// back into the tree, Attached started the animation again — driving the steps
+    /// of an effect no longer in the chain and invalidating the element forever,
+    /// so frames never stopped. A second Glitch call stacked a second effect and
+    /// a second pair of handlers on top of the first.
+    /// </remarks>
+    private static readonly ConditionalWeakTable<UIElement, Attachment> Attachments = new();
+
+    /// <summary>Remove the glitch and stop its animation.</summary>
+    public static void StopGlitch(this UIElement element)
+    {
+        element.FindOwner()?.RemoveAnimation(element, AnimationKey);
+
+        if (Attachments.TryGetValue(element, out Attachment? attachment))
+        {
+            Attachments.Remove(element);
+
+            element.Attached -= attachment.Attached;
+            element.Detached -= attachment.Detached;
+
+            element.Effects.Remove(attachment.Effect);
+            return;
+        }
+
+        // a GlitchEffect added to the chain by hand, without Glitch():
+        // removing it is still what "stop the glitch" means
+        if (element.Effects.Get<GlitchEffect>() is { } effect)
+            element.Effects.Remove(effect);
+    }
+
+    /// <summary>Start a continuous glitch.</summary>
+    /// <remarks>
+    /// The animation's target is the element itself rather than the effect:
+    /// Form.Tick redraws the target by its type, and the effect, not being
+    /// a UIElement, wouldn't cause a redraw.
     ///
-    /// Фаза переводится в шаг скачком: глитч дёргается, а не переползает,
-    /// и промежуточные значения фазы внутри шага дают ту же картинку.
+    /// The phase is turned into a step with a jump: a glitch twitches rather than
+    /// crawls, and intermediate phase values within a step give the same picture.
+    ///
+    /// A repeated call replaces the previous glitch rather than stacking on it.
     /// </remarks>
     public static GlitchEffect Glitch(
         this UIElement element,
         float intensity = 1f,
         int stepsPerSecond = 12)
     {
+        element.StopGlitch();
+
         var effect = new GlitchEffect { Intensity = intensity };
         element.Effects.Add(effect);
-
-        Debug.WriteLine("Glitch: вызван");
 
         int steps = Math.Max(1, stepsPerSecond);
 
         void Start()
         {
             Form? form = element.FindOwner();
-            Debug.WriteLine($"Glitch: Start, форма {(form is null ? "null" : "есть")}");
 
             if (form is null) return;
 
-            // повторный Attached не должен заводить вторую анимацию поверх первой
-            form.RemoveAnimation(element, "glitch");
-
-            if (form is null) return;
+            // a repeated Attached must not start a second animation on top of the first
+            form.RemoveAnimation(element, AnimationKey);
 
             form.AddAnimation(new LoopAnimation(
-                element, "glitch", TimeSpan.FromSeconds(1),
+                element, AnimationKey, TimeSpan.FromSeconds(1),
                 phase =>
                 {
                     int step = (int)(phase * steps);
                     if (step == effect.Step) return;
 
-                    Debug.WriteLine($"Glitch: шаг {step}");
                     effect.Step = step;
                     element.InvalidateVisual();
                 }));
         }
 
-        // анимацию надо снимать при уходе из дерева: иначе она живёт
-        // до закрытия формы и дёргает InvalidateVisual на невидимой
-        // странице — кадры не останавливаются никогда
-        element.Detached += (_, _) => element.StopGlitchAnimation();
+        var attachment = new Attachment(effect)
+        {
+            // the animation must be removed when leaving the tree: otherwise it lives
+            // until the form closes and keeps calling InvalidateVisual on an invisible
+            // page — frames never stop
+            Detached = (_, _) => element.FindOwner()?.RemoveAnimation(element, AnimationKey),
 
-        // повторная привязка возможна: PageControl отвязывает страницу
-        // при уходе с неё и привязывает обратно при возврате
-        element.Attached += (_, _) => Start();
+            // re-attaching is possible: a page may be detached when leaving it
+            // and attached back on returning
+            Attached = (_, _) => Start(),
+        };
+
+        element.Detached += attachment.Detached;
+        element.Attached += attachment.Attached;
+
+        Attachments.Add(element, attachment);
 
         if (element.FindOwner() is not null) Start();
 
         return effect;
     }
-
-    /// <summary>Снять анимацию, оставив сам эффект.</summary>
-    /// <remarks>
-    /// Отдельно от StopGlitch: там эффект убирается насовсем, а здесь
-    /// он остаётся и оживёт при следующей привязке к дереву.
-    /// </remarks>
-    private static void StopGlitchAnimation(this UIElement element) =>
-        element.FindOwner()?.RemoveAnimation(element, "glitch");
 }

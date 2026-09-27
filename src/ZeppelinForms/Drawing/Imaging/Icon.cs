@@ -49,7 +49,7 @@ public sealed class Icon
             int width = data[offset];
             int height = data[offset + 1];
 
-            // В ICO значение 0 означает 256.
+            // in ICO the value 0 means 256.
             if (width == 0)
                 width = 256;
 
@@ -110,19 +110,19 @@ public sealed class Icon
             image.Size);
     }
 
-    /// <summary>Изображение нужного размера как самостоятельный файл,
-    /// пригодный для декодера.</summary>
+    /// <summary>The image of the required size as a standalone file
+    /// suitable for a decoder.</summary>
     /// <remarks>
-    /// Внутри ICO изображение хранится одним из двух способов: целым PNG
-    /// либо DIB — это BMP без 14-байтового заголовка файла, который
-    /// в контейнере не нужен. Декодеры самостоятельный DIB не открывают,
-    /// поэтому заголовок приходится восстанавливать.
+    /// Inside an ICO an image is stored in one of two ways: a whole PNG
+    /// or a DIB — a BMP without the 14-byte file header, which isn't needed
+    /// in the container. Decoders don't open a standalone DIB, so the header
+    /// has to be restored.
     /// </remarks>
     public byte[] GetImageFile(int requestedWidth = 256, int requestedHeight = 256)
     {
         ReadOnlySpan<byte> raw = GetImage(requestedWidth, requestedHeight);
 
-        // PNG внутри ICO лежит целиком и в переупаковке не нуждается
+        // a PNG inside an ICO lies whole and needs no repacking
         if (raw.Length >= 8 &&
             raw[0] == 0x89 && raw[1] == 0x50 && raw[2] == 0x4E && raw[3] == 0x47)
         {
@@ -132,26 +132,26 @@ public sealed class Icon
         return WrapDib(raw);
     }
 
-    /// <summary>Готовое к отрисовке изображение.</summary>
+    /// <summary>An image ready for drawing.</summary>
     public Image ToImage(int requestedWidth = 256, int requestedHeight = 256)
     {
         using var stream = new MemoryStream(GetImageFile(requestedWidth, requestedHeight));
         return Image.Load(stream);
     }
 
-    /// <summary>Приписать DIB заголовок файла BMP.</summary>
+    /// <summary>Prepend the BMP file header to a DIB.</summary>
     private static byte[] WrapDib(ReadOnlySpan<byte> dib)
     {
         const int FileHeaderSize = 14;
 
         if (dib.Length < 4)
-            throw new InvalidDataException("Изображение в ICO слишком короткое.");
+            throw new InvalidDataException("The image in the ICO is too short.");
 
         int headerSize = BinaryPrimitives.ReadInt32LittleEndian(dib);
 
-        // В ICO высота в заголовке удвоена: DIB описывает картинку вместе
-        // с маской прозрачности, лежащей следом. Для BMP это надо исправить,
-        // иначе декодер прочитает маску как нижнюю половину изображения.
+        // in ICO the height in the header is doubled: the DIB describes the picture
+        // together with the transparency mask that follows it. For a BMP this must
+        // be fixed, otherwise the decoder reads the mask as the lower half of the image.
         int height = dib.Length >= 12
             ? BinaryPrimitives.ReadInt32LittleEndian(dib[8..])
             : 0;
@@ -160,16 +160,28 @@ public sealed class Icon
             ? BinaryPrimitives.ReadUInt16LittleEndian(dib[14..])
             : 32;
 
+        // biClrUsed: how many palette entries are actually stored. Zero means
+        // the full palette for the bit depth. Editors save a shortened palette
+        // to save space, and counting 2^bitCount entries regardless put
+        // the pixel offset past the real start of the pixels
+        int colorsUsed = headerSize >= 36 && dib.Length >= 36
+            ? BinaryPrimitives.ReadInt32LittleEndian(dib[32..])
+            : 0;
+
         byte[] file = new byte[FileHeaderSize + dib.Length];
 
         file[0] = (byte)'B';
         file[1] = (byte)'M';
 
         BinaryPrimitives.WriteInt32LittleEndian(file.AsSpan(2), file.Length);
-        // 4 байта зарезервированы и остаются нулями
+        // 4 bytes are reserved and stay zero
 
-        // палитра лежит между заголовком и пикселями; у 24- и 32-битных её нет
-        int paletteSize = bitCount <= 8 ? (1 << bitCount) * 4 : 0;
+        // the palette lies between the header and the pixels; 24- and 32-bit images have none
+        int paletteEntries = bitCount <= 8
+            ? (colorsUsed > 0 ? colorsUsed : 1 << bitCount)
+            : 0;
+
+        int paletteSize = paletteEntries * 4;
 
         BinaryPrimitives.WriteInt32LittleEndian(
             file.AsSpan(10), FileHeaderSize + headerSize + paletteSize);
@@ -185,9 +197,9 @@ public sealed class Icon
         return file;
     }
 
-    /// <summary>Содержимое ICO целиком. Нужно там, где иконку принимает
-    /// не система, а что-то другое — например favicon страницы: браузер
-    /// хочет весь файл, а не отдельное изображение из него.</summary>
+    /// <summary>The ICO content as a whole. Needed where the icon is taken not by
+    /// the system but by something else — a page's favicon, for example: the browser
+    /// wants the whole file, not a single image from it.</summary>
     public ReadOnlySpan<byte> GetRawData() => _data;
 
     private ImageEntry SelectImage(
@@ -210,8 +222,8 @@ public sealed class Icon
                 widthDifference * widthDifference +
                 heightDifference * heightDifference;
 
-            // При одинаковом размере предпочитаем
-            // изображение с большей глубиной цвета.
+            // with the same size, prefer the image
+            // with the greater color depth.
             if (score == bestScore &&
                 image.BitCount > best.BitCount)
             {

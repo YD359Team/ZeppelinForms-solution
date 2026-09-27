@@ -6,19 +6,19 @@ using ZeppelinForms.Drawing.Primitives;
 namespace ZeppelinForms.Drawing.Effects;
 
 /// <summary>
-/// Преобразование того, как элемент попадает на экран. Эффекты
-/// применяются цепочкой и не знают друг о друге.
+/// A transformation of how an element gets onto the screen. Effects are applied
+/// as a chain and know nothing about each other.
 /// </summary>
 public abstract class VisualEffect
 {
-    /// <summary>Насколько эффект выходит за границы элемента с каждой стороны.
-    /// Тень, размытие и отражение обязаны это сообщать, иначе их обрежет
-    /// грязный регион при частичной перерисовке.</summary>
+    /// <summary>How far the effect goes beyond the element's bounds on each side.
+    /// Shadow, blur and reflection must report this, otherwise the dirty region
+    /// cuts them off on a partial redraw.</summary>
     public virtual Thickness Bleed(Rectangle bounds) => Thickness.Zero;
 
-    /// <summary>Подготовить канвас перед отрисовкой элемента.</summary>
+    /// <summary>Prepare the canvas before the element is drawn.</summary>
     public abstract void Begin(Graphics g, Rectangle bounds);
 
-    /// <summary>Завершить: закрыть слой, дорисовать поверх.</summary>
+    /// <summary>Finish: close the layer, draw on top.</summary>
     public virtual void End(Graphics g, Rectangle bounds) { }
 }

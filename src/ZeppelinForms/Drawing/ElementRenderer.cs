@@ -11,7 +11,7 @@ public static class ElementRenderer
     {
         public Image Render(UIElement element, int width, int height) =>
             throw new InvalidOperationException(
-                "Element renderer не зарегистрирован. Вызовите SkiaElementRenderer.Register().");
+                "No element renderer is registered. Call SkiaElementRenderer.Register().");
 
     }
 }

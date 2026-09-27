@@ -4,13 +4,40 @@ public static class Displays
 {
     public static IDisplayProvider Current { get; set; } = new SingleDisplayProvider();
 
-    public static IReadOnlyList<DisplayInfo> All => Current.GetDisplays();
+    /// <summary>All displays. Never empty: a provider that found nothing
+    /// is replaced by the stand-in display, so callers can take [0] safely.</summary>
+    public static IReadOnlyList<DisplayInfo> All
+    {
+        get
+        {
+            IReadOnlyList<DisplayInfo> displays = Current.GetDisplays();
 
-    public static DisplayInfo Primary =>
-        All.FirstOrDefault(d => d.IsPrimary) ?? All[0];
+            return displays.Count > 0 ? displays : SingleDisplayProvider.Displays;
+        }
+    }
 
-    /// <summary>Экран, на котором находится точка. Если ни один не содержит —
-    /// ближайший по расстоянию до центра.</summary>
+    /// <summary>The primary display.</summary>
+    /// <remarks>
+    /// The list is taken once: this used to read All twice, and on Windows every
+    /// read enumerates the monitors through P/Invoke — while gesture recognizers
+    /// ask for the primary display at the start of every gesture.
+    /// </remarks>
+    public static DisplayInfo Primary
+    {
+        get
+        {
+            IReadOnlyList<DisplayInfo> displays = All;
+
+            foreach (DisplayInfo display in displays)
+                if (display.IsPrimary)
+                    return display;
+
+            return displays[0];
+        }
+    }
+
+    /// <summary>The display the point is on. If none contains it —
+    /// the nearest by distance to its center.</summary>
     public static DisplayInfo FromPoint(Point point)
     {
         IReadOnlyList<DisplayInfo> displays = All;
@@ -46,10 +73,10 @@ public static class Displays
         return nearest;
     }
 
-    /// <summary>Заглушка до регистрации платформенного провайдера.</summary>
+    /// <summary>A stand-in until a platform provider is registered.</summary>
     private sealed class SingleDisplayProvider : IDisplayProvider
     {
-        public IReadOnlyList<DisplayInfo> GetDisplays() =>
+        public static readonly IReadOnlyList<DisplayInfo> Displays =
         [
             new DisplayInfo
             {
@@ -61,5 +88,7 @@ public static class Displays
                 Name = "Default",
             },
         ];
+
+        public IReadOnlyList<DisplayInfo> GetDisplays() => Displays;
     }
 }
