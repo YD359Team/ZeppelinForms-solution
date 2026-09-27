@@ -3,8 +3,8 @@
 namespace ZeppelinForms.Forms.Controls.Map;
 
 /// <summary>
-/// Кэш тайлов с вытеснением наименее востребованных и защитой от
-/// повторных загрузок одного и того же тайла.
+/// A tile cache that evicts the least used tiles and protects
+/// against repeated loads of the same tile.
 /// </summary>
 internal sealed class TileCache
 {
@@ -27,8 +27,8 @@ internal sealed class TileCache
             if (!_tiles.TryGetValue(key, out tile))
                 return false;
 
-            // обращение поднимает тайл в начало списка: при вытеснении
-            // уйдут те, которые давно не рисовались
+            // an access moves the tile to the front of the list: on eviction
+            // the ones that haven't been drawn for a long time go first
             if (_nodes.TryGetValue(key, out LinkedListNode<TileKey>? node))
             {
                 _usage.Remove(node);
@@ -39,7 +39,7 @@ internal sealed class TileCache
         }
     }
 
-    /// <summary>Отметить тайл как загружаемый. false — загрузка уже идёт.</summary>
+    /// <summary>Mark a tile as being loaded. false — the load is already running.</summary>
     public bool TryBeginLoad(int zoom, int x, int y)
     {
         lock (_sync)
@@ -75,6 +75,8 @@ internal sealed class TileCache
         }
     }
 
+    /// <summary>Drop all loaded tiles. Loads in progress are left as they are:
+    /// they still guard against a duplicate request, and each one ends with EndLoad.</summary>
     public void Clear()
     {
         lock (_sync)

@@ -1,8 +1,8 @@
 ﻿namespace ZeppelinForms.Forms.Controls.Map;
 
 /// <summary>
-/// Веб-Меркатор: перевод географических координат в пиксели «мирового»
-/// полотна заданного зума и обратно.
+/// Web Mercator: converting geographic coordinates into pixels of the "world"
+/// canvas at a given zoom and back.
 /// </summary>
 internal static class MercatorProjection
 {

@@ -4,6 +4,7 @@ using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Charts;
 using ZeppelinForms.Forms.Controls.DataGrid;
+using ZeppelinForms.Forms.Controls.Map;
 using ZeppelinForms.Forms.Controls.Navigation;
 using ZeppelinForms.Forms.Controls.Shapes;
 using ZeppelinForms.Forms.Controls.Text;
@@ -432,6 +433,11 @@ public static class Themes
             {
                 chart.GridColor = new Color(28, c.Text.R, c.Text.G, c.Text.B);
                 chart.AxisColor = new Color(60, c.Text.R, c.Text.G, c.Text.B);
-            });
+            })
+
+            // the map's labels take the theme's text color, so their backing must
+            // follow the theme too: a fixed white left light text on a light patch
+            .For<MapControl>((map, c) =>
+                map.TextBackground = new Color(200, c.Surface.R, c.Surface.G, c.Surface.B));
     }
 }
