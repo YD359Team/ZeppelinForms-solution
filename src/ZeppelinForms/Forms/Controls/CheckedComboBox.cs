@@ -20,10 +20,23 @@ public partial class CheckedComboBox : InteractiveControl
     public List<object> Items { get; init; } = [];
     public Func<object, string>? DisplaySelector { get; set; }
 
-    public string PlaceholderText { get; set; } = "Не выбрано";
+    public string PlaceholderText
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the width is computed from the placeholder too
+            Invalidate();
+        }
+    } = "Не выбрано";
+
     public float DropDownHeight { get; set; } = 200f;
 
-    /// <summary>Со скольких отмеченных показывать «выбрано N» вместо перечисления.</summary>
+    /// <summary>From how many checked items to show "N selected" instead of listing them.</summary>
     public int SummaryThreshold { get; set; } = 3;
 
     public event EventHandler? SelectionChanged;
@@ -112,6 +125,10 @@ public partial class CheckedComboBox : InteractiveControl
 
     protected override void OnClick(MouseClickEventArgs e)
     {
+        // Space and Enter come here too, bypassing hit testing:
+        // a disabled combo box must not open from the keyboard
+        if (!IsEnabled) return;
+
         e.Handled = true;
 
         if (Items.Count == 0) return;
@@ -136,12 +153,12 @@ public partial class CheckedComboBox : InteractiveControl
         foreach (int index in _checked)
             list.SetChecked(index, true);
 
-        // флаут остаётся открытым: смысл контрола в том,
-        // чтобы отметить несколько пунктов подряд
+        // the flyout stays open: the point of the control
+        // is to check several items in a row
         list.ItemCheckedChanged += (_, index) => SetChecked(index, list.IsChecked(index));
 
-        // высоту подгоняем под содержимое, но не выше предела —
-        // при трёх пунктах не должно оставаться пустого места
+        // the height is fitted to the content, but not above the limit —
+        // with three items there must be no empty space left
         list.Measure(new Size(ActualSize.Width, float.PositiveInfinity));
 
         list.Size = new Size(ActualSize.Width, Math.Min(list.DesiredSize.Height, DropDownHeight));

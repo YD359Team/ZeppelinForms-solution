@@ -6,25 +6,25 @@ using ZeppelinForms.Forms.Styling;
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Раскладывает потомков в ряд и переносит на следующую строку, когда
-/// текущая кончилась. По неограниченной оси перенос не происходит:
-/// переносить нечего, если места бесконечно много.
+/// Lays out children in a row and wraps to the next line when the current
+/// one runs out. Along an unbounded axis there is no wrapping: there is
+/// nothing to wrap if space is infinite.
 /// </summary>
 public partial class WrapPanel : DecoratedPanel
 {
     [Styled(Category = "Layout", AffectsLayout = true)]
     public partial Orientation Orientation { get; set; }
 
-    /// <summary>Промежуток между соседями в одной строке.</summary>
+    /// <summary>The gap between neighbours in one line.</summary>
     [Styled(Category = "Layout", AffectsLayout = true)]
     public partial float Spacing { get; set; }
 
-    /// <summary>Промежуток между строками.</summary>
+    /// <summary>The gap between lines.</summary>
     [Styled(Category = "Layout", AffectsLayout = true)]
     public partial float LineSpacing { get; set; }
 
-    /// <summary>Выравнивание строки по её поперечной оси: короткие элементы
-    /// прижимаются к началу строки, к центру или растягиваются на её высоту.</summary>
+    /// <summary>Alignment of a line along its cross axis: short elements are pressed
+    /// to the start of the line, to the center, or stretched to its height.</summary>
     [Styled(Category = "Layout", AffectsLayout = true)]
     public partial CrossAxisAlignment LineAlignment { get; set; }
 
@@ -45,7 +45,7 @@ public partial class WrapPanel : DecoratedPanel
 
         float limit = IsHorizontal ? inner.Width : inner.Height;
 
-        // по бесконечной оси переносить нечего: всё уляжется в одну строку
+        // along an infinite axis there is nothing to wrap: everything fits into one line
         bool wraps = float.IsFinite(limit);
 
         float lineMain = 0;
@@ -60,8 +60,8 @@ public partial class WrapPanel : DecoratedPanel
 
             Thickness m = child.Margin;
 
-            // меряем в полной строке: элемент шире неё всё равно займёт
-            // строку целиком, и обрезать его на этапе измерения нельзя
+            // measure in a full line: an element wider than it takes the whole
+            // line anyway, and it must not be cut at the measuring stage
             child.Measure(IsHorizontal
                 ? new Size(Math.Max(0, limit - m.Horizontal), float.PositiveInfinity)
                 : new Size(float.PositiveInfinity, Math.Max(0, limit - m.Vertical)));
@@ -108,8 +108,8 @@ public partial class WrapPanel : DecoratedPanel
         float lineCross = 0;
         bool firstInLine = true;
 
-        // строку раскладываем сразу, но её поперечный размер известен
-        // только после того, как строка кончилась, — поэтому копим
+        // the line is arranged right away, but its cross size is known
+        // only after the line has ended — so we accumulate
         List<UIElement> line = [];
 
         foreach (UIElement child in Children)
@@ -147,15 +147,15 @@ public partial class WrapPanel : DecoratedPanel
         PlaceLine(line, crossOffset, lineCross);
     }
 
-    /// <summary>Собрать точку из продольной и поперечной координат.
-    /// Имя не Position: так называется свойство UIElement, и совпадение
-    /// перекрывало бы его внутри этого класса.</summary>
+    /// <summary>Build a point from the main and cross coordinates.
+    /// Not named Position: that is a UIElement property, and the name
+    /// would hide it inside this class.</summary>
     private Point ToPoint(float main, float cross) => IsHorizontal
         ? new Point(Padding.Left + main, Padding.Top + cross)
         : new Point(Padding.Left + cross, Padding.Top + main);
 
-    /// <summary>Досдвинуть элементы строки по её поперечной оси, когда
-    /// её высота уже известна.</summary>
+    /// <summary>Shift the line's elements along its cross axis
+    /// once its height is known.</summary>
     private void PlaceLine(List<UIElement> line, float crossOffset, float lineCross)
     {
         if (LineAlignment == CrossAxisAlignment.Start || line.Count == 0) return;

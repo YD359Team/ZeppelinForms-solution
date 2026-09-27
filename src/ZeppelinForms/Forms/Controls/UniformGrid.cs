@@ -4,21 +4,75 @@ using ZeppelinForms.Forms.Controls.Base;
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Раскладывает детей по сетке одинаковых ячеек.
-/// Rows/Columns = 0 означает "посчитать автоматически".
+/// Lays out children in a grid of equal cells.
+/// Rows/Columns = 0 means "compute automatically".
 /// </summary>
 public class UniformGrid : DecoratedPanel
 {
-    public int Rows { get; set; }
-    public int Columns { get; set; }
+    // every one of these changes the cells, so each asks for a layout pass:
+    // previously a grid that was already shown kept its old cells
+    public int Rows
+    {
+        get;
+        set
+        {
+            if (field == value) return;
 
-    public int FirstColumn { get; set; }
+            field = value;
+            Invalidate();
+        }
+    }
 
-    public float SpacingX { get; set; }
-    public float SpacingY { get; set; }
+    public int Columns
+    {
+        get;
+        set
+        {
+            if (field == value) return;
 
-    /// <summary>Раскладка по ячейкам с учётом того, что элементы могут
-    /// занимать несколько клеток сразу.</summary>
+            field = value;
+            Invalidate();
+        }
+    }
+
+    public int FirstColumn
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    }
+
+    public float SpacingX
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    }
+
+    public float SpacingY
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            Invalidate();
+        }
+    }
+
+    /// <summary>Placement into cells, taking into account that elements
+    /// may occupy several cells at once.</summary>
     private (int Rows, int Columns, List<(UIElement Child, int Row, int Column)> Placement) BuildPlacement()
     {
         List<UIElement> visible = [];
@@ -32,8 +86,8 @@ public class UniformGrid : DecoratedPanel
 
         if (columns <= 0)
         {
-            // считаем суммарную площадь в клетках, а не число элементов —
-            // иначе широкие элементы не влезут в подобранную сетку
+            // count the total area in cells rather than the number of elements —
+            // otherwise wide elements won't fit into the chosen grid
             int cells = Math.Max(0, FirstColumn);
 
             foreach (UIElement child in visible)
@@ -48,7 +102,7 @@ public class UniformGrid : DecoratedPanel
 
         columns = Math.Max(1, columns);
 
-        // занятость клеток: элемент со span > 1 блокирует несколько
+        // cell occupancy: an element with span > 1 blocks several
         List<bool[]> occupied = [];
         List<(UIElement, int, int)> placement = [];
 
@@ -141,8 +195,8 @@ public class UniformGrid : DecoratedPanel
 
             child.Measure(childAvailable);
 
-            // приводим желаемый размер к размеру одной клетки,
-            // иначе широкий элемент раздует всю сетку
+            // bring the desired size to the size of one cell,
+            // otherwise a wide element would inflate the whole grid
             maxCellWidth = Math.Max(maxCellWidth, (child.DesiredSize.Width + m.Horizontal) / columnSpan);
             maxCellHeight = Math.Max(maxCellHeight, (child.DesiredSize.Height + m.Vertical) / rowSpan);
         }

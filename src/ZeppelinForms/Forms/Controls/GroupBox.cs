@@ -8,23 +8,57 @@ using ZeppelinForms.Forms.Styling;
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Рамка с заголовком, врезанным в верхнюю линию — как GroupBox в WinForms.
+/// A border with a header set into the top line — like GroupBox in WinForms.
 /// </summary>
 public partial class GroupBox : DecoratedWrapControl
 {
     private const float HeaderSideGap = 8f;
     private const float HeaderTextPadding = 4f;
 
-    public string? Header { get; set; }
+    public string? Header
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the header takes height and sets the minimum width
+            Invalidate();
+        }
+    }
 
     [Styled(Category = "Header")]
     public partial Color HeaderColor { get; set; }
     private static Color HeaderColorDefault => Colors.Black;
 
-    /// <summary>Отступ заголовка от левого края рамки.</summary>
-    public float HeaderIndent { get; set; } = 10f;
+    /// <summary>The header's offset from the left edge of the border.</summary>
+    public float HeaderIndent
+    {
+        get;
+        set
+        {
+            if (field == value) return;
 
-    public HorizontalContentAlignment HeaderAlign { get; set; } = HorizontalContentAlignment.Left;
+            field = value;
+
+            // the indent is part of the minimum width
+            Invalidate();
+        }
+    } = 10f;
+
+    public HorizontalContentAlignment HeaderAlign
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = HorizontalContentAlignment.Left;
 
     public GroupBox()
     {
@@ -44,8 +78,8 @@ public partial class GroupBox : DecoratedWrapControl
         {
             if (string.IsNullOrEmpty(Header)) return 0;
 
-            // высота по эталонной паре, а не по самому тексту: иначе рамка
-            // дёргается при смене заголовка из-за выносных элементов букв
+            // height by a reference pair rather than by the text itself: otherwise
+            // the border jumps when the header changes, because of ascenders and descenders
             return TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
         }
     }
@@ -58,8 +92,8 @@ public partial class GroupBox : DecoratedWrapControl
     {
         get
         {
-            // рамка начинается на середине строки заголовка — так текст
-            // визуально «врезан» в линию, а не висит над ней
+            // the border starts at the middle of the header line — that way the text
+            // is visually "set into" the line rather than hanging above it
             float top = HeaderHeight / 2f;
 
             return new Rectangle(
@@ -70,8 +104,8 @@ public partial class GroupBox : DecoratedWrapControl
         }
     }
 
-    /// <summary>Фон рисуем сами, по прямоугольнику рамки: базовый залил бы
-    /// и полосу заголовка над ней.</summary>
+    /// <summary>The background is drawn by us, by the border's rectangle:
+    /// the base would also fill the header strip above it.</summary>
     protected override Color CurrentBackground => Colors.Transparent;
 
     protected override void DrawContent(Graphics g)
@@ -100,7 +134,7 @@ public partial class GroupBox : DecoratedWrapControl
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
     }
 
-    // базовая рамка не подходит: её рисует DrawDecoration с разрывом
+    // the base border doesn't fit: DrawDecoration draws it with a gap
     protected override Color CurrentBorderColor => Colors.Transparent;
 
     private float HeaderTextX(Rectangle frame) => HeaderAlign switch
@@ -111,8 +145,8 @@ public partial class GroupBox : DecoratedWrapControl
     };
 
     /// <summary>
-    /// Рамка из четырёх сторон с разрывом в верхней линии под заголовок:
-    /// целиком прямоугольник прошёл бы прямо через текст.
+    /// A border of four sides with a gap in the top line for the header:
+    /// a whole rectangle would go right through the text.
     /// </summary>
     private void DrawFrameWithGap(Graphics g, Rectangle frame)
     {
@@ -152,7 +186,8 @@ public partial class GroupBox : DecoratedWrapControl
             childDesired = Child.DesiredSize;
         }
 
-        // ширина не меньше заголовка с отступами, иначе текст вылезет за рамку
+        // the width is no less than the header with its indents,
+        // otherwise the text would stick out of the border
         float minWidth = HeaderWidth + HeaderIndent + HeaderSideGap * 2;
 
         return ResolveSize(

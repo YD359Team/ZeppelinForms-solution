@@ -19,8 +19,20 @@ public partial class ComboBox : InteractiveControl
 
     public List<object> Items { get; init; } = [];
 
-    /// <summary>Как показать элемент. По умолчанию ToString().</summary>
-    public Func<object, string>? DisplaySelector { get; set; }
+    /// <summary>How to show an item. ToString() by default.</summary>
+    public Func<object, string>? DisplaySelector
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the width is computed from the displayed texts
+            Invalidate();
+        }
+    }
 
     public int SelectedIndex
     {
@@ -44,7 +56,20 @@ public partial class ComboBox : InteractiveControl
 
     public event EventHandler? SelectionChanged;
 
-    public string? PlaceholderText { get; set; }
+    public string? PlaceholderText
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the width is computed from the placeholder too
+            Invalidate();
+        }
+    }
+
     public float DropDownHeight { get; set; } = 180f;
 
     [Styled(Category = "Text")]
@@ -67,7 +92,7 @@ public partial class ComboBox : InteractiveControl
 
     private string TextOf(object item) => DisplaySelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;
 
-    // рамка в фокусе — забота InteractiveControl через FocusBorderColor
+    // the focused border is InteractiveControl's business through FocusBorderColor
     protected override void DrawContent(Graphics g)
     {
         var content = ContentBounds;
@@ -95,6 +120,10 @@ public partial class ComboBox : InteractiveControl
 
     protected override void OnClick(MouseClickEventArgs e)
     {
+        // Space and Enter come here too, bypassing hit testing:
+        // a disabled combo box must not open from the keyboard
+        if (!IsEnabled) return;
+
         e.Handled = true;
 
         if (Items.Count == 0) return;
@@ -123,8 +152,8 @@ public partial class ComboBox : InteractiveControl
             _flyout.Close();
         };
 
-        // сначала узнаём, сколько списку нужно, и только потом ограничиваем:
-        // при трёх элементах не должно оставаться пустого места
+        // first learn how much the list needs, and only then limit it:
+        // with three items there must be no empty space left
         list.Measure(new Size(ActualSize.Width, float.PositiveInfinity));
 
         float height = Math.Min(list.DesiredSize.Height, DropDownHeight);
@@ -154,14 +183,21 @@ public partial class ComboBox : InteractiveControl
                 break;
 
             default:
-                base.OnKeyDown(e);   // пробел/Enter раскроют список
+                base.OnKeyDown(e);   // space/Enter open the list
                 break;
         }
     }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
-        if (_flyout.IsOpen) return;   // прокрутка внутри списка важнее
+        if (_flyout.IsOpen) return;   // scrolling inside the list matters more
+
+        // the form delivers the wheel to disabled elements too
+        if (!IsEnabled) return;
+
+        // an empty list has nothing to choose from: Math.Clamp with a maximum
+        // of -1 threw here and brought the application down on a plain scroll
+        if (Items.Count == 0) return;
 
         SelectedIndex = Math.Clamp(_selectedIndex - Math.Sign(e.Delta), 0, Items.Count - 1);
         e.Handled = true;

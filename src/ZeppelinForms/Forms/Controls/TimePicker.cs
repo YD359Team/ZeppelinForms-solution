@@ -16,7 +16,21 @@ public class TimePicker : InteractiveControl
     private readonly FlyoutHost _flyout;
 
     public TimeOnly Value { get; private set; } = new(12, 0);
-    public string Format { get; set; } = "HH:mm";
+
+    public string Format
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the picker's size is computed from the formatted time
+            Invalidate();
+        }
+    } = "HH:mm";
+
     public int MinuteStep { get; set; } = 5;
 
     public event EventHandler? ValueChanged;
@@ -74,13 +88,17 @@ public class TimePicker : InteractiveControl
         float cx = circle.X + size / 2f;
         float cy = circle.Y + size / 2f;
 
-        // стрелки на 10:10 — так часы рисуют в рекламе, выглядит узнаваемо
+        // hands at 10:10 — that's how clocks are drawn in ads, it looks recognizable
         g.DrawLine(new Point(cx, cy), new Point(cx, cy - size * 0.28f), color, 1.2f);
         g.DrawLine(new Point(cx, cy), new Point(cx + size * 0.22f, cy), color, 1.2f);
     }
 
     protected override void OnClick(MouseClickEventArgs e)
     {
+        // Space and Enter come here too, bypassing hit testing:
+        // a disabled picker must not open from the keyboard
+        if (!IsEnabled) return;
+
         e.Handled = true;
         _flyout.Toggle(BuildPicker);
     }

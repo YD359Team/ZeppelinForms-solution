@@ -7,17 +7,23 @@ using ZeppelinForms.Forms.Styling;
 namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>
-/// Прогресс дугой: полный круг или любая его часть — полукруг, сектор.
+/// Progress as an arc: a full circle or any part of it — a half circle, a sector.
 /// </summary>
 /// <remarks>
-/// Полукруглый вариант — это не отдельный контрол, а тот же самый
-/// с другой дугой: StartAngle 180 и SweepAngle 180. Раскладка при этом
-/// меняется: полукруг занимает вдвое меньше высоты, чем ширины,
-/// и центр круга уезжает к нижнему краю.
+/// The half-circle variant is not a separate control but the same one
+/// with a different arc: StartAngle 180 and SweepAngle 180. The layout changes
+/// then: a half circle takes half as much height as width, and the circle's
+/// center moves to the bottom edge.
 /// </remarks>
 public partial class CircularProgressBar : DecoratedControl
 {
-    private float _value;
+    /// <summary>The value as it was assigned, before coercing into the range.</summary>
+    /// <remarks>
+    /// Coercing on read makes the result independent of the order of assignments:
+    /// in <c>new CircularProgressBar { Value = 150, Maximum = 200 }</c> the value
+    /// used to be clamped by the default maximum of 100 before the real one arrived.
+    /// </remarks>
+    private float _requested;
 
     public float Minimum
     {
@@ -45,16 +51,21 @@ public partial class CircularProgressBar : DecoratedControl
 
     public float Value
     {
-        get => _value;
+        get => Coerce(_requested);
         set
         {
-            float clamped = Math.Clamp(value, Minimum, Maximum);
-            if (Math.Abs(_value - clamped) < 0.001f) return;
+            float before = Value;
+            _requested = value;
 
-            _value = clamped;
+            if (Math.Abs(before - Value) < 0.001f) return;
+
             InvalidateVisual();
         }
     }
+
+    // Min/Max rather than Math.Clamp: while the range is being reassigned,
+    // Minimum may briefly exceed Maximum, and Math.Clamp throws on that
+    private float Coerce(float value) => Math.Min(Math.Max(value, Minimum), Maximum);
 
     public float ArcThickness
     {
@@ -65,7 +76,7 @@ public partial class CircularProgressBar : DecoratedControl
 
             field = value;
 
-            // толщина дуги входит в размер круга, а не только в отрисовку
+            // the arc thickness is part of the circle's size, not only of drawing
             Invalidate();
         }
     } = 8f;
@@ -82,7 +93,7 @@ public partial class CircularProgressBar : DecoratedControl
         }
     } = true;
 
-    /// <summary>Откуда начинать дугу: −90 — с 12 часов, 180 — с 9 часов.</summary>
+    /// <summary>Where the arc starts: −90 — from 12 o'clock, 180 — from 9 o'clock.</summary>
     public float StartAngle
     {
         get;
@@ -95,8 +106,8 @@ public partial class CircularProgressBar : DecoratedControl
         }
     } = -90f;
 
-    /// <summary>Какую часть круга занимает шкала. 360 — полный круг,
-    /// 180 вместе со StartAngle = 180 — полукруг.</summary>
+    /// <summary>What part of the circle the scale takes. 360 — a full circle,
+    /// 180 together with StartAngle = 180 — a half circle.</summary>
     public float SweepAngle
     {
         get;
@@ -106,7 +117,7 @@ public partial class CircularProgressBar : DecoratedControl
 
             field = Math.Clamp(value, 1f, 360f);
 
-            // от развёрнутости шкалы зависит и желаемый размер контрола
+            // the desired size of the control depends on how far the scale extends too
             Invalidate();
         }
     } = 360f;
@@ -119,8 +130,8 @@ public partial class CircularProgressBar : DecoratedControl
     public partial Color TrackColor { get; set; }
     private static Color TrackColorDefault => new(255, 230, 230, 230);
 
-    /// <summary>Шкала занимает половину круга или меньше: раскладка тогда
-    /// другая — высота вдвое меньше ширины, центр внизу.</summary>
+    /// <summary>The scale takes half a circle or less: the layout is different
+    /// then — height is half the width, the center is at the bottom.</summary>
     private bool IsHalf => SweepAngle <= 180f;
 
     private float Fraction
@@ -128,7 +139,7 @@ public partial class CircularProgressBar : DecoratedControl
         get
         {
             float range = Maximum - Minimum;
-            return range <= 0 ? 0 : Math.Clamp((_value - Minimum) / range, 0f, 1f);
+            return range <= 0 ? 0 : Math.Clamp((Value - Minimum) / range, 0f, 1f);
         }
     }
 
@@ -136,9 +147,9 @@ public partial class CircularProgressBar : DecoratedControl
     {
         var content = this.ContentBounds;
 
-        // круг вписываем в квадрат по меньшей стороне, иначе получится эллипс.
-        // У полукруга по высоте нужна только половина, поэтому ей позволено
-        // быть вдвое меньше
+        // the circle is fitted into a square by the smaller side, otherwise it would
+        // be an ellipse. A half circle needs only half in height, so it is allowed
+        // to be half as tall
         float available = IsHalf
             ? Math.Min(content.Width, content.Height * 2f)
             : Math.Min(content.Width, content.Height);
@@ -162,8 +173,8 @@ public partial class CircularProgressBar : DecoratedControl
 
         if (!ShowPercentage) return;
 
-        // у полукруга подпись садится внутрь дуги, а не в центр контрола:
-        // центр круга у него на нижнем краю
+        // for a half circle the label sits inside the arc rather than in the center
+        // of the control: its circle's center is on the bottom edge
         var textArea = IsHalf
             ? new Rectangle(
                 new Point(circle.X, circle.Y + diameter / 2f - ArcThickness - LineHeight),

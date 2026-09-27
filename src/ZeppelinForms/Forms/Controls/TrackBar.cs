@@ -239,6 +239,10 @@ public partial class TrackBar : InteractiveControl
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
+        // the form delivers the wheel to disabled elements too:
+        // a disabled track bar must not move
+        if (!IsEnabled) return;
+
         Value += Step * (e.Delta / 120f);
         e.Handled = true;
     }
