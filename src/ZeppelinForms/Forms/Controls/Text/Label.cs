@@ -57,6 +57,12 @@ public partial class Label : DecoratedControl, ITextElement
     /// <summary>The split into lines. Computed once per text: both drawing
     /// and measuring ask for it many times per frame, and Split creates
     /// a new array every time.</summary>
+    /// <remarks>
+    /// The lines are cached as written; TextTransform is applied when drawing
+    /// and measuring. It is inherited, and an ancestor changing it never reaches
+    /// this label's OnStyledPropertyChanged, so a cache of transformed lines
+    /// would go stale unnoticed.
+    /// </remarks>
     private string[] Lines => _lines ??= SplitLines();
 
     private float LineHeight =>
@@ -84,7 +90,7 @@ public partial class Label : DecoratedControl, ITextElement
         {
             if (lines[i].Length == 0) continue;
 
-            g.DrawText(lines[i],
+            g.DrawText(ApplyTextTransform(lines[i]),
                 new Rectangle(new Point(content.X, startY + i * lineHeight),
                     new Size(content.Width, lineHeight)),
                 TextColor, EffectiveFont,
@@ -101,7 +107,8 @@ public partial class Label : DecoratedControl, ITextElement
 
         float maxWidth = 0;
         foreach (string line in lines)
-            maxWidth = Math.Max(maxWidth, TextMeasurer.Current.MeasureText(line, EffectiveFont).Width);
+            maxWidth = Math.Max(maxWidth,
+                TextMeasurer.Current.MeasureText(ApplyTextTransform(line), EffectiveFont).Width);
 
         return ResolveSize(
             new Size(maxWidth + Padding.Horizontal, LineHeight * lines.Length + Padding.Vertical),

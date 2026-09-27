@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Text;
@@ -162,7 +163,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         // see OnStyledPropertyChanged
         OnStyledPropertyChanged(property);
 
-        if (property.AffectsLayout) Invalidate();
+        if (property.AffectsLayout) InvalidateLayoutFor(property);
         else InvalidateVisual();
 
         RaisePropertyChanged(property);
@@ -290,6 +291,25 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
     [Styled(Category = "Text", AffectsLayout = true)]
     public partial Font? Font { get; set; }
+
+    /// <summary>Caption casing. Inherited: set on a panel, it applies to every
+    /// caption inside. The text itself is not changed — see ApplyTextTransform.</summary>
+    [Styled(Category = "Text", AffectsLayout = true, Inherits = true)]
+    public partial TextTransform TextTransform { get; set; }
+
+    /// <summary>The caption as it should be drawn and measured under TextTransform.
+    /// Controls call it in both places: measuring the original and drawing the
+    /// transformed text would cut off a caption that grew.</summary>
+    /// <remarks>
+    /// By the current culture's rules: in Turkish "i" becomes "İ", not "I".
+    /// When localization arrives, this will follow the application's culture.
+    /// </remarks>
+    protected string ApplyTextTransform(string text) => TextTransform switch
+    {
+        Enums.TextTransform.UpperCase => text.ToUpper(CultureInfo.CurrentCulture),
+        Enums.TextTransform.LowerCase => text.ToLower(CultureInfo.CurrentCulture),
+        _ => text,
+    };
     //
     /// <summary>Rotation in degrees around the element's center.</summary>
     [Styled(Category = "Appearance")]
@@ -722,7 +742,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         // see OnStyledPropertyChanged
         OnStyledPropertyChanged(property);
 
-        if (property.AffectsLayout) Invalidate();
+        if (property.AffectsLayout) InvalidateLayoutFor(property);
         else InvalidateVisual();
 
         RaisePropertyChanged(property);
@@ -757,7 +777,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
         OnStyledPropertyChanged(property);
 
-        if (property.AffectsLayout) Invalidate();
+        if (property.AffectsLayout) InvalidateLayoutFor(property);
         else InvalidateVisual();
 
         RaisePropertyChanged(property);
@@ -818,7 +838,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         // the theme may have a value of its own — ask it again
         App.Theme.Apply(this);
 
-        if (property.AffectsLayout) Invalidate();
+        if (property.AffectsLayout) InvalidateLayoutFor(property);
         else InvalidateVisual();
 
         RaisePropertyChanged(property);
@@ -1505,20 +1525,38 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         _measureValid = true;
     }
 
-    /// <summary>Mark the measurement stale on the element and its ancestors:
-    /// their size is computed from ours.</summary>
+    /// <summary>A layout property changed: request a layout pass for this element
+    /// and, for a property its descendants take over, reset their measure too.</summary>
     /// <remarks>
-    /// The walk up stops at the first element that is already marked: if an
-    /// element is invalid, so are all its ancestors — they were marked together with it.
+    /// A descendant that inherits Font, TextTransform or FlowDirection is measured
+    /// with the ancestor's value, but its own measure cache knows nothing about the
+    /// ancestor: Invalidate marks only the element and its ancestors. A font set on
+    /// a panel after the labels in it were measured left them at their old sizes.
+    ///
+    /// Font and FlowDirection are inherited through EffectiveFont and
+    /// EffectiveFlowDirection rather than the Inherits flag, so they are named here.
+    /// Descendants are marked first and without a request to the form: Win32 and X11
+    /// paint inside Invalidate, and would lay out before the marks are in place.
     /// </remarks>
-    internal void InvalidateMeasure()
+    private void InvalidateLayoutFor(StyledProperty property)
     {
-        for (UIElement? current = this; current is not null; current = current.Parent)
-        {
-            if (!current._measureValid) break;
+        if (property.Inherits ||
+            ReferenceEquals(property, FontProperty) ||
+            ReferenceEquals(property, FlowDirectionProperty))
+            InvalidateDescendantsMeasure();
 
-            current._measureValid = false;
-        }
+        Invalidate();
+    }
+
+    /// <summary>Reset the measure cache of all descendants, not touching this element.
+    /// An element without children has nothing to reset.</summary>
+    internal virtual void InvalidateDescendantsMeasure() { }
+
+    /// <summary>Reset the measure cache of this element and its whole subtree.</summary>
+    internal void InvalidateMeasureSubtree()
+    {
+        _measureValid = false;
+        InvalidateDescendantsMeasure();
     }
 
     /// <summary>Infinities compare as equal, and so do NaNs:
@@ -1676,6 +1714,22 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         InvalidateMeasure();
 
         FindOwner()?.Invalidate();
+    }
+
+    /// <summary>Mark the measurement stale on the element and its ancestors:
+    /// their size is computed from ours.</summary>
+    /// <remarks>
+    /// The walk up stops at the first element that is already marked: if an
+    /// element is invalid, so are all its ancestors — they were marked together with it.
+    /// </remarks>
+    internal void InvalidateMeasure()
+    {
+        for (UIElement? current = this; current is not null; current = current.Parent)
+        {
+            if (!current._measureValid) break;
+
+            current._measureValid = false;
+        }
     }
 
     /// <summary>Capture on behalf of a recognizer. A separate entry point because

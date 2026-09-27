@@ -697,6 +697,12 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         if (Math.Abs(before - ScrollY) > 0.01f)
             e.Handled = true;
     }
+
+    internal override void InvalidateDescendantsMeasure()
+    {
+        foreach (UIElement child in Children)
+            child.InvalidateMeasureSubtree();
+    }
 }
 
 public enum ScrollBarMode

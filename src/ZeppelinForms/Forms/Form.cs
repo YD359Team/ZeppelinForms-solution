@@ -956,12 +956,37 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     internal (bool Active, Point Origin, float Radius, Color Color) ThemeRipple =>
         (_themeRippleActive, _themeRippleOrigin, _themeRippleRadius, _themeRippleColor);
 
+    /// <summary>Give focus to the first text field when the form is shown.
+    /// Without it the keyboard does nothing until the user clicks a field,
+    /// although there is only one place the typing could go.</summary>
+    public bool FocusOnShow { get; set; } = true;
+
     public void Show()
     {
         DesktopWindow?.SetOpacity(_opacity);
         DesktopWindow?.SetTitle(Title);
         PlatformWindow?.Show();
+
+        // before Shown: a handler that wants the focus elsewhere moves it after us
+        if (FocusOnShow && Content is not null)
+            FocusFirstTextInput(Content);
+
         Shown?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Focus the first text field under root — on showing the form
+    /// or a page. Leaves the focus alone if it is already inside root.</summary>
+    internal bool FocusFirstTextInput(UIElement root)
+    {
+        // on a touch screen focus on a field raises the on-screen keyboard over
+        // half the window, and nobody asked for it yet: there the first tap decides
+        if (PlatformWindow is ISoftKeyboard) return false;
+
+        // the user is already working somewhere inside — don't pull the focus away
+        if (_focusDispatcher.FocusedElement is { } focused && IsInTree(root, focused))
+            return false;
+
+        return _focusDispatcher.FocusFirstTextInput(root);
     }
 
     public void Close() => PlatformWindow?.Close();

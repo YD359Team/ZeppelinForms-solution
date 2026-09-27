@@ -86,7 +86,7 @@ public partial class GroupBox : DecoratedWrapControl
 
     private float HeaderWidth => string.IsNullOrEmpty(Header)
         ? 0
-        : TextMeasurer.Current.MeasureText(Header, EffectiveFont).Width;
+        : TextMeasurer.Current.MeasureText(ApplyTextTransform(Header), EffectiveFont).Width;
 
     private Rectangle Frame
     {
@@ -128,7 +128,7 @@ public partial class GroupBox : DecoratedWrapControl
 
         if (string.IsNullOrEmpty(Header)) return;
 
-        g.DrawText(Header,
+        g.DrawText(ApplyTextTransform(Header),
             new Rectangle(new Point(HeaderTextX(frame), 0), new Size(HeaderWidth, HeaderHeight)),
             HeaderColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);

@@ -118,4 +118,17 @@ public class FocusDispatcher
                 break;
         }
     }
+
+    /// <summary>Focus the first element under root, in Tab order, that accepts
+    /// text input. Buttons and other stops are skipped: focusing them without
+    /// the user asking puts a focus ring on a random button, and Enter would
+    /// press it.</summary>
+    public bool FocusFirstTextInput(UIElement root)
+    {
+        foreach (UIElement stop in CollectTabStops(root))
+            if (stop.AcceptsTextInput && FocusElement(stop))
+                return true;
+
+        return false;
+    }
 }

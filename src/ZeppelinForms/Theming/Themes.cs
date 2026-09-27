@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Controls.DataGrid;
 using ZeppelinForms.Forms.Controls.Navigation;
 using ZeppelinForms.Forms.Controls.Shapes;
 using ZeppelinForms.Forms.Controls.Text;
@@ -82,6 +83,7 @@ public static class Themes
             {
                 control.BorderColor = c.Border;
                 control.FocusBorderColor = c.BorderFocused;
+                control.HoverBorderColor = c.TextSecondary;
             })
 
             // shared by every decorated panel — scrollbar colors.
@@ -110,7 +112,12 @@ public static class Themes
                 button.DisabledBackgroundColor = c.SurfacePressed;
                 button.DisabledTextColor = c.TextDisabled;
                 button.FocusRingColor = c.Accent;
-                button.RippleColor = new Color(70, 255, 255, 255);
+
+                // the ripple takes the content color, as in Material: on a light
+                // surface it darkens, on a dark one it lightens — the same way the
+                // press does. A white ripple on the light theme's surface washed out
+                // the pressed shade for as long as it spread
+                button.RippleColor = new Color(50, c.Text.R, c.Text.G, c.Text.B);
             })
 
             .For<PrimaryButton>((button, c) =>
@@ -124,6 +131,7 @@ public static class Themes
                 button.DisabledTextColor = c.TextDisabled;
                 button.BorderColor = c.Accent;
                 button.FocusRingColor = c.TextOnAccent;
+                button.RippleColor = new Color(70, c.TextOnAccent.R, c.TextOnAccent.G, c.TextOnAccent.B);
             })
 
             .For<SecondaryButton>((button, c) =>
@@ -138,7 +146,7 @@ public static class Themes
                 button.DisabledTextColor = c.TextDisabled;
                 button.BorderColor = c.Accent;
                 button.FocusRingColor = c.Accent;
-                button.RippleColor = new Color(40, 0, 0, 0);
+                button.RippleColor = new Color(50, c.Accent.R, c.Accent.G, c.Accent.B);
             })
 
             .For<DangerButton>((button, c) =>
@@ -152,6 +160,7 @@ public static class Themes
                 button.DisabledTextColor = c.TextDisabled;
                 button.BorderColor = c.Error;
                 button.FocusRingColor = c.TextOnAccent;
+                button.RippleColor = new Color(70, c.TextOnAccent.R, c.TextOnAccent.G, c.TextOnAccent.B);
             })
 
             .For<ToggleButton>((button, c) =>
@@ -180,8 +189,20 @@ public static class Themes
 
             .For<RadioButton>((radio, c) =>
             {
+                radio.CircleBackground = c.Surface;
                 radio.CircleBorderColor = c.Border;
                 radio.CheckColor = c.Accent;
+            })
+
+            // DataGridView had no rule at all: its header and background stayed
+            // light in the dark theme, under the theme's light text
+            .For<DataGridView>((grid, c) =>
+            {
+                grid.Background = c.Surface;
+                grid.HeaderColor = c.SurfaceHover;
+                grid.HeaderHoverColor = c.SurfacePressed;
+                grid.HeaderTextColor = c.Text;
+                grid.SelectionColor = c.Selection;
             })
 
             .For<TextBox>((box, c) =>

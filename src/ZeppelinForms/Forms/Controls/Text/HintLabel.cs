@@ -59,13 +59,15 @@ public class HintLabel : DecoratedControl
     {
         if (string.IsNullOrEmpty(Text)) return;
 
+        string caption = ApplyTextTransform(Text);
+
         Rectangle content = ContentBounds;
         Color color = IsHovered || _flyout.IsOpen ? HoverTextColor : TextColor;
 
-        g.DrawText(Text, content, color, EffectiveFont,
+        g.DrawText(caption, content, color, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 
-        float textWidth = TextMeasurer.Current.MeasureText(Text, EffectiveFont).Width;
+        float textWidth = TextMeasurer.Current.MeasureText(caption, EffectiveFont).Width;
         float lineHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
         float y = content.Y + (content.Height + lineHeight) / 2f;
 
@@ -124,7 +126,7 @@ public class HintLabel : DecoratedControl
     {
         Size textSize = string.IsNullOrEmpty(Text)
             ? Size.Empty
-            : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
+            : TextMeasurer.Current.MeasureText(ApplyTextTransform(Text), EffectiveFont);
 
         return ResolveSize(
             new Size(textSize.Width + Padding.Horizontal, textSize.Height + Padding.Vertical + 2),

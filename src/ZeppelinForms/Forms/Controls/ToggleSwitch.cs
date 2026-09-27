@@ -92,6 +92,10 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
 
         // the track color flows along with the thumb
         var trackColor = Interpolators.Color(OffColor, OnColor, _thumbProgress);
+        // hover blends a little of the text color into the track: darker on a light
+        // theme, lighter on a dark one — the switch shows it can be clicked
+        if (IsHovered && IsEnabled)
+            trackColor = Interpolators.Color(trackColor, TextColor, 0.12f);
         g.FillRoundRectangle(track, new CornerRadius(TrackHeight / 2f), trackColor);
 
         float thumbSize = TrackHeight - ThumbPadding * 2;
@@ -112,7 +116,7 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
                 new Point(content.X + TrackWidth + Gap, content.Y),
                 new Size(Math.Max(0, content.Width - TrackWidth - Gap), content.Height));
 
-            g.DrawText(Text, textRect, TextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
+            g.DrawText(ApplyTextTransform(Text), textRect, TextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
         }
     }
 
@@ -120,7 +124,7 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
     {
         Size textSize = string.IsNullOrEmpty(Text)
             ? Size.Empty
-            : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
+            : TextMeasurer.Current.MeasureText(ApplyTextTransform(Text), EffectiveFont);
 
         float width = TrackWidth + (textSize.Width > 0 ? Gap + textSize.Width : 0) + Padding.Horizontal;
         float height = Math.Max(TrackHeight, textSize.Height) + Padding.Vertical;

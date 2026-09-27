@@ -110,7 +110,7 @@ public partial class Spoiler : DecoratedWrapControl
                 new Point(24f, 0),
                 new Size(Math.Max(0, ActualSize.Width - 28f), HeaderHeight));
 
-            g.DrawText(Header, textRect, HeaderTextColor, EffectiveFont,
+            g.DrawText(ApplyTextTransform(Header), textRect, HeaderTextColor, EffectiveFont,
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
         }
     }

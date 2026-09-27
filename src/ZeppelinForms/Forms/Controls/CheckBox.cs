@@ -125,7 +125,13 @@ public partial class CheckBox : InteractiveControl, ITextElement
         var radius = new CornerRadius(3f);
 
         g.FillRoundRectangle(boxRect, radius, filled ? CheckColor : BoxBackground);
-        g.DrawRoundRectangle(boxRect, radius, filled ? CheckColor : BoxBorderColor, 1.5f);
+        // the box is where the click goes, so the hover shows there —
+        // the control's own border is usually zero-width
+        Color boxBorder = filled ? CheckColor
+            : IsHovered && IsEnabled && HoverBorderColor.A > 0 ? HoverBorderColor
+            : BoxBorderColor;
+
+        g.DrawRoundRectangle(boxRect, radius, boxBorder, 1.5f);
 
         switch (_checkState)
         {
@@ -144,7 +150,7 @@ public partial class CheckBox : InteractiveControl, ITextElement
             new Point(content.X + BoxSize + Gap, content.Y),
             new Size(Math.Max(0, content.Width - BoxSize - Gap), content.Height));
 
-        g.DrawText(Text, textRect, TextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
+        g.DrawText(ApplyTextTransform(Text), textRect, TextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
     }
 
     private static void DrawCheckMark(Graphics g, Rectangle box)
@@ -173,7 +179,7 @@ public partial class CheckBox : InteractiveControl, ITextElement
     {
         Size textSize = string.IsNullOrEmpty(Text)
             ? Size.Empty
-            : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
+            : TextMeasurer.Current.MeasureText(ApplyTextTransform(Text), EffectiveFont);
 
         float width = BoxSize + (textSize.Width > 0 ? Gap + textSize.Width : 0) + Padding.Horizontal;
         float height = Math.Max(BoxSize, textSize.Height) + Padding.Vertical;

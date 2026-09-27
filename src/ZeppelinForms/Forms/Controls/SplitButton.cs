@@ -127,7 +127,7 @@ public partial class SplitButton : ButtonBase
                     Math.Max(0, ActualSize.Width - ArrowZoneWidth - Padding.Horizontal),
                     Math.Max(0, ActualSize.Height - Padding.Vertical)));
 
-            g.DrawText(caption, textRect, CurrentTextColor, EffectiveFont,
+            g.DrawText(ApplyTextTransform(caption), textRect, CurrentTextColor, EffectiveFont,
                 HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
         }
 
@@ -240,7 +240,7 @@ public partial class SplitButton : ButtonBase
 
     private Size Measure(string? text) => string.IsNullOrEmpty(text)
         ? Size.Empty
-        : TextMeasurer.Current.MeasureText(text, EffectiveFont);
+        : TextMeasurer.Current.MeasureText(ApplyTextTransform(text), EffectiveFont);
 
     /// <summary>The widest of the possible captions: the initial one and all
     /// menu items. That way the button's width doesn't change on a choice.</summary>

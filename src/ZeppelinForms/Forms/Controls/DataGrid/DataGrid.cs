@@ -50,6 +50,9 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     private int _hoveredRow = -1;
 
+    /// <summary>The sortable header cell under the cursor, or −1.</summary>
+    private int _hoveredHeader = -1;
+
     public List<DataGridViewColumn> Columns { get; init; } = [];
 
     /// <summary>Строки данных. Тип элементов произвольный — столбцы знают,
@@ -121,6 +124,11 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     [Styled(Category = "DataGrid")]
     public partial Color RowHoverColor { get; set; }
     private static Color RowHoverColorDefault => new(20, 0, 0, 0);
+
+    /// <summary>The header cell under the cursor, when a click on it sorts.</summary>
+    [Styled(Category = "DataGrid")]
+    public partial Color HeaderHoverColor { get; set; }
+    private static Color HeaderHoverColorDefault => new(255, 232, 232, 232);
 
     [Styled(Category = "Scrolling")]
     public partial Color ScrollTrackColor { get; set; }
@@ -618,8 +626,8 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     {
         if (_resizingColumn >= 0)
         {
-            // ширина задаётся фиксированной: тянуть звезду или Auto
-            // бессмысленно — следующий же пересчёт вернул бы прежнее
+            // the width is set as fixed: dragging a star or an Auto makes
+            // no sense — the very next recompute would bring the old one back
             Columns[_resizingColumn].Width = GridLength.Fixed(
                 Math.Max(MinColumnWidth, _resizeStartWidth + (e.Location.X - _resizeStartX)));
 
@@ -628,23 +636,42 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         }
 
         Point local = ToLocal(e.Location);
+        bool onEdge = ColumnEdgeAt(local) >= 0;
 
-        Cursor = ColumnEdgeAt(local) >= 0 ? CursorKind.SizeWestEast : CursorKind.Default;
+        Cursor = onEdge ? CursorKind.SizeWestEast : CursorKind.Default;
 
+        // a header cell lights up only when a click on it would sort: the highlight
+        // promises an action, and a column that can't sort has none. Not on
+        // a resize edge either — a click there resizes rather than sorts
+        int header = !onEdge && IsOverHeader(local) ? SortableColumnAt(local) : -1;
         int row = RowAt(e.Location);
 
-        if (row == _hoveredRow) return;
+        if (row == _hoveredRow && header == _hoveredHeader) return;
 
         _hoveredRow = row;
+        _hoveredHeader = header;
         InvalidateVisual();
     }
 
     protected override void OnMouseExit(MouseMoveEventArgs e)
     {
-        if (_hoveredRow < 0) return;
+        if (_hoveredRow < 0 && _hoveredHeader < 0) return;
 
         _hoveredRow = -1;
+        _hoveredHeader = -1;
         InvalidateVisual();
+    }
+
+    /// <summary>The column under the point if clicking its header sorts, otherwise −1.
+    /// The same conditions as in OnClick, so the highlight never promises
+    /// a sort that won't happen.</summary>
+    private int SortableColumnAt(Point local)
+    {
+        if (!CanSortByHeaderClick) return -1;
+
+        int column = ColumnAt(local);
+
+        return column >= 0 && Columns[column].CanSort ? column : -1;
     }
 
     // ===== рисование =====
@@ -719,6 +746,12 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             var cell = new Rectangle(
                 new Point(x + CellPadding.Left, content.Y),
                 new Size(Math.Max(0, _widths[col] - CellPadding.Horizontal), HeaderHeight));
+
+            // the whole column width, not the padded cell: the click area is the column
+            if (col == _hoveredHeader)
+                g.FillRectangle(
+                    new Rectangle(new Point(x, content.Y), new Size(_widths[col], HeaderHeight)),
+                    HeaderHoverColor);
 
             if (col == SortColumnIndex) DrawSortMarker(g, cell);
 

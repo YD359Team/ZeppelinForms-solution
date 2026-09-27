@@ -18,11 +18,29 @@ public partial class RadioButton : InteractiveControl, ITextElement
 
     public event EventHandler? CheckedChanged;
 
-    public string? Text { get; set; }
+    public string? Text
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // the radio button's size is computed from its text
+            Invalidate();
+        }
+    }
 
     [Styled(Category = "Box")]
     public partial Color CircleBorderColor { get; set; }
     private static Color CircleBorderColorDefault => Colors.Black;
+
+    /// <summary>The circle's fill. Was a hard-coded white, which stayed white
+    /// in the dark theme.</summary>
+    [Styled(Category = "Box")]
+    public partial Color CircleBackground { get; set; }
+    private static Color CircleBackgroundDefault => Colors.White;
 
     [Styled(Category = "Box")]
     public partial Color CheckColor { get; set; }
@@ -38,6 +56,10 @@ public partial class RadioButton : InteractiveControl, ITextElement
 
     protected override void OnClick(MouseClickEventArgs e)
     {
+        // Space and Enter come here too, bypassing hit testing:
+        // a disabled radio button must not switch from the keyboard
+        if (!IsEnabled) return;
+
         if (!IsChecked)
             SetChecked(true);
 
@@ -72,8 +94,14 @@ public partial class RadioButton : InteractiveControl, ITextElement
         float circleY = content.Y + (content.Height - CircleSize) / 2f;
         var circleRect = new Rectangle(new Point(content.X, circleY), new Size(CircleSize, CircleSize));
 
-        g.FillEllipse(circleRect, Colors.White);
-        g.DrawEllipse(circleRect, IsChecked ? CheckColor : CircleBorderColor, 1.5f);
+        // the circle is where the click goes, so the hover shows there —
+        // the control's own border is usually zero-width
+        Color border = IsChecked ? CheckColor
+            : IsHovered && IsEnabled && HoverBorderColor.A > 0 ? HoverBorderColor
+            : CircleBorderColor;
+
+        g.FillEllipse(circleRect, CircleBackground);
+        g.DrawEllipse(circleRect, border, 1.5f);
 
         if (IsChecked)
         {
@@ -92,14 +120,15 @@ public partial class RadioButton : InteractiveControl, ITextElement
             new Point(content.X + CircleSize + Gap, content.Y),
             new Size(Math.Max(0, content.Width - CircleSize - Gap), content.Height));
 
-        g.DrawText(Text, textRect, TextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
+        g.DrawText(ApplyTextTransform(Text), textRect, TextColor, EffectiveFont,
+            this.HorizontalContentAlign, this.VerticalContentAlign);
     }
 
     protected override Size MeasureOverride(Size availableSize)
     {
         Size textSize = string.IsNullOrEmpty(Text)
             ? Size.Empty
-            : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
+            : TextMeasurer.Current.MeasureText(ApplyTextTransform(Text), EffectiveFont);
 
         float width = CircleSize + (textSize.Width > 0 ? Gap + textSize.Width : 0) + Padding.Horizontal;
         float height = Math.Max(CircleSize, textSize.Height) + Padding.Vertical;

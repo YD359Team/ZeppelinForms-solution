@@ -87,14 +87,14 @@ public class Button : ButtonBase, ITextElement
             new Point(textLeft, content.Y),
             new Size(Math.Max(0, content.X + content.Width - textLeft), content.Height));
 
-        g.DrawText(Text, textRect, CurrentTextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
+        g.DrawText(ApplyTextTransform(Text), textRect, CurrentTextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
     }
 
     protected override Size MeasureOverride(Size availableSize)
     {
         Size textSize = string.IsNullOrEmpty(Text)
             ? Size.Empty
-            : TextMeasurer.Current.MeasureText(Text, EffectiveFont);
+            : TextMeasurer.Current.MeasureText(ApplyTextTransform(Text), EffectiveFont);
 
         float width = textSize.Width + Padding.Horizontal;
         float height = Math.Max(textSize.Height, string.IsNullOrEmpty(IconPathData) ? 0 : IconSize) + Padding.Vertical;

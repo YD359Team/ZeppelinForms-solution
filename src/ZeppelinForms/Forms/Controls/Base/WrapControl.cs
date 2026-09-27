@@ -10,6 +10,8 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// </summary>
 public abstract class WrapControl : UIElement
 {
+    internal override void InvalidateDescendantsMeasure() => Child?.InvalidateMeasureSubtree();
+
     public UIElement? Child
     {
         get;

@@ -44,6 +44,10 @@ public class PageControl : DecoratedPanel
 
     public bool CanGoBack => _history.Count > 1;
 
+    /// <summary>Give focus to the first text field of a page when it is shown,
+    /// as the form does on first show.</summary>
+    public bool FocusOnNavigate { get; set; } = true;
+
     public event EventHandler<Page>? Navigated;
 
     private SwipeGestureRecognizer? _swipe;
@@ -310,6 +314,12 @@ public class PageControl : DecoratedPanel
         target.IsVisible = true;
 
         Navigated?.Invoke(this, target);
+
+        // the page is visible now — its first field gets the focus, as on the
+        // form's first show. Before the form is shown there is no owner yet,
+        // and Form.Show does it then
+        if (FocusOnNavigate)
+            FindOwner()?.FocusFirstTextInput(target);
 
         if (!canAnimate)
         {

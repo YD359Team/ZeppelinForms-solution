@@ -41,6 +41,18 @@ public partial class TextBox : TextInputControl, ITextElement
         }
     } = new Color(255, 160, 160, 160);
 
+    /// <summary>Text entered by the user, cased by TextTransform — like
+    /// CharacterCasing in WinForms, the stored text itself changes.</summary>
+    /// <remarks>
+    /// Only when TextTransform is set on this field itself. It is inherited, and
+    /// a panel with upper-case headings must not start rewriting what is typed
+    /// into the fields inside it.
+    /// </remarks>
+    private string CaseInput(string text) =>
+        IsLocal(TextTransformProperty) || IsBound(TextTransformProperty)
+            ? ApplyTextTransform(text)
+            : text;
+
     public ValidationState ValidationState { get; private set; } = ValidationState.None;
 
     public string? ValidationMessage { get; private set; }
@@ -297,12 +309,12 @@ public partial class TextBox : TextInputControl, ITextElement
 
             if (System.Text.Rune.TryCreate(high, c, out Rune rune))
             {
-                _document.Insert(rune.ToString());
+                _document.Insert(CaseInput(rune.ToString()));
                 return;
             }
         }
 
-        _document.Insert(c.ToString());
+        _document.Insert(CaseInput(c.ToString()));
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -434,7 +446,7 @@ public partial class TextBox : TextInputControl, ITextElement
 
         if (text.Length == 0) return;
 
-        _document.Insert(text);
+        _document.Insert(CaseInput(text));
     }
 
     // ===== mouse =====

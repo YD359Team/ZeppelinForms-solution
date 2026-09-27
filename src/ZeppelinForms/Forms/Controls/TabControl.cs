@@ -129,7 +129,7 @@ public partial class TabControl : DecoratedPanel, IInputElement
     {
         Size text = string.IsNullOrEmpty(tab.Header)
             ? Size.Empty
-            : TextMeasurer.Current.MeasureText(tab.Header, EffectiveFont);
+            : TextMeasurer.Current.MeasureText(ApplyTextTransform(tab.Header), EffectiveFont);
 
         if (IsVertical)
             return Math.Max(text.Height, IconSize) + HeaderPaddingY * 2;
@@ -237,7 +237,7 @@ public partial class TabControl : DecoratedPanel, IInputElement
                 new Point(textX, rect.Y),
                 new Size(Math.Max(0, rect.X + rect.Width - textX - HeaderPaddingX), rect.Height));
 
-            g.DrawText(tab.Header, textRect, textColor, EffectiveFont,
+            g.DrawText(ApplyTextTransform(tab.Header ?? string.Empty), textRect, textColor, EffectiveFont,
                 IsVertical ? HorizontalContentAlignment.Left : HorizontalContentAlignment.Center,
                 VerticalContentAlignment.Center);
         }
