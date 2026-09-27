@@ -7,44 +7,44 @@ using ZeppelinForms.Forms.Controls.Base;
 namespace ZeppelinForms.Headless;
 
 /// <summary>
-/// Обход дерева элементов и вызов их отрисовки. Ничего не знает о бэкенде:
-/// работает через абстрактный <see cref="Graphics"/>, поэтому годится и для
-/// Skia, и для headless-заглушки, и для любого будущего рендерера.
+/// Walks the element tree and calls their drawing. Knows nothing about the backend:
+/// works through the abstract <see cref="Graphics"/>, so it fits Skia,
+/// the headless stub and any future renderer.
 /// </summary>
 public static class ElementTreeRenderer
 {
-    /// <param name="clip">Грязная область в абсолютных координатах.
-    /// null — рисовать всё.</param>
+    /// <param name="clip">The dirty area in absolute coordinates.
+    /// null — draw everything.</param>
     public static void Draw(UIElement element, Graphics g, Rectangle? clip = null)
     {
-        // внутри этой области чтение свойств отдаёт промежуточные значения
-        // идущих переходов. Снаружи — цели: раскладка, логика и биндинги
-        // должны видеть то, что присвоено, а не полпути к нему
+        // inside this scope reading properties returns the intermediate values
+        // of running transitions. Outside — the targets: layout, logic and
+        // bindings must see what was assigned, not halfway to it
         using (UIElement.BeginPresentation())
             Draw(element, g, Point.Empty, clip, cull: true);
     }
 
-    /// <param name="origin">Абсолютная позиция родителя: обход накапливает
-    /// её при спуске вместо подъёма к корню на каждом элементе.</param>
-    /// <param name="clip">Видимая область в абсолютных координатах: грязный
-    /// прямоугольник, сужённый областями всех предков. null — ограничений
-    /// нет, рисуем всё.</param>
-    /// <param name="cull">Можно ли доверять сложению смещений. Под поворотом
-    /// или своим преобразованием содержимого нельзя: там прямоугольники
-    /// в абсолютных координатах больше не описывают положение на холсте,
-    /// и поддерево рисуется целиком.</param>
+    /// <param name="origin">The parent's absolute position: the walk accumulates
+    /// it on the way down instead of walking up to the root for every element.</param>
+    /// <param name="clip">The visible area in absolute coordinates: the dirty
+    /// rectangle narrowed by the areas of all ancestors. null — no restrictions,
+    /// draw everything.</param>
+    /// <param name="cull">Whether adding up offsets can be trusted. Under rotation
+    /// or a content transform of one's own it can't: rectangles in absolute
+    /// coordinates no longer describe the position on the canvas,
+    /// and the subtree is drawn entirely.</param>
     /// <remarks>
-    /// Клип сужается при спуске, а не только берётся из грязной области.
-    /// Раньше отсечение работало лишь там, где платформа давала частичную
-    /// перерисовку: на Android и в браузере clip всегда null, и панель
-    /// со сотней строк рисовала их все, хотя видно десять. ClipRect обрезал
-    /// пиксели, но строить текстовые блобы, пути и тени всё равно
-    /// приходилось на каждую.
+    /// The clip is narrowed on the way down, not only taken from the dirty area.
+    /// Previously culling worked only where the platform gave partial redraws:
+    /// on Android and in the browser clip is always null, and a panel with
+    /// a hundred rows drew all of them although ten are visible. ClipRect cut
+    /// the pixels, but text blobs, paths and shadows still had to be built
+    /// for each one.
     /// </remarks>
     private static void Draw(UIElement element, Graphics g, Point origin, Rectangle? clip, bool cull)
     {
-        // прозрачность могут на мгновение увести за [0; 1] кривые перехода —
-        // приводим её к допустимой здесь, а не в сеттере
+        // a transition's curves may briefly take the opacity beyond [0; 1] —
+        // it is brought into range here, not in the setter
         float opacity = Math.Clamp(element.Opacity, 0f, 1f);
 
         if (!element.IsVisible || opacity <= 0f) return;
@@ -52,26 +52,29 @@ public static class ElementTreeRenderer
 
         var placed = new Point(origin.X + element.Position.X, origin.Y + element.Position.Y);
 
-        // элемент целиком вне видимой области — пропускаем вместе с потомками.
-        // Сдвиг при отрисовке в LocalDirtyBounds уже учтён, поэтому здесь
-        // берётся место из раскладки, без него
+        // the element is entirely outside the visible area — skip it together
+        // with its descendants. The draw-time offset is already accounted for
+        // in LocalDirtyBounds, so the place from layout is taken here, without it
         if (cull && clip is { } visible &&
             !element.LocalDirtyBounds.Offset(placed.X, placed.Y).IntersectsWith(visible))
             return;
 
-        // а вот детям достаётся уже сдвинутое начало координат: сдвиг —
-        // тот же перенос, что и Position, и отсечению он не мешает
+        // but the children get an already shifted origin: the offset is the same
+        // translation as Position, and it doesn't get in the way of culling
         var position = new Point(
             placed.X + element.TranslateX,
             placed.Y + element.TranslateY);
 
         g.Save();
         g.Translate(element.Position.X, element.Position.Y);
+
+        // offset, rotation and scale — all of it, around the element's center.
+        // Its inverse is UIElement.TransformPointToLocal, which HitTester uses
         element.ApplyTransform(g);
 
-        // Приглушение и прозрачность — один слой на элемент.
-        // SaveDisabledLayer уже умеет альфу, поэтому при выключенном
-        // элементе второй слой не нужен.
+        // Dimming and opacity — one layer per element.
+        // SaveDisabledLayer already handles alpha, so for a disabled
+        // element a second layer is not needed.
         bool needsLayer = !element.IsEnabled || opacity < 1f;
 
         if (!element.IsEnabled)
@@ -79,20 +82,18 @@ public static class ElementTreeRenderer
         else if (opacity < 1f)
             g.SaveLayer(opacity);
 
-        // поворот и масштаб ломают сложение смещений: под ними прямоугольник
-        // в абсолютных координатах уже не описывает, где ребёнок окажется
-        // на холсте. Отсечение ниже отключаем — рисуем всё поддерево.
-        // Сдвиг в этот список не входит: он уже сложен с position выше
+        // rotation and scale break the adding up of offsets: under them
+        // a rectangle in absolute coordinates no longer describes where the child
+        // ends up on the canvas. Culling below is turned off — the whole subtree
+        // is drawn. The offset is not in this list: it is already added to position above
         bool cullChildren = cull && !element.HasComplexTransform;
 
-        if (element.Rotation != 0f)
-        {
-            // поворот вокруг центра: сдвиг в центр, поворот, сдвиг обратно
-            Point center = element.Center;
-            g.Translate(center.X, center.Y);
-            g.Rotate(element.Rotation);
-            g.Translate(-center.X, -center.Y);
-        }
+        // There used to be a second rotation here, around the same center, on top
+        // of the one ApplyTransform had already applied: an element was drawn at
+        // twice its angle. HitTester rotated twice as well, so the picture and the
+        // clicks matched each other and nothing looked off in isolation — only
+        // GripBox's handles and the dirty bounds, which rotate once, drifted apart
+        // from the element. Both second rotations are gone together
 
         if (element.BoxShadow is { } shadow)
             g.DrawShadow(element.LocalBounds, shadow);
@@ -117,9 +118,9 @@ public static class ElementTreeRenderer
                     g.ClipRect(wrap.ContentBounds);
                     wrap.ApplyChildTransform(g);
 
-                    // своё преобразование содержимого — то же, что поворот:
-                    // ZoomBox масштабирует ребёнка, и его абсолютные
-                    // координаты уже не складываются из смещений
+                    // a content transform of one's own is the same as rotation:
+                    // ZoomBox scales the child, and its absolute coordinates
+                    // no longer add up from offsets
                     bool cullChild = cullChildren && !wrap.TransformsChild;
 
                     Draw(
@@ -132,7 +133,7 @@ public static class ElementTreeRenderer
                     g.Restore();
                 }
 
-                // рамка не должна обрезаться содержимым
+                // the border must not be clipped by the content
                 wrap.DrawOverlay(g);
                 break;
 
@@ -148,15 +149,15 @@ public static class ElementTreeRenderer
                 foreach (var child in panel.Children)
                     Draw(child, g, position, inside, cullChildren);
 
-                // уходящие — поверх живых: их место уже заняли соседи,
-                // и под соседями исчезание было бы не видно
+                // outgoing ones on top of the live ones: their place is already taken
+                // by neighbours, and under the neighbours the disappearance wouldn't be visible
                 if (panel.Exiting is { } exiting)
                     foreach (ExitingChild ghost in exiting)
                         DrawExiting(ghost, g, position);
 
                 g.Restore();
 
-                // полоса прокрутки не должна обрезаться содержимым
+                // the scrollbar must not be clipped by the content
                 panel.DrawOverlay(g);
                 break;
         }
@@ -170,9 +171,9 @@ public static class ElementTreeRenderer
         g.Restore();
     }
 
-    /// <summary>Нарисовать уходящего ребёнка в виде, соответствующем
-    /// пройденной части исчезания. Отсечения нет: призраков единицы,
-    /// а их положение уже не описывает ни одна раскладка.</summary>
+    /// <summary>Draw an outgoing child in the look matching the passed part
+    /// of the disappearance. No culling: there are only a few ghosts,
+    /// and no layout describes their position anymore.</summary>
     private static void DrawExiting(ExitingChild ghost, Graphics g, Point origin)
     {
         UIElement element = ghost.Element;
@@ -184,8 +185,8 @@ public static class ElementTreeRenderer
 
         if (opacity <= 0f) return;
 
-        // масштаб — вокруг центра элемента, как у ScaleX/ScaleY:
-        // исчезание и появление должны быть зеркальны
+        // scale around the element's center, like ScaleX/ScaleY:
+        // disappearing and appearing must be mirror images
         var center = new Point(
             element.Position.X + element.ActualSize.Width / 2f,
             element.Position.Y + element.ActualSize.Height / 2f);
@@ -205,9 +206,8 @@ public static class ElementTreeRenderer
         g.Restore();
     }
 
-    /// <summary>Сузить видимую область областью содержимого элемента.
-    /// area задана в его собственных координатах, position — его абсолютная
-    /// позиция.</summary>
+    /// <summary>Narrow the visible area by the element's content area.
+    /// area is given in its own coordinates, position is its absolute position.</summary>
     private static Rectangle? Narrow(Rectangle? clip, Rectangle area, Point position)
     {
         Rectangle absolute = area.Offset(position.X, position.Y);

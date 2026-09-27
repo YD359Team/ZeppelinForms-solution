@@ -2,7 +2,7 @@
 
 namespace ZeppelinForms.Headless;
 
-/// <summary>Возвращает одноцветную заглушку вместо разбора файла.</summary>
+/// <summary>Returns a single-color stub instead of parsing the file.</summary>
 public sealed class HeadlessImageDecoder : ImageDecoder
 {
     public int StubWidth { get; set; } = 64;

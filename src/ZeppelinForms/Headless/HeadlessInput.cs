@@ -19,7 +19,7 @@ public static class HeadlessInput
 
     public static void DoubleClick(Form form, float x, float y)
     {
-        // два клика подряд без задержки — Form сам посчитает кратность
+        // two clicks in a row without a delay — Form counts the multiplicity itself
         Click(form, x, y);
         Click(form, x, y);
     }
@@ -27,10 +27,10 @@ public static class HeadlessInput
     public static void RightClick(Form form, float x, float y) =>
         Click(form, x, y, MouseButton.Right);
 
-    // ===== Касания =====
-    // Пока ни один бэкенд мультитач не отдаёт, и до Android единственный
-    // способ проверить конвейер — синтетика. Идентификаторы начинаются
-    // с десяти, чтобы не пересечься с Form.MousePointerId.
+    // ===== Touches =====
+    // No backend delivers multi-touch yet, and until Android the only way
+    // to check the pipeline is synthetic input. The identifiers start
+    // from ten, so as not to collide with Form.MousePointerId.
 
     public static void TouchDown(Form form, int fingerId, float x, float y, long timestamp = 0) =>
         form.OnPointerDown(MakeTouch(fingerId, x, y, timestamp));
@@ -44,16 +44,16 @@ public static class HeadlessInput
     public static void TouchCancel(Form form, int fingerId) =>
         form.OnPointerCancel(10 + fingerId);
 
-    /// <summary>Касание и отпускание в одной точке.</summary>
+    /// <summary>A touch and a release at one point.</summary>
     public static void Tap(Form form, float x, float y, int fingerId = 0)
     {
         TouchDown(form, fingerId, x, y);
         TouchUp(form, fingerId, x, y);
     }
 
-    /// <summary>Проведение одним пальцем за указанное число шагов.
-    /// Шаги нужны настоящие: порог срыва в pan считается по накопленному
-    /// пути, и прыжок из начала в конец его не воспроизводит.</summary>
+    /// <summary>A one-finger drag over the given number of steps.
+    /// The steps must be real: the threshold for breaking into a pan is counted
+    /// over the accumulated path, and a jump from start to end doesn't reproduce it.</summary>
     public static void Swipe(Form form, Point from, Point to, int steps = 8, int fingerId = 0)
     {
         TouchDown(form, fingerId, from.X, from.Y);

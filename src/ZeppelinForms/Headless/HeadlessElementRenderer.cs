@@ -4,7 +4,7 @@ using ZeppelinForms.Forms.Controls.Base;
 
 namespace ZeppelinForms.Headless;
 
-/// <summary>Отрисовки нет — отдаёт пустое изображение нужного размера.</summary>
+/// <summary>No drawing — returns an empty image of the required size.</summary>
 public sealed class HeadlessElementRenderer : IElementRenderer
 {
     public static void Register() => ElementRenderer.Current = new HeadlessElementRenderer();
@@ -14,8 +14,8 @@ public sealed class HeadlessElementRenderer : IElementRenderer
         int w = Math.Max(1, width);
         int h = Math.Max(1, height);
 
-        // пикселей на выходе нет и быть не может, но весь код отрисовки
-        // при этом честно выполняется — ради этого headless и нужен
+        // there are no pixels at the output and there can't be, but all the drawing
+        // code still honestly runs — that is what headless is for
         ElementTreeRenderer.Draw(element, new HeadlessGraphics());
 
         return new Image(w, h, new byte[w * h * 4]);

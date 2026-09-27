@@ -20,7 +20,7 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow
     public CursorKind Cursor { get; private set; } = CursorKind.Default;
     public void SetCursor(CursorKind cursor) => Cursor = cursor;
 
-    /// <summary>Сколько раз запрашивалась перерисовка — проверяется в тестах.</summary>
+    /// <summary>How many times a redraw was requested — checked in tests.</summary>
     public int InvalidateCount { get; private set; }
 
     public Rectangle? LastInvalidatedRect { get; private set; }
@@ -29,8 +29,8 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow
 
     public float Scale => 1f;
 
-    /// <summary>Проверяется в тестах модальности: заглушённый владелец —
-    /// это и есть модальность на платформах без вложенного цикла.</summary>
+    /// <summary>Checked in modality tests: a deafened owner is exactly
+    /// what modality is on platforms without a nested loop.</summary>
     public bool IsEnabled { get; private set; } = true;
     public bool IsActive { get; private set; }
 
@@ -80,8 +80,10 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow
 
     public void SetWindowState(WindowState state) => WindowState = state;
 
-    /// <summary>Кадры в headless не идут сами: тест прокручивает их
-    /// вызовом Tick, чтобы анимации двигались предсказуемо, а не по часам.</summary>
+    /// <summary>Frames don't run by themselves in headless: nothing ticks
+    /// unless a test calls Tick. The step of such a frame is still taken from
+    /// the stopwatch, as on any platform; for an exact step tests use
+    /// FrameClock.Advance.</summary>
     private sealed class NoFrames : IFrameDriver
     {
         public bool IsRunning { get; private set; }
@@ -93,10 +95,11 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow
 
     public IFrameDriver Frames { get; } = new NoFrames();
 
-    /// <summary>Продвинуть анимации на заданное время без ожидания реального таймера.</summary>
+    /// <summary>Deliver one frame, as the platform timer would. Animations advance
+    /// by the real time since the previous frame, capped like on any platform.</summary>
     public void Tick() => _form.Tick();
 
-    /// <summary>Задать размер клиентской области и пересчитать раскладку.</summary>
+    /// <summary>Set the client area size and recompute the layout.</summary>
     public void Resize(float width, float height)
     {
         _form.ClientSize = new Size(width, height);

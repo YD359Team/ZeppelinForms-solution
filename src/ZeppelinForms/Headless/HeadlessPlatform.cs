@@ -7,8 +7,8 @@ using ZeppelinForms.Forms.Controls.Tools;
 namespace ZeppelinForms.Headless;
 
 /// <summary>
-/// Платформа без окон: раскладка и ввод работают, отрисовки нет.
-/// Нужна для тестов и для запуска в среде без графики.
+/// A platform without windows: layout and input work, there is no drawing.
+/// Needed for tests and for running in an environment without graphics.
 /// </summary>
 public sealed class HeadlessPlatform : IPlatform, INestedLoopSupport
 {
@@ -26,14 +26,14 @@ public sealed class HeadlessPlatform : IPlatform, INestedLoopSupport
         HeadlessElementRenderer.Register();
         BuiltInProperties.Register();
 
-        // без системы нет и системной настройки движения. Подключаем
-        // заведомо «не уменьшать» явно: иначе тест, запущенный после
-        // WindowsPlatformTests на машине с выключенной анимацией, увидел бы
-        // настройку этой машины, и переходы в нём стали бы мгновенными
+        // without a system there is no system motion setting either. "Don't reduce"
+        // is connected explicitly: otherwise a test run after WindowsPlatformTests
+        // on a machine with animations turned off would see that machine's setting,
+        // and transitions in it would become instant
         ZeppelinForms.Animation.Motion.UseSystemSettings(HeadlessMotionSettings.Instance);
     }
 
-    /// <summary>Детерминированная настройка движения для headless-прогона.</summary>
+    /// <summary>A deterministic motion setting for a headless run.</summary>
     private sealed class HeadlessMotionSettings : ISystemMotionSettings
     {
         public static readonly HeadlessMotionSettings Instance = new();
@@ -54,7 +54,7 @@ public sealed class HeadlessPlatform : IPlatform, INestedLoopSupport
         form.PlatformWindow = window;
         form.Platform = this;
 
-        // окна нет, поэтому клиентскую область задаём сразу из Form.Size
+        // there is no window, so the client area is set right away from Form.Size
         form.ClientSize = form.Size;
         form.PerformLayout();
 
@@ -86,7 +86,7 @@ public sealed class HeadlessPlatform : IPlatform, INestedLoopSupport
             window.Close();
     }
 
-    /// <summary>Выполнить одно отложенное действие. false — очередь пуста.</summary>
+    /// <summary>Run one deferred action. false — the queue is empty.</summary>
     public bool Pump()
     {
         Action? action;
@@ -101,7 +101,7 @@ public sealed class HeadlessPlatform : IPlatform, INestedLoopSupport
         return true;
     }
 
-    /// <summary>Прокрутить очередь до конца — удобно в тестах после Invoke.</summary>
+    /// <summary>Pump the queue to the end — handy in tests after Invoke.</summary>
     public void PumpAll()
     {
         while (Pump()) { }
@@ -121,8 +121,12 @@ public sealed class HeadlessPlatform : IPlatform, INestedLoopSupport
             _running = false;
     }
 
-    public void Start()
-    {
-        throw new NotImplementedException();
-    }
+    /// <summary>The platform's entry point for <see cref="App.Run"/>: runs the loop
+    /// until the last window closes, like a desktop platform.</summary>
+    /// <remarks>
+    /// Used to throw NotImplementedException, so an application could not be
+    /// started on this platform at all — although running without graphics is
+    /// one of the two reasons it exists. The loop itself was already here, in Run.
+    /// </remarks>
+    public void Start() => Run();
 }

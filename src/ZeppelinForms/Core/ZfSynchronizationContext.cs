@@ -1,10 +1,10 @@
 ﻿namespace ZeppelinForms.Core;
 
 /// <summary>
-/// Возвращает продолжения await в поток UI. Без этого async-модель диалогов
-/// ломается на настольных платформах: DestroyWindow доставляет WM_DESTROY
-/// синхронно, ожидание завершается, и продолжение после ShowDialogAsync
-/// уходит в пул потоков — а там оно трогает окно владельца чужим потоком.
+/// Returns await continuations to the UI thread. Without it the async dialog model
+/// breaks on desktop platforms: DestroyWindow delivers WM_DESTROY synchronously,
+/// the wait completes, and the continuation after ShowDialogAsync goes to the
+/// thread pool — where it touches the owner window from a foreign thread.
 /// </summary>
 public sealed class ZfSynchronizationContext : SynchronizationContext
 {
@@ -17,7 +17,7 @@ public sealed class ZfSynchronizationContext : SynchronizationContext
         _threadId = Environment.CurrentManagedThreadId;
     }
 
-    /// <summary>Контекст один на поток UI, копировать нечего.</summary>
+    /// <summary>One context per UI thread, there is nothing to copy.</summary>
     public override SynchronizationContext CreateCopy() => this;
 
     public override void Post(SendOrPostCallback callback, object? state) =>
@@ -25,8 +25,8 @@ public sealed class ZfSynchronizationContext : SynchronizationContext
 
     public override void Send(SendOrPostCallback callback, object? state)
     {
-        // уже в потоке UI: идти через очередь незачем, а ждать её —
-        // прямой путь к взаимной блокировке
+        // already on the UI thread: there is no point going through the queue,
+        // and waiting for it is a straight road to a deadlock
         if (Environment.CurrentManagedThreadId == _threadId)
         {
             callback(state);
