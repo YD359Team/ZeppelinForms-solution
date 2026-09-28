@@ -21,12 +21,50 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
             throw new InvalidOperationException(
                 "Could not connect to the X server. Check the DISPLAY variable.");
 
+        _inputMethod = OpenInputMethod(Display);
+
         Skia.SkiaImageDecoder.Register();
         Skia.SkiaTextMeasurer.Register();
         Skia.SkiaOffscreenRenderer.Register();
     }
 
     private X11Clipboard? _clipboard;
+
+    /// <summary>The X input method, or 0 if none could be opened — then text
+    /// falls back to XLookupString, which knows only Latin-1.</summary>
+    private readonly nint _inputMethod;
+
+    /// <summary>An input context for a window: the input method needs one per
+    /// window to know where the typed text goes. 0 — no input method.</summary>
+    internal nint CreateInputContext(nuint window)
+    {
+        if (_inputMethod == 0) return 0;
+
+        return X11.XCreateIC(
+            _inputMethod,
+            "inputStyle", X11.XIMPreeditNothing | X11.XIMStatusNothing,
+            "clientWindow", window,
+            "focusWindow", window,
+            0);
+    }
+
+    private static nint OpenInputMethod(nint display)
+    {
+        // the input method works in the current locale; the C locale that a process
+        // starts in knows no non-Latin input at all
+        X11.SetLocale(X11.LC_ALL, string.Empty);
+        X11.XSetLocaleModifiers(string.Empty);
+
+        nint inputMethod = X11.XOpenIM(display, 0, 0, 0);
+
+        if (inputMethod != 0) return inputMethod;
+
+        // XMODIFIERS may name an input method server that isn't running (a leftover
+        // ibus or fcitx setting): the built-in one still handles layouts and Compose
+        X11.XSetLocaleModifiers("@im=none");
+
+        return X11.XOpenIM(display, 0, 0, 0);
+    }
 
     internal void Register(X11Window window)
     {
@@ -103,6 +141,13 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
             try
             {
                 X11.XNextEvent(Display, buffer);
+
+                // the input method sees every event first: a dead key or a Compose
+                // sequence is its business, and the key press it took must not
+                // reach the form as well
+                if (_inputMethod != 0 && X11.XFilterEvent(buffer, 0))
+                    continue;
+
                 Dispatch(buffer);
             }
             finally
@@ -322,21 +367,18 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
                     if ((key.state & X11.ControlMask) != 0) modifiers |= KeyModifiers.Control;
                     if ((key.state & X11.Mod1Mask) != 0) modifiers |= KeyModifiers.Alt;
 
+                    // index 0 is the key's first keysym — the Latin one in every usual
+                    // layout, so shortcuts like Ctrl+C keep working under Cyrillic
                     nuint keysym = X11.XLookupKeysym(eventPtr, 0);
                     // X11 sends auto-repeat as an ordinary release+press pair;
                     // they can be told apart only through XkbSetDetectableAutoRepeat — TODO
                     window.Form.OnKeyDown(X11KeyMap.ToKey(keysym), modifiers, isRepeat: false);
 
-                    // printable characters with a separate call
-                    byte[] buffer = new byte[8];
-                    int count = X11.XLookupString(eventPtr, buffer, buffer.Length, out _, 0);
-
-                    for (int i = 0; i < count; i++)
-                    {
-                        char c = (char)buffer[i];
+                    // printable characters with a separate call; surrogate pairs go
+                    // char by char, and the text controls assemble them themselves
+                    foreach (char c in window.LookupText(eventPtr))
                         if (!char.IsControl(c))
                             window.Form.OnTextInput(c);
-                    }
 
                     break;
                 }
@@ -354,6 +396,16 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
                     break;
                 }
 
+            case X11.FocusIn:
+                {
+                    var focus = Marshal.PtrToStructure<X11.XAnyEvent>(eventPtr);
+
+                    if (_windows.TryGetValue(focus.window, out X11Window? window))
+                        window.OnFocusIn();
+
+                    break;
+                }
+
             case X11.FocusOut:
                 {
                     // we won't learn about key releases anymore — the form resets the
@@ -362,7 +414,10 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
                     var focus = Marshal.PtrToStructure<X11.XAnyEvent>(eventPtr);
 
                     if (_windows.TryGetValue(focus.window, out X11Window? window))
+                    {
+                        window.OnFocusOut();
                         window.Form.OnWindowFocusLost();
+                    }
 
                     break;
                 }

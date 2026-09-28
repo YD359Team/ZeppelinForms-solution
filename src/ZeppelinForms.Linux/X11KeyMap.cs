@@ -6,7 +6,7 @@ internal static class X11KeyMap
 {
     public static Key ToKey(nuint keysym) => keysym switch
     {
-        // управление и навигация
+        // control and navigation
         0xFF08 => Key.Backspace,
         0xFF09 => Key.Tab,
         0xFF0B => Key.Clear,
@@ -28,8 +28,8 @@ internal static class X11KeyMap
         0xFF7F => Key.NumLock,
         0xFFFF => Key.Delete,
 
-        // цифровой блок
-        0xFF8D => Key.Enter,      // KP_Enter: отдельного VK нет
+        // the numeric keypad
+        0xFF8D => Key.Enter,      // KP_Enter: there is no separate VK
         0xFFAA => Key.Multiply,
         0xFFAB => Key.Add,
         0xFFAC => Key.Separator,
@@ -38,10 +38,10 @@ internal static class X11KeyMap
         0xFFAF => Key.Divide,
         >= 0xFFB0 and <= 0xFFB9 => (Key)(Key.NumPad0 + (int)(keysym - 0xFFB0)),
 
-        // F1–F24 идут подряд и там, и там
+        // F1–F24 go in a row on both sides
         >= 0xFFBE and <= 0xFFD5 => (Key)(Key.F1 + (int)(keysym - 0xFFBE)),
 
-        // модификаторы
+        // modifiers
         0xFFE1 => Key.LeftShift,
         0xFFE2 => Key.RightShift,
         0xFFE3 => Key.LeftControl,
@@ -52,8 +52,8 @@ internal static class X11KeyMap
         0xFFEB => Key.LeftWindows,
         0xFFEC => Key.RightWindows,
 
-        // знаки: соответствие ASCII → VK не линейное, только таблицей.
-        // Проверяются до диапазонов ниже, иначе попадут в них
+        // punctuation: the ASCII → VK mapping is not linear, only by a table.
+        // Checked before the ranges below, otherwise they would fall into them
         0x0027 => Key.OemQuotes,
         0x002C => Key.OemComma,
         0x002D => Key.OemMinus,
@@ -68,7 +68,7 @@ internal static class X11KeyMap
 
         0x0020 => Key.Space,
 
-        // цифры и латиница: X11 отдаёт ASCII, наш Key совпадает с VK
+        // digits and Latin letters: X11 gives ASCII, our Key matches the VK
         >= 0x0030 and <= 0x0039 => (Key)keysym,
         >= 0x0041 and <= 0x005A => (Key)keysym,
         >= 0x0061 and <= 0x007A => (Key)(keysym - 0x0020),

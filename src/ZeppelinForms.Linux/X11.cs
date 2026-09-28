@@ -9,8 +9,8 @@ internal static class X11
 
     public const int RevertToParent = 2;
 
-    // управление состоянием окна через менеджер: свои свойства мы менять
-    // не вправе, о желаемом состоянии сообщаем сообщением
+    // window state is managed through the window manager: we have no right to
+    // change our own properties, the desired state is reported with a message
     public const int NetWmStateRemove = 0;
     public const int NetWmStateAdd = 1;
 
@@ -32,19 +32,19 @@ internal static class X11
 
     [DllImport(Lib)] public static extern int XDeleteProperty(nint display, nuint window, nuint property);
 
-    // режимы захвата и специальные значения
+    // grab modes and special values
     public const int GrabModeSync = 0;
     public const int GrabModeAsync = 1;
 
     public const int GrabSuccess = 0;
 
-    /// <summary>CurrentTime: сервер подставит своё текущее время.</summary>
+    /// <summary>CurrentTime: the server substitutes its current time.</summary>
     public const nint CurrentTime = 0;
 
-    /// <summary>None: «курсор не менять», «окно не задано».</summary>
+    /// <summary>None: "don't change the cursor", "no window given".</summary>
     public const nint NoneHandle = 0;
 
-    // маски событий
+    // event masks
     public const long KeyPressMask = 1L << 0;
     public const long KeyReleaseMask = 1L << 1;
     public const long ButtonPressMask = 1L << 2;
@@ -55,7 +55,7 @@ internal static class X11
     public const long StructureNotifyMask = 1L << 17;
     public const long FocusChangeMask = 1L << 21;
 
-    // типы событий
+    // event types
     public const int KeyPress = 2;
     public const int KeyRelease = 3;
     public const int ButtonPress = 4;
@@ -66,7 +66,7 @@ internal static class X11
     public const int ConfigureNotify = 22;
     public const int ClientMessage = 33;
 
-    // модификаторы в поле state
+    // modifiers in the state field
     public const uint ShiftMask = 1 << 0;
     public const uint ControlMask = 1 << 2;
     public const uint Mod1Mask = 1 << 3;   // Alt
@@ -291,7 +291,7 @@ internal static class X11
         public nint Microseconds;
     }
 
-    // fd_set в glibc — битовая маска на 1024 дескриптора (16 машинных слов по 64 бита)
+    // fd_set in glibc is a bit mask for 1024 descriptors (16 machine words of 64 bits)
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct FdSet
     {
@@ -396,4 +396,61 @@ internal static class X11
 
     [DllImport(Lib)]
     public static extern int XUngrabPointer(nint display, nint time);
+
+    // ===== the input method: text input beyond Latin-1 =====
+    // XLookupString gives Latin-1 bytes, and for a Cyrillic or any other
+    // non-Latin key it gives nothing at all. Xutf8LookupString through an input
+    // context gives UTF-8 for every layout, and the input method also handles
+    // dead keys and Compose
+
+    public const int FocusIn = 9;
+
+    public const int LC_ALL = 6;
+
+    public const nint XIMPreeditNothing = 0x0008;
+    public const nint XIMStatusNothing = 0x0400;
+
+    public const int XBufferOverflow = -1;
+    public const int XLookupChars = 2;
+    public const int XLookupBoth = 4;
+
+    // "libc" is mapped by the runtime to the platform's libc.so.6
+    [DllImport("libc", EntryPoint = "setlocale")]
+    public static extern nint SetLocale(int category, string locale);
+
+    [DllImport(Lib)] public static extern nint XSetLocaleModifiers(string modifiers);
+
+    [DllImport(Lib)] public static extern nint XOpenIM(nint display, nint database, nint resourceName, nint resourceClass);
+
+    [DllImport(Lib)] public static extern int XCloseIM(nint inputMethod);
+
+    // XCreateIC is variadic. A fixed-arity binding for exactly the arguments passed
+    // works on x64 and arm64 Linux: they are all pointer-sized and go in registers
+    [DllImport(Lib)]
+    public static extern nint XCreateIC(
+        nint inputMethod,
+        string inputStyleName, nint inputStyle,
+        string clientWindowName, nuint clientWindow,
+        string focusWindowName, nuint focusWindow,
+        nint terminator);
+
+    [DllImport(Lib)] public static extern void XDestroyIC(nint inputContext);
+
+    [DllImport(Lib)] public static extern void XSetICFocus(nint inputContext);
+
+    [DllImport(Lib)] public static extern void XUnsetICFocus(nint inputContext);
+
+    [DllImport(Lib)]
+    public static extern int Xutf8LookupString(
+        nint inputContext, nint keyEvent, byte[] buffer, int bufferSize,
+        out nuint keysym, out int status);
+
+    /// <summary>Let the input method see the event first. true — it took the event
+    /// (a dead key, a Compose sequence), and it must not be dispatched.</summary>
+    [DllImport(Lib)] public static extern bool XFilterEvent(nint xevent, nuint window);
+
+    /// <summary>Take out of the queue only an event of this type for this window,
+    /// without blocking; the other events stay where they were.</summary>
+    [DllImport(Lib)]
+    public static extern bool XCheckTypedWindowEvent(nint display, nuint window, int eventType, nint eventReturn);
 }

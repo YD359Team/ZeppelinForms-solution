@@ -8,8 +8,8 @@ internal static class X11Dpi
     private const float BaseDpi = 96f;
 
     /// <summary>
-    /// Масштаб интерфейса. Источники по убыванию надёжности:
-    /// Xft.dpi из ресурсов X, переменные окружения, физический размер экрана.
+    /// The interface scale. Sources in decreasing order of reliability:
+    /// Xft.dpi from the X resources, environment variables, the screen's physical size.
     /// </summary>
     public static float GetScale(nint display, int screen)
     {
@@ -25,10 +25,9 @@ internal static class X11Dpi
         return 1f;
     }
 
-    /// <summary>Плотность пикселей без округления до четверти и без зажима
-    /// в [1, 4] — в отличие от GetScale, которая специально огрубляет
-    /// результат, чтобы интерфейс не рисовался вкривь. Порогам жестов
-    /// нужна сырая плотность.</summary>
+    /// <summary>The pixel density without rounding to a quarter and without clamping
+    /// to [1, 4] — unlike GetScale, which coarsens the result on purpose so that the
+    /// interface isn't drawn crooked. Gesture thresholds need the raw density.</summary>
     public static float GetDpi(nint display, int screen)
     {
         if (TryFromResources(display, out float fromResources))
@@ -37,9 +36,8 @@ internal static class X11Dpi
         if (TryFromPhysicalSize(display, screen, out float fromPhysical))
             return fromPhysical;
 
-        // переменные окружения задают масштаб, а не плотность:
-        // восстанавливаем её обратной операцией — врать так врать
-        // последовательно с тем, что вернёт GetScale
+        // environment variables set a scale, not a density: we restore it by the
+        // inverse operation — if we lie, we lie consistently with what GetScale returns
         if (TryFromEnvironment(out float fromEnv))
             return fromEnv * BaseDpi;
 
@@ -69,7 +67,7 @@ internal static class X11Dpi
 
             string? text = Marshal.PtrToStringAnsi(value.Address);
 
-            // значение может быть дробным; культура тут всегда инвариантная
+            // the value may be fractional; the culture here is always invariant
             return float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out dpi)
                 && dpi > 0;
         }
@@ -83,7 +81,7 @@ internal static class X11Dpi
     {
         scale = 0;
 
-        // GDK_SCALE целочисленный, QT_SCALE_FACTOR может быть дробным
+        // GDK_SCALE is an integer, QT_SCALE_FACTOR may be fractional
         string?[] candidates =
         [
             Environment.GetEnvironmentVariable("QT_SCALE_FACTOR"),
@@ -114,13 +112,13 @@ internal static class X11Dpi
 
         dpi = pixels * 25.4f / millimeters;
 
-        // многие драйверы врут о физическом размере, выдавая абсурдные значения
+        // many drivers lie about the physical size, giving absurd values
         return dpi is > 50f and < 400f;
     }
 
     /// <summary>
-    /// Округляем до четверти: интерфейс на 1.25 или 1.5 выглядит нормально,
-    /// а на 1.0417 из кривого EDID — размыто и вкривь.
+    /// Rounded to a quarter: an interface at 1.25 or 1.5 looks fine,
+    /// while at 1.0417 from a crooked EDID it is blurry and askew.
     /// </summary>
     private static float Normalize(float scale)
     {

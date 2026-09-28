@@ -44,7 +44,7 @@ public sealed class X11DisplayProvider : IDisplayProvider
                         {
                             var info = Marshal.PtrToStructure<X11.XRRCrtcInfo>(infoPtr);
 
-                            // crtc без режима — выключенный выход
+                            // a CRTC without a mode is a disabled output
                             if (info.mode == 0 || info.width == 0) continue;
 
                             var bounds = new Rectangle(
@@ -54,8 +54,8 @@ public sealed class X11DisplayProvider : IDisplayProvider
                             displays.Add(new DisplayInfo
                             {
                                 Bounds = bounds,
-                                // рабочую область без _NET_WORKAREA не узнать,
-                                // поэтому берём полную
+                                // the working area can't be learned without
+                                // _NET_WORKAREA, so the full one is taken
                                 WorkingArea = bounds,
                                 Scale = _scale,
                                 Dpi = _dpi,
@@ -77,7 +77,7 @@ public sealed class X11DisplayProvider : IDisplayProvider
         }
         catch (DllNotFoundException)
         {
-            // libXrandr нет — довольствуемся одним экраном
+            // no libXrandr — we make do with one screen
         }
 
         if (displays.Count > 0)

@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Input.DragDrop;
@@ -8,10 +7,10 @@ using ZeppelinForms.Input.Keyboard;
 namespace ZeppelinForms.Linux;
 
 /// <summary>
-/// Приёмник XDND для одного окна. Протокол построен на обмене ClientMessage:
-/// источник объявляет типы в Enter, спрашивает разрешение в Position, мы
-/// отвечаем Status, и только на Drop данные реально запрашиваются через
-/// механизм выделений — тот же, что у буфера обмена.
+/// The XDND drop target for one window. The protocol is built on exchanging
+/// ClientMessages: the source announces the types in Enter, asks for permission
+/// in Position, we answer with Status, and only on Drop is the data actually
+/// requested through the selection mechanism — the same one the clipboard uses.
 /// </summary>
 internal sealed class X11DropTarget
 {
@@ -62,8 +61,8 @@ internal sealed class X11DropTarget
 
     private nuint Atom(string name) => X11.XInternAtom(_display, name, false);
 
-    /// <summary>Объявить окно приёмником. Версия протокола пишется как
-    /// свойство окна — источник читает её перед началом обмена.</summary>
+    /// <summary>Declare the window a drop target. The protocol version is written as
+    /// a window property — the source reads it before the exchange begins.</summary>
     public void Register()
     {
         byte[] version = BitConverter.GetBytes((nint)XdndVersion);
@@ -71,19 +70,20 @@ internal sealed class X11DropTarget
         X11.XChangeProperty(_display, _window, _aware, X11.XA_ATOM, 32,
             X11.PropModeReplace, version, 1);
 
-        // без сброса буфера свойство может не успеть до сервера раньше,
-        // чем источник начнёт читать наше окно
+        // without flushing the buffer the property may not reach the server
+        // before the source starts reading our window
         X11.XFlush(_display);
     }
 
     public void Unregister() => X11.XDeleteProperty(_display, _window, _aware);
 
-    /// <summary>Обработать сообщение протокола. false — сообщение не наше.</summary>
+    /// <summary>Handle a protocol message. false — the message isn't ours.</summary>
+    /// <remarks>
+    /// This used to write a debug line for every ClientMessage the window received,
+    /// including every ZF_INVOKE — that is, every Form.Invoke.
+    /// </remarks>
     public bool Handle(in X11.XClientMessageEvent message)
     {
-        Debug.WriteLine($"ClientMessage type={message.message_type} " +
-            $"(enter={_enter} position={_position} leave={_leave} drop={_drop})");
-
         if (message.message_type == _enter) { OnEnter(message); return true; }
         if (message.message_type == _position) { OnPosition(message); return true; }
         if (message.message_type == _leave) { OnLeave(); return true; }
@@ -96,9 +96,9 @@ internal sealed class X11DropTarget
     {
         _source = (nuint)message.data0;
 
-        // до трёх типов приезжают прямо в сообщении; при большем количестве
-        // старший бит data1 поднят и полный список лежит в XdndTypeList.
-        // Нам достаточно знать, есть ли среди них text/uri-list
+        // up to three types come right in the message; with more, the high bit of
+        // data1 is raised and the full list lies in XdndTypeList.
+        // All we need to know is whether text/uri-list is among them
         _sourceHasUris =
             (nuint)message.data2 == _uriList ||
             (nuint)message.data3 == _uriList ||
@@ -110,7 +110,7 @@ internal sealed class X11DropTarget
         _data = new DragDropData();
     }
 
-    /// <summary>Полный список типов, когда их больше трёх.</summary>
+    /// <summary>The full list of types, when there are more than three.</summary>
     private bool TypeListHasUris()
     {
         nuint typeList = Atom("XdndTypeList");
@@ -137,16 +137,16 @@ internal sealed class X11DropTarget
 
     private void OnPosition(in X11.XClientMessageEvent message)
     {
-        // координаты в data2 упакованы парой: старшие 16 бит — x, младшие — y
+        // the coordinates in data2 are packed as a pair: the high 16 bits — x, the low — y
         int packed = (int)(nint)message.data2;
         var screen = new Point((packed >> 16) & 0xFFFF, packed & 0xFFFF);
 
-        // запоминаем: XdndDrop координат не присылает, а бросок происходит
-        // там, где был последний Position
+        // remembered: XdndDrop sends no coordinates, and the drop happens
+        // where the last Position was
         _lastPosition = screen;
 
-        // данных ещё нет — они придут только на Drop. Приёмник решает
-        // по признаку «тащат файлы», поэтому отдаём заготовку с пометкой
+        // there is no data yet — it arrives only on Drop. The target decides by
+        // the "files are being dragged" mark, so a stand-in with the mark is passed
         var probe = new DragDropData { Files = _sourceHasUris ? [string.Empty] : [] };
 
         DragDropEffect effect = _form.OnDragOverWindow(probe, _toClient(screen), Keyboard.Modifiers);
@@ -164,9 +164,9 @@ internal sealed class X11DropTarget
             message_type = _status,
             format = 32,
             data0 = (nint)_window,
-            // младший бит: готовы принять. Второй бит не ставим — тогда
-            // источник будет присылать Position на каждое движение,
-            // а нам это и нужно для подсветки приёмника
+            // the low bit: ready to accept. The second bit is not set — then the
+            // source sends Position on every move, which is exactly what we need
+            // to highlight the target
             data1 = accept ? 1 : 0,
             data2 = 0,
             data3 = 0,
@@ -197,12 +197,12 @@ internal sealed class X11DropTarget
             return;
         }
 
-        // только теперь запрашиваем данные — до Drop источник их не отдаёт
+        // only now is the data requested — before Drop the source doesn't hand it out
         X11.XConvertSelection(_display, _selection, _uriList, _transfer, _window, _sourceTime);
     }
 
-    /// <summary>Данные приехали: SelectionNotify на наше свойство переноса.
-    /// Возвращает false, если событие не про нас.</summary>
+    /// <summary>The data arrived: a SelectionNotify for our transfer property.
+    /// Returns false if the event isn't about us.</summary>
     public bool HandleSelection(nuint property)
     {
         if (property != _transfer || _source == 0) return false;
@@ -238,10 +238,10 @@ internal sealed class X11DropTarget
             {
                 string trimmed = line.Trim();
 
-                // комментарии по формату text/uri-list начинаются с решётки
+                // comments in the text/uri-list format start with a hash
                 if (trimmed.Length == 0 || trimmed[0] == '#') continue;
 
-                // приезжают именно URI, а не пути: file:///home/user/%D1%84.txt
+                // what comes is URIs, not paths: file:///home/user/%D1%84.txt
                 if (Uri.TryCreate(trimmed, UriKind.Absolute, out Uri? uri) && uri.IsFile)
                     files.Add(uri.LocalPath);
             }

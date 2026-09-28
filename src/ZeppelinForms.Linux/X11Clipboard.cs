@@ -4,9 +4,9 @@ using System.Text;
 namespace ZeppelinForms.Linux;
 
 /// <summary>
-/// Буфер обмена X11. В отличие от Windows это не системное хранилище,
-/// а протокол: владелец выделения отдаёт данные по запросу. Поэтому
-/// скопированный текст живёт, пока живо приложение.
+/// The X11 clipboard. Unlike on Windows, it is not a system store but a protocol:
+/// the owner of the selection hands out the data on request. So copied text lives
+/// as long as the application does.
 /// </summary>
 internal sealed class X11Clipboard : IClipboard
 {
@@ -40,21 +40,27 @@ internal sealed class X11Clipboard : IClipboard
 
     public string? GetText()
     {
-        // мы сами владеем выделением — не гоняем протокол вхолостую
+        // we own the selection ourselves — no point running the protocol idle
         if (X11.XGetSelectionOwner(_display, _clipboardAtom) == _window)
             return _ownedText;
 
         X11.XConvertSelection(_display, _clipboardAtom, _utf8Atom, _transferAtom, _window, 0);
         X11.XFlush(_display);
 
-        // ответ придёт событием SelectionNotify; ждём его ограниченное время,
-        // иначе зависнем, если владелец не отвечает
+        // the answer comes as a SelectionNotify event; we wait for it a limited time,
+        // otherwise we would hang if the owner doesn't answer
         if (!WaitForSelectionNotify())
             return null;
 
         return ReadTransferProperty();
     }
 
+    /// <remarks>
+    /// Only our SelectionNotify is taken out of the queue; everything else stays
+    /// for the main loop. This used to call XNextEvent and drop every event that
+    /// wasn't the answer — a key release lost here left the key "held", an Expose
+    /// lost here left garbage on screen.
+    /// </remarks>
     private bool WaitForSelectionNotify()
     {
         nint buffer = Marshal.AllocHGlobal(192);
@@ -65,19 +71,10 @@ internal sealed class X11Clipboard : IClipboard
 
             while (DateTime.UtcNow < deadline)
             {
-                if (X11.XPending(_display) == 0)
-                {
-                    Thread.Sleep(5);
-                    continue;
-                }
-
-                X11.XNextEvent(_display, buffer);
-
-                if (Marshal.ReadInt32(buffer) == X11.SelectionNotify)
+                if (X11.XCheckTypedWindowEvent(_display, _window, X11.SelectionNotify, buffer))
                     return true;
 
-                // чужие события в этом вложенном ожидании теряются —
-                // компромисс синхронного API поверх асинхронного протокола
+                Thread.Sleep(5);
             }
 
             return false;
@@ -109,14 +106,14 @@ internal sealed class X11Clipboard : IClipboard
         }
     }
 
-    /// <summary>Ответ на запрос чужого приложения — вызывается из цикла событий.</summary>
+    /// <summary>The answer to another application's request — called from the event loop.</summary>
     internal void HandleSelectionRequest(X11.XSelectionRequestEvent request)
     {
         nuint property = request.property;
 
         if (_ownedText is null)
         {
-            property = 0;   // нечего отдавать
+            property = 0;   // nothing to give
         }
         else if (request.target == _utf8Atom)
         {
@@ -126,7 +123,7 @@ internal sealed class X11Clipboard : IClipboard
         }
         else if (request.target == _targetsAtom)
         {
-            // сообщаем, в каких форматах умеем отдавать
+            // report which formats we can give the data in
             byte[] targets = new byte[16];
             BitConverter.TryWriteBytes(targets.AsSpan(0), (ulong)_targetsAtom);
             BitConverter.TryWriteBytes(targets.AsSpan(8), (ulong)_utf8Atom);
@@ -136,7 +133,7 @@ internal sealed class X11Clipboard : IClipboard
         }
         else
         {
-            property = 0;   // формат не поддерживаем
+            property = 0;   // the format is not supported
         }
 
         var response = new X11.XSelectionEvent

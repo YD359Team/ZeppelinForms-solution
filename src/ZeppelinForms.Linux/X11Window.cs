@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
@@ -21,6 +22,9 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
 
     private nuint _wmDeleteWindow;
     private nuint _invokeAtom;
+
+    /// <summary>The input context of this window, or 0 without an input method.</summary>
+    private nint _inputContext;
 
     /// <summary>The size of the last ConfigureNotify, in physical pixels.
     /// ConfigureNotify comes for moves too, and a move changes nothing inside.</summary>
@@ -130,6 +134,7 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
         X11.XSetWMProtocols(_display, _window, [_wmDeleteWindow], 1);
 
         _invokeAtom = X11.XInternAtom(_display, "ZF_INVOKE", false);
+        _inputContext = _platform.CreateInputContext(_window);
 
         _gc = X11.XDefaultGC(_display, screen);
 
@@ -156,6 +161,13 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
         _surface?.Dispose();
         _surface = null;
 
+        // the input context refers to the window: it goes before the window does
+        if (_inputContext != 0)
+        {
+            X11.XDestroyIC(_inputContext);
+            _inputContext = 0;
+        }
+
         X11.XDestroyWindow(_display, _window);
         X11.XFlush(_display);
 
@@ -163,6 +175,49 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
         _window = 0;
 
         _form.OnWindowClosed();
+    }
+
+    /// <summary>The text a key press produces, in any layout.</summary>
+    /// <remarks>
+    /// Through the input context it is UTF-8 for every script. Without an input
+    /// method only XLookupString remains, and it knows Latin-1 alone: a Cyrillic
+    /// key gives nothing there, which is exactly how text input used to work here.
+    /// </remarks>
+    internal string LookupText(nint keyEvent)
+    {
+        byte[] buffer = new byte[32];
+
+        if (_inputContext != 0)
+        {
+            int count = X11.Xutf8LookupString(
+                _inputContext, keyEvent, buffer, buffer.Length, out _, out int status);
+
+            // a long composed sequence may not fit: the call reports the size it needs
+            if (status == X11.XBufferOverflow)
+            {
+                buffer = new byte[count];
+                count = X11.Xutf8LookupString(
+                    _inputContext, keyEvent, buffer, buffer.Length, out _, out status);
+            }
+
+            return status is X11.XLookupChars or X11.XLookupBoth && count > 0
+                ? Encoding.UTF8.GetString(buffer, 0, count)
+                : string.Empty;
+        }
+
+        int latin = X11.XLookupString(keyEvent, buffer, buffer.Length, out _, 0);
+
+        return latin > 0 ? Encoding.Latin1.GetString(buffer, 0, latin) : string.Empty;
+    }
+
+    internal void OnFocusIn()
+    {
+        if (_inputContext != 0) X11.XSetICFocus(_inputContext);
+    }
+
+    internal void OnFocusOut()
+    {
+        if (_inputContext != 0) X11.XUnsetICFocus(_inputContext);
     }
 
     public void SetTitle(string? title)
