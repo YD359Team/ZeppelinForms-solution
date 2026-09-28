@@ -4,23 +4,24 @@ using ZeppelinForms.Forms;
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// Запуск приложения в браузере одной строкой. Собирает вместе то, что
-/// иначе приходится повторять в каждом Program.cs: скачивание ресурсов
-/// в файловую систему, создание платформы, подстановку шрифта и перехват
-/// сбоя инициализации.
+/// Starting an application in a browser in one line. Gathers together what
+/// otherwise has to be repeated in every Program.cs: downloading resources into
+/// the file system, creating the platform, substituting the font and catching
+/// an initialization failure.
 /// </summary>
 public static class BrowserApp
 {
-    /// <param name="mainForm">Именно фабрика, а не готовая форма: конструктор
-    /// формы уже меряет текст, а измеритель появляется только после создания
-    /// платформы. Готовый объект был бы построен до вызова — в аргументах.</param>
-    /// <param name="font">Путь к файлу шрифта — он же адрес на сервере.
-    /// null оставляет Font.Default как есть, и текст будет нарисован
-    /// запасным начертанием: своих шрифтов у браузера для Skia нет.</param>
-    /// <param name="preload">Остальные файлы, которые понадобятся синхронно:
-    /// картинки для Image.LoadAsset и прочее с диска.</param>
-    /// <param name="fontFamily">Имя семейства. По умолчанию берётся
-    /// из имени файла — "Inter-Regular.ttf" даёт "Inter".</param>
+    /// <param name="mainForm">Exactly a factory, not a ready form: the form's
+    /// constructor already measures text, and the measurer appears only after the
+    /// platform is created. A ready object would be built before the call —
+    /// in the arguments.</param>
+    /// <param name="font">The path to the font file — also its address on the server.
+    /// null leaves Font.Default as is, and text will be drawn with the fallback
+    /// typeface: a browser has no fonts of its own for Skia.</param>
+    /// <param name="preload">Other files that will be needed synchronously:
+    /// pictures for Image.LoadAsset and anything else from disk.</param>
+    /// <param name="fontFamily">The family name. By default it is taken
+    /// from the file name — "Inter-Regular.ttf" gives "Inter".</param>
     public static async Task RunAsync(
         Func<Form> mainForm,
         string? font = null,
@@ -39,8 +40,8 @@ public static class BrowserApp
             if (preload is not null)
                 files.AddRange(preload);
 
-            // скачиваем до создания платформы: она регистрирует измеритель
-            // текста, а тот при первом же обращении полезет за шрифтом
+            // downloaded before the platform is created: it registers the text
+            // measurer, and that one goes for the font on the very first access
             if (files.Count > 0)
                 await BrowserPlatform.PreloadAsync([.. files]);
 
@@ -52,23 +53,23 @@ public static class BrowserApp
                     .WithFile(font);
             }
 
-            // форма строится только теперь: измеритель текста
-            // и шрифт по умолчанию уже на месте
+            // the form is built only now: the text measurer
+            // and the default font are already in place
             App app = new(platform) { MainForm = mainForm() };
             app.Run();
         }
         catch (Exception exception)
         {
-            // без этого сбой инициализации виден только в Console браузера,
-            // а страница остаётся белой и ни на что не намекает
-            Console.WriteLine($"ZeppelinForms: запуск не удался. {exception}");
+            // without this an initialization failure is visible only in the browser
+            // Console, while the page stays white and hints at nothing
+            Console.WriteLine($"ZeppelinForms: startup failed. {exception}");
             throw;
         }
     }
 
-    /// <summary>"/fonts/Inter-Regular.ttf" -> "Inter". Имя семейства нужно
-    /// только для сравнения начертаний внутри кэша: сам шрифт берётся
-    /// по пути, и системного поиска не происходит.</summary>
+    /// <summary>"/fonts/Inter-Regular.ttf" -> "Inter". The family name is needed
+    /// only to compare typefaces inside the cache: the font itself is taken
+    /// by path, and no system lookup happens.</summary>
     private static string FamilyFromPath(string path)
     {
         string name = Path.GetFileNameWithoutExtension(path);

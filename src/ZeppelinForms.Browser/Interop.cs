@@ -4,8 +4,8 @@ using ZeppelinForms.Forms.Enums;
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// Единственное место, где проект встречается с JavaScript. Всё остальное
-/// работает с обычными типами, чтобы браузерная специфика не расползалась.
+/// The only place where the project meets JavaScript. Everything else works
+/// with ordinary types, so that browser specifics don't spread around.
 /// </summary>
 internal static partial class Interop
 {
@@ -16,29 +16,29 @@ internal static partial class Interop
     [JSImport("prefersReducedMotion", ModuleName)]
     internal static partial bool PrefersReducedMotion();
 
-    /// <summary>Адрес страницы. HttpClient в браузере не знает происхождения
-    /// сам, а относительные адреса без BaseAddress он не принимает.</summary>
+    /// <summary>The page address. HttpClient in a browser doesn't know its origin
+    /// by itself, and it doesn't accept relative addresses without a BaseAddress.</summary>
     [JSImport("baseUri", ModuleName)]
     internal static partial string BaseUri();
 
-    /// <summary>Привязаться к canvas и развесить обработчики событий.</summary>
+    /// <summary>Bind to the canvas and hang the event handlers.</summary>
     [JSImport("init", ModuleName)]
     internal static partial void Init(string canvasId);
 
-    /// <summary>Скопировать готовый кадр на canvas. Span приходит в JS
-    /// как представление прямо на память WASM, без копии на этой стороне.</summary>
+    /// <summary>Copy a finished frame onto the canvas. The Span arrives in JS
+    /// as a view right onto the WASM memory, with no copy on this side.</summary>
     [JSImport("present", ModuleName)]
     internal static partial void Present(
         [JSMarshalAs<JSType.MemoryView>] Span<byte> pixels,
         int width,
         int height);
 
-    /// <summary>Запросить один кадр через requestAnimationFrame.</summary>
+    /// <summary>Request one frame through requestAnimationFrame.</summary>
     [JSImport("requestFrame", ModuleName)]
     internal static partial void RequestFrame();
 
-    /// <summary>Поставить в очередь микрозадачу для разбора очереди Invoke.
-    /// Через кадр нельзя: Invoke обязан сработать и когда кадров не просят.</summary>
+    /// <summary>Queue a microtask to drain the Invoke queue.
+    /// Not through a frame: Invoke must work even when no frames are requested.</summary>
     [JSImport("scheduleDrain", ModuleName)]
     internal static partial void ScheduleDrain();
 
@@ -51,7 +51,7 @@ internal static partial class Interop
     [JSImport("setFavicon", ModuleName)]
     internal static partial void SetFavicon(string dataUrl);
 
-    /// <summary>Размер области просмотра в физических пикселях и devicePixelRatio.</summary>
+    /// <summary>The viewport size in physical pixels and devicePixelRatio.</summary>
     [JSImport("viewportWidth", ModuleName)]
     internal static partial int ViewportWidth();
 
@@ -61,13 +61,13 @@ internal static partial class Interop
     [JSImport("devicePixelRatio", ModuleName)]
     internal static partial double DevicePixelRatio();
 
-    /// <summary>Открыть системный выбор файлов. Возвращает имена через
-    /// перевод строки, а сами файлы кладёт в /uploads виртуальной ФС.
-    /// Пустая строка — отменили.</summary>
+    /// <summary>Open the system file picker. Returns the names separated by line
+    /// breaks, and puts the files themselves into /uploads of the virtual FS.
+    /// An empty string — cancelled.</summary>
     [JSImport("pickFiles", ModuleName)]
     internal static partial Task<string> PickFilesAsync(string accept, bool multiple);
 
-    /// <summary>Отдать файл пользователю как скачивание.</summary>
+    /// <summary>Hand a file to the user as a download.</summary>
     [JSImport("downloadFile", ModuleName)]
     internal static partial void DownloadFile(string fileName, string base64);
 
@@ -77,14 +77,14 @@ internal static partial class Interop
     [JSImport("writeClipboard", ModuleName)]
     internal static partial void WriteClipboard(string text);
 
-    /// <summary>Содержимое выбранных файлов: JSON вида [{name, data}],
-    /// data в base64. Записываем в /uploads, откуда их читает обычный File.</summary>
+    /// <summary>The contents of the picked files: JSON of the form [{name, data}],
+    /// data in base64. Written into /uploads, where an ordinary File reads them.</summary>
     [JSExport]
     internal static void OnFilesPicked(string json) => BrowserFilePicker.Save(json);
 
     // ==== JS -> C# ====
-    // Canvas один, платформа тоже, поэтому идентификатор окна из JS
-    // не приходит: кому отдать ввод, решает сама платформа.
+    // There is one canvas and one platform, so no window identifier comes from JS:
+    // the platform itself decides whom to give the input to.
 
     internal static BrowserPlatform? Platform;
 
@@ -98,9 +98,9 @@ internal static partial class Interop
     internal static void OnResize(int physicalWidth, int physicalHeight, double scale) =>
         Platform?.HandleResize(physicalWidth, physicalHeight, (float)scale);
 
-    /// <summary>kind: 0 — мышь, 1 — касание, 2 — перо. timestampMs — время
-    /// браузера от начала загрузки страницы, не TickCount64: приводит его
-    /// BrowserWindow, здесь оно идёт как есть.</summary>
+    /// <summary>kind: 0 — mouse, 1 — touch, 2 — pen. timestampMs — browser time
+    /// since the page started loading, not TickCount64: BrowserWindow converts it,
+    /// here it goes as is.</summary>
     [JSExport]
     internal static void OnPointerMove(
         double x, double y, int pointerId, int kind, double pressure, double timestampMs, int modifiers) =>
@@ -123,6 +123,8 @@ internal static partial class Interop
     [JSExport]
     internal static void OnPointerLeave() => Platform?.InputTarget()?.HandlePointerLeave();
 
+    /// <summary>The deltas are already in pixels: zf.js brings lines and pages
+    /// to pixels by deltaMode before calling.</summary>
     [JSExport]
     internal static void OnWheel(double x, double y, double deltaY, double deltaX) =>
         Platform?.InputTarget()?.HandleWheel(x, y, deltaY, deltaX);
@@ -131,8 +133,8 @@ internal static partial class Interop
     internal static void OnContextMenu(double x, double y) =>
         Platform?.InputTarget()?.HandleContextMenu(x, y);
 
-    /// <summary>code — физическая клавиша, key — символ с учётом раскладки.
-    /// Первое нужно для навигации, второе для ввода текста.</summary>
+    /// <summary>code — the physical key, key — the character according to the layout.
+    /// The former is needed for navigation, the latter for text input.</summary>
     [JSExport]
     internal static void OnKeyDown(string code, string key, int modifiers, bool isRepeat) =>
         Platform?.InputTarget()?.HandleKeyDown(code, key, modifiers, isRepeat);
@@ -155,8 +157,8 @@ internal static partial class Interop
     [JSExport]
     internal static void OnPageHide() => Platform?.HandlePageHide();
 
-    /// <summary>CSS-имя курсора для каждого вида. Default и Arrow в браузере
-    /// одно и то же: своей стрелки у нас нет, рисует её система.</summary>
+    /// <summary>The CSS name of the cursor for each kind. Default and Arrow are the
+    /// same thing in a browser: we have no arrow of our own, the system draws it.</summary>
     internal static string ToCssCursor(CursorKind cursor) => cursor switch
     {
         CursorKind.Hand => "pointer",

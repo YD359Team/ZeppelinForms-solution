@@ -1,6 +1,6 @@
-﻿// Модуль подгружается из BrowserPlatform.CreateAsync через JSHost.ImportAsync.
-// Вызовы обратно в .NET идут через globalThis.zfExports — его выставляет
-// загрузчик страницы (index.html) до dotnet.run().
+﻿// The module is registered by the page loader through setModuleImports under
+// the name "zf". Calls back into .NET go through globalThis.zfExports — the page
+// loader sets it before dotnet.run().
 
 let canvas = null;
 let ctx = null;
@@ -10,20 +10,33 @@ let drainScheduled = false;
 
 function zf() {
     if (!globalThis.zfExports) {
-        throw new Error("zfExports не выставлен: index.html должен положить туда экспорты ZeppelinForms.Browser");
+        throw new Error("zfExports is not set: the page loader must put the exports of ZeppelinForms.Browser there");
     }
     return globalThis.zfExports;
 }
 
-// Shift=1, Control=2, Alt=4 — совпадает с ZeppelinForms.Input.Keyboard.KeyModifiers
+// Shift=1, Control=2, Alt=4 — matches ZeppelinForms.Input.Keyboard.KeyModifiers
 function modifiers(e) {
     return (e.shiftKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.altKey ? 4 : 0);
 }
 
-// координаты в CSS-пикселях: масштаб живёт в размере буфера canvas,
-// а не в событиях указателя
+// coordinates in CSS pixels: the scale lives in the canvas buffer size,
+// not in pointer events
 function localX(e) { return e.clientX - canvas.getBoundingClientRect().left; }
 function localY(e) { return e.clientY - canvas.getBoundingClientRect().top; }
+
+// How many pixels one wheel unit is worth. deltaMode: 0 — pixels, 1 — lines,
+// 2 — pages. Chrome and Safari report pixels (about 100 per notch), Firefox
+// reports lines (3 per notch). The form counts Win32 units, 120 per notch, and
+// deltas used to be passed on as they were: in Firefox scrolling went about
+// forty times slower. 40 pixels per line makes Firefox's 3 lines exactly 120
+const WHEEL_LINE = 40;
+
+function wheelScale(e) {
+    if (e.deltaMode === 1) return WHEEL_LINE;
+    if (e.deltaMode === 2) return canvas.clientHeight || 800;
+    return 1;
+}
 
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -32,29 +45,27 @@ export function prefersReducedMotion() {
 }
 
 export function init(canvasId) {
-    console.log("zf.js: init", canvasId);
-
     canvas = document.getElementById(canvasId);
     if (!canvas) {
-        throw new Error(`canvas #${canvasId} не найден`);
+        throw new Error(`canvas #${canvasId} was not found`);
     }
 
-    // alpha: false — кадр всегда непрозрачный, и браузер не тратит
-    // проход на смешивание canvas со страницей
+    // alpha: false — the frame is always opaque, and the browser doesn't spend
+    // a pass blending the canvas with the page
     ctx = canvas.getContext("2d", { alpha: false });
 
-    // без tabIndex canvas не получает фокус, а значит и события клавиатуры
+    // without tabIndex the canvas doesn't get focus, and so no keyboard events
     if (!canvas.hasAttribute("tabindex")) {
         canvas.tabIndex = 0;
     }
     canvas.style.outline = "none";
     canvas.focus();
 
-    // без этого браузер оставляет себе прокрутку и щипок: первое же
-    // движение пальцем уходит ему, а нам приходит pointercancel
+    // without this the browser keeps scrolling and pinching for itself: the very
+    // first finger movement goes to it, and we get pointercancel
     canvas.style.touchAction = "none";
 
-    // 0 — мышь, 1 — касание, 2 — перо
+    // 0 — mouse, 1 — touch, 2 — pen
     function pointerKind(e) {
         if (e.pointerType === "touch") return 1;
         if (e.pointerType === "pen") return 2;
@@ -65,8 +76,8 @@ export function init(canvasId) {
         localX(e), localY(e), e.pointerId, pointerKind(e), e.pressure, e.timeStamp, modifiers(e)));
 
     canvas.addEventListener("pointerdown", e => {
-        // без захвата браузер обрывает перетаскивание, едва курсор
-        // уходит за canvas, и кнопка залипает нажатой
+        // without capture the browser breaks off the drag as soon as the cursor
+        // leaves the canvas, and the button sticks pressed
         canvas.setPointerCapture(e.pointerId);
         canvas.focus();
         zf().OnPointerDown(
@@ -79,11 +90,11 @@ export function init(canvasId) {
             localX(e), localY(e), e.pointerId, pointerKind(e), e.button, e.pressure, e.timeStamp, modifiers(e));
     });
 
-    // контакт забрала система: жест оболочки, свайп «назад», входящий звонок
+    // the system took the contact: a shell gesture, a "back" swipe, an incoming call
     canvas.addEventListener("pointercancel", e => zf().OnPointerCancel(e.pointerId));
 
-    // уход курсора — понятие мыши; у касания pointerleave приходит
-    // следом за каждым pointerup и наведение сбрасывать не должен
+    // the cursor leaving is a mouse concept; for touch pointerleave comes
+    // right after every pointerup and must not reset hover
     canvas.addEventListener("pointerleave", e => {
         if (e.pointerType === "touch") return;
         zf().OnPointerLeave();
@@ -91,7 +102,9 @@ export function init(canvasId) {
 
     canvas.addEventListener("wheel", e => {
         e.preventDefault();
-        zf().OnWheel(localX(e), localY(e), e.deltaY, e.deltaX);
+
+        const scale = wheelScale(e);
+        zf().OnWheel(localX(e), localY(e), e.deltaY * scale, e.deltaX * scale);
     }, { passive: false });
 
     canvas.addEventListener("contextmenu", e => {
@@ -100,8 +113,8 @@ export function init(canvasId) {
     });
 
     canvas.addEventListener("keydown", e => {
-        // Tab уводит фокус со страницы, F-клавиши и Backspace тоже
-        // имеют браузерное поведение — всё это наше
+        // Tab takes focus off the page, F keys and Backspace also
+        // have browser behavior — all of it is ours
         if (e.key !== "F5" && e.key !== "F12") {
             e.preventDefault();
         }
@@ -114,15 +127,15 @@ export function init(canvasId) {
     document.addEventListener("visibilitychange", () =>
         zf().OnVisibilityChange(document.visibilityState === "visible"));
 
-    // «уменьшить движение» в настройках системы — браузер отдаёт его
-    // медиазапросом, и смену настройки на ходу тоже
+    // "reduce motion" in the system settings — the browser gives it as a media
+    // query, and a change of the setting on the fly as well
     reducedMotion.addEventListener("change", e => zf().OnReducedMotionChange(e.matches));
 
-    // pagehide, а не beforeunload: на мобильных второй часто не приходит
+    // pagehide rather than beforeunload: on mobile the latter often doesn't come
     window.addEventListener("pagehide", () => zf().OnPageHide());
 
-    // ResizeObserver, а не window.onresize: canvas может менять размер
-    // и без изменения окна — например, в CSS-сетке
+    // ResizeObserver rather than window.onresize: the canvas may change size
+    // without the window changing — in a CSS grid, for example
     new ResizeObserver(() => resize()).observe(canvas);
     window.addEventListener("resize", () => resize());
 
@@ -152,8 +165,8 @@ export function present(pixels, width, height) {
         imageData = ctx.createImageData(width, height);
     }
 
-    // slice() отдаёт Uint8Array-копию, set() принимает её без проверки типа.
-    // copyTo напрямую в imageData.data не годится: там Uint8ClampedArray
+    // slice() gives a Uint8Array copy, and set() takes it without a type check.
+    // copyTo directly into imageData.data doesn't fit: it is a Uint8ClampedArray
     imageData.data.set(pixels.slice());
     ctx.putImageData(imageData, 0, 0);
 }
@@ -229,8 +242,8 @@ export function setFavicon(dataUrl) {
 }
 
 export function writeClipboard(text) {
-    // промах игнорируем: запись без жеста пользователя запрещена,
-    // и падать из-за отказа в разрешении неправильно
+    // a failure is ignored: writing without a user gesture is forbidden,
+    // and crashing because permission was denied is wrong
     navigator.clipboard.writeText(text).catch(() => { });
 }
 
@@ -244,8 +257,8 @@ export function pickFiles(accept, multiple) {
             input.accept = accept;
         }
 
-        // отмену браузер не сообщает событием: cancel поддержан не везде,
-        // поэтому полагаемся на него, а при его отсутствии — на пустой выбор
+        // the browser doesn't report cancelling with an event everywhere: cancel is
+        // not supported in all of them, so we rely on it and, without it, on an empty choice
         input.addEventListener("cancel", () => resolve(""));
 
         input.addEventListener("change", async () => {
@@ -260,7 +273,7 @@ export function pickFiles(accept, multiple) {
                 const buffer = await file.arrayBuffer();
                 const bytes = new Uint8Array(buffer);
 
-                // base64 по частям: apply на всём массиве переполняет стек
+                // base64 in parts: apply over the whole array overflows the stack
                 let binary = "";
                 for (let i = 0; i < bytes.length; i += 0x8000) {
                     binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
@@ -286,5 +299,7 @@ export function downloadFile(fileName, base64) {
     link.download = fileName;
     link.click();
 
-    URL.revokeObjectURL(url);
+    // Firefox and Safari start the download asynchronously: revoking the address
+    // right after click() used to take it away before the download began
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

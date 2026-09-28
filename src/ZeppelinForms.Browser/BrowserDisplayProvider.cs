@@ -3,17 +3,17 @@
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// Экран в браузере один и о настоящих мониторах ничего не известно.
-/// Рабочая область равна области просмотра, а не экрана: за её пределы
-/// нам всё равно не вылезти.
+/// There is one screen in a browser, and nothing is known about real monitors.
+/// The working area equals the viewport rather than the screen: we can't get
+/// beyond it anyway.
 /// </summary>
 internal sealed class BrowserDisplayProvider : IDisplayProvider
 {
-    /// <summary>CSS определяет пиксель как 1/96 дюйма, и devicePixelRatio
-    /// считается именно от этой базы. Плотность физического экрана браузер
-    /// не сообщает вовсе — и это правильное значение, а не заглушка:
-    /// в CSS-пикселях миллиметр по определению равен 96/25.4 единицы,
-    /// сколько бы точек ни было у настоящей матрицы.</summary>
+    /// <summary>CSS defines a pixel as 1/96 of an inch, and devicePixelRatio is
+    /// counted exactly from that base. The browser doesn't report the physical
+    /// screen's density at all — and this is the right value, not a stand-in:
+    /// in CSS pixels a millimeter is by definition 96/25.4 units, however many
+    /// dots the real panel has.</summary>
     private const float CssDpi = 96f;
 
     public IReadOnlyList<DisplayInfo> GetDisplays()

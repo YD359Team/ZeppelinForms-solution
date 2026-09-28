@@ -4,15 +4,15 @@ using ZeppelinForms.Forms.Dialogs;
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// Выбор файлов через &lt;input type=file&gt;. Содержимое выбранного браузер
-/// отдаёт только как данные, пути к настоящему файлу у него нет — поэтому
-/// файлы кладутся в виртуальную ФС под /uploads, и дальше весь общий
-/// с десктопом код читает их обычным File.OpenRead.
+/// File picking through &lt;input type=file&gt;. The browser gives the contents of
+/// the picked files only as data, it has no path to the real file — so the files
+/// are put into the virtual FS under /uploads, and from there all the code shared
+/// with the desktop reads them with an ordinary File.OpenRead.
 /// </summary>
 public sealed class BrowserFilePicker : IFilePicker
 {
-    /// <summary>Куда складывать выбранное. Настоящих путей в браузере нет,
-    /// а коду выше нужен путь, который открывается.</summary>
+    /// <summary>Where to put the picked files. There are no real paths in a browser,
+    /// while the code above needs a path that opens.</summary>
     private const string UploadDirectory = "/uploads";
 
     public static void Register() => FilePicker.Current = new BrowserFilePicker();
@@ -23,14 +23,14 @@ public sealed class BrowserFilePicker : IFilePicker
 
         if (names.Length == 0) return [];
 
-        // имена возвращаются через перевод строки: в имени файла он невозможен,
-        // в отличие от запятой или точки с запятой
+        // the names come separated by line breaks: a line break is impossible
+        // in a file name, unlike a comma or a semicolon
         return [.. names.Split('\n').Select(name => $"{UploadDirectory}/{name}")];
     }
 
-    /// <summary>Сохранение идёт не через диалог, а через скачивание: место
-    /// назначения выбирает браузер, приложению оно неизвестно. Здесь только
-    /// путь во временной ФС — записанное туда отдаётся через Download.</summary>
+    /// <summary>Saving goes not through a dialog but through a download: the browser
+    /// chooses the destination, and the application doesn't know it. Here it is only
+    /// a path in the temporary FS — what is written there is handed out through Download.</summary>
     public Task<string?> SaveAsync(FileDialogOptions options)
     {
         string name = string.IsNullOrEmpty(options.FileName) ? "download" : options.FileName;
@@ -40,22 +40,22 @@ public sealed class BrowserFilePicker : IFilePicker
         return Task.FromResult<string?>($"{UploadDirectory}/{name}");
     }
 
-    /// <summary>Выбора папки в браузере нет и обойти это нечем.</summary>
+    /// <summary>There is no folder picking in a browser, and nothing to work around it with.</summary>
     public Task<string?> SelectFolderAsync(FileDialogOptions options) =>
         Task.FromResult<string?>(null);
 
     /// <summary>
-    /// Записать выбранное в виртуальную ФС. Вызывается из JS до того, как
-    /// pickFiles вернёт управление, поэтому к моменту выхода из OpenAsync
-    /// файлы уже на месте и читаются обычным File.OpenRead.
+    /// Write the picked files into the virtual FS. Called from JS before pickFiles
+    /// returns control, so by the time OpenAsync exits the files are already
+    /// in place and read with an ordinary File.OpenRead.
     /// </summary>
-    /// <param name="json">Массив вида [{"name": "...", "data": "base64"}].</param>
+    /// <param name="json">An array of the form [{"name": "...", "data": "base64"}].</param>
     internal static void Save(string json)
     {
         Directory.CreateDirectory(UploadDirectory);
 
-        // JsonDocument, а не десериализация в тип: обход отражения
-        // переживает обрезку сборки, которую WASM включает по умолчанию
+        // JsonDocument rather than deserializing into a type: walking without
+        // reflection survives the assembly trimming WASM turns on by default
         using JsonDocument document = JsonDocument.Parse(json);
 
         foreach (JsonElement file in document.RootElement.EnumerateArray())
@@ -63,8 +63,8 @@ public sealed class BrowserFilePicker : IFilePicker
             if (!file.TryGetProperty("name", out JsonElement name)) continue;
             if (!file.TryGetProperty("data", out JsonElement data)) continue;
 
-            // только имя: браузер путей не отдаёт, но в имени может
-            // оказаться разделитель — тогда запись ушла бы мимо /uploads
+            // the name only: the browser gives no paths, but the name may contain
+            // a separator — then the write would go past /uploads
             string fileName = Path.GetFileName(name.GetString() ?? string.Empty);
 
             if (fileName.Length == 0) continue;
@@ -75,8 +75,8 @@ public sealed class BrowserFilePicker : IFilePicker
         }
     }
 
-    /// <summary>Отдать файл пользователю как скачивание. Единственный способ
-    /// «сохранить» из браузера: записи по произвольному пути у нас нет.</summary>
+    /// <summary>Hand a file to the user as a download. The only way to "save" from
+    /// a browser: we have no writing to an arbitrary path.</summary>
     public static void Download(string path)
     {
         byte[] bytes = File.ReadAllBytes(path);
@@ -84,7 +84,7 @@ public sealed class BrowserFilePicker : IFilePicker
         Interop.DownloadFile(Path.GetFileName(path), Convert.ToBase64String(bytes));
     }
 
-    /// <summary>Фильтры ZeppelinForms в значение атрибута accept.</summary>
+    /// <summary>ZeppelinForms filters into the value of the accept attribute.</summary>
     private static string ToAccept(FileDialogOptions options)
     {
         if (options.Filters.Count == 0) return string.Empty;
