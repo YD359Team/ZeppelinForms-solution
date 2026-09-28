@@ -77,6 +77,10 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         Skia.SkiaOffscreenRenderer.Register();
         Displays.Current = new AndroidDisplayProvider(activity);
 
+        // without it Clipboard.Current stayed the built-in stand-in, which silently
+        // does nothing: copying did nothing and pasting gave nothing
+        AndroidClipboard.Register(activity);
+
         var platform = new AndroidPlatform(activity)
         {
             PrefersReducedMotion = QueryReducedMotion(activity),

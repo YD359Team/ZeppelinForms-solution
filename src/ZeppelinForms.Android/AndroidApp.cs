@@ -2,38 +2,38 @@
 using Android.Content.Res;
 using ZeppelinForms.Forms;
 
-// ZeppelinForms.Assets и Activity.Assets (AssetManager) — разные вещи
-// с одним именем, и внутри этого неймспейса Assets разрешается в первое
+// ZeppelinForms.Assets and Activity.Assets (AssetManager) are different things
+// with the same name, and inside this namespace Assets resolves to the former
 using ZfAssets = ZeppelinForms.Assets;
 
 namespace ZeppelinForms.Android;
 
 /// <summary>
-/// Запуск приложения на Android одной строкой. Делает то, что иначе
-/// пришлось бы повторять в каждой активности: раскладывает ресурсы APK
-/// по файловой системе, создаёт платформу и поднимает App.
+/// Starting an application on Android in one line. Does what would otherwise have
+/// to be repeated in every activity: unpacks the APK resources into the file system,
+/// creates the platform and brings up App.
 /// </summary>
 public static class AndroidApp
 {
-    /// <param name="mainForm">Именно фабрика, а не готовая форма: конструктор
-    /// формы уже меряет текст, а измеритель появляется только после создания
-    /// платформы.</param>
-    /// <param name="assets">Пути ресурсов относительно папки Assets — те же,
-    /// что уходят в Image.LoadAsset. Шрифт указывать не нужно: системные
-    /// шрифты на Android есть, и Skia найдёт их сама — в отличие
-    /// от браузера, где своих шрифтов нет вовсе.</param>
-    /// <returns>Созданная платформа. Через неё приложение подписывается
-    /// на жизненный цикл: Paused, Resumed и Saving — последняя возможность
-    /// сохранить состояние перед тем, как систему могут убить процесс.</returns>
+    /// <param name="mainForm">Exactly a factory, not a ready form: the form's
+    /// constructor already measures text, and the measurer appears only after
+    /// the platform is created.</param>
+    /// <param name="assets">Resource paths relative to the Assets folder — the same
+    /// ones that go into Image.LoadAsset. There is no need to name a font: Android
+    /// has system fonts, and Skia finds them itself — unlike the browser, which has
+    /// no fonts of its own at all.</param>
+    /// <returns>The created platform. Through it the application subscribes to the
+    /// lifecycle: Paused, Resumed and Saving — the last chance to save the state
+    /// before the system may kill the process.</returns>
     public static AndroidPlatform Run(Activity activity, Func<Form> mainForm, IEnumerable<string>? assets = null)
-    { 
+    {
         string files = activity.FilesDir?.AbsolutePath
-            ?? throw new InvalidOperationException("FilesDir недоступен.");
+            ?? throw new InvalidOperationException("FilesDir is unavailable.");
 
         ZfAssets.Root = Path.Combine(files, "Assets");
 
-        // до создания платформы: она регистрирует измеритель текста,
-        // а форма полезет за ресурсами уже в конструкторе
+        // before the platform is created: it registers the text measurer,
+        // and the form goes for resources already in its constructor
         if (assets is not null)
             Unpack(activity, assets);
 
@@ -48,7 +48,7 @@ public static class AndroidApp
     private static void Unpack(Activity activity, IEnumerable<string> names)
     {
         AssetManager manager = activity.Assets
-            ?? throw new InvalidOperationException("AssetManager недоступен.");
+            ?? throw new InvalidOperationException("AssetManager is unavailable.");
 
         Directory.CreateDirectory(ZfAssets.Root);
 
@@ -59,9 +59,9 @@ public static class AndroidApp
             if (Path.GetDirectoryName(target) is { Length: > 0 } directory)
                 Directory.CreateDirectory(directory);
 
-            // имя без префикса: AndroidAssetsPrefix (по умолчанию "Assets")
-            // срезается при упаковке, и внутри APK ресурс лежит в корне
-            // assets под тем же относительным именем, которое ждёт LoadAsset
+            // the name without a prefix: AndroidAssetsPrefix ("Assets" by default)
+            // is cut off during packaging, and inside the APK the resource lies at
+            // the root of assets under the same relative name LoadAsset expects
             using Stream source = OpenAsset(manager, name);
             using FileStream destination = File.Create(target);
 
@@ -69,9 +69,9 @@ public static class AndroidApp
         }
     }
 
-    /// <summary>Открыть ресурс APK, а при неудаче — сказать, что там есть
-    /// на самом деле. Раскладка внутри APK зависит от свойств сборки,
-    /// и голый FileNotFoundException про неё не говорит ничего.</summary>
+    /// <summary>Open an APK resource, and on failure say what is actually there.
+    /// The layout inside the APK depends on the build properties, and a bare
+    /// FileNotFoundException says nothing about it.</summary>
     private static Stream OpenAsset(AssetManager manager, string name)
     {
         try
@@ -83,8 +83,8 @@ public static class AndroidApp
             string[] actual = manager.List(string.Empty) ?? [];
 
             throw new FileNotFoundException(
-                $"Ресурс \"{name}\" не найден в APK. В корне assets лежит: " +
-                $"{(actual.Length == 0 ? "ничего" : string.Join(", ", actual))}.");
+                $"Resource \"{name}\" was not found in the APK. The root of assets contains: " +
+                $"{(actual.Length == 0 ? "nothing" : string.Join(", ", actual))}.");
         }
     }
 }

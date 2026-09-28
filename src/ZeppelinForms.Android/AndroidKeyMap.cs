@@ -3,14 +3,13 @@ using ZeppelinForms.Input.Keyboard;
 
 namespace ZeppelinForms.Android;
 
-/// <summary>Коды Android в клавиши фреймворка.</summary>
+/// <summary>Android codes into framework keys.</summary>
 /// <remarks>
-/// Таблица нужна потому, что значения Key совпадают с виртуальными кодами
-/// Win32, а Android нумерует клавиши по-своему. Прямого приведения,
-/// как на Windows, здесь не выйдет.
+/// The table is needed because Key values match Win32 virtual codes, while Android
+/// numbers keys its own way. A direct cast, as on Windows, won't work here.
 ///
-/// Раскладка на отображение не влияет: Keycode обозначает физическую
-/// клавишу, а введённый символ приходит отдельно, из UnicodeChar.
+/// The layout doesn't affect the mapping: Keycode denotes a physical key, and the
+/// typed character comes separately, from UnicodeChar.
 /// </remarks>
 internal static class AndroidKeyMap
 {
@@ -51,8 +50,8 @@ internal static class AndroidKeyMap
         Keycode.Break => Key.Pause,
         Keycode.Sysrq => Key.PrintScreen,
 
-        // знаки названы по положению на американской клавиатуре —
-        // так же, как в Key, который повторяет соглашение Win32
+        // punctuation is named by its position on a US keyboard —
+        // the same as in Key, which follows the Win32 convention
         Keycode.Semicolon => Key.OemSemicolon,
         Keycode.Equals => Key.OemPlus,
         Keycode.Comma => Key.OemComma,

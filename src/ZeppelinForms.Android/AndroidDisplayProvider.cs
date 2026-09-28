@@ -5,14 +5,14 @@ using Size = ZeppelinForms.Drawing.Primitives.Size;
 
 namespace ZeppelinForms.Android;
 
-/// <summary>Экран один. Рабочая область равна полной: вырезы и системные
-/// панели — это отступы внутри окна, а не другой экран.</summary>
+/// <summary>There is one screen. The working area equals the full one: cutouts
+/// and system bars are insets inside the window, not another screen.</summary>
 internal sealed class AndroidDisplayProvider(Context context) : IDisplayProvider
 {
     public IReadOnlyList<DisplayInfo> GetDisplays()
     {
         DisplayMetrics metrics = context.Resources?.DisplayMetrics
-            ?? throw new InvalidOperationException("DisplayMetrics недоступны.");
+            ?? throw new InvalidOperationException("DisplayMetrics are unavailable.");
 
         var bounds = new Rectangle(
             Point.Empty,
@@ -25,9 +25,9 @@ internal sealed class AndroidDisplayProvider(Context context) : IDisplayProvider
                 Bounds = bounds,
                 WorkingArea = bounds,
 
-                // Density считается от базы 160, а не 96 — ровно тот случай,
-                // ради которого Dpi отделён от Scale: восстановить одно
-                // из другого нельзя, база разная
+                // Density is counted from a base of 160 rather than 96 — exactly the
+                // case Dpi is separated from Scale for: one can't be restored from
+                // the other, the bases differ
                 Scale = metrics.Density,
                 Dpi = ResolveDpi(metrics),
 
@@ -37,10 +37,9 @@ internal sealed class AndroidDisplayProvider(Context context) : IDisplayProvider
         ];
     }
 
-    /// <summary>Xdpi — настоящая плотность матрицы, и на типичном телефоне
-    /// она заметно расходится с DensityDpi. Но часть производителей
-    /// проставляет её мусором, поэтому правдоподобность проверяется,
-    /// а иначе берётся округлённая системная.</summary>
+    /// <summary>Xdpi is the real panel density, and on a typical phone it differs
+    /// noticeably from DensityDpi. But some manufacturers fill it with garbage,
+    /// so its plausibility is checked, and otherwise the rounded system one is taken.</summary>
     private static float ResolveDpi(DisplayMetrics metrics)
     {
         float xdpi = metrics.Xdpi;
