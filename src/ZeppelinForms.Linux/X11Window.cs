@@ -22,6 +22,11 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
     private nuint _wmDeleteWindow;
     private nuint _invokeAtom;
 
+    /// <summary>The size of the last ConfigureNotify, in physical pixels.
+    /// ConfigureNotify comes for moves too, and a move changes nothing inside.</summary>
+    private int _physicalWidth;
+    private int _physicalHeight;
+
     public nuint Handle => _window;
     public nuint InvokeAtom => _invokeAtom;
 
@@ -36,7 +41,7 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
             int screen = X11.XDefaultScreen(_display);
             nuint selection = X11.XInternAtom(_display, $"_NET_WM_CM_S{screen}", false);
 
-            // владелец выделения есть — значит композитор запущен
+            // the selection has an owner — so a compositor is running
             return X11.XGetSelectionOwner(_display, selection) != 0;
         }
     }
@@ -55,16 +60,16 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
             return;
         }
 
-        // приём могли и не включать: тогда отключать нечего
+        // receiving may never have been enabled: then there is nothing to disable
         _dropTarget?.Unregister();
         _dropTarget = null;
     }
 
     internal X11DropTarget? DropTarget => _dropTarget;
 
-    /// <summary>XDND отдаёт экранные координаты, а маршрутизация в Form
-    /// работает в клиентских и уже поделённых на масштаб. Пересчёт делаем
-    /// через сервер: он знает и положение окна, и текущие декорации.</summary>
+    /// <summary>XDND gives screen coordinates, while routing in Form works in client
+    /// ones already divided by the scale. The conversion goes through the server:
+    /// it knows both the window's position and the current decorations.</summary>
     private Point ToClient(Point screen)
     {
         nuint root = X11.XRootWindow(_display, X11.XDefaultScreen(_display));
@@ -120,7 +125,7 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
             | X11.ButtonPressMask | X11.ButtonReleaseMask
             | X11.PointerMotionMask | X11.LeaveWindowMask | X11.FocusChangeMask);
 
-        // без этого крестик в заголовке просто убьёт соединение с сервером
+        // without this the close button in the title bar simply kills the connection to the server
         _wmDeleteWindow = X11.XInternAtom(_display, "WM_DELETE_WINDOW", false);
         X11.XSetWMProtocols(_display, _window, [_wmDeleteWindow], 1);
 
@@ -171,30 +176,64 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
             (int)bounds.X, (int)bounds.Y,
             (uint)Math.Max(1, bounds.Width), (uint)Math.Max(1, bounds.Height));
 
+    // a repaint has been requested and not done yet; _fullRepaint — the whole
+    // window, otherwise the accumulated _pendingDirty
+    private bool _paintRequested;
+    private bool _fullRepaint;
     private Rectangle? _pendingDirty;
 
+    internal bool IsPaintRequested => _paintRequested;
+
+    /// <summary>Mark an area dirty. The frame is painted by the platform loop,
+    /// once, after all pending events are handled.</summary>
+    /// <remarks>
+    /// X11 has no deferred repaint of its own, so this used to paint right away:
+    /// every Invalidate drew a whole frame, and one user action produces dozens of
+    /// them. A handler that invalidated in the middle of changing its state had that
+    /// half-updated state painted. Now the area is only accumulated here, and
+    /// X11Platform.PumpOnce paints it at the end of the pump — the same thing
+    /// WM_PAINT does on Windows.
+    /// </remarks>
     public void Invalidate(Rectangle? bounds = null)
     {
-        // в X11 нет отложенной перерисовки — копим область и рисуем сразу
         if (bounds is null)
+        {
+            _fullRepaint = true;
             _pendingDirty = null;
-        else if (_pendingDirty is { } existing)
-            _pendingDirty = existing.Union(bounds.Value);
-        else
-            _pendingDirty = bounds;
+        }
+        else if (!_fullRepaint)
+        {
+            _pendingDirty = _pendingDirty is { } existing
+                ? existing.Union(bounds.Value)
+                : bounds;
+        }
 
-        Paint(bounds is null ? null : _pendingDirty);
+        _paintRequested = true;
+    }
+
+    /// <summary>Paint what was requested since the last frame, if anything.</summary>
+    internal void PaintIfRequested()
+    {
+        if (!_paintRequested) return;
+
+        Paint(_fullRepaint ? null : _pendingDirty);
     }
 
     internal void Paint(Rectangle? dirty = null)
     {
+        // the request is reset before drawing, not after: drawing may request
+        // the next frame — an animation does exactly that — and that request
+        // must survive until the next pump
+        _paintRequested = false;
+        _fullRepaint = false;
+        _pendingDirty = null;
+
         if (_surface?.BeginFrame() is SKSurface skSurface)
         {
             Skia.SkiaRenderer.Render(_form, skSurface.Canvas, _scale, dirty);
             _surface.EndFrame(dirty is { } d ? ToPhysical(d) : null);
         }
 
-        _pendingDirty = null;
         _form.TakeDirtyRegion();
     }
 
@@ -210,9 +249,9 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
 
         nuint property = X11.XInternAtom(_display, "_NET_WM_WINDOW_OPACITY", false);
 
-        // полностью непрозрачное окно — это отсутствие свойства, а не
-        // максимальное значение: так композитор не тратит проход на окно,
-        // которому смешивание не нужно
+        // a fully opaque window is the absence of the property rather than its
+        // maximum value: this way the compositor doesn't spend a pass on a window
+        // that needs no blending
         if (opacity >= 1f)
         {
             X11.XDeleteProperty(_display, _window, property);
@@ -238,8 +277,8 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
         switch (state)
         {
             case WindowState.Minimized:
-                // свернуть — единственное, что делается вызовом,
-                // а не сообщением менеджеру
+                // minimizing is the only thing done by a call
+                // rather than a message to the manager
                 X11.XIconifyWindow(_display, _window, X11.XDefaultScreen(_display));
                 break;
 
@@ -248,9 +287,9 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
                 break;
 
             case WindowState.Normal:
-                // из свёрнутого возвращает XMapWindow, из развёрнутого —
-                // снятие обоих флагов. Делаем и то, и другое: в каком
-                // состоянии окно было, мы не знаем
+                // XMapWindow brings it back from minimized, removing both flags —
+                // from maximized. We do both: we don't know which state
+                // the window was in
                 X11.XMapWindow(_display, _window);
                 SendState(X11.NetWmStateRemove, maxHorz, maxVert);
                 break;
@@ -270,7 +309,7 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
                 data0 = action,
                 data1 = (nint)first,
                 data2 = (nint)second,
-                // источник — обычное приложение, а не панель или пейджер
+                // the source is an ordinary application, not a panel or a pager
                 data3 = 1,
             };
 
@@ -280,8 +319,8 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
             {
                 Marshal.StructureToPtr(message, buffer, false);
 
-                // сообщение адресуется корневому окну: разворачивает не мы,
-                // а оконный менеджер, и слушает он именно корень
+                // the message is addressed to the root window: it's not us but
+                // the window manager that maximizes, and it listens on the root
                 nuint root = X11.XRootWindow(_display, X11.XDefaultScreen(_display));
 
                 X11.XSendEvent(_display, root, false,
@@ -313,7 +352,7 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
         X11.XFlush(_display);
     }
 
-    // коды из X11/cursorfont.h
+    // codes from X11/cursorfont.h
     private static uint ToXShape(CursorKind cursor) => cursor switch
     {
         CursorKind.Hand => 60,              // XC_hand2
@@ -333,18 +372,26 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
             action();
     }
 
-    // dirty-область приходит в логических координатах, а XPutImage
-    // копирует физические пиксели буфера
+    // the dirty area comes in logical coordinates, while XPutImage
+    // copies the buffer's physical pixels
     private Rectangle ToPhysical(Rectangle logical) => new(
         new Point(logical.X * _scale, logical.Y * _scale),
         new Size(logical.Width * _scale, logical.Height * _scale));
 
     internal void HandleConfigure(int width, int height)
     {
-        _surface?.Resize(width, height);                        // поверхность — физическая
-        _form.ClientSize = new Size(width / _scale, height / _scale);   // дерево — логическое
+        // ConfigureNotify comes for moves as well. A move used to cost a full layout
+        // and a synchronous frame; a window that only moved changes nothing inside
+        if (width == _physicalWidth && height == _physicalHeight) return;
+
+        _physicalWidth = width;
+        _physicalHeight = height;
+
+        _surface?.Resize(width, height);                                // the surface is physical
+        _form.ClientSize = new Size(width / _scale, height / _scale);   // the tree is logical
         _form.PerformLayout();
-        Paint();
+
+        Invalidate(null);
     }
 
     internal bool IsDeleteMessage(nuint atom) => atom == _wmDeleteWindow;
@@ -366,10 +413,10 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
             cursor: X11.NoneHandle,
             X11.CurrentTime);
 
-        // захват может быть уже занят другим клиентом — например, открытым
-        // меню оконного менеджера. Тогда перетаскивание пойдёт как раньше:
-        // до выхода курсора за окно оно работает, дальше кнопка залипнет
-        Debug.Assert(result == X11.GrabSuccess, $"XGrabPointer вернул {result}");
+        // the grab may already be taken by another client — an open window manager
+        // menu, for example. Then the drag goes as before: it works until the cursor
+        // leaves the window, after that the button sticks
+        Debug.Assert(result == X11.GrabSuccess, $"XGrabPointer returned {result}");
     }
 
     public void ReleaseMouseCapture() => X11.XUngrabPointer(_display, X11.CurrentTime);

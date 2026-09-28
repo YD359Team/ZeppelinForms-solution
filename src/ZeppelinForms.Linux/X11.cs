@@ -188,6 +188,23 @@ internal static class X11
         public int override_redirect;
     }
 
+    /// <summary>The fields every X event starts with. Enough to find the window
+    /// for events whose own fields are not needed — Expose, FocusIn, FocusOut.</summary>
+    /// <remarks>
+    /// Expose used to be read through XConfigureEvent. That struct has an extra
+    /// "event" field before "window", so its window field fell on Expose's x and y,
+    /// no window was ever found, and Expose was ignored.
+    /// </remarks>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct XAnyEvent
+    {
+        public int type;
+        public nuint serial;
+        public int send_event;
+        public nint display;
+        public nuint window;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct XClientMessageEvent
     {

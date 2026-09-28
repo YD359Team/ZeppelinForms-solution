@@ -19,7 +19,7 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
 
         if (Display == 0)
             throw new InvalidOperationException(
-                "Не удалось подключиться к X-серверу. Проверьте переменную DISPLAY.");
+                "Could not connect to the X server. Check the DISPLAY variable.");
 
         Skia.SkiaImageDecoder.Register();
         Skia.SkiaTextMeasurer.Register();
@@ -32,8 +32,8 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
     {
         _windows[window.Handle] = window;
 
-        // буферу обмена нужно окно-владелец, поэтому создаём его
-        // не в конструкторе платформы, а вместе с первым окном
+        // the clipboard needs an owner window, so it is created
+        // not in the platform's constructor but together with the first window
         if (_clipboard is null)
         {
             _clipboard = new X11Clipboard(Display, window.Handle);
@@ -62,7 +62,7 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
     {
         var dialogWindow = (X11Window)until;
 
-        // вложенный цикл: крутится, пока живо окно диалога
+        // the nested loop: spins while the dialog's window is alive
         while (dialogWindow.Handle != 0 && _windows.ContainsKey(dialogWindow.Handle))
             PumpOnce();
     }
@@ -95,7 +95,7 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
     {
         WaitForEventOrTimeout();
 
-        // разбираем всё, что накопилось, не блокируясь
+        // handle everything that has accumulated, without blocking
         while (X11.XPending(Display) > 0)
         {
             nint buffer = Marshal.AllocHGlobal(192);
@@ -112,13 +112,24 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
         }
 
         DispatchTick();
+
+        // one frame per pump for every window that asked for one: after the input
+        // and the tick, so that everything they changed goes into the same frame.
+        // A copy — painting a window must not trip over a window closing
+        foreach (X11Window window in _windows.Values.ToList())
+            window.PaintIfRequested();
     }
 
     private void WaitForEventOrTimeout()
     {
-        // события уже есть — ждать нечего
+        // there are events already — there is nothing to wait for
         if (X11.XPending(Display) > 0)
             return;
+
+        // a frame is waiting — waiting for input would delay it by up to 100 ms
+        foreach (X11Window window in _windows.Values)
+            if (window.IsPaintRequested)
+                return;
 
         int fd = X11.XConnectionNumber(Display);
 
@@ -126,8 +137,8 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
         readSet.Clear();
         readSet.Set(fd);
 
-        // без анимаций ждём событие сколь угодно долго, с анимациями —
-        // просыпаемся к следующему кадру, даже если ввода не было
+        // without animations we wait for an event as long as needed, with animations —
+        // we wake up for the next frame, even if there was no input
         int timeoutMs = _tickingWindows.Count > 0 ? _tickIntervalMs : 100;
 
         var timeout = new X11.TimeVal
@@ -150,8 +161,8 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
 
         _lastTickTicks = now;
 
-        // Tick может остановить анимации и убрать окно из набора —
-        // поэтому идём по копии
+        // Tick may stop animations and remove the window from the set —
+        // so we go over a copy
         foreach (X11Window window in _tickingWindows.ToList())
             window.RaiseTick();
     }
@@ -166,7 +177,7 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
 
     internal void WakeUp(X11Window window)
     {
-        // будим XNextEvent, отправив окну собственное сообщение
+        // wake XNextEvent up by sending the window a message of its own
         var message = new X11.XClientMessageEvent
         {
             type = X11.ClientMessage,
@@ -201,8 +212,8 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
                     var button = Marshal.PtrToStructure<X11.XButtonEvent>(eventPtr);
                     if (!_windows.TryGetValue(button.window, out X11Window? window)) break;
 
-                    // X11 не умеет «выключить» окно, как EnableWindow в Win32:
-                    // модальность приходится делать отбрасыванием ввода
+                    // X11 can't "disable" a window the way EnableWindow does in Win32:
+                    // modality has to be done by dropping input
                     if (!window.IsInputEnabled) break;
 
                     var point = new Point(button.x / window.Scale, button.y / window.Scale);
@@ -215,7 +226,7 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
                         case 3: window.Form.OnPointerDown(point, MouseButton.Right, modifiers); break;
                         case 4: window.Form.OnMouseWheel(point, 120); break;
                         case 5: window.Form.OnMouseWheel(point, -120); break;
-                        // горизонтальное колесо X11 отдаёт как нажатия кнопок
+                        // X11 gives the horizontal wheel as button presses
                         case 6: window.Form.OnMouseWheel(point, 0, -120); break;
                         case 7: window.Form.OnMouseWheel(point, 0, 120); break;
                     }
@@ -262,9 +273,14 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
                 }
             case X11.Expose:
                 {
-                    var configure = Marshal.PtrToStructure<X11.XConfigureEvent>(eventPtr);
-                    if (_windows.TryGetValue(configure.window, out X11Window? window))
-                        window.Paint();
+                    // XAnyEvent, not XConfigureEvent: the latter has an extra field
+                    // before "window", and reading Expose through it never found the window
+                    var expose = Marshal.PtrToStructure<X11.XAnyEvent>(eventPtr);
+
+                    // Expose comes in series — one per uncovered rectangle; they all
+                    // merge into one deferred frame
+                    if (_windows.TryGetValue(expose.window, out X11Window? window))
+                        window.Invalidate(null);
                     break;
                 }
 
@@ -297,17 +313,21 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
                     var key = Marshal.PtrToStructure<X11.XKeyEvent>(eventPtr);
                     if (!_windows.TryGetValue(key.window, out X11Window? window)) break;
 
+                    // modality by dropping input, as for the mouse above: keystrokes
+                    // used to reach the owner window under an open modal dialog
+                    if (!window.IsInputEnabled) break;
+
                     var modifiers = KeyModifiers.None;
                     if ((key.state & X11.ShiftMask) != 0) modifiers |= KeyModifiers.Shift;
                     if ((key.state & X11.ControlMask) != 0) modifiers |= KeyModifiers.Control;
                     if ((key.state & X11.Mod1Mask) != 0) modifiers |= KeyModifiers.Alt;
 
                     nuint keysym = X11.XLookupKeysym(eventPtr, 0);
-                    // X11 присылает автоповтор как обычную пару release+press;
-                    // различить их можно только через XkbSetDetectableAutoRepeat — TODO
+                    // X11 sends auto-repeat as an ordinary release+press pair;
+                    // they can be told apart only through XkbSetDetectableAutoRepeat — TODO
                     window.Form.OnKeyDown(X11KeyMap.ToKey(keysym), modifiers, isRepeat: false);
 
-                    // печатные символы отдельным вызовом
+                    // printable characters with a separate call
                     byte[] buffer = new byte[8];
                     int count = X11.XLookupString(eventPtr, buffer, buffer.Length, out _, 0);
 
@@ -336,6 +356,13 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
 
             case X11.FocusOut:
                 {
+                    // we won't learn about key releases anymore — the form resets the
+                    // keyboard state, as WM_KILLFOCUS does on Windows. This case used to
+                    // be empty, and after Alt+Tab the modifiers stuck
+                    var focus = Marshal.PtrToStructure<X11.XAnyEvent>(eventPtr);
+
+                    if (_windows.TryGetValue(focus.window, out X11Window? window))
+                        window.Form.OnWindowFocusLost();
 
                     break;
                 }
@@ -345,8 +372,8 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
                     var selection = Marshal.PtrToStructure<X11.XSelectionEvent>(eventPtr);
                     if (!_windows.TryGetValue(selection.requestor, out X11Window? window)) break;
 
-                    // XDND забирает только своё свойство переноса; буфер обмена
-                    // ждёт своё событие собственным циклом и сюда не приходит
+                    // XDND takes only its own transfer property; the clipboard waits
+                    // for its event with its own loop and doesn't come here
                     window.DropTarget?.HandleSelection(selection.property);
 
                     break;
@@ -357,8 +384,8 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
                     var message = Marshal.PtrToStructure<X11.XClientMessageEvent>(eventPtr);
                     if (!_windows.TryGetValue(message.window, out X11Window? window)) break;
 
-                    // XDND проверяем первым: его сообщений больше всех,
-                    // и они не пересекаются ни с очередью вызовов, ни с закрытием
+                    // XDND is checked first: its messages are the most numerous,
+                    // and they don't overlap with either the invoke queue or closing
                     if (window.DropTarget?.Handle(message) == true)
                         break;
 

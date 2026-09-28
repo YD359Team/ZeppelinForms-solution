@@ -1,7 +1,7 @@
 ﻿namespace ZeppelinForms.Linux;
 
-/// <summary>Кадры выдаёт цикл платформы: X11 таймеров окна не имеет,
-/// поэтому платформа сама отмеряет интервал между итерациями.</summary>
+/// <summary>Frames are given out by the platform's loop: X11 windows have no
+/// timers, so the platform measures the interval between iterations itself.</summary>
 internal sealed class X11FrameDriver(X11Platform platform, X11Window window) : IFrameDriver
 {
     public bool IsRunning { get; private set; }

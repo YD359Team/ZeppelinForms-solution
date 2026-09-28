@@ -43,9 +43,9 @@ internal sealed class X11SkiaSurface : IDisposable
         int stride = width * 4;
         _pixels = Marshal.AllocHGlobal(stride * height);
 
-        // XCreateImage забирает буфер во владение только на чтение —
-        // освобождать его должны мы сами, но XDestroyImage попытается
-        // сделать free(data), поэтому образ не уничтожаем, а пересоздаём
+        // XCreateImage takes the buffer into ownership only for reading —
+        // we must free it ourselves, but XDestroyImage would try to free(data),
+        // so the image is not destroyed as is but recreated
         _image = X11.XCreateImage(
             _display, _visual, _depth, ZPixmap, 0,
             _pixels, (uint)width, (uint)height, 32, stride);
@@ -73,9 +73,9 @@ internal sealed class X11SkiaSurface : IDisposable
 
         if (_image != 0)
         {
-            // XDestroyImage делает free(image->data). Память буфера принадлежит
-            // нам (AllocHGlobal), поэтому обнуляем указатель на данные и
-            // отдаём X-серверу освободить только саму структуру XImage.
+            // XDestroyImage does free(image->data). The buffer's memory belongs to us
+            // (AllocHGlobal), so the data pointer is zeroed and the X library is left
+            // to free only the XImage structure itself.
             Marshal.WriteIntPtr(_image, DataFieldOffset, 0);
             X11.XDestroyImage(_image);
             _image = 0;
@@ -89,7 +89,7 @@ internal sealed class X11SkiaSurface : IDisposable
     }
 
     // struct _XImage: int width, height, xoffset, format; char* data;
-    // четыре int по 4 байта, затем указатель с выравниванием по 8 на x64
+    // four 4-byte ints, then a pointer aligned to 8 on x64
     private static readonly int DataFieldOffset = 16;
 
     public void Dispose() => Release();
@@ -111,7 +111,7 @@ internal sealed class X11SkiaSurface : IDisposable
 
             if (right <= x || bottom <= y) return;
 
-            // копируем на экран только изменившийся прямоугольник
+            // only the changed rectangle is copied to the screen
             X11.XPutImage(_display, _window, _gc, _image,
                 x, y, x, y, (uint)(right - x), (uint)(bottom - y));
         }

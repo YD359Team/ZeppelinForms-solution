@@ -819,11 +819,13 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// the write itself doesn't express: stop an animation on hide, reconcile
     /// dependent values, recompute a cache.</summary>
     /// <remarks>
-    /// Called before the element requests layout or a redraw. A platform may
-    /// paint right inside Invalidate — X11 does — and a reaction that runs after
-    /// it leaves that frame drawn from stale state: Label measured its new text
-    /// with the lines split from the old one and lagged one keystroke behind
-    /// a bound TextBox.
+    /// Called before the element requests layout or a redraw. Win32 and X11 used
+    /// to paint right inside Invalidate, and a reaction that ran after it left that
+    /// frame drawn from stale state: Label measured its new text with the lines
+    /// split from the old one and lagged one keystroke behind a bound TextBox.
+    /// Both paint deferred now, but the order stays: nothing guarantees that no
+    /// code reads the element between the invalidation and the reaction —
+    /// UpdateLayout, a handler, a future platform.
     /// </remarks>
     protected virtual void OnStyledPropertyChanged(StyledProperty property) { }
 
@@ -1553,8 +1555,9 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     ///
     /// Font and FlowDirection are inherited through EffectiveFont and
     /// EffectiveFlowDirection rather than the Inherits flag, so they are named here.
-    /// Descendants are marked first and without a request to the form: Win32 and X11
-    /// paint inside Invalidate, and would lay out before the marks are in place.
+    /// Descendants are marked first, before the request to the form: anything that
+    /// lays out on that request — a platform painting inside Invalidate, as Win32
+    /// and X11 once did — must find the marks already in place.
     /// </remarks>
     private void InvalidateLayoutFor(StyledProperty property)
     {

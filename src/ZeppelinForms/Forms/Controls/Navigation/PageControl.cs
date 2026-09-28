@@ -295,8 +295,9 @@ public class PageControl : DecoratedPanel
             // the new page simply appears in place of the old one
             && !Motion.IsReduced;
 
-        // the transition state is set before IsVisible. Its setter can lead to
-        // a layout right away — Win32 and X11 paint inside Invalidate — and
+        // the transition state is set before IsVisible. Its setter may lead to
+        // a layout right away — whenever something lays out on the invalidation,
+        // as Win32 and X11 once did by painting inside Invalidate — and
         // ArrangeContentOverride restores the offsets only when _outgoing and
         // _progress are filled in: otherwise both pages would end up in one slot,
         // and that frame would get drawn
