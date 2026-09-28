@@ -59,6 +59,14 @@ public static class ElementTreeRenderer
             !element.LocalDirtyBounds.Offset(placed.X, placed.Y).IntersectsWith(visible))
             return;
 
+        // an element in a transition moves every frame. Where it is drawn now is
+        // reported back, so that the next frame repaints this place after the element
+        // has moved on. Only the renderer knows the exact place — with the ancestors'
+        // scroll and the transition's current offset — and the frame a transition
+        // starts in is drawn before any tick could record anything
+        if (element.IsInTransition)
+            element.NotePresentedBounds(element.LocalDirtyBounds.Offset(placed.X, placed.Y));
+
         // but the children get an already shifted origin: the offset is the same
         // translation as Position, and it doesn't get in the way of culling
         var position = new Point(

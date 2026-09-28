@@ -1219,10 +1219,26 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     private List<Transition>? _transitionRules;
     private List<IPropertyTransition>? _running;
 
-    /// <summary>Where the element was drawn on the previous transition frame.
-    /// The next frame must repaint that place too: the element has moved away
-    /// from it, and nothing else knows it was ever there.</summary>
+    /// <summary>Where the renderer last drew the element while a transition was
+    /// running, in absolute coordinates. The next transition frame repaints that
+    /// place too: the element has moved away from it, and nothing else knows it
+    /// was ever there.</summary>
+    /// <remarks>
+    /// Reported by the renderer rather than computed here: only the renderer knows
+    /// for sure where a frame put the element. It also covers the frame a transition
+    /// starts in — that frame is drawn right after the layout that started it, before
+    /// any transition tick. When the element recorded its own position on each tick,
+    /// that first position was never recorded, and on platforms that repaint only
+    /// dirty areas the row's text stayed at its starting place over its neighbours.
+    /// </remarks>
     private Rectangle? _lastPresentedBounds;
+
+    /// <summary>A transition is running: the renderer reports where it draws the element.</summary>
+    internal bool IsInTransition => _running is not null;
+
+    /// <summary>Called by the renderer for an element in a transition, with the
+    /// absolute bounds it has just been drawn at.</summary>
+    internal void NotePresentedBounds(Rectangle bounds) => _lastPresentedBounds = bounds;
 
     [ThreadStatic] private static int s_presentationDepth;
 
@@ -1394,14 +1410,13 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
     /// <summary>A transition frame: redraw the element without touching layout.</summary>
     /// <remarks>
-    /// The dirty area is where the element is drawn now — computed inside
-    /// a presentation scope, so it sees the intermediate values — united with
-    /// where it was drawn on the previous frame. This used to be plain DirtyBounds,
-    /// which is computed outside presentation and sees the transition's target:
-    /// a row sliding into place invalidated its final position every frame, never
-    /// the one it was actually drawn at, and platforms that repaint only dirty
-    /// areas (X11, the Windows software surface) left its text smeared over its
-    /// neighbours until something else repainted there.
+    /// The dirty area is where the element will be drawn now — computed inside
+    /// a presentation scope, so it sees the intermediate values — united with where
+    /// the renderer last drew it. Plain DirtyBounds is computed outside presentation
+    /// and sees the transition's target: a row sliding into place used to invalidate
+    /// its final position every frame, never the one it was actually drawn at, and
+    /// platforms that repaint only dirty areas (X11, the Windows software surface)
+    /// left its text smeared over its neighbours until something else repainted there.
     /// </remarks>
     internal void InvalidateTransitionVisual()
     {
@@ -1413,10 +1428,8 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         using (BeginPresentation())
             now = DirtyBounds;
 
-        Rectangle area = _lastPresentedBounds is { } before ? before.Union(now) : now;
-        _lastPresentedBounds = now;
-
-        FindOwner()?.InvalidateRect(area);
+        FindOwner()?.InvalidateRect(
+            _lastPresentedBounds is { } drawn ? drawn.Union(now) : now);
     }
 
     private Point _arrangedPosition;
