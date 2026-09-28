@@ -1219,6 +1219,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     private List<Transition>? _transitionRules;
     private List<IPropertyTransition>? _running;
 
+    /// <summary>Where the element was drawn on the previous transition frame.
+    /// The next frame must repaint that place too: the element has moved away
+    /// from it, and nothing else knows it was ever there.</summary>
+    private Rectangle? _lastPresentedBounds;
+
     [ThreadStatic] private static int s_presentationDepth;
 
     /// <summary>The global switch for transitions: for the system "reduce motion"
@@ -1371,11 +1376,48 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
         if (_running.Count == 0) _running = null;
 
+        // the element returns to where its properties put it: that place is
+        // repainted, and so is the one it was last drawn at mid-transition —
+        // otherwise the last intermediate frame would stay on screen
+        if (_lastPresentedBounds is { } before &&
+            float.IsFinite(ActualSize.Width) && float.IsFinite(ActualSize.Height))
+        {
+            FindOwner()?.InvalidateRect(before.Union(DirtyBounds));
+
+            if (_running is null) _lastPresentedBounds = null;
+
+            return;
+        }
+
         InvalidateVisual();
     }
 
     /// <summary>A transition frame: redraw the element without touching layout.</summary>
-    internal void InvalidateTransitionVisual() => InvalidateVisual();
+    /// <remarks>
+    /// The dirty area is where the element is drawn now — computed inside
+    /// a presentation scope, so it sees the intermediate values — united with
+    /// where it was drawn on the previous frame. This used to be plain DirtyBounds,
+    /// which is computed outside presentation and sees the transition's target:
+    /// a row sliding into place invalidated its final position every frame, never
+    /// the one it was actually drawn at, and platforms that repaint only dirty
+    /// areas (X11, the Windows software surface) left its text smeared over its
+    /// neighbours until something else repainted there.
+    /// </remarks>
+    internal void InvalidateTransitionVisual()
+    {
+        if (!float.IsFinite(ActualSize.Width) || !float.IsFinite(ActualSize.Height))
+            return;
+
+        Rectangle now;
+
+        using (BeginPresentation())
+            now = DirtyBounds;
+
+        Rectangle area = _lastPresentedBounds is { } before ? before.Union(now) : now;
+        _lastPresentedBounds = now;
+
+        FindOwner()?.InvalidateRect(area);
+    }
 
     private Point _arrangedPosition;
     private bool _skipLayoutTransition;
