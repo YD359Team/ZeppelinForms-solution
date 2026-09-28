@@ -32,6 +32,11 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 
     private bool _trackingMouse;
 
+    /// <summary>We are releasing the capture ourselves. ReleaseCapture sends
+    /// WM_CAPTURECHANGED synchronously, and without this flag our own release
+    /// looked exactly like the capture being taken away.</summary>
+    private bool _releasingCapture;
+
     private float _scale = 1f;
     public float Scale => _scale;
 
@@ -42,8 +47,8 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
         _platform = platform;
         _form = form;
 
-        // драйверу нужен дескриптор, которого на этот момент ещё нет —
-        // поэтому не значение, а способ его получить
+        // the driver needs a handle that doesn't exist yet at this point —
+        // so not the value but a way to get it
         Frames = new Win32FrameDriver(() => _handle);
     }
 
@@ -71,18 +76,14 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 
         switch (_form.WindowStartupLocation)
         {
+            // the window doesn't know its owner — Form.ShowDialog doesn't pass it
+            // to the platform — so CenterOwner centers on the screen for now
             case WindowStartupLocation.CenterScreen:
-                DisplayInfo display = Displays.Primary;
-                Rectangle area = display.WorkingArea;
+            case WindowStartupLocation.CenterOwner:
+                Rectangle area = Displays.Primary.WorkingArea;
 
                 x = (int)(area.X + (area.Width - width * _scale) / 2);
                 y = (int)(area.Y + (area.Height - height * _scale) / 2);
-                break;
-            case WindowStartupLocation.CenterOwner:
-                // GetSystemMetrics отдаёт физические пиксели, а width/height у нас
-                // логические — на 150% окно уедет левее и выше центра
-                x = (NativeMethods.GetSystemMetrics(NativeConstants.SM_CXSCREEN) - width) / 2;
-                y = (NativeMethods.GetSystemMetrics(NativeConstants.SM_CYSCREEN) - height) / 2;
                 break;
 
             case WindowStartupLocation.Manual:
@@ -90,7 +91,7 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
                 y = (int)_form.Position.Y;
                 break;
 
-            default: // Default — отдаём выбор системе (каскад окон)
+            default: // Default — leave the choice to the system (window cascade)
                 x = NativeConstants.CW_USEDEFAULT;
                 y = NativeConstants.CW_USEDEFAULT;
                 break;
@@ -107,7 +108,7 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 
             _handle = NativeMethods.CreateWindowEx(
                 0, ClassName, _form.Title ?? string.Empty,
-                style,              // ← вместо WS_OVERLAPPEDWINDOW
+                style,              // ← instead of WS_OVERLAPPEDWINDOW
                 x, y, width, height, 0, 0,
                 NativeMethods.GetModuleHandle(null),
                 GCHandle.ToIntPtr(_selfHandle));
@@ -138,8 +139,13 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 
             if (center)
             {
-                int cx = (NativeMethods.GetSystemMetrics(NativeConstants.SM_CXSCREEN) - physicalWidth) / 2;
-                int cy = (NativeMethods.GetSystemMetrics(NativeConstants.SM_CYSCREEN) - physicalHeight) / 2;
+                // the working area, not SM_CXSCREEN/SM_CYSCREEN: those describe the
+                // whole screen, and the window shifted by the taskbar's height —
+                // while before the DPI correction it was centered on the working area
+                Rectangle area = Displays.Primary.WorkingArea;
+
+                int cx = (int)(area.X + (area.Width - physicalWidth) / 2);
+                int cy = (int)(area.Y + (area.Height - physicalHeight) / 2);
 
                 NativeMethods.SetWindowPos(
                     _handle, 0, cx, cy, physicalWidth, physicalHeight,
@@ -155,8 +161,8 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
             }
         }
 
-        // WM_SIZE во время CreateWindowEx пришёл раньше, чем появилась
-        // поверхность, поэтому первый раз инициализируем её вручную
+        // WM_SIZE during CreateWindowEx came before the surface existed,
+        // so the first time it is initialized by hand
         if (NativeMethods.GetClientRect(_handle, out NativeMethods.RECT clientRect))
         {
             int clientWidth = clientRect.Right - clientRect.Left;
@@ -194,6 +200,12 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
                 NativeConstants.ICON_SMALL,
                 _smallIcon);
         }
+
+        // Invoke before the window existed only queued the action: there was no
+        // handle to post WM_INVOKE to, and without a later Invoke the action
+        // would never run
+        if (!_invokeQueue.IsEmpty)
+            NativeMethods.PostMessage(_handle, NativeConstants.WM_INVOKE, 0, 0);
     }
 
     private void DestroyIcons()
@@ -219,6 +231,7 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
             _handle,
             (int)NativeConstants.SW_SHOW);
 
+        // the first frame is painted right away: the window must not appear empty
         NativeMethods.UpdateWindow(_handle);
     }
 
@@ -226,8 +239,8 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
     {
         if (_handle == 0) return;
 
-        // снимаем приёмник до разрушения окна: RevokeDragDrop работает
-        // с дескриптором, и после DestroyWindow он уже недействителен
+        // the drop target is revoked before the window is destroyed: RevokeDragDrop
+        // works with the handle, and after DestroyWindow it is no longer valid
         SetDragDropEnabled(false);
 
         NativeMethods.DestroyWindow(_handle);
@@ -271,13 +284,23 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
         });
     }
 
+    /// <summary>Mark an area dirty. The frame is painted by WM_PAINT, once,
+    /// when the message queue is empty.</summary>
+    /// <remarks>
+    /// This used to call UpdateWindow, which paints synchronously: every Invalidate
+    /// drew a whole frame, and one user action produces dozens of them — from layout,
+    /// from controls, from bindings, from focus. Worse, a handler that invalidated in
+    /// the middle of changing its state had that half-updated state painted. Frames
+    /// don't suffer from the change: GetMessage hands out WM_PAINT before the next
+    /// WM_TIMER, so every animation tick is painted before the next one comes.
+    /// </remarks>
     public void Invalidate(Rectangle? bounds = null)
     {
         if (_handle == 0) return;
 
         if (bounds is { } rect)
         {
-            // координаты логические, окно ждёт физические
+            // the coordinates are logical, the window expects physical ones
             var native = new NativeMethods.RECT
             {
                 Left = (int)Math.Floor(rect.X * _scale),
@@ -302,8 +325,6 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
         {
             NativeMethods.InvalidateRect(_handle, 0, false);
         }
-
-        NativeMethods.UpdateWindow(_handle);
     }
 
     public void SetOpacity(float opacity)
@@ -313,9 +334,9 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
         nint exStyle = NativeMethods.GetWindowLongPtr(_handle, NativeConstants.GWL_EXSTYLE);
         bool isLayered = (exStyle & (nint)NativeConstants.WS_EX_LAYERED) != 0;
 
-        // Полностью непрозрачное окно НЕ должно быть layered: в этом режиме
-        // Windows композитит окно отдельно и игнорирует прямой вывод в DC,
-        // которым рисует Skia — окно окажется пустым.
+        // A fully opaque window must NOT be layered: in that mode Windows composites
+        // the window separately and ignores direct output into the DC, which is how
+        // Skia draws — the window would end up empty.
         if (opacity >= 1f)
         {
             if (isLayered)
@@ -356,15 +377,21 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
         switch (message)
         {
             case NativeConstants.WM_SETTINGCHANGE:
-                // из общих настроек нам нужна одна — анимация интерфейса.
-                // Сообщение дальше уходит в DefWindowProc: его ждут и другие
+                // of the general settings we need one — interface animation.
+                // The message then goes on to DefWindowProc: others wait for it too.
+                // It used to return 0 here, contrary to this very comment
                 _platform.OnSystemSettingsChanged();
-                return 0;
+                return NativeMethods.DefWindowProc(hWnd, message, wParam, lParam);
 
             case NativeConstants.WM_CAPTURECHANGED:
-                // захват отобрали извне: своё состояние надо сбросить,
-                // иначе перетаскивание останется висеть
-                _form.OnCaptureLost();
+                // the capture was taken away from outside: our own state must be
+                // reset, otherwise a drag would stay hanging. Our own ReleaseCapture
+                // sends this message too — that is not a loss, and treating it as one
+                // cancelled every interaction that ended normally: the contact lost
+                // its pressed element, and the click after the release never came
+                if (!_releasingCapture)
+                    _form.OnCaptureLost();
+
                 return 0;
 
             case NativeConstants.WM_LBUTTONDOWN:
@@ -434,8 +461,8 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
                         _ => WindowState.Normal,
                     });
 
-                    // при сворачивании система шлёт размер 0×0 — считать layout
-                    // по нулевой области бессмысленно и вредно (всё схлопнется)
+                    // on minimizing the system sends a 0×0 size — computing layout
+                    // for a zero area is pointless and harmful (everything collapses)
                     if (flag == NativeConstants.SIZE_MINIMIZED)
                         return 0;
 
@@ -447,6 +474,8 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
                     _form.ClientSize = new Size(width / _scale, height / _scale);
                     _form.PerformLayout();
 
+                    // synchronous here on purpose: during a live resize of the frame
+                    // a deferred paint leaves stale strips at the growing edges
                     NativeMethods.InvalidateRect(hWnd, 0, false);
                     NativeMethods.UpdateWindow(hWnd);
                     return 0;
@@ -454,13 +483,15 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 
             case NativeConstants.WM_MOUSEHWHEEL:
                 {
-                    short delta = (short)((long)wParam >> 16);
-                    // координаты у колеса экранные, в отличие от остальных
-                    // сообщений мыши, — приводим так же, как для WM_MOUSEWHEEL
-                    var screenPoint = PointFromLParam(lParam);
+                    // the high word of wParam is signed: scrolling left gives a negative delta
+                    int delta = (short)((wParam.ToInt64() >> 16) & 0xFFFF);
 
+                    // wheel coordinates are screen ones, unlike the other mouse
+                    // messages. The comment used to say they were converted the same
+                    // way as for WM_MOUSEWHEEL, but ScreenToClient was never called,
+                    // and PointFromLParam's division by the scale was then repeated
                     _form.OnMouseWheel(
-                        new Point(screenPoint.X / _scale, screenPoint.Y / _scale),
+                        ClientPointFromScreenLParam(hWnd, lParam),
                         delta: 0,
                         horizontalDelta: delta);
 
@@ -475,7 +506,7 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
                 {
                     _scale = (ushort)(wParam.ToInt64() & 0xFFFF) / 96f;
 
-                    // lParam — предложенный системой прямоугольник для нового DPI
+                    // lParam — the rectangle suggested by the system for the new DPI
                     var suggested = Marshal.PtrToStructure<NativeMethods.RECT>(lParam);
 
                     NativeMethods.SetWindowPos(
@@ -489,9 +520,10 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
                 }
 
             case NativeConstants.WM_ERASEBKGND:
-                // Skia сам чистит канвас в Render() — не даём Windows
-                // затирать фон системной кистью между resize и нашим WM_PAINT
-                // (иначе будет мерцание, вы это уже проходили на WinForms-стороне).
+                // Skia clears the canvas itself in Render() — Windows must not wipe
+                // the background with the system brush between a resize and our
+                // WM_PAINT (otherwise there is flicker, as the WinForms side has
+                // already been through).
                 return 1;
 
             case NativeConstants.WM_PAINT:
@@ -502,8 +534,8 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
                     {
                         if (_skiaSurface?.BeginFrame() is SKSurface surface)
                         {
-                            // GL-поверхность после SwapBuffers содержит мусор,
-                            // частичная перерисовка для неё невозможна
+                            // a GL surface contains garbage after SwapBuffers,
+                            // a partial redraw is impossible for it
                             Rectangle? clip = _skiaSurface.SupportsPartialRedraw
                                 ? new Rectangle(
                                     new Point(ps.rcPaint.Left / _scale, ps.rcPaint.Top / _scale),
@@ -533,8 +565,8 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 
             case NativeConstants.WM_MOUSEMOVE:
                 {
-                    // (short), не просто маска — координаты могут быть отрицательными
-                    // на мультимониторных конфигурациях с монитором левее/выше основного
+                    // (short), not just a mask — coordinates may be negative on
+                    // multi-monitor setups with a monitor left of or above the primary one
                     int x = (short)(lParam.ToInt64() & 0xFFFF);
                     int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
 
@@ -565,14 +597,7 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
                 {
                     int delta = (short)((wParam.ToInt64() >> 16) & 0xFFFF);
 
-                    var screenPoint = new NativeMethods.POINT
-                    {
-                        X = (short)(lParam.ToInt64() & 0xFFFF),
-                        Y = (short)((lParam.ToInt64() >> 16) & 0xFFFF),
-                    };
-                    NativeMethods.ScreenToClient(hWnd, ref screenPoint);
-
-                    _form.OnMouseWheel(new Point(screenPoint.X / _scale, screenPoint.Y / _scale), delta);
+                    _form.OnMouseWheel(ClientPointFromScreenLParam(hWnd, lParam), delta);
                     return 0;
                 }
 
@@ -596,8 +621,8 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 
             case NativeConstants.WM_SETCURSOR:
                 {
-                    // курсором распоряжаемся сами, только в клиентской области;
-                    // рамки и заголовок оставляем системе
+                    // we manage the cursor ourselves, only in the client area;
+                    // the frame and the title bar are left to the system
                     int hitTest = (int)(lParam.ToInt64() & 0xFFFF);
 
                     if (hitTest == 1 /* HTCLIENT */)
@@ -642,8 +667,7 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 
         var windowClass = new NativeMethods.WNDCLASSEX
         {
-            cbSize = (uint)Marshal.SizeOf<
-                NativeMethods.WNDCLASSEX>(),
+            cbSize = (uint)Marshal.SizeOf<NativeMethods.WNDCLASSEX>(),
 
             lpfnWndProc = s_wndProc,
 
@@ -772,37 +796,64 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 
     private Point PointFromLParam(nint lParam)
     {
-        // (short), а не маска: координаты бывают отрицательными
-        // на мультимониторных конфигурациях
+        // (short) rather than a mask: coordinates may be negative
+        // on multi-monitor setups
         int x = (short)(lParam.ToInt64() & 0xFFFF);
         int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
 
         return new Point(x / _scale, y / _scale);
     }
 
+    /// <summary>A screen point from a wheel message's lParam in logical client
+    /// coordinates. Both wheels send screen coordinates, unlike the other
+    /// mouse messages.</summary>
+    private Point ClientPointFromScreenLParam(nint hWnd, nint lParam)
+    {
+        var screenPoint = new NativeMethods.POINT
+        {
+            X = (short)(lParam.ToInt64() & 0xFFFF),
+            Y = (short)((lParam.ToInt64() >> 16) & 0xFFFF),
+        };
+
+        NativeMethods.ScreenToClient(hWnd, ref screenPoint);
+
+        return new Point(screenPoint.X / _scale, screenPoint.Y / _scale);
+    }
+
     public void CaptureMouse() => NativeMethods.SetCapture(_handle);
 
-    public void ReleaseMouseCapture() => NativeMethods.ReleaseCapture();
+    public void ReleaseMouseCapture()
+    {
+        // ReleaseCapture sends WM_CAPTURECHANGED right inside this call:
+        // the flag tells that message it is our own release, not a loss
+        _releasingCapture = true;
+
+        try
+        {
+            NativeMethods.ReleaseCapture();
+        }
+        finally
+        {
+            _releasingCapture = false;
+        }
+    }
 
     private Win32DropTarget? _dropTarget;
 
     public void SetDragDropEnabled(bool enabled)
     {
-        Debug.WriteLine($"SetDragDropEnabled({enabled}) handle=0x{_handle:X} " +
-    $"apartment={Thread.CurrentThread.GetApartmentState()}");
-
         if (enabled == (_dropTarget is not null)) return;
 
         if (enabled)
         {
             int ole = Ole32.OleInitialize(0);
 
-            // RPC_E_CHANGED_MODE: поток в MTA. Чаще всего это забытый
-            // [STAThread] на Main — и без него перетаскивание невозможно
+            // RPC_E_CHANGED_MODE: the thread is in MTA. Most often this is a forgotten
+            // [STAThread] on Main — and without it dragging is impossible
             if (ole == unchecked((int)0x80010106))
                 throw new InvalidOperationException(
-                    "Перетаскивание из системы требует STA-потока. " +
-                    "Поставьте [STAThread] на метод Main.");
+                    "Drag and drop from the system requires an STA thread. " +
+                    "Put [STAThread] on the Main method.");
 
             var target = new Win32DropTarget(_form, ToClient);
 
@@ -813,11 +864,11 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
                 Ole32.OleUninitialize();
 
                 throw new InvalidOperationException(
-                    $"RegisterDragDrop вернул 0x{result:X8}.");
+                    $"RegisterDragDrop returned 0x{result:X8}.");
             }
 
-            // ссылку держим полем: RegisterDragDrop не удерживает
-            // управляемый объект от сборки
+            // the reference is held in a field: RegisterDragDrop doesn't keep
+            // the managed object from being collected
             _dropTarget = target;
 
             return;
@@ -829,8 +880,8 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
         Ole32.OleUninitialize();
     }
 
-    /// <summary>Экранные координаты в клиентские с поправкой на масштаб.
-    /// IDropTarget, в отличие от сообщений мыши, отдаёт экранные.</summary>
+    /// <summary>Screen coordinates to client ones, accounting for the scale.
+    /// IDropTarget, unlike mouse messages, gives screen coordinates.</summary>
     private Point ToClient(Point screen)
     {
         var p = new POINT { X = (int)screen.X, Y = (int)screen.Y };

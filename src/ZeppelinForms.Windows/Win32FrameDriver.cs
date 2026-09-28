@@ -1,7 +1,7 @@
 ﻿namespace ZeppelinForms.Windows;
 
-/// <summary>Кадры через таймер окна: WM_TIMER приходит в тот же цикл
-/// сообщений, что и ввод, поэтому отдельной синхронизации не нужно.</summary>
+/// <summary>Frames through the window's timer: WM_TIMER comes into the same
+/// message loop as input, so no separate synchronization is needed.</summary>
 internal sealed class Win32FrameDriver(Func<nint> handle) : IFrameDriver
 {
     public bool IsRunning { get; private set; }
@@ -26,8 +26,8 @@ internal sealed class Win32FrameDriver(Func<nint> handle) : IFrameDriver
         IsRunning = false;
     }
 
-    /// <summary>Одиночный кадр — это просто пометка окна грязным:
-    /// WM_PAINT придёт сам, отдельного механизма не требуется.</summary>
+    /// <summary>A single frame is simply marking the window dirty:
+    /// WM_PAINT comes by itself, no separate mechanism is needed.</summary>
     public void RequestFrame()
     {
         nint hwnd = handle();

@@ -25,17 +25,17 @@ public class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMotionSetti
 
     public event EventHandler? Changed;
 
-    /// <summary>«Показывать анимацию в Windows» выключен — значит просят
-    /// уменьшить движение. Если запрос не удался, считаем, что не просят:
-    /// так приложение ведёт себя как раньше, а не теряет анимацию молча.</summary>
+    /// <summary>"Show animations in Windows" is off — that means motion should be
+    /// reduced. If the query fails, we assume it isn't asked for: this way the
+    /// application behaves as before rather than silently losing its animation.</summary>
     private static bool QueryReducedMotion() =>
         NativeMethods.SystemParametersInfo(
             NativeConstants.SPI_GETCLIENTAREAANIMATION, 0, out int enabled, 0)
         && enabled == 0;
 
-    /// <summary>Пришёл WM_SETTINGCHANGE. Его рассылают всем окнам верхнего
-    /// уровня, поэтому перечитываем настройку и сообщаем только о настоящей
-    /// смене — окон может быть несколько.</summary>
+    /// <summary>WM_SETTINGCHANGE arrived. It is broadcast to all top-level windows,
+    /// so the setting is re-read and only a real change is reported — there may be
+    /// several windows.</summary>
     internal void OnSystemSettingsChanged()
     {
         bool reduced = QueryReducedMotion();
@@ -82,14 +82,31 @@ public class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMotionSetti
         }
     }
 
+    /// <remarks>
+    /// GetMessage returns 0 on WM_QUIT and takes it off the queue. The nested loop
+    /// used to simply exit on it, and the outer loop never saw the quit: Exit() or
+    /// the last window closing during a modal dialog didn't end the application.
+    /// Now the nested loop posts WM_QUIT again for the outer loop to see.
+    /// </remarks>
     public void RunNestedLoop(IPlatformWindow until)
     {
         var window = (Win32Window)until;
 
-        // WM_NCDESTROY обнулит Handle, и следующая проверка выпустит нас наружу
-        while (window.Handle != 0 &&
-               NativeMethods.GetMessage(out NativeMethods.MSG message, 0, 0, 0) > 0)
+        // WM_NCDESTROY resets Handle, and the next check lets us out
+        while (window.Handle != 0)
         {
+            int result = NativeMethods.GetMessage(out NativeMethods.MSG message, 0, 0, 0);
+
+            if (result == 0)
+            {
+                // WM_QUIT: hand it on to the outer loop with the same exit code
+                NativeMethods.PostQuitMessage((int)message.wParam);
+                return;
+            }
+
+            // -1 — an error, the handle is invalid; there is nothing to pump anymore
+            if (result < 0) return;
+
             NativeMethods.TranslateMessage(ref message);
             NativeMethods.DispatchMessage(ref message);
         }
