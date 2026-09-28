@@ -8,10 +8,10 @@ using ZeppelinForms.Input.Pointer;
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// Форма как слой на общем canvas. Поверхностью и раздачей ввода владеет
-/// платформа — окно знает только своё место на холсте. IDesktopWindow
-/// не реализует намеренно: заголовка, прозрачности и состояния окна
-/// в браузере нет, и Form сам пропустит эти вызовы, увидев null.
+/// A form as a layer on the shared canvas. The platform owns the surface and input
+/// distribution — the window knows only its place on the canvas. It deliberately
+/// doesn't implement IDesktopWindow: a browser has no title bar, transparency or
+/// window state, and Form skips those calls by itself when it sees null.
 /// </summary>
 internal sealed class BrowserWindow : IPlatformWindow
 {
@@ -31,8 +31,8 @@ internal sealed class BrowserWindow : IPlatformWindow
 
     internal Form Form => _form;
 
-    /// <summary>Левый верхний угол формы на холсте в логических единицах.
-    /// У нижней формы всегда ноль, у диалогов ставится платформой.</summary>
+    /// <summary>The form's top-left corner on the canvas in logical units.
+    /// Always zero for the bottom form, set by the platform for dialogs.</summary>
     internal Point Origin { get; set; }
 
     internal bool IsInputEnabled { get; private set; } = true;
@@ -54,9 +54,9 @@ internal sealed class BrowserWindow : IPlatformWindow
         _form.OnWindowClosed();
     }
 
-    /// <summary>Область игнорируется: кадр всё равно уходит на canvas целиком,
-    /// да и слои поверх пришлось бы перерисовывать вместе с ним. Сама
-    /// отрисовка откладывается до ближайшего кадра — см. BrowserPlatform.Invalidate.</summary>
+    /// <summary>The area is ignored: the frame goes onto the canvas whole anyway,
+    /// and the layers above would have to be redrawn with it. The drawing itself
+    /// is deferred until the next frame — see BrowserPlatform.Invalidate.</summary>
     public void Invalidate(Rectangle? rect) => _platform.Invalidate();
 
     public void Invoke(Action action) => _platform.Enqueue(action);
@@ -68,23 +68,23 @@ internal sealed class BrowserWindow : IPlatformWindow
         _form.Tick();
     }
 
-    // ==== ввод ====
-    // Точки приходят в координатах холста; форма ждёт свои, поэтому
-    // из каждой вычитается Origin. У нижней формы он нулевой.
+    // ==== input ====
+    // Points come in canvas coordinates; the form expects its own, so Origin
+    // is subtracted from each. For the bottom form it is zero.
 
     private Point ToLocal(double x, double y) =>
         new((float)x - Origin.X, (float)y - Origin.Y);
 
-    /// <summary>Идентификаторы касаний браузера произвольны и могут совпасть
-    /// с Form.MousePointerId. Раздаём свои, начиная с десяти, и держим
-    /// соответствие, пока контакт жив.</summary>
+    /// <summary>Browser touch identifiers are arbitrary and may coincide with
+    /// Form.MousePointerId. We hand out our own, starting from ten, and keep
+    /// the mapping while the contact is alive.</summary>
     private readonly Dictionary<int, int> _pointerIds = [];
     private int _nextPointerId = 10;
 
-    /// <summary>Сдвиг между временем браузера (от начала загрузки страницы)
-    /// и Environment.TickCount64, которым живёт Form. Берётся по первому
-    /// событию: сравнивать между собой можно только однородные величины,
-    /// а длительность удержания считается именно вычитанием.</summary>
+    /// <summary>The offset between browser time (since the page started loading)
+    /// and Environment.TickCount64, which Form lives by. Taken from the first event:
+    /// only homogeneous values can be compared, and the hold duration is computed
+    /// exactly by subtraction.</summary>
     private long? _timeOffset;
 
     private long ToTicks(double timestampMs)
@@ -144,8 +144,8 @@ internal sealed class BrowserWindow : IPlatformWindow
     {
         _form.OnPointerUp(ToArgs(x, y, pointerId, kind, button, pressure, timestampMs, modifiers));
 
-        // отпущенный палец больше не вернётся под этим идентификатором,
-        // иначе словарь рос бы всю жизнь страницы
+        // a released finger won't come back under this identifier,
+        // otherwise the dictionary would grow for the whole life of the page
         ForgetPointer(pointerId);
     }
 
@@ -153,7 +153,7 @@ internal sealed class BrowserWindow : IPlatformWindow
     {
         if (!_pointerIds.TryGetValue(pointerId, out int mapped))
         {
-            // мышь в словарь не попадает: её идентификатор фиксирован
+            // the mouse doesn't get into the dictionary: its identifier is fixed
             _form.OnPointerCancel(Form.MousePointerId);
             return;
         }
@@ -164,15 +164,15 @@ internal sealed class BrowserWindow : IPlatformWindow
 
     internal void HandlePointerLeave()
     {
-        // при захвате указателя браузер продолжает присылать события
-        // за пределами canvas — уход курсора тогда не считается уходом
+        // with pointer capture the browser keeps sending events beyond
+        // the canvas — the cursor leaving then doesn't count as leaving
         if (_captured) return;
 
         _form.OnPointerLeaveWindow();
     }
 
     internal void HandleWheel(double x, double y, double deltaY, double deltaX) =>
-        // в Win32 положительная дельта — прокрутка вверх, в браузере наоборот
+        // in Win32 a positive delta scrolls up, in a browser it's the opposite
         _form.OnMouseWheel(ToLocal(x, y), -(int)deltaY, -(int)deltaX);
 
     internal void HandleContextMenu(double x, double y) => _form.OnContextMenu(ToLocal(x, y));
@@ -182,12 +182,20 @@ internal sealed class BrowserWindow : IPlatformWindow
         var mods = (KeyModifiers)modifiers;
         _form.OnKeyDown(BrowserKeyMap.FromCode(code), mods, isRepeat);
 
-        // текст не отдаём, когда нажат Control или Alt: это сочетание,
-        // а не ввод. Shift при этом ввод не отменяет
-        if ((mods & (KeyModifiers.Control | KeyModifiers.Alt)) != 0) return;
+        // Control or Alt alone makes a shortcut, not input. Both together are AltGr
+        // on European layouts — browsers on Windows report it as Ctrl+Alt — and that
+        // is how @, € and [ are typed on a German keyboard. The old check dropped text
+        // whenever either was down, and those characters could not be typed at all
+        bool control = (mods & KeyModifiers.Control) != 0;
+        bool alt = (mods & KeyModifiers.Alt) != 0;
 
-        if (BrowserKeyMap.ToTextInput(key) is { } c)
-            _form.OnTextInput(c);
+        if (control != alt) return;
+
+        // one visible character may be two chars (an emoji, a letter beyond the BMP):
+        // they go one by one, and the text controls assemble the pair themselves
+        if (BrowserKeyMap.ToTextInput(key) is { } text)
+            foreach (char c in text)
+                _form.OnTextInput(c);
     }
 
     internal void HandleKeyUp(string code, int modifiers) =>
@@ -202,25 +210,25 @@ internal sealed class BrowserWindow : IPlatformWindow
         _ => MouseButton.Left,
     };
 
-    // ==== остальное из контракта ====
+    // ==== the rest of the contract ====
 
-    /// <summary>Захвата как в Win32 нет: setPointerCapture ставится в JS
-    /// на pointerdown безусловно, потому что без него браузер обрывает
-    /// перетаскивание на выходе за canvas. Здесь только отметка,
-    /// чтобы не считать уход курсора уходом из окна.</summary>
+    /// <summary>There is no capture as in Win32: setPointerCapture is set in JS
+    /// on pointerdown unconditionally, because without it the browser breaks off
+    /// the drag at the canvas edge. Here it is only a mark, so that the cursor
+    /// leaving isn't counted as leaving the window.</summary>
     public void CaptureMouse() => _captured = true;
 
     public void ReleaseMouseCapture() => _captured = false;
 
     public void SetCursor(CursorKind cursor) => Interop.SetCursor(Interop.ToCssCursor(cursor));
 
-    /// <summary>Перетаскивание файлов из системы пока не поддержано:
-    /// HTML5 drag-and-drop — отдельная работа, а не переключатель.</summary>
+    /// <summary>Dragging files from the system is not supported yet:
+    /// HTML5 drag-and-drop is separate work, not a switch.</summary>
     public void SetDragDropEnabled(bool enabled) { }
 
     public void SetEnabled(bool enabled) => IsInputEnabled = enabled;
 
-    /// <summary>Поднять слой наверх. Так диалог оказывается над владельцем
-    /// независимо от того, в каком порядке их создали.</summary>
+    /// <summary>Raise the layer to the top. This way the dialog ends up above its owner
+    /// regardless of the order they were created in.</summary>
     public void Activate() => _platform.BringToFront(this);
 }

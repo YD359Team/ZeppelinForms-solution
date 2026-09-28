@@ -5,19 +5,19 @@ using ZeppelinForms.Forms;
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// Платформа браузера. Canvas один на всё приложение, поэтому окна здесь —
-/// слои на общей поверхности, а не отдельные окна системы: поверхность,
-/// очередь Invoke и раздача ввода живут в платформе, окна только знают
-/// своё место на ней.
+/// The browser platform. There is one canvas for the whole application, so windows
+/// here are layers on a shared surface rather than separate system windows: the
+/// surface, the Invoke queue and input distribution live in the platform, the
+/// windows only know their place on it.
 ///
-/// INestedLoopSupport не реализует: заблокировать поток и продолжать
-/// получать события в браузере невозможно, поэтому Form.ShowDialog честно
-/// бросит исключение — работает только ShowDialogAsync.
+/// It doesn't implement INestedLoopSupport: blocking the thread and keeping on
+/// receiving events is impossible in a browser, so Form.ShowDialog honestly
+/// throws — only ShowDialogAsync works.
 /// </summary>
 public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSettings
 {
-    /// <summary>Затемнение под модальным диалогом. Своих окон у браузера нет,
-    /// и без этого непонятно, что нижняя форма перестала принимать ввод.</summary>
+    /// <summary>The dimming under a modal dialog. A browser has no windows of its
+    /// own, and without it it's unclear that the form below stopped taking input.</summary>
     private static readonly SKColor s_scrim = new(0, 0, 0, 96);
 
     public event EventHandler? Paused;
@@ -28,7 +28,7 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
 
     public bool PrefersReducedMotion => _reducedMotion;
 
-    /// <summary>Настройка сменилась на ходу — медиазапрос это сообщает.</summary>
+    /// <summary>The setting changed on the fly — the media query reports it.</summary>
     event EventHandler? ISystemMotionSettings.Changed
     {
         add => _motionChanged += value;
@@ -63,9 +63,9 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
     }
 
     /// <summary>
-    /// Модуль zf регистрирует загрузчик страницы через setModuleImports —
-    /// так путь к нему остаётся в main.js, а не зависит от того, куда
-    /// SDK решит положить дополнительные файлы.
+    /// The zf module registers the page loader through setModuleImports —
+    /// this way the path to it stays in main.js rather than depending on where
+    /// the SDK decides to put additional files.
     /// </summary>
     public static BrowserPlatform Create(string canvasId = "zf-canvas")
     {
@@ -86,13 +86,13 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
     }
 
     /// <summary>
-    /// Забрать файлы с сервера и положить в виртуальную ФС по тем же путям.
-    /// Нужно всему, что читает с диска синхронно — Image.LoadAsset,
-    /// Font.WithFile, — потому что в браузере скачать по ходу дела нельзя:
-    /// fetch асинхронный, а эти вызовы ждать не умеют.
+    /// Fetch files from the server and put them into the virtual FS at the same paths.
+    /// Needed by everything that reads from disk synchronously — Image.LoadAsset,
+    /// Font.WithFile — because in a browser nothing can be downloaded on the go:
+    /// fetch is asynchronous, and those calls can't wait.
     ///
-    /// Пути абсолютные и совпадают с адресами на сервере: "/Assets/x.png"
-    /// скачивается из wwwroot/Assets/x.png и туда же ложится в ФС.
+    /// The paths are absolute and match the addresses on the server: "/Assets/x.png"
+    /// is downloaded from wwwroot/Assets/x.png and lands at the same place in the FS.
     /// </summary>
     public static async Task PreloadAsync(params string[] paths)
     {
@@ -100,21 +100,21 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
 
         foreach (string path in paths)
         {
-            // ведущий слэш увёл бы запрос в корень сайта мимо базового адреса
+            // a leading slash would take the request to the site root, past the base address
             using HttpResponseMessage response = await http.GetAsync(path.TrimStart('/'));
 
             response.EnsureSuccessStatusCode();
 
-            // сервер одностраничного приложения на неизвестный адрес отвечает
-            // не 404, а своим index.html со статусом 200. Без этой проверки
-            // HTML уезжает в файловую систему под именем картинки или шрифта,
-            // и ошибка всплывает много позже — в декодере
+            // a single-page application server answers an unknown address not with 404
+            // but with its index.html and status 200. Without this check the HTML goes
+            // into the file system under the name of a picture or a font, and the error
+            // surfaces much later — in the decoder
             if (response.Content.Headers.ContentType?.MediaType is "text/html")
             {
                 throw new InvalidDataException(
-                    $"По адресу {path} сервер отдал HTML вместо файла. " +
-                    "Скорее всего ресурс не опубликован, и запрос увела " +
-                    "подстановка страницы приложения.");
+                    $"The server returned HTML instead of a file at {path}. " +
+                    "Most likely the resource isn't published, and the request was " +
+                    "taken over by the application page fallback.");
             }
 
             byte[] bytes = await response.Content.ReadAsByteArrayAsync();
@@ -128,11 +128,10 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
 
     internal float Scale { get; private set; } = 1f;
 
-    /// <summary>Размер холста в логических единицах.</summary>
+    /// <summary>The canvas size in logical units.</summary>
     internal Size CanvasSize => new(_physicalWidth / Scale, _physicalHeight / Scale);
 
-    /// <summary>Нижняя форма занимает холст целиком; всё, что поверх неё —
-    /// диалоги.</summary>
+    /// <summary>The bottom form takes the whole canvas; everything above it is dialogs.</summary>
     private BrowserWindow? Root => _windows.Count > 0 ? _windows[0] : null;
 
     public IPlatformWindow CreateWindow(Form form)
@@ -148,14 +147,14 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
             _initialized = true;
             Interop.Platform = this;
 
-            // init сам вызовет resize, а тот — HandleResize: размер холста
-            // до этого момента неизвестен, раскладывать нечего
+            // init calls resize itself, and that calls HandleResize: the canvas size
+            // is unknown until then, there is nothing to lay out
             Interop.Init(_canvasId);
             Interop.SetTitle(form.Title ?? string.Empty);
             if (form.Icon is { } icon)
             {
-                // ICO браузеры принимают, и data-адрес избавляет от отдельного
-                // файла в wwwroot — источник иконки остаётся один
+                // browsers accept ICO, and a data address spares a separate file
+                // in wwwroot — the icon keeps a single source
                 string base64 = Convert.ToBase64String(icon.GetRawData());
                 Interop.SetFavicon($"data:image/x-icon;base64,{base64}");
             }
@@ -163,7 +162,11 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
         else
         {
             LayoutOverlay(window);
-            Paint();
+
+            // deferred, like every other repaint here: a dialog's window is created
+            // in the middle of BeginDialog, before it is shown and before its owner
+            // is dimmed — painting right away drew that half-made state
+            Invalidate();
         }
 
         return window;
@@ -171,36 +174,36 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
 
     internal void BringToFront(BrowserWindow window)
     {
-        // нижнюю форму наверх не поднимаем: она растянута на холст,
-        // и диалоги под ней стали бы невидимыми
+        // the bottom form is not raised: it is stretched over the canvas,
+        // and the dialogs under it would become invisible
         if (_windows.Count < 2 || _windows[0] == window) return;
         if (_windows[^1] == window) return;
 
         _windows.Remove(window);
         _windows.Add(window);
 
-        Paint();
+        Invalidate();
     }
 
     internal void Remove(BrowserWindow window)
     {
         if (!_windows.Remove(window)) return;
 
-        Paint();
+        Invalidate();
     }
 
-    /// <summary>Циклом владеет браузер, поэтому возвращает управление сразу.
-    /// Дальше всё происходит в обработчиках событий и rAF.</summary>
+    /// <summary>The browser owns the loop, so this returns control immediately.
+    /// Everything else happens in event handlers and rAF.</summary>
     public void Start() { }
 
     public void Exit()
     {
-        // с конца: закрытие снимает окно со списка
+        // from the end: closing removes the window from the list
         for (int i = _windows.Count - 1; i >= 0; i--)
             _windows[i].Close();
     }
 
-    // ==== поверхность ====
+    // ==== the surface ====
 
     internal void HandleResize(int physicalWidth, int physicalHeight, float scale)
     {
@@ -216,16 +219,18 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
             root.Form.PerformLayout();
         }
 
-        // диалоги привязаны к центру холста, а он только что переехал
+        // dialogs are tied to the canvas center, and it has just moved
         for (int i = 1; i < _windows.Count; i++)
             LayoutOverlay(_windows[i]);
 
+        // synchronous on purpose, unlike everything else: resizing a canvas clears
+        // it, and waiting for the next frame would flash an empty canvas
         Paint();
     }
 
-    /// <summary>Диалог держит собственный размер и встаёт по центру.
-    /// Если он не помещается, ужимается до холста: деваться ему некуда,
-    /// за края canvas ничего не видно.</summary>
+    /// <summary>A dialog keeps its own size and stands in the center.
+    /// If it doesn't fit, it shrinks to the canvas: it has nowhere else to go,
+    /// nothing beyond the canvas edges is visible.</summary>
     private void LayoutOverlay(BrowserWindow window)
     {
         Size canvas = CanvasSize;
@@ -245,11 +250,10 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
         window.Form.PerformLayout();
     }
 
-    /// <summary>Пометить холст устаревшим. Рисовать прямо здесь нельзя:
-    /// за одно действие пользователя Invalidate прилетает десятки раз —
-    /// от раскладки, от загрузки картинки, от каждого контрола, — а кадр
-    /// в браузере полный, с копированием всего буфера в ImageData.
-    /// Поэтому копим и рисуем один раз в rAF.</summary>
+    /// <summary>Mark the canvas stale. Drawing right here is not allowed:
+    /// one user action brings dozens of Invalidates — from layout, from an image
+    /// loading, from every control — and a browser frame is a full one, copying
+    /// the whole buffer into ImageData. So they are accumulated and drawn once in rAF.</summary>
     internal void Invalidate()
     {
         if (_paintPending) return;
@@ -297,15 +301,15 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
         canvas.Restore();
     }
 
-    // ==== кадры и очередь ====
+    // ==== frames and the queue ====
 
     internal void HandleFrame(double timestampMs)
     {
-        // копия: тик может открыть или закрыть окно
+        // a copy: a tick may open or close a window
         foreach (BrowserWindow window in _windows.ToArray())
             window.HandleFrame(timestampMs);
 
-        // тик анимации помечает холст устаревшим — проверяем после него
+        // an animation tick marks the canvas stale — it is checked after it
         if (!_paintPending) return;
 
         _paintPending = false;
@@ -320,19 +324,18 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
 
     internal void DrainInvokes()
     {
-        // Count фиксируем заранее: действие может поставить в очередь новое,
-        // и без этого разбор очереди мог бы не кончиться никогда
+        // Count is fixed up front: an action may queue a new one, and without
+        // this draining the queue might never end
         int pending = _invokeQueue.Count;
 
         for (int i = 0; i < pending; i++)
             _invokeQueue.Dequeue()();
     }
 
-    // ==== ввод ====
+    // ==== input ====
 
-    /// <summary>Ввод получает верхнее окно, принимающее его. Владелец диалога
-    /// в это время заглушён через SetEnabled, поэтому отдельной проверки
-    /// на модальность не нужно.</summary>
+    /// <summary>Input goes to the topmost window that accepts it. The dialog's owner
+    /// is muted through SetEnabled meanwhile, so no separate modality check is needed.</summary>
     internal BrowserWindow? InputTarget()
     {
         for (int i = _windows.Count - 1; i >= 0; i--)
@@ -352,7 +355,7 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
             Paused?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>pagehide, а не beforeunload: на мобильных браузерах второй
-    /// часто не приходит вовсе, а первый — последняя гарантированная точка.</summary>
+    /// <summary>pagehide rather than beforeunload: on mobile browsers the latter often
+    /// doesn't come at all, while the former is the last guaranteed point.</summary>
     internal void HandlePageHide() => Saving?.Invoke(this, EventArgs.Empty);
 }

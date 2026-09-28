@@ -5,9 +5,9 @@ using System.Text;
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// Кадры даёт requestAnimationFrame. Интервал соблюдается пропуском кадров,
-/// а не таймером: чаще частоты экрана браузер всё равно не разбудит,
-/// а собственный setInterval рядом с rAF дал бы рваную анимацию.
+/// Frames come from requestAnimationFrame. The interval is kept by skipping frames
+/// rather than by a timer: the browser won't wake us more often than the display
+/// rate anyway, and a setInterval of our own next to rAF would give jerky animation.
 /// </summary>
 internal sealed class BrowserFrameDriver(Action scheduleFrame, Action repaint) : IFrameDriver
 {
@@ -22,8 +22,8 @@ internal sealed class BrowserFrameDriver(Action scheduleFrame, Action repaint) :
 
         _intervalMs = intervalMs;
 
-        // 0 означает «тика ещё не было»: первый кадр после Start отдаём
-        // сразу, иначе анимация начиналась бы с задержки в один интервал
+        // 0 means "there has been no tick yet": the first frame after Start is given
+        // out right away, otherwise the animation would start with a one-interval delay
         _lastFrameMs = 0;
         IsRunning = true;
 
@@ -32,23 +32,22 @@ internal sealed class BrowserFrameDriver(Action scheduleFrame, Action repaint) :
 
     public void Stop() => IsRunning = false;
 
-    /// <summary>Единичная перерисовка без анимации. Как и в X11, это именно
-    /// перерисовка, а не тик: пересчитывать анимации здесь нечего.</summary>
+    /// <summary>A single repaint without animation. As on X11, this is exactly
+    /// a repaint, not a tick: there are no animations to recompute here.</summary>
     public void RequestFrame() => repaint();
 
-    /// <summary>Пора ли отдавать тик. Вызывается из обработчика rAF и сам
-    /// заказывает следующий кадр, пока идёт непрерывная выдача.</summary>
+    /// <summary>Whether it is time to give out a tick. Called from the rAF handler,
+    /// and orders the next frame itself while continuous delivery is running.</summary>
     internal bool ShouldTick(double timestampMs)
     {
         if (!IsRunning) return false;
 
         scheduleFrame();
 
-        // интервал — это потолок частоты, а не жёсткая мера: vsync приходит
-        // с разбросом, и сравнение впритык роняло каждый второй кадр,
-        // превращая шестьдесят кадров в тридцать. Четверть интервала
-        // разброс покрывает, а лишний кадр на экране 120 Гц по-прежнему
-        // пропускается
+        // the interval is a ceiling on the rate, not a strict measure: vsync comes
+        // with jitter, and a tight comparison dropped every second frame, turning
+        // sixty frames into thirty. A quarter of the interval covers the jitter,
+        // while an extra frame on a 120 Hz display is still skipped
         if (_lastFrameMs != 0 && timestampMs - _lastFrameMs < _intervalMs * 0.75)
             return false;
 

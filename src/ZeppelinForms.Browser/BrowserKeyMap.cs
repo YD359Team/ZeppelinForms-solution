@@ -1,10 +1,11 @@
-﻿using ZeppelinForms.Input.Keyboard;
+﻿using System.Globalization;
+using ZeppelinForms.Input.Keyboard;
 
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// KeyboardEvent.code — физическая клавиша, независимая от раскладки,
-/// поэтому соответствие с Key однозначное и таблицей, а не вычислением.
+/// KeyboardEvent.code is a physical key, independent of the layout,
+/// so the mapping to Key is unambiguous and done by a table rather than computed.
 /// </summary>
 internal static class BrowserKeyMap
 {
@@ -88,13 +89,18 @@ internal static class BrowserKeyMap
             : Key.None;
     }
 
-    /// <summary>KeyboardEvent.key длиной в один печатный символ — это ввод
-    /// текста. Всё остальное ("ArrowUp", "Shift", "Dead") текстом не является.</summary>
-    public static char? ToTextInput(string key)
+    /// <summary>A KeyboardEvent.key holding one printable character is text input.
+    /// Everything else ("ArrowUp", "Shift", "Dead") is not text.</summary>
+    /// <remarks>
+    /// One visible character, not one char: an emoji or a letter beyond the BMP
+    /// comes as a surrogate pair of length 2, and the old length check dropped it.
+    /// Named keys are words of several characters, so the text-element check still
+    /// tells them apart.
+    /// </remarks>
+    public static string? ToTextInput(string key)
     {
-        if (key.Length != 1) return null;
+        if (key.Length == 0 || char.IsControl(key[0])) return null;
 
-        char c = key[0];
-        return char.IsControl(c) ? null : c;
+        return StringInfo.GetNextTextElementLength(key) == key.Length ? key : null;
     }
 }

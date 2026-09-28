@@ -4,10 +4,10 @@ using SkiaSharp;
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// Кадр рисуется Skia в неуправляемый буфер, затем целиком уходит на canvas
-/// через putImageData. Частичная перерисовка не поддерживается: ImageData
-/// в браузере всё равно передаётся полным кадром, и выигрыш был бы только
-/// на самом putImageData, а не на передаче.
+/// A frame is drawn by Skia into an unmanaged buffer, then goes onto the canvas
+/// whole through putImageData. Partial redraw is not supported: ImageData in
+/// a browser is transferred as a full frame anyway, and the gain would be only
+/// on putImageData itself, not on the transfer.
 /// </summary>
 internal sealed class BrowserSkiaSurface : IDisposable
 {
@@ -19,7 +19,7 @@ internal sealed class BrowserSkiaSurface : IDisposable
 
     public bool SupportsPartialRedraw => false;
 
-    /// <summary>Размер физический: canvas.width, а не CSS-ширина.</summary>
+    /// <summary>The size is physical: canvas.width, not the CSS width.</summary>
     public void Resize(int width, int height)
     {
         if (width <= 0 || height <= 0) return;
@@ -33,9 +33,9 @@ internal sealed class BrowserSkiaSurface : IDisposable
         int stride = width * 4;
         _pixels = Marshal.AllocHGlobal(stride * height);
 
-        // Rgba8888, а не Bgra: ImageData в браузере хранит байты в порядке RGBA.
-        // Premul при непрозрачном кадре совпадает с Unpremul, а Unpremul
-        // растровая поверхность Skia поддерживает не везде
+        // Rgba8888, not Bgra: ImageData in a browser stores bytes in RGBA order.
+        // Premul equals Unpremul for an opaque frame, while an Unpremul raster
+        // surface is not supported by Skia everywhere
         var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
         _surface = SKSurface.Create(info, _pixels, stride);
     }
