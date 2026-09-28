@@ -18,7 +18,7 @@ internal static class Ole32
     [DllImport(Lib)]
     public static extern int RevokeDragDrop(nint hwnd);
 
-    // эффекты из oleidl.h
+    // effects from oleidl.h
     public const int DROPEFFECT_NONE = 0;
     public const int DROPEFFECT_COPY = 1;
     public const int DROPEFFECT_MOVE = 2;

@@ -17,6 +17,11 @@ public class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMotionSetti
         ZeppelinForms.Skia.SkiaOffscreenRenderer.Register();
         Win32Clipboard.Register();
 
+        // without it Displays returned the built-in 1920×1080 stand-in at 96 DPI
+        // on Windows: windows were centered on a monitor that doesn't exist,
+        // and gesture thresholds ignored the real pixel density
+        Win32DisplayProvider.Register();
+
         _reducedMotion = QueryReducedMotion();
         Motion.UseSystemSettings(this);
     }

@@ -7,7 +7,7 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern bool PostMessage(nint hWnd, uint msg, nint wParam, nint lParam);
 
-    /// <summary>Вариант для запросов, возвращающих BOOL через указатель.</summary>
+    /// <summary>A variant for queries that return a BOOL through a pointer.</summary>
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, out int pvParam, uint fWinIni);
 
@@ -260,7 +260,7 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern int ReleaseDC(nint hWnd, nint hDC);
 
-    // --- GDI (software путь) ---
+    // --- GDI (the software path) ---
 
 
     [StructLayout(LayoutKind.Sequential)]
@@ -301,7 +301,7 @@ internal static class NativeMethods
         nint hdcDest, int xDest, int yDest, int width, int height,
         nint hdcSrc, int xSrc, int ySrc, uint rop);
 
-    // --- WGL (hardware путь) ---
+    // --- WGL (the hardware path) ---
 
     [StructLayout(LayoutKind.Sequential)]
     public struct PIXELFORMATDESCRIPTOR
@@ -340,6 +340,11 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern bool InvalidateRect(nint hWnd, nint lpRect, bool bErase);
+
+    /// <summary>A variant with the rectangle passed by reference: no need to
+    /// allocate unmanaged memory for it on every call.</summary>
+    [DllImport("user32.dll")]
+    public static extern bool InvalidateRect(nint hWnd, ref RECT lpRect, bool bErase);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct TRACKMOUSEEVENT
@@ -432,14 +437,14 @@ internal static class NativeMethods
     [DllImport("opengl32.dll")]
     public static extern nint wglGetProcAddress(string name);
 
-    // shell32: разбор HDROP из перетаскивания файлов.
-    // buffer помечен как nullable — с null функция возвращает нужную длину,
-    // а с массивом заполняет его. Разделять на две перегрузки незачем
+    // shell32: parsing HDROP from dragging files.
+    // buffer is marked nullable — with null the function returns the required
+    // length, with an array it fills it. There is no need for two overloads
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     public static extern uint DragQueryFile(nint hDrop, uint index, char[]? buffer, uint bufferLength);
 
-    // ole32: освобождение носителя данных, полученного из IDataObject.GetData.
-    // Вызывать обязательно, иначе на каждый бросок утекает память источника
+    // ole32: releasing the storage medium obtained from IDataObject.GetData.
+    // Calling it is mandatory, otherwise the source's memory leaks on every drop
     [DllImport("ole32.dll")]
     internal static extern void ReleaseStgMedium(ref STGMEDIUM medium);
 }

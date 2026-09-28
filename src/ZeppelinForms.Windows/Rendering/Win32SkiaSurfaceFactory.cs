@@ -12,7 +12,7 @@ internal static class Win32SkiaSurfaceFactory
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Skia: GL недоступен ({ex.Message}), software fallback");
+            System.Diagnostics.Debug.WriteLine($"Skia: GL is unavailable ({ex.Message}), software fallback");
             return new SoftwareSkiaSurface(hWnd);
         }
     }

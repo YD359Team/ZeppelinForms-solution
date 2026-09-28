@@ -300,7 +300,9 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
 
         if (bounds is { } rect)
         {
-            // the coordinates are logical, the window expects physical ones
+            // the coordinates are logical, the window expects physical ones.
+            // Passed by reference: this used to allocate unmanaged memory
+            // for the rectangle on every call, that is, every frame
             var native = new NativeMethods.RECT
             {
                 Left = (int)Math.Floor(rect.X * _scale),
@@ -309,17 +311,7 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
                 Bottom = (int)Math.Ceiling((rect.Y + rect.Height) * _scale),
             };
 
-            nint ptr = Marshal.AllocHGlobal(Marshal.SizeOf<NativeMethods.RECT>());
-
-            try
-            {
-                Marshal.StructureToPtr(native, ptr, false);
-                NativeMethods.InvalidateRect(_handle, ptr, false);
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(ptr);
-            }
+            NativeMethods.InvalidateRect(_handle, ref native, false);
         }
         else
         {

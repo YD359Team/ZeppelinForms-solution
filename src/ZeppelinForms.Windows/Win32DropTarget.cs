@@ -8,11 +8,15 @@ using ZeppelinForms.Input.Keyboard;
 namespace ZeppelinForms.Windows;
 
 /// <summary>
-/// Приёмник перетаскивания для одного окна. Живёт столько же, сколько окно:
-/// RegisterDragDrop держит ссылку на стороне COM, и если объект соберут
-/// сборщиком, система обратится по мёртвому указателю.
+/// The drop target for one window. Lives as long as the window: RegisterDragDrop
+/// holds a reference on the COM side, and if the collector collected the object,
+/// the system would call through a dead pointer.
 /// </summary>
-/// [ComVisible(true)]
+/// <remarks>
+/// [ComVisible] used to sit inside this documentation comment as text, so it was
+/// never applied: drops worked only because the assembly is COM-visible by default.
+/// </remarks>
+[ComVisible(true)]
 [ClassInterface(ClassInterfaceType.None)]
 internal sealed class Win32DropTarget(Form form, Func<Point, Point> toClient) : IDropTarget
 {
@@ -71,7 +75,7 @@ internal sealed class Win32DropTarget(Form form, Func<Point, Point> toClient) : 
     {
         try
         {
-            // данные читаем заново: между enter и drop источник мог их поменять
+            // the data is read anew: the source may have changed it between enter and drop
             _data = Read(data);
 
             effect = ToNative(form.OnDropWindow(
@@ -87,19 +91,20 @@ internal sealed class Win32DropTarget(Form form, Func<Point, Point> toClient) : 
         }
     }
 
-    /// <summary>Исключение не имеет права выйти за границу COM: при PreserveSig
-    /// runtime его не преобразует, источник увидит сбой и покажет запрет,
-    /// а сам текст ошибки потеряется. Поэтому гасим здесь и пишем в отладку.</summary>
+    /// <summary>An exception has no right to cross the COM boundary: with PreserveSig
+    /// the runtime doesn't convert it, the source sees a failure and shows "not
+    /// allowed", and the error text itself gets lost. So it is swallowed here and
+    /// written to the debug output.</summary>
     private static int Fail(Exception exception, ref int effect)
     {
         effect = Ole32.DROPEFFECT_NONE;
 
-        Debug.WriteLine($"ZeppelinForms: сбой в IDropTarget — {exception}");
+        Debug.WriteLine($"ZeppelinForms: IDropTarget failure — {exception}");
 
         return 0;
     }
 
-    /// <summary>Вытащить из COM-объекта то, что мы умеем понимать.</summary>
+    /// <summary>Pull out of the COM object what we can understand.</summary>
     private static DragDropData Read(IDataObject data)
     {
         return new DragDropData

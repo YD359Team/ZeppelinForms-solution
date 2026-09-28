@@ -11,8 +11,8 @@ public sealed class Win32DisplayProvider : IDisplayProvider
     {
         List<DisplayInfo> displays = [];
 
-        // делегат нужно держать живым на время перечисления,
-        // иначе сборщик может его собрать посреди вызова
+        // the delegate must be kept alive for the duration of the enumeration,
+        // otherwise the collector may collect it in the middle of the call
         NativeMethods.MonitorEnumProc callback = (monitor, _, _, _) =>
         {
             var info = new NativeMethods.MONITORINFOEX
@@ -38,9 +38,9 @@ public sealed class Win32DisplayProvider : IDisplayProvider
                 Bounds = ToRectangle(info.rcMonitor),
                 WorkingArea = ToRectangle(info.rcWork),
                 Scale = scale,
-                // на Windows эффективный DPI и есть плотность, которую
-                // система считает правдой: ни округления, ни базы, отличной
-                // от 96, здесь нет, поэтому Dpi и Scale связаны жёстко
+                // on Windows the effective DPI is the density the system considers
+                // true: there is no rounding and no base other than 96 here,
+                // so Dpi and Scale are tied rigidly
                 Dpi = dpi,
                 IsPrimary = (info.dwFlags & NativeConstants.MONITORINFOF_PRIMARY) != 0,
                 Name = info.szDevice,

@@ -11,8 +11,8 @@ public sealed class Win32Clipboard : IClipboard
         if (!NativeMethods.IsClipboardFormatAvailable(NativeConstants.CF_UNICODETEXT))
             return null;
 
-        // буфер обмена — общий системный ресурс; другое приложение может
-        // держать его открытым, поэтому пробуем несколько раз
+        // the clipboard is a shared system resource; another application may be
+        // holding it open, so several attempts are made
         if (!TryOpen()) return null;
 
         try
@@ -60,15 +60,15 @@ public sealed class Win32Clipboard : IClipboard
             try
             {
                 Marshal.Copy(text.ToCharArray(), 0, pointer, text.Length);
-                Marshal.WriteInt16(pointer, text.Length * 2, 0);   // завершающий ноль
+                Marshal.WriteInt16(pointer, text.Length * 2, 0);   // the terminating zero
             }
             finally
             {
                 NativeMethods.GlobalUnlock(hMem);
             }
 
-            // после успешного SetClipboardData память принадлежит системе —
-            // освобождать её самим нельзя
+            // after a successful SetClipboardData the memory belongs to the system —
+            // freeing it ourselves is not allowed
             if (NativeMethods.SetClipboardData(NativeConstants.CF_UNICODETEXT, hMem) == 0)
                 NativeMethods.GlobalFree(hMem);
         }

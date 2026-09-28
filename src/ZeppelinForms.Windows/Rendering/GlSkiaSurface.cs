@@ -28,8 +28,8 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
         _grContext = grContext;
     }
 
-    // Бросает исключение, если GPU-контекст не поднялся —
-    // Win32SkiaSurfaceFactory на этом ловит и откатывается на software.
+    // Throws if the GPU context didn't come up —
+    // Win32SkiaSurfaceFactory catches that and falls back to software.
     public static GlSkiaSurface Create(nint hWnd)
     {
         nint hdc = NativeMethods.GetDC(hWnd);
@@ -53,21 +53,10 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
         if (format == 0 || !NativeMethods.SetPixelFormat(hdc, format, ref pfd))
         {
             NativeMethods.ReleaseDC(hWnd, hdc);
-            throw new InvalidOperationException("Не удалось настроить пиксельный формат.");
+            throw new InvalidOperationException("Could not set up the pixel format.");
         }
 
         nint glContext = NativeMethods.wglCreateContext(hdc);
-
-        nint swapInterval = NativeMethods.wglGetProcAddress("wglSwapIntervalEXT");
-
-        if (swapInterval != 0)
-        {
-            var setSwapInterval = Marshal.GetDelegateForFunctionPointer<SwapIntervalDelegate>(swapInterval);
-
-            // без этого SwapBuffers блокирует поток до кадровой развёртки,
-            // а WM_TIMER — сообщение низшего приоритета и теряется в очереди
-            setSwapInterval(0);
-        }
 
         if (glContext == 0 || !NativeMethods.wglMakeCurrent(hdc, glContext))
         {
@@ -75,17 +64,44 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
                 NativeMethods.wglDeleteContext(glContext);
 
             NativeMethods.ReleaseDC(hWnd, hdc);
-            throw new InvalidOperationException("Не удалось создать/активировать контекст OpenGL.");
+            throw new InvalidOperationException("Could not create or activate the OpenGL context.");
         }
 
-        using GRGlInterface glInterface = GRGlInterface.Create()
-            ?? throw new InvalidOperationException("Не удалось создать GRGlInterface.");
+        try
+        {
+            // after wglMakeCurrent, not before: wglGetProcAddress returns extension
+            // addresses only for a current context. It used to be called earlier,
+            // got 0, and the swap interval was never set
+            nint swapInterval = NativeMethods.wglGetProcAddress("wglSwapIntervalEXT");
 
-        GRContext grContext = GRContext.CreateGl(glInterface)
-            ?? throw new InvalidOperationException("Не удалось создать GRContext.");
-        grContext.SetResourceCacheLimit(32 * 1024 * 1024);
+            if (swapInterval != 0)
+            {
+                var setSwapInterval = Marshal.GetDelegateForFunctionPointer<SwapIntervalDelegate>(swapInterval);
 
-        return new GlSkiaSurface(hWnd, hdc, glContext, grContext);
+                // without this SwapBuffers blocks the thread until vertical retrace,
+                // and WM_TIMER — a lowest-priority message — gets lost in the queue
+                setSwapInterval(0);
+            }
+
+            using GRGlInterface glInterface = GRGlInterface.Create()
+                ?? throw new InvalidOperationException("Could not create GRGlInterface.");
+
+            GRContext grContext = GRContext.CreateGl(glInterface)
+                ?? throw new InvalidOperationException("Could not create GRContext.");
+            grContext.SetResourceCacheLimit(32 * 1024 * 1024);
+
+            return new GlSkiaSurface(hWnd, hdc, glContext, grContext);
+        }
+        catch
+        {
+            // the factory falls back to software on this same window: the context
+            // must not stay current and alive, nor the DC held
+            NativeMethods.wglMakeCurrent(0, 0);
+            NativeMethods.wglDeleteContext(glContext);
+            NativeMethods.ReleaseDC(hWnd, hdc);
+
+            throw;
+        }
     }
 
     public void Resize(int width, int height)

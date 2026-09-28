@@ -41,8 +41,8 @@ internal sealed class SoftwareSkiaSurface : IWin32SkiaSurface
             {
                 biSize = (uint)Marshal.SizeOf<NativeMethods.BITMAPINFOHEADER>(),
                 biWidth = width,
-                // Отрицательная высота — top-down DIB,
-                // чтобы строки шли в том же порядке, что и в SKSurface.
+                // A negative height — a top-down DIB,
+                // so that the rows go in the same order as in the SKSurface.
                 biHeight = -height,
                 biPlanes = 1,
                 biBitCount = 32,

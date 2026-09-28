@@ -63,12 +63,12 @@ internal static class NativeConstants
     public const uint TME_LEAVE = 0x00000002;
     public const uint WM_PAINT = 0x000F;
     public const uint WM_SIZE = 0x0005;
-    /// <summary>Система поменяла одну из общих настроек — в том числе
-    /// «Показывать анимацию в Windows».</summary>
+    /// <summary>The system changed one of the general settings — including
+    /// "Show animations in Windows".</summary>
     public const uint WM_SETTINGCHANGE = 0x001A;
 
-    /// <summary>Включена ли анимация интерфейса — тот самый переключатель
-    /// «Показывать анимацию в Windows» в специальных возможностях.</summary>
+    /// <summary>Whether interface animation is on — exactly the
+    /// "Show animations in Windows" switch in accessibility.</summary>
     public const uint SPI_GETCLIENTAREAANIMATION = 0x1042;
     public const uint WM_ERASEBKGND = 0x0014;
     public const uint WM_SETICON = 0x0080;
