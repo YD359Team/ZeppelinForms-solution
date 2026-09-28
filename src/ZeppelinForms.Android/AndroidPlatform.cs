@@ -1,4 +1,5 @@
 ﻿using Android.Content;
+using Android.OS;
 using Android.Text;
 using Android.Views;
 using Android.Views.InputMethods;
@@ -9,22 +10,22 @@ using ZeppelinForms.Forms;
 namespace ZeppelinForms.Android;
 
 /// <summary>
-/// Платформа Android. Поверхность одна на всё приложение, поэтому окна
-/// здесь — слои на ней, а не окна системы.
+/// The Android platform. There is one surface for the whole application, so windows
+/// here are layers on it, not system windows.
 ///
-/// INestedLoopSupport не реализует: заблокировать поток UI и продолжать
-/// получать события нельзя, поэтому Form.ShowDialog честно бросит
-/// исключение — работает только ShowDialogAsync.
+/// It doesn't implement INestedLoopSupport: blocking the UI thread and keeping on
+/// receiving events is impossible, so Form.ShowDialog honestly throws — only
+/// ShowDialogAsync works.
 /// </summary>
 public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLifecycle
 {
-    /// <summary>Нажата системная кнопка или жест «назад».
-    /// Установите Handled, чтобы система не закрывала активность.</summary>
+    /// <summary>The system "back" button or gesture was pressed.
+    /// Set Handled so that the system doesn't close the activity.</summary>
     /// <remarks>
-    /// Не маплю её на Escape намеренно: Escape в форме обрабатывают многие,
-    /// и результат мы не видим — OnKeyDown ничего не возвращает. Тогда
-    /// оказалось бы невозможно отличить «диалог закрылся» от «никто
-    /// не взялся», и приложение выходило бы при каждом нажатии.
+    /// Deliberately not mapped to Escape: many handle Escape in a form, and we
+    /// don't see the result — OnKeyDown returns nothing. Then it would be impossible
+    /// to tell "a dialog closed" from "nobody took it", and the application would
+    /// exit on every press.
     /// </remarks>
     public event EventHandler<BackRequestedEventArgs>? BackRequested;
 
@@ -38,16 +39,20 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         return args.Handled;
     }
 
-    /// <summary>Затемнение под модальным диалогом.</summary>
+    /// <summary>The dimming under a modal dialog.</summary>
     private static readonly SKColor s_scrim = new(0, 0, 0, 96);
 
     private readonly Activity _activity;
     private readonly List<AndroidWindow> _windows = [];
     private readonly FrameCallback _frameCallback;
 
+    /// <summary>The main thread's queue. Invoke must queue the action even when it
+    /// is called on the UI thread — Activity.RunOnUiThread runs it right away then.</summary>
+    private readonly Handler _uiHandler = new(Looper.MainLooper!);
+
     private ZeppelinView? _view;
 
-    // отступы под системные панели и вырез, в логических единицах
+    // insets for the system bars and the cutout, in logical units
     private float _insetLeft;
     private float _insetTop;
     private float _insetRight;
@@ -58,8 +63,6 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
     private bool _frameScheduled;
 
     private float _insetKeyboard;
-
-    private int _probeFrames = 10;
 
     private AndroidPlatform(Activity activity)
     {
@@ -76,22 +79,23 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
 
         var platform = new AndroidPlatform(activity)
         {
-            // global:: обязателен: внутри ZeppelinForms.Android имя Android
-            // указывает на наше же пространство имён, а не на привязки SDK
-            PrefersReducedMotion = global::Android.Provider.Settings.Global.GetFloat(
-                activity.ContentResolver,
-                global::Android.Provider.Settings.Global.AnimatorDurationScale,
-                1f) == 0f,
+            PrefersReducedMotion = QueryReducedMotion(activity),
         };
 
         ZeppelinForms.Animation.Motion.UseSystemSettings(platform);
+
+        // the bridge existed but was never registered: Paused, Resumed and Saving
+        // never came, frames kept running in the background, and the last chance
+        // to save state before the process is killed was never offered
+        platform._lifecycle = new LifecycleBridge(platform, activity);
+        activity.Application?.RegisterActivityLifecycleCallbacks(platform._lifecycle);
 
         return platform;
     }
 
     internal float Scale { get; private set; } = 1f;
 
-    /// <summary>Размер поверхности в логических единицах.</summary>
+    /// <summary>The surface size in logical units.</summary>
     internal Size SurfaceSize => new(_physicalWidth / Scale, _physicalHeight / Scale);
 
     private AndroidWindow? Root => _windows.Count > 0 ? _windows[0] : null;
@@ -110,20 +114,17 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
 
             _view = new ZeppelinView(_activity, this);
 
-            // явно, а не полагаясь на умолчание SetContentView: SKCanvasView
-            // приносит свои LayoutParams, и при WRAP_CONTENT умолчательный
-            // View.onMeasure меряет его в ноль на ноль — визуально это
-            // неотличимо от неработающего рисования
+            // explicitly, rather than relying on the SetContentView default: SKCanvasView
+            // brings its own LayoutParams, and with WRAP_CONTENT the default
+            // View.onMeasure measures it to zero by zero — visually indistinguishable
+            // from drawing that doesn't work
             _view.LayoutParameters = new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MatchParent,
                 ViewGroup.LayoutParams.MatchParent);
 
             _activity.SetContentView(_view);
 
-            // размер придёт в OnSizeChanged: до него раскладывать нечего
-
-            System.Diagnostics.Debug.WriteLine(
-                $"ZF: SetContentView выполнен, масштаб {Scale}");
+            // the size comes in OnSizeChanged: there is nothing to lay out before it
         }
         else
         {
@@ -134,36 +135,36 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         return window;
     }
 
-    /// <summary>Циклом владеет система, поэтому возвращает управление сразу.</summary>
+    /// <summary>The system owns the loop, so this returns control immediately.</summary>
     public void Start() { }
 
-    // ===== жизненный цикл =====
+    // ===== the lifecycle =====
 
-    /// <summary>Активность уходит в фон: кадры останавливаются, анимации
-    /// замирают, приложение перестаёт тратить батарею на невидимое.</summary>
+    /// <summary>The activity goes to the background: frames stop, animations
+    /// freeze, the application stops spending the battery on what isn't visible.</summary>
     public event EventHandler? Paused;
 
     public event EventHandler? Resumed;
 
-    /// <summary>Система собирается сохранить состояние. После этого
-    /// приложение могут убить без предупреждения — это последняя
-    /// возможность записать то, что жалко потерять.</summary>
+    /// <summary>The system is about to save the state. After this the application
+    /// may be killed without warning — this is the last chance to write what would
+    /// be a pity to lose.</summary>
     public event EventHandler? Saving;
 
     private LifecycleBridge? _lifecycle;
 
     /// <summary>
-    /// Мост от жизненного цикла активности к событиям платформы.
+    /// A bridge from the activity's lifecycle to the platform's events.
     /// </summary>
     /// <remarks>
-    /// Через IActivityLifecycleCallbacks, а не переопределением OnPause
-    /// и OnResume в активности: иначе каждое приложение обязано было бы
-    /// не забыть позвать платформу из четырёх методов, а забытый OnPause
-    /// означает кадры, которые продолжают идти в фоне.
+    /// Through IActivityLifecycleCallbacks rather than by overriding OnPause and
+    /// OnResume in the activity: otherwise every application would have to remember
+    /// to call the platform from four methods, and a forgotten OnPause means frames
+    /// that keep running in the background.
     ///
-    /// Колбэки приходят на все активности процесса, поэтому чужие
-    /// отфильтровываются: в приложении может быть и вторая активность,
-    /// никак с формой не связанная.
+    /// The callbacks come for all activities of the process, so foreign ones are
+    /// filtered out: an application may have a second activity that has nothing
+    /// to do with the form.
     /// </remarks>
     private sealed class LifecycleBridge(AndroidPlatform platform, Activity activity)
         : Java.Lang.Object, Application.IActivityLifecycleCallbacks
@@ -179,8 +180,8 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         {
             if (!Ours(other)) return;
 
-            // пока приложение было в фоне, пользователь мог зайти
-            // в специальные возможности и поменять настройку движения
+            // while the application was in the background, the user may have gone
+            // into accessibility and changed the motion setting
             platform.RefreshReducedMotion();
 
             platform.Resumed?.Invoke(platform, EventArgs.Empty);
@@ -191,9 +192,9 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
             if (Ours(other)) platform.Saving?.Invoke(platform, EventArgs.Empty);
         }
 
-        // остальные шаги цикла фреймворку не нужны: создание и запуск
-        // происходят до того, как появилась платформа, а остановка
-        // и уничтожение приходят следом за паузой
+        // the framework doesn't need the other lifecycle steps: creation and start
+        // happen before the platform appears, and stopping and destruction come
+        // right after the pause
         public void OnActivityCreated(Activity other, Bundle? savedInstanceState) { }
 
         public void OnActivityStarted(Activity other) { }
@@ -203,13 +204,13 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         public void OnActivityDestroyed(Activity other) { }
     }
 
-    /// <summary>Масштаб длительности анимаций, выставленный в ноль, — так
-    /// на Android выглядит «удалить анимацию» в специальных возможностях.</summary>
+    /// <summary>The animation duration scale set to zero — this is what "remove
+    /// animations" in accessibility looks like on Android.</summary>
     /// <remarks>
-    /// Перечитывается при возврате из фона, а не наблюдается постоянно:
-    /// ContentObserver ради настройки, которую меняют раз в жизни, —
-    /// лишняя подписка, а сменить её можно только уйдя в настройки,
-    /// то есть выведя приложение из активного состояния.
+    /// Re-read on returning from the background rather than observed continuously:
+    /// a ContentObserver for a setting that is changed once in a lifetime is an extra
+    /// subscription, and it can be changed only by going into the settings, that is,
+    /// by taking the application out of the active state.
     /// </remarks>
     public bool PrefersReducedMotion { get; private set; }
 
@@ -221,8 +222,8 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         remove => _motionChanged -= value;
     }
 
-    /// <summary>global:: обязателен: внутри ZeppelinForms.Android имя Android
-    /// указывает на наше же пространство имён, а не на привязки SDK.</summary>
+    /// <summary>global:: is mandatory: inside ZeppelinForms.Android the name Android
+    /// points to our own namespace, not to the SDK bindings.</summary>
     private static bool QueryReducedMotion(Activity activity) =>
         global::Android.Provider.Settings.Global.GetFloat(
             activity.ContentResolver,
@@ -272,12 +273,10 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         Invalidate();
     }
 
-    // ==== поверхность ====
+    // ==== the surface ====
 
     internal void HandleResize(int physicalWidth, int physicalHeight)
     {
-        System.Diagnostics.Debug.WriteLine($"ZF: HandleResize {physicalWidth}x{physicalHeight}");
-
         Scale = _activity.Resources?.DisplayMetrics?.Density ?? 1f;
 
         _physicalWidth = physicalWidth;
@@ -287,11 +286,11 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         {
             Size surface = SurfaceSize;
 
-            // корневая форма живёт внутри безопасной области, а не во всём
-            // окне: при targetSdk 35 Android рисует содержимое под строкой
-            // состояния всегда, и отказаться от этого нельзя.
-            // Сдвиг идёт через Origin, поэтому касания приходят туда же,
-            // куда нарисовано, — ToLocal его вычитает
+            // the root form lives inside the safe area rather than the whole window:
+            // with targetSdk 35 Android always draws the content under the status bar,
+            // and this can't be opted out of.
+            // The shift goes through Origin, so touches arrive where things are drawn —
+            // ToLocal subtracts it
             root.Origin = new Point(_insetLeft, _insetTop);
 
             root.Form.ClientSize = new Size(
@@ -307,28 +306,26 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         Invalidate();
     }
 
-    /// <summary>Безопасная область изменилась: появилась клавиатура,
-    /// повернули экран, поехала жестовая панель.</summary>
+    /// <summary>The safe area changed: the keyboard appeared, the screen was rotated,
+    /// the gesture bar moved.</summary>
     internal void HandleInsets(int left, int top, int right, int bottom)
     {
-        System.Diagnostics.Debug.WriteLine($"ZF: HandleInsets {left},{top},{right},{bottom}");
-
         _insetLeft = left / Scale;
         _insetTop = top / Scale;
         _insetRight = right / Scale;
         _insetBottom = bottom / Scale;
 
-        // до первого OnSizeChanged раскладывать нечего
+        // there is nothing to lay out before the first OnSizeChanged
         if (_physicalWidth > 0)
             HandleResize(_physicalWidth, _physicalHeight);
     }
 
-    /// <summary>Клавиатура открылась или закрылась.</summary>
+    /// <summary>The keyboard opened or closed.</summary>
     /// <remarks>
-    /// Форму под ней просто ужимаем. Правильнее было бы ещё и подтянуть
-    /// поле с фокусом в видимую часть, но для этого нужен ScrollIntoView,
-    /// которого пока нет ни у TreeView, ни у будущего DataGrid — сделаем
-    /// один раз для всех, а не трижды по месту.
+    /// The form under it is simply shrunk. It would be more correct to also pull the
+    /// focused field into the visible part, but that needs ScrollIntoView, which
+    /// neither TreeView nor the future DataGrid has yet — we'll do it once for all,
+    /// rather than three times in place.
     /// </remarks>
     internal void HandleKeyboardInset(int bottomPixels)
     {
@@ -348,12 +345,12 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
 
         _view.SoftKeyboardInputType = ToInputType(kind);
 
-        // без фокуса на стороне Android система не спросит InputConnection
-        // и покажет клавиатуру «в никуда»
+        // without focus on the Android side the system won't ask for
+        // an InputConnection and will show the keyboard "into nowhere"
         _view.RequestFocus();
 
-        // перезапрос типа: если клавиатура уже открыта, раскладку она
-        // сменит только после переподключения ввода
+        // re-requesting the type: if the keyboard is already open, it changes
+        // the layout only after the input is reconnected
         InputMethodManager? manager = GetInputMethodManager();
 
         manager?.RestartInput(_view);
@@ -400,28 +397,25 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         window.Form.PerformLayout();
     }
 
-    /// <summary>Пометить поверхность устаревшей. Рисовать прямо здесь нельзя
-    /// вдвойне: за одно действие Invalidate прилетает десятки раз,
-    /// и рисовать вне OnDraw на Android в принципе нечем.</summary>
+    /// <summary>Mark the surface stale. Drawing right here is doubly wrong:
+    /// one action brings dozens of Invalidates, and there is nothing to draw with
+    /// outside OnDraw on Android at all.</summary>
     internal void Invalidate()
     {
-        // до создания поверхности рисовать некуда
+        // there is nowhere to draw before the surface is created
         if (_view is null) return;
 
-        // метка нужна только HandleFrame, чтобы знать, что кадр устарел.
-        // Заменять ею отправку нельзя: PostInvalidateOnAnimation и так
-        // склеивает повторные вызовы внутри кадра, а взведённая метка
-        // без отправки — это чёрный экран навсегда, если хоть один кадр
-        // почему-то не дошёл до OnPaintSurface
+        // the mark is needed only by HandleFrame, to know the frame is stale.
+        // It must not replace the posting: PostInvalidateOnAnimation already merges
+        // repeated calls within a frame, while a raised mark without posting means
+        // a black screen forever if even one frame somehow never reached OnPaintSurface
         _paintPending = true;
         _view.PostInvalidateOnAnimation();
     }
 
-    /// <summary>Рисование. Зовётся из OnPaintSurface и только оттуда.</summary>
+    /// <summary>Drawing. Called from OnPaintSurface and only from there.</summary>
     internal void Render(SKSurface surface)
     {
-        System.Diagnostics.Debug.WriteLine($"ZF: Render, окон {_windows.Count}, поверхность {_physicalWidth}x{_physicalHeight}, масштаб {Scale}");
-
         _paintPending = false;
 
         SKCanvas canvas = surface.Canvas;
@@ -457,12 +451,12 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         canvas.Restore();
     }
 
-    // ==== кадры и очередь ====
+    // ==== frames and the queue ====
 
     internal void ScheduleFrame()
     {
-        // Choreographer принимает один и тот же обратный вызов повторно,
-        // и тогда кадров придёт два вместо одного
+        // Choreographer accepts the same callback repeatedly,
+        // and then two frames would come instead of one
         if (_frameScheduled) return;
 
         _frameScheduled = true;
@@ -471,22 +465,11 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
 
     private void HandleFrame(long frameTimeNanos)
     {
-        if (_probeFrames > 0 && _view is not null)
-        {
-            _probeFrames--;
-
-            System.Diagnostics.Debug.WriteLine(
-                $"ZF: вью attached={_view.IsAttachedToWindow} " +
-                $"размер={_view.Width}x{_view.Height} " +
-                $"родитель={_view.Parent?.GetType().Name ?? "нет"} " +
-                $"видимость={_view.Visibility}");
-        }
-
         _frameScheduled = false;
 
         double timestampMs = frameTimeNanos / 1_000_000.0;
 
-        // копия: тик может открыть или закрыть окно
+        // a copy: a tick may open or close a window
         foreach (AndroidWindow window in _windows.ToArray())
             window.HandleFrame(timestampMs);
 
@@ -494,9 +477,15 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
             _view?.PostInvalidateOnAnimation();
     }
 
-    /// <summary>Выполнить в потоке UI. На Android это очередь самого View,
-    /// своей заводить незачем.</summary>
-    internal void Post(Action action) => _activity.RunOnUiThread(action);
+    /// <summary>Run on the UI thread — always later, through the queue.</summary>
+    /// <remarks>
+    /// This used to be Activity.RunOnUiThread, which runs the action right away when
+    /// called on the UI thread. ZfSynchronizationContext.Post relies on a queue:
+    /// await continuations ran inside the caller's own code — Task.Yield didn't yield,
+    /// and the continuation after ShowDialogAsync ran inside OnWindowClosed, before
+    /// the form had finished closing.
+    /// </remarks>
+    internal void Post(Action action) => _uiHandler.Post(action);
 
     internal AndroidWindow? InputTarget()
     {
@@ -509,8 +498,8 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         return null;
     }
 
-    /// <summary>Choreographer требует наследника Java.Lang.Object,
-    /// поэтому обратный вызов вынесен в отдельный тип.</summary>
+    /// <summary>Choreographer requires a descendant of Java.Lang.Object,
+    /// so the callback is moved into a separate type.</summary>
     private sealed class FrameCallback(Action<long> onFrame)
         : Java.Lang.Object, Choreographer.IFrameCallback
     {

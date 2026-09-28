@@ -8,9 +8,9 @@ using ZeppelinForms.Input.Pointer;
 namespace ZeppelinForms.Android;
 
 /// <summary>
-/// Форма как слой на общей поверхности — устройство то же, что в браузере.
-/// IDesktopWindow не реализует: заголовка, границ и состояния окна
-/// на Android нет.
+/// A form as a layer on the shared surface — the same arrangement as in the browser.
+/// It doesn't implement IDesktopWindow: Android has no title bar, frame or
+/// window state.
 /// </summary>
 internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
 {
@@ -20,7 +20,7 @@ internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
 
     private bool _closed;
 
-    // ==== экранная клавиатура ====
+    // ==== the on-screen keyboard ====
 
     public void ShowSoftKeyboard(SoftKeyboardKind kind) => _platform.ShowSoftKeyboard(kind);
 
@@ -35,7 +35,7 @@ internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
 
     internal Form Form => _form;
 
-    /// <summary>Левый верхний угол формы на поверхности в логических единицах.</summary>
+    /// <summary>The form's top-left corner on the surface in logical units.</summary>
     internal Point Origin { get; set; }
 
     internal bool IsInputEnabled { get; private set; } = true;
@@ -68,11 +68,11 @@ internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
         _form.Tick();
     }
 
-    // ==== ввод ====
+    // ==== input ====
 
-    /// <summary>Идентификаторы Android лежат в 0..9 и стабильны, пока контакт
-    /// жив, поэтому словарь соответствий, как в браузере, не нужен —
-    /// хватает сдвига, уводящего их от Form.MousePointerId.</summary>
+    /// <summary>Android identifiers lie in 0..9 and are stable while the contact is
+    /// alive, so a mapping dictionary, as in the browser, is not needed — a shift
+    /// taking them away from Form.MousePointerId is enough.</summary>
     private const int TouchIdBase = 10;
 
     private Point ToLocal(float x, float y) => new(x - Origin.X, y - Origin.Y);
@@ -112,22 +112,22 @@ internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
         float x, float y, int pointerId, MotionEventToolType toolType, float pressure, long timestamp) =>
         _form.OnPointerUp(ToArgs(x, y, pointerId, toolType, pressure, timestamp));
 
-    /// <summary>Единственное место, где решается идентификатор контакта.
-    /// Раздваивать это правило нельзя: отмена обязана попасть в тот же
-    /// контакт, что и нажатие.</summary>
+    /// <summary>The only place where the contact identifier is decided.
+    /// This rule must not be split in two: a cancel has to reach the same
+    /// contact as the press.</summary>
     private static int MapPointerId(int pointerId, PointerKind kind) =>
         kind == PointerKind.Mouse ? Form.MousePointerId : TouchIdBase + pointerId;
 
     internal void HandleTouchCancel(int pointerId, MotionEventToolType toolType) =>
         _form.OnPointerCancel(MapPointerId(pointerId, ToKind(toolType)));
 
-    /// <summary>Колесо подключённой мыши.</summary>
+    /// <summary>The wheel of a connected mouse.</summary>
     internal void HandleWheel(float x, float y, int delta, int horizontalDelta) =>
         _form.OnMouseWheel(ToLocal(x, y), delta, horizontalDelta);
 
-    /// <summary>Курсор поехал без нажатия. Только у мыши: у касания
-    /// состояния «над элементом» не бывает, и синтезировать его нельзя —
-    /// иначе подсветка залипнет после отпускания пальца.</summary>
+    /// <summary>The cursor moved without a press. Only for the mouse: touch has no
+    /// "over the element" state, and it must not be synthesized — otherwise the
+    /// highlight would stick after the finger is released.</summary>
     internal void HandleHoverMove(float x, float y, long timestamp) =>
         _form.OnPointerMove(new PointerEventArgs(
             Form.MousePointerId,
@@ -139,21 +139,21 @@ internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
             Timestamp = timestamp,
         });
 
-    /// <summary>Курсор ушёл за пределы окна.</summary>
+    /// <summary>The cursor left the window.</summary>
     internal void HandlePointerLeave() => _form.OnPointerLeaveWindow();
 
-    // ==== остальное из контракта ====
+    // ==== the rest of the contract ====
 
-    /// <summary>Захват на Android не нужен: касание и так доставляется
-    /// тому View, который принял ACTION_DOWN, вплоть до отпускания.</summary>
+    /// <summary>No capture is needed on Android: a touch is delivered to the View
+    /// that accepted ACTION_DOWN anyway, right up to the release.</summary>
     public void CaptureMouse() { }
 
     public void ReleaseMouseCapture() { }
 
-    /// <summary>Курсора нет.</summary>
+    /// <summary>There is no cursor.</summary>
     public void SetCursor(CursorKind cursor) { }
 
-    /// <summary>Перетаскивание из других приложений не поддержано.</summary>
+    /// <summary>Dragging from other applications is not supported.</summary>
     public void SetDragDropEnabled(bool enabled) { }
 
     public void SetEnabled(bool enabled) => IsInputEnabled = enabled;

@@ -1,11 +1,11 @@
 ﻿namespace ZeppelinForms.Android;
 
 /// <summary>
-/// Кадры даёт Choreographer. Интервал соблюдается пропуском кадров,
-/// а не таймером: чаще частоты экрана система всё равно не разбудит,
-/// а собственный Handler рядом с Choreographer дал бы рваную анимацию.
-/// Устройство то же, что у BrowserFrameDriver — обе платформы циклом
-/// не владеют, и расходиться им незачем.
+/// Frames come from Choreographer. The interval is kept by skipping frames rather
+/// than by a timer: the system won't wake us more often than the display rate
+/// anyway, and a Handler of our own next to Choreographer would give jerky animation.
+/// The arrangement is the same as BrowserFrameDriver's — neither platform owns
+/// the loop, and there is no reason for them to diverge.
 /// </summary>
 internal sealed class AndroidFrameDriver(Action scheduleFrame, Action repaint) : IFrameDriver
 {
@@ -20,8 +20,8 @@ internal sealed class AndroidFrameDriver(Action scheduleFrame, Action repaint) :
 
         _intervalMs = intervalMs;
 
-        // 0 означает «тика ещё не было»: первый кадр после Start отдаём
-        // сразу, иначе анимация начиналась бы с задержки в один интервал
+        // 0 means "there has been no tick yet": the first frame after Start is given
+        // out right away, otherwise the animation would start with a one-interval delay
         _lastFrameMs = 0;
         IsRunning = true;
 
@@ -38,11 +38,10 @@ internal sealed class AndroidFrameDriver(Action scheduleFrame, Action repaint) :
 
         scheduleFrame();
 
-        // интервал — это потолок частоты, а не жёсткая мера: vsync приходит
-        // с разбросом, и сравнение впритык роняло каждый второй кадр,
-        // превращая шестьдесят кадров в тридцать. Четверть интервала
-        // разброс покрывает, а лишний кадр на экране 120 Гц по-прежнему
-        // пропускается
+        // the interval is a ceiling on the rate, not a strict measure: vsync comes
+        // with jitter, and a tight comparison dropped every second frame, turning
+        // sixty frames into thirty. A quarter of the interval covers the jitter,
+        // while an extra frame on a 120 Hz display is still skipped
         if (_lastFrameMs != 0 && timestampMs - _lastFrameMs < _intervalMs * 0.75)
             return false;
 
