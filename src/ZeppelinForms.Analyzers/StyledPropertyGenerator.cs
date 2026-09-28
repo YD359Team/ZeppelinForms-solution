@@ -13,27 +13,43 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
     private const string AttributeMetadataName = "ZeppelinForms.Forms.Styling.StyledAttribute";
     private const string ElementMetadataName = "ZeppelinForms.Forms.Controls.Base.UIElement";
 
+    /// <summary>The same default as StyledAttribute.Category. The generator passes the
+    /// category to the registration explicitly, so the attribute's own default never
+    /// reached it — and this used to be the Russian "Прочее".</summary>
+    private const string DefaultCategory = "Other";
+
+    /// <summary>Type names with global:: and with nullable annotations kept.</summary>
+    /// <remarks>
+    /// A plain ToDisplayString gives "ZeppelinForms.Forms.Enums.TextTransform", which
+    /// resolves wrongly wherever its first segment is shadowed: inside ZeppelinForms.Android
+    /// the name Android is our own namespace, and a styled property typed from the Android
+    /// SDK would not compile there.
+    /// </remarks>
+    private static readonly SymbolDisplayFormat TypeFormat =
+        SymbolDisplayFormat.FullyQualifiedFormat.AddMiscellaneousOptions(
+            SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+
     private static readonly DiagnosticDescriptor PropertyNotPartial = new(
         id: "ZF0003",
-        title: "Свойство с [Styled] должно быть partial",
-        messageFormat: "Свойство '{0}' помечено [Styled], но не объявлено partial — " +
-                       "генератору некуда дописать аксессоры",
+        title: "A property with [Styled] must be partial",
+        messageFormat: "Property '{0}' is marked [Styled] but is not declared partial — " +
+                       "the generator has nowhere to add the accessors",
         category: "Design",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor TypeNotPartial = new(
         id: "ZF0004",
-        title: "Тип со свойствами [Styled] должен быть partial",
-        messageFormat: "Тип '{0}' содержит свойства с [Styled], но не объявлен partial",
+        title: "A type with [Styled] properties must be partial",
+        messageFormat: "Type '{0}' contains [Styled] properties but is not declared partial",
         category: "Design",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor TypeNotElement = new(
         id: "ZF0005",
-        title: "[Styled] применимо только к наследникам UIElement",
-        messageFormat: "Тип '{0}' не наследует UIElement, а источник значения хранится именно там",
+        title: "[Styled] applies only to descendants of UIElement",
+        messageFormat: "Type '{0}' doesn't derive from UIElement, and that is where the value source is stored",
         category: "Design",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -61,8 +77,8 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
         var attribute = context.Attributes[0];
         bool external = Argument(attribute, "External") is true;
 
-        // у внешнего свойства аксессоры пишет контрол, дописывать генератору
-        // нечего — значит и partial не требуется
+        // an external property's accessors are written by the control, the generator
+        // has nothing to add — so partial isn't required either
         if (!external && !syntax.Modifiers.Any(SyntaxKind.PartialKeyword))
             return Model.Failed(PropertyNotPartial, location, property.Name);
 
@@ -76,8 +92,8 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
             Namespace: owner.ContainingNamespace.ToDisplayString(),
             OwnerName: owner.Name,
             PropertyName: property.Name,
-            ValueType: property.Type.ToDisplayString(),
-            Category: Argument(attribute, "Category") as string ?? "Прочее",
+            ValueType: property.Type.ToDisplayString(TypeFormat),
+            Category: Argument(attribute, "Category") as string ?? DefaultCategory,
             AffectsLayout: Argument(attribute, "AffectsLayout") is true,
             Inherits: Argument(attribute, "Inherits") is true,
             External: external,
@@ -115,11 +131,11 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
         return false;
     }
 
-    /// <summary>Умолчание ищем именно среди статических свойств, а не полей.
-    /// Статические поля инициализируются в порядке объявления, а объявления
-    /// разъезжаются по разным файлам partial-типа — тогда регистрация могла бы
-    /// прочитать умолчание до того, как оно вычислено. Свойство вычисляется
-    /// при обращении, и порядок перестаёт иметь значение.</summary>
+    /// <summary>The default is looked for among static properties, not fields.
+    /// Static fields are initialized in declaration order, and the declarations
+    /// spread over different files of a partial type — then registration could read
+    /// the default before it is computed. A property is computed on access,
+    /// and the order stops mattering.</summary>
     private static bool HasDefaultProperty(INamedTypeSymbol owner, string propertyName)
     {
         foreach (ISymbol member in owner.GetMembers(propertyName + "Default"))
@@ -148,8 +164,12 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
         {
             string source = Render(group.Key.Namespace, group.Key.OwnerName, group.ToList());
 
+            // the namespace is part of the name: two partial types with the same name in
+            // different namespaces used to produce the same hint name, and Roslyn throws
+            // on a repeated AddSource — the whole generator failed, and none of the
+            // assembly's styled properties compiled
             context.AddSource(
-                $"{group.Key.OwnerName}.Styled.g.cs",
+                $"{group.Key.Namespace}.{group.Key.OwnerName}.Styled.g.cs",
                 SourceText.From(source, Encoding.UTF8));
         }
     }
@@ -177,9 +197,9 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
 
             if (property.External)
             {
-                // Значение живёт в чужом объекте, поэтому и читаем, и пишем
-                // через само свойство: делегаты регистрации ведут в аксессоры,
-                // которые написал контрол. Поля здесь нет.
+                // The value lives in another object, so both reading and writing go
+                // through the property itself: the registration delegates lead to the
+                // accessors the control wrote. There is no field here.
                 text.AppendLine($"    public static readonly StyledProperty<{property.ValueType}> {property.PropertyName}Property =");
                 text.AppendLine($"        StyledProperty<{property.ValueType}>.Register<{owner}>(");
                 text.AppendLine($"            \"{property.PropertyName}\",");
@@ -209,8 +229,8 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
             text.AppendLine($"    public partial {property.ValueType} {property.PropertyName}");
             text.AppendLine("    {");
 
-            // геттер идёт через Presented: внутри отрисовки он отдаёт
-            // промежуточное значение идущего перехода, снаружи — саму цель
+            // the getter goes through Presented: inside drawing it returns the
+            // intermediate value of a running transition, outside — the target itself
             text.AppendLine(property.Inherits
                 ? $"        get => Presented({property.PropertyName}Property, GetInheritedValue({property.PropertyName}Property));"
                 : $"        get => Presented({property.PropertyName}Property, {field});");
@@ -230,7 +250,8 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
 
     private static string Literal(bool value) => value ? "true" : "false";
 
-    private sealed record Model {
+    private sealed record Model
+    {
         public string Namespace { get; set; }
         public string OwnerName { get; set; }
         public string PropertyName { get; set; }

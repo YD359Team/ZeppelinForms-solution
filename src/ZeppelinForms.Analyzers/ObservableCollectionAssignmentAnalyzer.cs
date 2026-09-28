@@ -13,10 +13,10 @@ public sealed class ObservableCollectionAssignmentAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor Rule = new(
         id: DiagnosticId,
-        title: "Присваивание новой ObservableCollection теряет подписчиков",
-        messageFormat: "Присваивание нового значения '{0}' заменяет существующий экземпляр " +
-                        "ObservableCollection и отвязывает все обработчики CollectionChanged. " +
-                        "Используйте '{0}.Add(...)' или инициализатор '{{ }}' вместо '='.",
+        title: "Assigning a new ObservableCollection loses its subscribers",
+        messageFormat: "Assigning a new value to '{0}' replaces the existing " +
+                        "ObservableCollection instance and detaches all CollectionChanged handlers. " +
+                        "Use '{0}.Add(...)' or a '{{ }}' initializer instead of '='.",
         category: "Reliability",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
@@ -29,8 +29,8 @@ public sealed class ObservableCollectionAssignmentAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
 
-        // "цепляемся" за любое присваивание вида X = Y в синтаксическом дереве —
-        // это дёшево (чистый синтаксис, без семантики), дальше уже фильтруем по смыслу
+        // we hook onto any assignment of the form X = Y in the syntax tree —
+        // it's cheap (pure syntax, no semantics), the meaning is filtered after that
         context.RegisterSyntaxNodeAction(AnalyzeAssignment, SyntaxKind.SimpleAssignmentExpression);
     }
 
@@ -38,8 +38,8 @@ public sealed class ObservableCollectionAssignmentAnalyzer : DiagnosticAnalyzer
     {
         var assignment = (AssignmentExpressionSyntax)context.Node;
 
-        // "Foo = { a, b }" — это НЕ присваивание нового экземпляра, компилятор
-        // разворачивает это в вызовы Add() на существующей коллекции. Пропускаем.
+        // "Foo = { a, b }" is NOT an assignment of a new instance: the compiler
+        // expands it into Add() calls on the existing collection. Skipped.
         if (assignment.Right is InitializerExpressionSyntax)
             return;
 

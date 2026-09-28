@@ -11,10 +11,10 @@ public sealed class ShadowedOverloadAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor Rule = new(
         id: DiagnosticId,
-        title: "Перегрузка недостижима из-за другой перегрузки с тем же числом обязательных параметров",
-        messageFormat: "Метод '{0}' с параметрами по умолчанию никогда не вызовется с {1} " +
-                        "аргументами — такие вызовы всегда резолвятся в перегрузку '{2}'. " +
-                        "Удалите одну из перегрузок.",
+        title: "An overload is unreachable because of another overload with the same number of required parameters",
+        messageFormat: "Method '{0}' with default parameters will never be called with {1} " +
+                        "arguments — such calls always resolve to the overload '{2}'. " +
+                        "Remove one of the overloads.",
         category: "Design",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
