@@ -60,10 +60,10 @@ public class LayoutTransitionTests
         panel.Children.Insert(0, new ProbeBox());
         form.UpdateLayout();
 
-        // раскладка уже поставила строку на новое место
+        // the layout has already put the row at its new place
         Assert.Equal(before + 40f, second.Position.Y);
 
-        // а нарисована она пока от старого
+        // but it is still drawn from the old one
         Render(form);
         Assert.InRange(second.SeenTranslateY, -41f, -39f);
     }
@@ -100,8 +100,8 @@ public class LayoutTransitionTests
         form.Clock.Advance(TimeSpan.FromMilliseconds(100));
         form.UpdateLayout();
 
-        // переезд рисуется сдвигом: место из раскладки не меняется,
-        // соседи не разъезжаются, размеры не пересчитываются
+        // a move is drawn as an offset: the place from layout doesn't change,
+        // the neighbours don't move apart, sizes are not recomputed
         Assert.Equal(placed, second.Position.Y);
         Assert.Equal(0f, second.TranslateY);
     }

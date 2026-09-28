@@ -10,9 +10,9 @@ using ZeppelinForms.Headless;
 
 namespace ZeppelinForms.UnitTests;
 
-/// <summary>То, что дёргает жизненный цикл платформы: уход в фон должен
-/// останавливать выдачу кадров, возврат — возобновлять. Сами колбэки
-/// Android проверить в headless нечем, а вот механизм под ними — можно.</summary>
+/// <summary>What the platform lifecycle pulls: going to the background must
+/// stop delivering frames, coming back — resume it. The Android callbacks
+/// themselves can't be checked in headless, but the mechanism under them can.</summary>
 [Collection("Platform")]
 public class LifecycleFramesTests
 {
@@ -80,7 +80,7 @@ public class LifecycleFramesTests
 
         form.Clock.Advance(TimeSpan.FromSeconds(6));
 
-        // двигать больше нечего — кадры не нужны
+        // nothing moves anymore — frames aren't needed
         Assert.False(form.PlatformWindow!.Frames.IsRunning);
     }
 }

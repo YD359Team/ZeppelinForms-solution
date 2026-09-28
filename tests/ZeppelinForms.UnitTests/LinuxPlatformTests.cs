@@ -13,7 +13,7 @@ public class LinuxPlatformTests
         Assert.SkipUnless(OperatingSystem.IsLinux(), "Test for Linux only");
         Assert.SkipWhen(
             string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")),
-            "Нет доступного X-сервера (DISPLAY не задан)");
+            "No X server is available (DISPLAY is not set)");
 
         Exception? backgroundException = null;
         var shown = new ManualResetEventSlim(false);
@@ -39,11 +39,11 @@ public class LinuxPlatformTests
 
         uiThread.Start();
 
-        Assert.True(shown.Wait(TimeSpan.FromSeconds(5), CancellationToken.None), "Окно не появилось за отведённое время.");
+        Assert.True(shown.Wait(TimeSpan.FromSeconds(5), CancellationToken.None), "The window didn't appear within the allotted time.");
 
         form.Invoke(form.Close);
 
-        Assert.True(uiThread.Join(TimeSpan.FromSeconds(5)), "Приложение не завершилось после Close().");
+        Assert.True(uiThread.Join(TimeSpan.FromSeconds(5)), "The application didn't exit after Close().");
         Assert.Null(backgroundException);
     }
 }

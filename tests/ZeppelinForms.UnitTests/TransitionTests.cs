@@ -13,7 +13,7 @@ namespace ZeppelinForms.UnitTests;
 [Collection("Platform")]
 public class TransitionTests
 {
-    /// <summary>Запоминает, каким увидела свойство отрисовка.</summary>
+    /// <summary>Remembers how drawing saw the property.</summary>
     private sealed class ProbeBox : UnitControl
     {
         public float SeenRotation { get; private set; } = float.NaN;
@@ -57,7 +57,7 @@ public class TransitionTests
 
         box.Rotation = 90f;
 
-        // модель мгновенна: код и биндинги видят цель, а не полпути
+        // the model is instant: code and bindings see the target, not halfway
         Assert.Equal(90f, box.Rotation);
     }
 
@@ -71,7 +71,7 @@ public class TransitionTests
         form.Clock.Advance(TimeSpan.FromMilliseconds(100));
         Render(form);
 
-        // половина перехода при линейной кривой — примерно половина пути
+        // half of the transition with a linear curve is about half of the way
         Assert.InRange(box.SeenRotation, 30f, 60f);
     }
 
@@ -87,7 +87,7 @@ public class TransitionTests
 
         Assert.Equal(90f, box.SeenRotation);
 
-        // переход закончился — дальше отрисовка читает саму цель
+        // the transition ended — drawing reads the target itself from now on
         form.Clock.Advance(TimeSpan.FromMilliseconds(50));
         Render(form);
 
@@ -106,8 +106,8 @@ public class TransitionTests
 
         float midway = box.SeenRotation;
 
-        // цель поменялась на полпути: новый переход начинается отсюда же,
-        // а не прыгает к прежнему началу
+        // the target changed halfway: the new transition starts from right here
+        // rather than jumping to the former start
         box.Rotation = 0f;
         Render(form);
 

@@ -48,8 +48,8 @@ public class TouchScrollTests
         return form;
     }
 
-    /// <summary>Медленное протаскивание: палец замирает перед отпусканием,
-    /// броска нет, и инерция не начинается.</summary>
+    /// <summary>A slow drag: the finger freezes before the release,
+    /// there is no fling, and inertia doesn't start.</summary>
     private static void SlowDrag(Form form, Point from, Point to, int steps = 10)
     {
         HeadlessInput.TouchDown(form, 0, from.X, from.Y, 0);
@@ -77,7 +77,7 @@ public class TouchScrollTests
         SlowDrag(form, new Point(100, 250), new Point(100, 50));
         form.UpdateLayout();
 
-        // порог срыва — не потерянное расстояние: уехали на весь путь пальца
+        // the break threshold is not a lost distance: we moved the whole path of the finger
         Assert.InRange(panel.ScrollY, 190f, 210f);
     }
 
@@ -95,7 +95,7 @@ public class TouchScrollTests
         form.Clock.Advance(TimeSpan.FromMilliseconds(300));
         form.UpdateLayout();
 
-        // бросок: после отпускания содержимое продолжает ехать
+        // a fling: after the release the content keeps moving
         Assert.True(panel.ScrollY > released + 50f);
     }
 
@@ -108,7 +108,7 @@ public class TouchScrollTests
         HeadlessInput.Swipe(form, new Point(100, 250), new Point(100, 50));
         form.Clock.Advance(TimeSpan.FromMilliseconds(50));
 
-        // палец лёг на экран — инерция должна замереть
+        // a finger touched the screen — the inertia must freeze
         HeadlessInput.TouchDown(form, 0, 100, 150, 1000);
         form.UpdateLayout();
 
@@ -136,7 +136,7 @@ public class TouchScrollTests
         form.OnPointerUp(new Point(100, 50));
         form.UpdateLayout();
 
-        // мышью на десктопе протаскивают выделение и строки, а не содержимое
+        // on the desktop the mouse drags selections and rows, not the content
         Assert.Equal(0f, panel.ScrollY);
     }
 
@@ -148,17 +148,17 @@ public class TouchScrollTests
 
         UIElement first = panel.Children[0];
 
-        // тянем вниз от верхнего края — дальше прокручивать некуда
+        // pulling down from the top edge — there is nowhere further to scroll
         SlowDrag(form, new Point(100, 50), new Point(100, 200));
         form.UpdateLayout();
 
-        Assert.True(first.Position.Y > 0f, "оттянутое содержимое должно уехать за край");
+        Assert.True(first.Position.Y > 0f, "the pulled content must move past the edge");
         Assert.Equal(0f, panel.ScrollY);
 
         form.Clock.Advance(TimeSpan.FromSeconds(1));
         form.UpdateLayout();
 
-        // пружина вернула его на место
+        // the spring brought it back in place
         Assert.Equal(0f, first.Position.Y);
     }
 
@@ -188,7 +188,7 @@ public class TouchScrollTests
         HeadlessInput.Swipe(form, new Point(350, 150), new Point(40, 150));
         form.UpdateLayout();
 
-        // вертикальный список не забирает горизонтальный жест
+        // a vertical list doesn't take a horizontal gesture
         Assert.Equal(1, swipes);
         Assert.Equal(0f, scroller.ScrollY);
     }
@@ -198,7 +198,7 @@ public class TouchScrollTests
     {
         StackPanel outer = CreateScroller(rows: 40);
 
-        // внутренняя прокручиваемая панель, которой прокручивать нечего
+        // an inner scrolling panel that has nothing to scroll
         var inner = new StackPanel
         {
             Orientation = Orientation.Vertical,
@@ -210,11 +210,11 @@ public class TouchScrollTests
 
         Form form = Show(outer);
 
-        // палец ложится на короткую панель и тянет вверх
+        // a finger lands on the short panel and pulls up
         SlowDrag(form, new Point(50, 20), new Point(50, -180));
         form.UpdateLayout();
 
-        // жест, начатый на короткой панели, достался внешней
+        // the gesture started on the short panel went to the outer one
         Assert.True(outer.ScrollY > 0f);
     }
 
@@ -223,7 +223,7 @@ public class TouchScrollTests
     {
         var tracker = new VelocityTracker();
 
-        // долго тянули медленно, в конце бросили быстро
+        // dragged slowly for a long time, flung fast at the end
         for (int i = 0; i <= 20; i++)
             tracker.Add(new Point(0, i), i * 16);
 
@@ -232,7 +232,7 @@ public class TouchScrollTests
 
         Point velocity = tracker.GetVelocity(22 * 16);
 
-        // скорость — по последним ста миллисекундам, а не по всему жесту
+        // the velocity is from the last hundred milliseconds, not the whole gesture
         Assert.True(velocity.Y > 1000f);
     }
 
@@ -244,7 +244,7 @@ public class TouchScrollTests
         for (int i = 0; i <= 5; i++)
             tracker.Add(new Point(0, i * 30), i * 16);
 
-        // палец замер на 200 мс и только потом ушёл — броска не было
+        // the finger froze for 200 ms and only then left — there was no fling
         Assert.Equal(Point.Empty, tracker.GetVelocity(5 * 16 + 200));
     }
 }

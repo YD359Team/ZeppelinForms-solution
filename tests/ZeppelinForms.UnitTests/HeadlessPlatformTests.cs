@@ -13,8 +13,8 @@ public class HeadlessPlatformTests
     [Fact]
     public void ButtonClicked()
     {
-        // выравнивание по умолчанию у UnitControl — Center, поэтому позицию
-        // задаём явно, иначе тест зависит от размеров формы
+        // UnitControl's default alignment is Center, so the position
+        // is set explicitly, otherwise the test depends on the form's size
         var button = new Button
         {
             Text = "OK",

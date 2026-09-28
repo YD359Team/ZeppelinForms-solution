@@ -36,7 +36,7 @@ public class TreeKeyboardTests
         platform.CreateWindow(form);
         form.UpdateLayout();
 
-        // клик по строке отдаёт фокус дереву — без него клавиатуры нет
+        // a click on a row gives focus to the tree — without it there is no keyboard
         HeadlessInput.Click(form, 100, 12);
 
         return (form, tree);
@@ -81,7 +81,7 @@ public class TreeKeyboardTests
         Assert.True(tree.Nodes[0].IsExpanded);
         Assert.Same(tree.Nodes[0], tree.SelectedNode);
 
-        // раскрытый узел вторым нажатием пускает внутрь
+        // an expanded node lets you inside on the second press
         HeadlessInput.PressKey(form, Key.Right);
 
         Assert.Same(tree.Nodes[0].Children[0], tree.SelectedNode);
@@ -98,7 +98,7 @@ public class TreeKeyboardTests
         HeadlessInput.PressKey(form, Key.Down);
         Assert.Same(tree.Nodes[0].Children[0], tree.SelectedNode);
 
-        // у потомка сворачивать нечего — уходим к родителю
+        // a child has nothing to collapse — we go to the parent
         HeadlessInput.PressKey(form, Key.Left);
         Assert.Same(tree.Nodes[0], tree.SelectedNode);
 
@@ -147,7 +147,7 @@ public class TreeKeyboardTests
 
         var rows = tree.Children.OfType<ZeppelinForms.Forms.Controls.VirtualizingStackPanel>().Single();
 
-        // последняя строка должна оказаться видимой, а не остаться за краем
+        // the last row must end up visible rather than stay beyond the edge
         Assert.True(rows.ScrollY > 0f);
         Assert.Contains(
             rows.Children.OfType<TreeViewItem>(),
@@ -157,9 +157,9 @@ public class TreeKeyboardTests
     [Fact]
     public void ShortMoveIsFasterThanLongOne()
     {
-        // длительность переезда зависит от расстояния: строка, уехавшая
-        // на высоту строки, не должна ползти столько же, сколько уехавшая
-        // через весь экран
+        // the duration of a move depends on the distance: a row that moved
+        // by one row height must not crawl as long as one that moved
+        // across the whole screen
         var rule = LayoutTransition.Speed(pixelsPerSecond: 1600f, minDurationMs: 90, maxDurationMs: 320);
 
         Transition near = rule.For(ZeppelinForms.Forms.Controls.Base.UIElement.TranslateYProperty, 24f);

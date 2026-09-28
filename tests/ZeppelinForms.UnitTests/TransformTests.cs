@@ -65,7 +65,7 @@ public class TransformTests
         box.TranslateY = 20f;
         form.UpdateLayout();
 
-        // сдвиг — свойство отрисовки: раскладка о нём не знает
+        // the offset is a drawing property: layout doesn't know about it
         Assert.Equal(before, box.Position);
     }
 
@@ -81,11 +81,11 @@ public class TransformTests
         box.TranslateX = 120f;
         form.UpdateLayout();
 
-        // там, где элемент был по раскладке, его уже нет
+        // where the element was by layout, it is no longer
         HeadlessInput.Click(form, 10, 10);
         Assert.False(hitAtOrigin);
 
-        // а там, куда он сдвинут, — есть
+        // and where it was moved to, it is
         HeadlessInput.Click(form, 130, 10);
         Assert.True(hitAtOrigin);
     }
@@ -99,7 +99,7 @@ public class TransformTests
 
         box.MouseDown += (_, _) => hit = true;
 
-        // вдвое шире от центра: правый край уезжает с 100 на 150
+        // twice as wide from the center: the right edge moves from 100 to 150
         box.ScaleX = 2f;
         form.UpdateLayout();
 
@@ -113,7 +113,7 @@ public class TransformTests
     {
         var (form, panel, box) = CreateForm();
 
-        // уводим элемент далеко за пределы окна — рисовать его незачем
+        // take the element far beyond the window — there is no point drawing it
         box.TranslateY = 1000f;
         form.UpdateLayout();
 
@@ -136,7 +136,7 @@ public class TransformTests
         form.Clock.Advance(TimeSpan.FromMilliseconds(100));
         ElementTreeRenderer.Draw(panel, new HeadlessGraphics());
 
-        // раскладка по-прежнему не трогается, а картинка уже на полпути
+        // layout is still untouched, while the picture is already halfway
         Assert.InRange(box.SeenTranslateX, 30f, 70f);
         Assert.Equal(100f, box.TranslateX);
     }

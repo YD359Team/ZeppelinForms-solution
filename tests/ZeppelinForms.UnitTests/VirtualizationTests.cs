@@ -12,9 +12,9 @@ namespace ZeppelinForms.UnitTests;
 [Collection("Platform")]
 public class VirtualizationTests
 {
-    /// <summary>Платформа создаётся до формы, а не после: её конструктор
-    /// регистрирует измеритель текста, а присвоение Form.Content зовёт
-    /// раскладку сразу же — измерять уже там.</summary>
+    /// <summary>The platform is created before the form, not after: its constructor
+    /// registers the text measurer, and assigning Form.Content calls
+    /// layout right away — measuring happens there already.</summary>
     private static (Form Form, VirtualizingStackPanel Panel) CreateList(int itemCount, Size formSize)
     {
         var platform = new HeadlessPlatform();
@@ -43,7 +43,7 @@ public class VirtualizationTests
     {
         var (form, panel) = CreateList(1000, new Size(400, 300));
 
-        // 5000 / 20 = строка 250 — первая видимая после прокрутки
+        // 5000 / 20 = row 250 — the first visible after scrolling
         panel.ScrollTo(0, 5000);
         form.UpdateLayout();
 
@@ -57,8 +57,8 @@ public class VirtualizationTests
     [Fact]
     public void TallViewportIsFilledCompletely()
     {
-        // раньше измерение брало двадцать строк вместо высоты окна,
-        // и нижняя половина высокого окна оставалась пустой
+        // the measure used to take twenty rows instead of the window height,
+        // and the lower half of a tall window stayed empty
         var (_, panel) = CreateList(1000, new Size(400, 1000));
 
         string[] texts = [.. RealizedTexts(panel)];
@@ -73,7 +73,7 @@ public class VirtualizationTests
 
         panel.ScrollTo(0, 19000);
 
-        // список сжимается под текущей прокруткой
+        // the list shrinks under the current scroll
         while (panel.ItemsSource.Count > 10)
             panel.ItemsSource.RemoveAt(panel.ItemsSource.Count - 1);
 
@@ -93,8 +93,8 @@ public class VirtualizationTests
 
         int realizedBefore = panel.Children.Count;
 
-        // прокрутка только помечает раскладку устаревшей: новых строк
-        // до прохода нет, сколько бы раз её ни вызвали
+        // scrolling only marks the layout stale: there are no new rows
+        // before the pass, however many times it is called
         panel.ScrollTo(0, 5000);
         panel.ScrollTo(0, 6000);
         panel.ScrollTo(0, 7000);
@@ -138,13 +138,13 @@ public class VirtualizationTests
         tree.Nodes[0].IsExpanded = true;
         form.UpdateLayout();
 
-        // строка соседнего узла — тот же объект, только ниже на одну позицию
+        // the neighbouring node's row is the same object, only one position lower
         Assert.Same(before, RowOf(tree.Nodes[1]));
 
-        // и у раскрытого узла появилась строка потомка
+        // and the expanded node got a row for its child
         Assert.Contains(panel.Children.OfType<TreeViewItem>(), row => ReferenceEquals(row.Node, tree.Nodes[0].Children[0]));
 
-        // ни одна строка не показывает узел дважды
+        // no row shows a node twice
         Assert.Equal(
             panel.Children.Count,
             panel.Children.OfType<TreeViewItem>().Select(row => row.Node).Distinct().Count());

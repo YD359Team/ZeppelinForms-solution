@@ -13,23 +13,23 @@ public static class SnapshotAssert
          Environment.GetEnvironmentVariable("CI") == "true" ||
          Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
 
-    /// <summary>Разрешено создавать отсутствующие эталоны.</summary>
+    /// <summary>Creating missing baselines is allowed.</summary>
     private static bool AllowCreate =>
         !IsContinuousIntegration ||
         Environment.GetEnvironmentVariable("ZF_CREATE_SNAPSHOTS") == "true" ||
         ForceOverwrite;
 
-    /// <summary>Перезаписать эталоны, даже если они уже есть.</summary>
+    /// <summary>Overwrite the baselines even if they already exist.</summary>
     private static bool ForceOverwrite =>
         Environment.GetEnvironmentVariable("ZF_UPDATE_SNAPSHOTS") == "true";
 
     private const int DefaultTolerance = 4;
 
-    /// <summary>Доля различающихся пикселей, ниже которой снимок считается совпавшим.</summary>
+    /// <summary>The share of differing pixels below which a snapshot counts as matching.</summary>
     private const float AllowedDifferenceRatio = 0.002f;
 
-    /// <summary>Эталоны лежат в исходниках, а не в bin — иначе их нельзя
-    /// закоммитить, и каждый прогон CI создавал бы их заново.</summary>
+    /// <summary>Baselines live in the sources, not in bin — otherwise they couldn't
+    /// be committed, and every CI run would create them anew.</summary>
     private static readonly string ExpectedDirectory = ResolveExpectedDirectory();
 
     private static string FailedDirectory =>
@@ -38,8 +38,8 @@ public static class SnapshotAssert
             "..",
             "Failed");
 
-    /// <summary>Шрифт из файла — системные различаются между машинами
-    /// и делают снимки невоспроизводимыми.</summary>
+    /// <summary>A font from a file — system fonts differ between machines
+    /// and make snapshots irreproducible.</summary>
     public static Font TestFont { get; } = new("Snapshot", 14)
     {
         FilePath = Path.Combine(AppContext.BaseDirectory, "Snapshots", "Fonts", "DejaVuSans.ttf"),
@@ -58,8 +58,8 @@ public static class SnapshotAssert
             (int)MathF.Ceiling(form.ClientSize.Height * scale),
             scale);
 
-        // суффикс только для нестандартного масштаба — иначе обычные снимки
-        // получают лишнее «@1x» в имени без всякой пользы
+        // the suffix only for a non-standard scale — otherwise ordinary snapshots
+        // get an extra "@1x" in the name with no benefit at all
         string snapshotName = Math.Abs(scale - 1f) < 0.001f ? name : $"{name}@{scale:0.##}x";
 
         Compare(actual, snapshotName, tolerance);
@@ -82,14 +82,14 @@ public static class SnapshotAssert
                 SaveFailure(name, actual, expected: null);
 
                 throw new Xunit.Sdk.XunitException(
-                    $"Эталон '{name}' отсутствует в репозитории. " +
-                    "Снимите его локально или прогоном с ZF_CREATE_SNAPSHOTS и закоммитьте.");
+                    $"Baseline '{name}' is missing from the repository. " +
+                    "Take it locally or with a ZF_CREATE_SNAPSHOTS run, and commit it.");
             }
 
             WriteExpected(expectedRaw, name, actual);
 
             throw new Xunit.Sdk.XunitException(
-                $"Эталон '{name}' создан в {ExpectedDirectory}. Проверьте PNG и добавьте файлы в git.");
+                $"Baseline '{name}' was created in {ExpectedDirectory}. Check the PNG and add the files to git.");
         }
 
         Image expected = LoadRaw(expectedRaw);
@@ -99,8 +99,8 @@ public static class SnapshotAssert
             SaveFailure(name, actual, expected: null);
 
             throw new Xunit.Sdk.XunitException(
-                $"Размер снимка '{name}' изменился: было {expected.Width}x{expected.Height}, " +
-                $"стало {actual.Width}x{actual.Height}.");
+                $"The size of snapshot '{name}' changed: was {expected.Width}x{expected.Height}, " +
+                $"now {actual.Width}x{actual.Height}.");
         }
 
         int different = CountDifferentPixels(expected, actual, tolerance);
@@ -111,8 +111,8 @@ public static class SnapshotAssert
             SaveFailure(name, actual, expected);
 
             throw new Xunit.Sdk.XunitException(
-                $"Снимок '{name}' отличается: {different} из {total} пикселей " +
-                $"({different * 100f / total:0.##}%). Сравните PNG в {FailedDirectory}.");
+                $"Snapshot '{name}' differs: {different} of {total} pixels " +
+                $"({different * 100f / total:0.##}%). Compare the PNGs in {FailedDirectory}.");
         }
     }
 
@@ -148,7 +148,7 @@ public static class SnapshotAssert
         }
     }
 
-    /// <summary>Карта различий: совпавшее приглушается, отличия красным.</summary>
+    /// <summary>A difference map: what matches is dimmed, differences are red.</summary>
     private static Image BuildDiff(Image expected, Image actual)
     {
         byte[] pixels = new byte[actual.Pixels.Length];
@@ -207,8 +207,8 @@ public static class SnapshotAssert
     {
         string? directory = Path.GetDirectoryName(sourceFilePath);
 
-        // отрисовка текста заметно отличается между платформами,
-        // поэтому эталоны храним отдельно для каждой
+        // text rendering differs noticeably between platforms,
+        // so baselines are kept separately for each
         string root = directory is not null && Directory.Exists(directory)
             ? Path.Combine(directory, "Expected")
             : Path.Combine(AppContext.BaseDirectory, "Snapshots", "Expected");
@@ -223,6 +223,6 @@ public static class SnapshotAssert
         SaveRaw(rawPath, actual);
         SkiaOffscreenRenderer.SavePng(actual, Path.Combine(ExpectedDirectory, name + ".png"));
 
-        Console.WriteLine($"[снимок] записан эталон: {rawPath}");
+        Console.WriteLine($"[snapshot] baseline written: {rawPath}");
     }
 }

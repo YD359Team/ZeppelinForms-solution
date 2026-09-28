@@ -14,8 +14,8 @@ namespace ZeppelinForms.UnitTests;
 [Collection("Platform")]
 public class DragAndGestureTests
 {
-    /// <summary>Забирает указатель себе при нажатии — так же, как это
-    /// делают DragList, ползунок панели и TrackBar.</summary>
+    /// <summary>Takes the pointer for itself on press — the same way
+    /// DragList, the panel's scrollbar thumb and TrackBar do.</summary>
     private sealed class CapturingBox : UnitControl
     {
         public override void Draw(Graphics g) { }
@@ -73,10 +73,10 @@ public class DragAndGestureTests
         platform.CreateWindow(form);
         form.UpdateLayout();
 
-        // то же движение, что распознаётся как свайп на обычном содержимом
+        // the same movement that is recognized as a swipe on ordinary content
         MouseSwipe(form, new Point(300, 50), new Point(40, 50));
 
-        // но указатель забрал себе тот, кто под ним: борьбы жестов больше нет
+        // but whoever is under it took the pointer: there is no gesture fight anymore
         Assert.Equal(0, swipes);
     }
 
@@ -111,10 +111,10 @@ public class DragAndGestureTests
 
         Assert.True(list.IsDragging);
 
-        // платформа оборвала контакт: отпускания не будет
+        // the platform cut off the contact: there will be no release
         form.OnPointerCancel(Form.MousePointerId);
 
-        // строка не должна остаться висеть поверх формы
+        // the row must not stay hanging over the form
         Assert.False(list.IsDragging);
     }
 
@@ -127,8 +127,8 @@ public class DragAndGestureTests
         form.OnPointerMove(new Point(50, 70));
         form.OnPointerUp(new Point(50, 70));
 
-        // проверяем не порядок — он зависит от высоты строк, — а то,
-        // что перенос закончился и ничего не осталось висеть
+        // we check not the order — it depends on the row height — but that
+        // the move finished and nothing was left hanging
         Assert.False(list.IsDragging);
         Assert.Equal(3, list.Items.Count);
     }

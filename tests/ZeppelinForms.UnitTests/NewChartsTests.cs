@@ -53,8 +53,8 @@ public class NewChartsTests
     [Fact]
     public void RadarChartSurvivesShortSeries()
     {
-        // ряд короче списка осей — недостающее считается нулём,
-        // а не роняет отрисовку
+        // a series shorter than the list of axes — the missing values count as zero
+        // rather than crash the drawing
         var chart = new RadarChart
         {
             Categories = { "A", "B", "C", "D" },
@@ -69,7 +69,7 @@ public class NewChartsTests
     [Fact]
     public void RadarChartIgnoresTooFewAxes()
     {
-        // на двух осях лепестка не бывает: рисуем только фон и заголовок
+        // two axes make no radar: only the background and the title are drawn
         var chart = new RadarChart
         {
             Categories = { "A", "B" },
@@ -109,7 +109,7 @@ public class NewChartsTests
 
         Render(form);
 
-        // проводим мышью по полю: подсветка и подпись цен не должны падать
+        // move the mouse across the plot: the highlight and the price readout must not crash
         HeadlessInput.MoveMouse(form, 300, 150);
         Render(form);
 
@@ -142,7 +142,7 @@ public class NewChartsTests
         platform.CreateWindow(form);
         form.UpdateLayout();
 
-        // полукруг занимает вдвое меньше высоты, чем ширины
+        // a half circle takes half as much height as width
         Assert.True(gauge.DesiredSize.Width > gauge.DesiredSize.Height);
 
         Render(form);

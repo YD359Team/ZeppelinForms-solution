@@ -43,8 +43,8 @@ public class PointerContactTests
         return (form, button, swipes);
     }
 
-    /// <summary>Проведение мышью: свайп работает и ей, распознаватель
-    /// различает палец и мышь только порогами.</summary>
+    /// <summary>Dragging with the mouse: the swipe works for it too, the recognizer
+    /// tells a finger from the mouse only by thresholds.</summary>
     private static void MouseSwipe(Form form, Point from, Point to, int steps = 8)
     {
         form.OnPointerDown(from);
@@ -76,9 +76,9 @@ public class PointerContactTests
     {
         var (form, _, swipes) = CreateForm();
 
-        // контакт, забранный жестом, обязан закончиться вместе с отпусканием:
-        // иначе он остаётся в конвейере, следующее нажатие принимается
-        // за вторую кнопку того же контакта, и арена заново не собирается
+        // a contact taken by a gesture must end together with the release:
+        // otherwise it stays in the pipeline, the next press is taken
+        // for a second button of the same contact, and the arena isn't assembled again
         MouseSwipe(form, new Point(300, 150), new Point(40, 150));
         MouseSwipe(form, new Point(300, 150), new Point(40, 150));
 
@@ -112,8 +112,8 @@ public class PointerContactTests
 
         HeadlessInput.MoveMouse(form, 100, 12);
 
-        // наведение считается по тому, кто под курсором, — а при живом
-        // контакте движение уходило бы цели прошлого нажатия
+        // hover is computed from whoever is under the cursor — while with a live
+        // contact the movement would go to the target of the previous press
         Assert.True(entered);
     }
 

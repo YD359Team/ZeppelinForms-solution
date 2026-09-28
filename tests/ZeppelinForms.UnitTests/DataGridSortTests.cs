@@ -63,7 +63,7 @@ public class DataGridSortTests
         Assert.Equal("Анна", NameAt(grid, 0));
         Assert.Equal("Вера", NameAt(grid, 2));
 
-        // сама коллекция не тронута: сортировка — способ смотреть на данные
+        // the collection itself is untouched: sorting is a way of looking at the data
         Assert.Equal("Вера", ((Person)grid.Items[0]).Name);
     }
 
@@ -98,12 +98,12 @@ public class DataGridSortTests
     {
         var (_, grid) = CreateGrid();
 
-        grid.SelectedIndex = 0;                       // Вера
+        grid.SelectedIndex = 0;                       // the first row in source order
         object? selected = grid.SelectedItem;
 
         grid.SortBy(0);
 
-        // выделение держится за строку данных, а не за её место на экране
+        // the selection holds on to the data row, not to its place on screen
         Assert.Same(selected, grid.SelectedItem);
         Assert.Equal(2, grid.SelectedIndex);
     }
@@ -113,13 +113,13 @@ public class DataGridSortTests
     {
         var (form, grid) = CreateGrid();
 
-        // заголовок высотой 30 — щёлкаем в первый столбец
+        // the header is 30 high — click into the first column
         HeadlessInput.Click(form, 40, 15);
 
         Assert.Equal(0, grid.SortColumnIndex);
         Assert.Equal("Анна", NameAt(grid, 0));
 
-        // и по строке данных щелчок по-прежнему выделяет
+        // and a click on a data row still selects
         HeadlessInput.Click(form, 40, 45);
         Assert.Equal(0, grid.SelectedIndex);
     }
@@ -132,7 +132,7 @@ public class DataGridSortTests
         grid.SortBy(0);
         grid.Items.Add(new Person("Артём", 28));
 
-        // порядок пересобран: новая строка встала на своё место
+        // the order is rebuilt: the new row took its place
         Assert.Equal("Анна", NameAt(grid, 0));
         Assert.Equal("Артём", NameAt(grid, 1));
     }
@@ -142,7 +142,7 @@ public class DataGridSortTests
     {
         var (form, grid) = CreateGrid();
 
-        // граница первого столбца — на 120 от левого края
+        // the first column's boundary is at 120 from the left edge
         form.OnPointerDown(new Point(120, 15));
         form.OnPointerMove(new Point(170, 15));
         form.OnPointerUp(new Point(170, 15));
@@ -150,7 +150,7 @@ public class DataGridSortTests
 
         Assert.Equal(170f, grid.Columns[0].Width.Value, 1f);
 
-        // тяга границы не считается щелчком по заголовку
+        // dragging a boundary doesn't count as a click on the header
         Assert.Equal(-1, grid.SortColumnIndex);
     }
 

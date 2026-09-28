@@ -10,12 +10,12 @@ namespace ZeppelinForms.UnitTests;
 [Collection("Platform")]
 public class DrawSmokeTests
 {
-    /// <summary>Контролы, которым для отрисовки нужно окружение,
-    /// не создаваемое конструктором по умолчанию.</summary>
+    /// <summary>Controls that need an environment for drawing
+    /// that the default constructor doesn't create.</summary>
     private static readonly HashSet<string> Skipped =
     [
-        "MapControl",      // полезет за тайлами в сеть
-        "GridSplitter",    // осмыслен только внутри Grid
+        "MapControl",      // would go to the network for tiles
+        "GridSplitter",    // meaningful only inside a Grid
     ];
 
     public static TheoryData<Type> AllControls
@@ -49,7 +49,7 @@ public class DrawSmokeTests
 
         HeadlessElementRenderer.Register();
 
-        // упадёт — значит в Draw/DrawContent этого контрола есть исключение
+        // if it fails, this control's Draw/DrawContent has an exception
         ElementRenderer.Current.Render(control, 200, 100);
     }
 }

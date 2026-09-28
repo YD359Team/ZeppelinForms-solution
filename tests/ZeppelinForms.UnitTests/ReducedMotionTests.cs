@@ -62,7 +62,7 @@ public class ReducedMotionTests
     private static void Render(Form form) =>
         ElementTreeRenderer.Draw(form.Content!, new HeadlessGraphics());
 
-    /// <summary>Настройка статическая — каждый тест возвращает её как было.</summary>
+    /// <summary>The setting is static — every test puts it back as it was.</summary>
     private static void WithPreference(MotionPreference preference, Action body)
     {
         MotionPreference before = Motion.Preference;
@@ -88,7 +88,7 @@ public class ReducedMotionTests
             box.Rotation = 90f;
             Render(form);
 
-            // уменьшенное движение: сразу конечное значение, без полпути
+            // reduced motion: the final value right away, no halfway
             Assert.Equal(90f, box.SeenRotation);
         });
     }

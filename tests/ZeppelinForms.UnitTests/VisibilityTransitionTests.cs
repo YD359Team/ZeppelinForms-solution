@@ -62,7 +62,7 @@ public class VisibilityTransitionTests
 
         Render(form);
 
-        // открытие формы — не появление: первое содержимое сразу видно
+        // opening a form is not an appearance: the first content is visible right away
         Assert.Equal(1f, first.SeenOpacity);
     }
 
@@ -75,10 +75,10 @@ public class VisibilityTransitionTests
         panel.Children.Add(added);
         form.UpdateLayout();
 
-        // в самом начале элемент полностью прозрачен — рендерер такой
-        // даже не рисует, поэтому первую проверку делаем на полпути
+        // at the very start the element is fully transparent — the renderer doesn't
+        // even draw such, so the first check is made halfway
         Render(form);
-        Assert.True(float.IsNaN(added.SeenOpacity), "полностью прозрачное не рисуется");
+        Assert.True(float.IsNaN(added.SeenOpacity), "fully transparent is not drawn");
 
         form.Clock.Advance(TimeSpan.FromMilliseconds(100));
         Render(form);
@@ -88,7 +88,7 @@ public class VisibilityTransitionTests
         Render(form);
         Assert.Equal(1f, added.SeenOpacity);
 
-        // модель всё это время видела итоговое значение
+        // the model saw the final value all this time
         Assert.Equal(1f, added.Opacity);
     }
 
@@ -104,13 +104,13 @@ public class VisibilityTransitionTests
 
         int before = first.Draws;
 
-        // из панели убран, а на экране ещё есть
+        // removed from the panel, but still on screen
         form.Clock.Advance(TimeSpan.FromMilliseconds(100));
         Render(form);
 
         Assert.True(first.Draws > before);
 
-        // исчезание кончилось — больше не рисуется
+        // the disappearance ended — it is no longer drawn
         form.Clock.Advance(TimeSpan.FromMilliseconds(150));
 
         int after = first.Draws;
@@ -133,7 +133,7 @@ public class VisibilityTransitionTests
         int before = first.Draws;
         Render(form);
 
-        // вернули посреди исчезания: рисуется один раз, живым
+        // brought back in the middle of disappearing: drawn once, alive
         Assert.Equal(before + 1, first.Draws);
     }
 
@@ -146,7 +146,7 @@ public class VisibilityTransitionTests
         panel.Children.Add(second);
         form.UpdateLayout();
 
-        // даём появлению второго доиграть, чтобы не мешало счёту
+        // let the second one's appearance finish, so it doesn't interfere with the count
         form.Clock.Advance(TimeSpan.FromMilliseconds(250));
         Render(form);
 

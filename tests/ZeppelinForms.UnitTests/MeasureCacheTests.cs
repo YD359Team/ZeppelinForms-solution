@@ -14,13 +14,13 @@ namespace ZeppelinForms.UnitTests;
 [Collection("Platform")]
 public class MeasureCacheTests
 {
-    /// <summary>Считает обращения к измерению и умеет менять свой размер
-    /// молча — так проверяется режим сверки кэша.</summary>
+    /// <summary>Counts measure calls and can change its size
+    /// silently — this is how the cache verification mode is checked.</summary>
     private sealed class CountingBox : UnitControl
     {
         public int Measures { get; private set; }
 
-        /// <summary>Меняется без Invalidate намеренно.</summary>
+        /// <summary>Changes without Invalidate on purpose.</summary>
         public float ReportedHeight = 20f;
 
         public override void Draw(Graphics g) { }
@@ -77,8 +77,8 @@ public class MeasureCacheTests
 
         int before = box.Measures;
 
-        // подпись просит пересчёт, панель меряется заново — но соседу
-        // приходит то же ограничение, и его измерение берётся из кэша
+        // the label asks for a recompute, the panel is measured again — but the
+        // neighbour gets the same constraint, and its measure is taken from the cache
         label.Text = "другой текст";
         form.UpdateLayout();
 
@@ -97,7 +97,7 @@ public class MeasureCacheTests
 
         Assert.True(
             label.DesiredSize.Width > before,
-            "смена текста обязана привести к новому измерению");
+            "a text change must lead to a new measure");
     }
 
     [Fact]
@@ -107,8 +107,8 @@ public class MeasureCacheTests
 
         int before = box.Measures;
 
-        // отступ панели меняет ограничение, которое достаётся детям,
-        // а по другому ограничению кэш не подходит по определению
+        // the panel's padding changes the constraint its children get,
+        // and for a different constraint the cache doesn't fit by definition
         panel.Padding = new Thickness(20);
         form.UpdateLayout();
 
@@ -133,10 +133,10 @@ public class MeasureCacheTests
 
         try
         {
-            // меняем размер молча — именно та ошибка, которую ловит режим
+            // the size changes silently — exactly the mistake the mode catches
             box.ReportedHeight = 60f;
 
-            // пересчёт просит сосед: ограничение у box то же, что было
+            // the recompute is asked for by a neighbour: box's constraint is the same as before
             label.Text = "ещё один текст";
             form.UpdateLayout();
 

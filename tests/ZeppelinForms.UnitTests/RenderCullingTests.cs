@@ -12,7 +12,7 @@ namespace ZeppelinForms.UnitTests;
 [Collection("Platform")]
 public class RenderCullingTests
 {
-    /// <summary>Контрол, который только считает, сколько раз его рисовали.</summary>
+    /// <summary>A control that only counts how many times it was drawn.</summary>
     private sealed class CountingBox : UnitControl
     {
         public int Draws { get; private set; }
@@ -40,19 +40,19 @@ public class RenderCullingTests
         foreach (CountingBox box in boxes)
             panel.Children.Add(box);
 
-        // 300 / 20 = пятнадцать строк в окне, остальные восемьдесят пять за краем
+        // 300 / 20 = fifteen rows in the window, the other eighty-five beyond the edge
         var form = new Form { Size = new Size(400, 300), Content = panel };
         platform.CreateWindow(form);
         form.UpdateLayout();
 
-        // clip не задан: так рисуют Android и браузер — там частичной
-        // перерисовки нет вообще, и раньше отсечения тоже не было
+        // no clip given: this is how Android and the browser draw — there is no partial
+        // redraw there at all, and there used to be no culling either
         ElementTreeRenderer.Draw(panel, new HeadlessGraphics());
 
         int drawn = boxes.Count(box => box.Draws > 0);
 
         Assert.InRange(drawn, 1, 20);
-        Assert.True(boxes[0].Draws > 0, "первая строка видна и должна рисоваться");
+        Assert.True(boxes[0].Draws > 0, "the first row is visible and must be drawn");
         Assert.Equal(0, boxes[^1].Draws);
     }
 
@@ -77,13 +77,13 @@ public class RenderCullingTests
         var form = new Form { Size = new Size(400, 300), Content = panel };
         platform.CreateWindow(form);
 
-        panel.ScrollTo(0, 1000);   // 1000 / 20 = пятидесятая строка наверху
+        panel.ScrollTo(0, 1000);   // 1000 / 20 = row fifty at the top
         form.UpdateLayout();
 
         ElementTreeRenderer.Draw(panel, new HeadlessGraphics());
 
         Assert.Equal(0, boxes[0].Draws);
-        Assert.True(boxes[50].Draws > 0, "строка под новой прокруткой должна рисоваться");
+        Assert.True(boxes[50].Draws > 0, "the row under the new scroll must be drawn");
     }
 
     [Fact]
@@ -111,8 +111,8 @@ public class RenderCullingTests
 
         ElementTreeRenderer.Draw(inner, new HeadlessGraphics());
 
-        // под поворотом сложение смещений не работает, поэтому отсечения
-        // нет: рисуется всё поддерево, пусть и с запасом
+        // under rotation adding up offsets doesn't work, so there is no culling:
+        // the whole subtree is drawn, even with a margin
         Assert.All(boxes, box => Assert.True(box.Draws > 0));
     }
 }

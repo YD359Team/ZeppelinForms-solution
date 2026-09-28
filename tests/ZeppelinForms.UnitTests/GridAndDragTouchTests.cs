@@ -27,8 +27,8 @@ public class GridAndDragTouchTests
         return form;
     }
 
-    /// <summary>Медленное протаскивание пальцем: перед отпусканием палец
-    /// замирает, поэтому инерции не будет и проверять можно точные числа.</summary>
+    /// <summary>A slow finger drag: the finger freezes before the release,
+    /// so there is no inertia and exact numbers can be checked.</summary>
     private static void SlowDrag(Form form, Point from, Point to, int steps = 10)
     {
         HeadlessInput.TouchDown(form, 0, from.X, from.Y, 0);
@@ -66,17 +66,17 @@ public class GridAndDragTouchTests
 
         Form form = Show(grid);
 
-        // строка под верхом тела до прокрутки — нулевая
+        // the row under the top of the body before scrolling is row zero
         HeadlessInput.Tap(form, 100, 40);
         Assert.Equal(0, grid.SelectedIndex);
 
-        // 260 / 26 = десять строк вверх
+        // 260 / 26 = ten rows up
         SlowDrag(form, new Point(100, 280), new Point(100, 20));
         form.UpdateLayout();
 
         HeadlessInput.Tap(form, 100, 40);
 
-        // та же точка экрана — но уже другая строка данных
+        // the same point on screen — but a different data row now
         Assert.InRange(grid.SelectedIndex, 9, 11);
     }
 
@@ -100,7 +100,7 @@ public class GridAndDragTouchTests
 
         HeadlessInput.Tap(form, 100, 40);
 
-        // мышью таблица не прокручивается: строка осталась прежней
+        // the mouse doesn't scroll the grid: the row stayed the same
         Assert.Equal(0, grid.SelectedIndex);
     }
 
@@ -116,7 +116,7 @@ public class GridAndDragTouchTests
 
         object first = list.Items[0];
 
-        // без удержания движение пальцем — это прокрутка, а не перенос
+        // without a hold a finger movement is scrolling, not moving a row
         SlowDrag(form, new Point(50, 200), new Point(50, 40));
         form.UpdateLayout();
 
@@ -138,7 +138,7 @@ public class GridAndDragTouchTests
         form.OnPointerMove(new Point(50, 70));
         form.OnPointerUp(new Point(50, 70));
 
-        // мышью всё как было: порог сдвига, без удержания
+        // with the mouse everything is as before: the movement threshold, no hold
         Assert.False(list.IsDragging);
         Assert.Equal(20, list.Items.Count);
     }

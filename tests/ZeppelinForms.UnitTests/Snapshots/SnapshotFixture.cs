@@ -6,7 +6,7 @@ using ZeppelinForms.Theming;
 
 namespace ZeppelinForms.UnitTests.Snapshots;
 
-/// <summary>Headless-платформа, но с настоящим рендером и измерением Skia.</summary>
+/// <summary>A headless platform, but with real Skia rendering and measuring.</summary>
 public sealed class SnapshotFixture
 {
     public SnapshotFixture()
