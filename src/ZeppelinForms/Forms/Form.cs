@@ -271,8 +271,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     public Form()
     {
         App.ThemeChanged += OnThemeChanged;
+        Localization.Changed += OnLocalizationChanged;
         _focusDispatcher.FocusChanged += OnFocusChangedForKeyboard;
-        App.ThemeChanged += OnThemeChanged;
     }
 
     /// <summary>The keyboard follows focus: a field got it — show the keyboard,
