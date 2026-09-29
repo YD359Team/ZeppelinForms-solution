@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using ZeppelinForms.Animation;
+using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Core.Text;
 using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Drawing;
@@ -57,6 +58,17 @@ public partial class Form : IDisposable
                 OnThemeChanged(null, EventArgs.Empty);
 
             _themeAtUnsubscribe = null;
+
+            // the language subscription is renewed the same way as the theme's,
+            // and a language switched while the form was closed is applied now
+            Localization.Changed -= OnLocalizationChanged;
+            Localization.Changed += OnLocalizationChanged;
+
+            if (_localizationVersionAtUnsubscribe >= 0 &&
+                _localizationVersionAtUnsubscribe != Localization.Version)
+                OnLocalizationChanged(null, EventArgs.Empty);
+
+            _localizationVersionAtUnsubscribe = -1;
 
             if (!s_openForms.Contains(this))
                 s_openForms.Add(this);
@@ -260,6 +272,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     {
         App.ThemeChanged += OnThemeChanged;
         _focusDispatcher.FocusChanged += OnFocusChangedForKeyboard;
+        App.ThemeChanged += OnThemeChanged;
     }
 
     /// <summary>The keyboard follows focus: a field got it — show the keyboard,
@@ -889,6 +902,37 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         Invalidate();
     }
 
+    /// <summary>The window title as a key: follows the language like the controls' texts.</summary>
+    public Form LocalizeTitle(TextKey key, params object?[] args)
+    {
+        object?[] captured = [.. args];
+
+        _localizedTitle = () => Localization.Get(key, captured);
+        Title = _localizedTitle();
+
+        return this;
+    }
+
+    private void OnLocalizationChanged(object? sender, EventArgs e)
+    {
+        if (_localizedTitle is not null)
+            Title = _localizedTitle();
+
+        if (Content is not null)
+            Walk(Content, static element => element.ApplyLocalization());
+
+        // overlays live separately from Content: an open menu or flyout
+        // must not stay in the old language until it is closed
+        foreach (UIElement overlay in _overlays.ToArray())
+            Walk(overlay, static element => element.ApplyLocalization());
+
+        // texts of another language have other lengths, and a right-to-left
+        // language mirrors the whole layout — every measure is stale
+        InvalidateMeasureTree();
+
+        Invalidate();
+    }
+
     /// <summary>Give focus to whoever can take it: the pressed element itself
     /// or the nearest ancestor that accepts input.</summary>
     /// <remarks>
@@ -1338,6 +1382,12 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     /// that is, at window close. Null while the form is subscribed.</summary>
     private Theme? _themeAtUnsubscribe;
 
+    /// <summary>Localization.Version at window close; −1 while the form is subscribed.</summary>
+    private int _localizationVersionAtUnsubscribe = -1;
+
+    /// <summary>The window title as a key, if it was given as one.</summary>
+    private Func<string>? _localizedTitle;
+
     /// <summary>The platform destroyed the window. The only point where waiting
     /// for a dialog completes: there is no need to tell apart where the closing
     /// came from, but it must not be missed — ShowDialogAsync would hang forever.</summary>
@@ -1356,6 +1406,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         // is dropped here and renewed if the form is shown again
         App.ThemeChanged -= OnThemeChanged;
         _themeAtUnsubscribe = App.Theme;
+
+        // static like the theme's event, and it would hold the form the same way
+        Localization.Changed -= OnLocalizationChanged;
+        _localizationVersionAtUnsubscribe = Localization.Version;
 
         _clock?.Stop();
 
@@ -1814,6 +1868,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     public void Dispose()
     {
         App.ThemeChanged -= OnThemeChanged;
+
+        Localization.Changed -= OnLocalizationChanged;
+
         _toolTipWake?.Dispose();
         _clock?.Dispose();
 

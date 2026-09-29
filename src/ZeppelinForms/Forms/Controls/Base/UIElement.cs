@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using ZeppelinForms.Animation;
+using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Core.Text;
 using ZeppelinForms.Data;
 using ZeppelinForms.Diagnostics;
@@ -428,6 +429,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     // ===== raising events =====
     internal void RaiseAttached()
     {
+        // the language may have changed while the element was out of every form's
+        // tree: no form walked it then, so it catches up here, before anyone sees it
+        if (_localized is not null && _localizationVersion != Localization.Version)
+            ApplyLocalization();
+
         OnAttached();
         Attached?.Invoke(this, EventArgs.Empty);
     }
@@ -1075,12 +1081,13 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     protected bool IsHovered { get; set; }
     protected bool IsPressed { get; set; }
 
-    /// <summary>Own direction, or if not set — inherited from ancestors,
-    /// then from the form.</summary>
+    /// <summary>The direction from the element itself, its ancestors, its form —
+    /// and last, from the culture: a right-to-left language mirrors the layout
+    /// of everything that set no direction of its own.</summary>
     public FlowDirection EffectiveFlowDirection =>
         GetInheritedValue(FlowDirectionProperty)
         ?? FindOwner()?.FlowDirection
-        ?? Core.Text.FlowDirection.LeftToRight;
+        ?? Localization.LayoutDirection;
 
     public bool IsRightToLeft => EffectiveFlowDirection == Core.Text.FlowDirection.RightToLeft;
 
@@ -1111,6 +1118,45 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     [Styled(Category = "Appearance")]
     public partial float Opacity { get; set; }
     private static float OpacityDefault => 1f;
+
+    // ===== localization =====
+
+    /// <summary>Texts of this element given as keys rather than strings.
+    /// Null for the vast majority of elements — no list is created until needed.</summary>
+    private List<LocalizedBinding>? _localized;
+
+    /// <summary>The Localization.Version the texts were last resolved for.</summary>
+    private int _localizationVersion;
+
+    internal void SetLocalized(LocalizedBinding binding)
+    {
+        _localized ??= [];
+
+        int index = _localized.FindIndex(existing => existing.Property == binding.Property);
+
+        if (index >= 0) _localized[index] = binding;
+        else _localized.Add(binding);
+
+        binding.Apply(this);
+        _localizationVersion = Localization.Version;
+    }
+
+    internal void RemoveLocalized(string property) =>
+        _localized?.RemoveAll(existing => existing.Property == property);
+
+    /// <summary>Resolve every key again — the language changed.</summary>
+    internal void ApplyLocalization()
+    {
+        if (_localized is null) return;
+
+        // a copy: a setter is user code and may localize another property
+        foreach (LocalizedBinding binding in _localized.ToArray())
+            binding.Apply(this);
+
+        _localizationVersion = Localization.Version;
+    }
+
+    // === effects
 
     private EffectChain? _effects;
 
