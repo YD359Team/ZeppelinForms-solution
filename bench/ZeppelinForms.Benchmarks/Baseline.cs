@@ -2,23 +2,23 @@
 
 namespace ZeppelinForms.Benchmarks;
 
-/// <summary>Какие метрики сценария имеет смысл сравнивать с эталоном.</summary>
+/// <summary>Which scenario metrics make sense to compare with the baseline.</summary>
 [Flags]
 public enum GatedMetrics
 {
     None = 0,
 
-    /// <summary>Медиана времени итерации.</summary>
+    /// <summary>The median iteration time.</summary>
     Time = 1,
 
-    /// <summary>Байты аллокаций на итерацию.</summary>
+    /// <summary>Bytes allocated per iteration.</summary>
     Allocations = 2,
 
-    /// <summary>Память, оставшаяся занятой после полной сборки мусора.</summary>
+    /// <summary>Memory that stayed occupied after a full garbage collection.</summary>
     Retained = 4,
 }
 
-/// <summary>Одно расхождение с эталоном.</summary>
+/// <summary>One divergence from the baseline.</summary>
 public sealed record Regression(
     string Scenario,
     string Metric,
@@ -34,39 +34,37 @@ public static class Baseline
     };
 
     /// <summary>
-    /// Метрики, проверяемые для конкретных сценариев. Всё, чего здесь нет,
-    /// проверяется по <see cref="DefaultMetrics"/>.
+    /// Metrics checked for specific scenarios. Everything not listed here
+    /// is checked by <see cref="DefaultMetrics"/>.
     /// </summary>
     private static readonly Dictionary<string, GatedMetrics> ScenarioMetrics = new()
     {
-        // Время здесь — это чтение файлов шрифтов: на холодном файловом
-        // кэше ОС сценарий медленнее в десятки раз, и гейт ловил бы
-        // состояние машины, а не код. Смысл сценария в удержании.
+        // The time here is reading font files: with a cold OS file cache the scenario
+        // is dozens of times slower, and the gate would catch the machine's state
+        // rather than the code. The point of the scenario is retention.
         ["memory.font-fallback-growth"] = GatedMetrics.Retained,
 
-        // Аллокации на итерацию здесь — это буфер, который создаёт сам
-        // бенчмарк; проверяем его как признак того, что сценарий не
-        // изменился, и удержание как собственно предмет измерения.
+        // The allocations per iteration here are the buffer the benchmark itself
+        // creates; they are checked as a sign that the scenario hasn't changed, and
+        // retention as the actual subject of the measurement.
         ["memory.image-retention"] = GatedMetrics.Allocations | GatedMetrics.Retained,
 
-        // Ни одна агрегированная метрика здесь не годится для гейта:
-        // время меряет стоимость промаха мимо кэшей, а удержание
-        // пропорционально числу итераций, потому что каждая заводит
-        // новую запись. Смысл сценария — в счётчиках из Report:
-        // они показывают, держатся ли потолки.
+        // No aggregate metric fits a gate here: the time measures the cost of
+        // missing the caches, and retention is proportional to the number of
+        // iterations, because each one adds a new entry. The point of the scenario
+        // is in the counters from Report: they show whether the ceilings hold.
         ["memory.text-churn"] = GatedMetrics.None,
     };
 
     /// <summary>
-    /// По умолчанию удержание не проверяется: в сценариях раскладки
-    /// и отрисовки оно колеблется около нуля в обе стороны и дало бы
-    /// срабатывания на шуме.
+    /// By default retention is not checked: in layout and drawing scenarios it
+    /// fluctuates around zero in both directions and would fire on noise.
     /// </summary>
     private const GatedMetrics DefaultMetrics = GatedMetrics.Time | GatedMetrics.Allocations;
 
-    /// <summary>Ось, для которой снят эталон. Отрисовка текста
-    /// отличается между платформами, поэтому эталоны раздельные —
-    /// как и снимки в tests/.../Snapshots/Expected/{win,linux}.</summary>
+    /// <summary>The platform the baseline is taken for. Text rendering differs
+    /// between platforms, so the baselines are separate — like the snapshots
+    /// in tests/.../Snapshots/Expected/{win,linux}.</summary>
     public static string CurrentPlatform =>
         OperatingSystem.IsWindows() ? "win"
         : OperatingSystem.IsLinux() ? "linux"
@@ -101,30 +99,23 @@ public static class Baseline
     }
 
     /// <summary>
-    /// Сравнение с эталоном. Пороги разные по смыслу: время замеряется
-    /// на общем раннере и шумит, аллокации детерминированы и шуметь
-    /// не должны вовсе.
+    /// Comparison with the baseline. The thresholds differ in meaning: time is
+    /// measured on a shared runner and is noisy, while allocations are
+    /// deterministic and must not be noisy at all.
     /// </summary>
-    /// <param name="timeTolerance">Допустимый рост медианы, доля.</param>
-    /// <param name="allocationTolerance">Допустимый рост аллокаций, доля.</param>
-    /// <summary>
-    /// Сравнение с эталоном. Пороги разные по смыслу: время замеряется
-    /// на общем раннере и шумит, аллокации детерминированы и шуметь
-    /// не должны вовсе.
-    /// </summary>
-    /// <param name="timeTolerance">Допустимый рост медианы, доля.</param>
-    /// <param name="allocationTolerance">Допустимый рост аллокаций, доля.</param>
+    /// <param name="timeTolerance">The allowed growth of the median, as a fraction.</param>
+    /// <param name="allocationTolerance">The allowed growth of allocations, as a fraction.</param>
     public static List<Regression> Compare(
         BaselineFile baseline,
         IEnumerable<BenchmarkResult> current,
         double timeTolerance = 0.20,
         double allocationTolerance = 0.05)
     {
-        // Абсолютные полы. После фазы 1 аллокации измеряются десятками байт,
-        // и один относительный порог превратил бы гейт в генератор ложных
-        // срабатываний: при эталоне в 72 байта рост на четыре байта — это
-        // уже +5%. Расхождение засчитывается, только когда оно заметно
-        // и в долях, и в абсолютных величинах.
+        // Absolute floors. After phase 1 allocations are measured in tens of bytes,
+        // and a relative threshold alone would turn the gate into a generator of
+        // false alarms: with a baseline of 72 bytes, growth by four bytes is already
+        // +5%. A divergence counts only when it is noticeable both as a fraction
+        // and in absolute terms.
         const double timeFloorMs = 0.05;
         const double byteFloor = 1024;
 
@@ -133,7 +124,7 @@ public static class Baseline
         foreach (BenchmarkResult result in current)
         {
             if (!baseline.Results.TryGetValue(result.Name, out BenchmarkResult? old))
-                continue;   // новый сценарий — сравнивать не с чем
+                continue;   // a new scenario — there is nothing to compare with
 
             GatedMetrics metrics = ScenarioMetrics.TryGetValue(result.Name, out GatedMetrics custom)
                 ? custom
@@ -160,11 +151,11 @@ public static class Baseline
         {
             double delta = after - before;
 
-            // шум в пределах пола не разбираем независимо от процентов
+            // noise within the floor is not examined, regardless of percentages
             if (delta <= floor) return;
 
-            // нулевой эталон делить нельзя, а рост с нуля до заметной
-            // величины всё равно надо показать
+            // a zero baseline can't be divided by, but growth from zero
+            // to a noticeable value must still be shown
             if (before <= 0)
             {
                 regressions.Add(new Regression(scenario, metric, before, after, double.PositiveInfinity));

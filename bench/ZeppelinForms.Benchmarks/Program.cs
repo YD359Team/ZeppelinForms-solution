@@ -1,4 +1,6 @@
-﻿namespace ZeppelinForms.Benchmarks;
+﻿using System.Globalization;
+
+namespace ZeppelinForms.Benchmarks;
 
 public static class Program
 {
@@ -19,12 +21,12 @@ public static class Program
 
         if (benchmarks.Count == 0)
         {
-            Console.Error.WriteLine($"Ни один сценарий не подошёл под фильтр '{options.Filter}'.");
+            Console.Error.WriteLine($"No scenario matched the filter '{options.Filter}'.");
             return 1;
         }
 
-        Console.WriteLine($"Платформа: {Baseline.CurrentPlatform}, сценариев: {benchmarks.Count}");
-        Console.WriteLine($"Режим GC: {(System.Runtime.GCSettings.IsServerGC ? "server" : "workstation")}");
+        Console.WriteLine($"Platform: {Baseline.CurrentPlatform}, scenarios: {benchmarks.Count}");
+        Console.WriteLine($"GC mode: {(System.Runtime.GCSettings.IsServerGC ? "server" : "workstation")}");
         Console.WriteLine();
 
         var results = new List<BenchmarkResult>();
@@ -45,7 +47,7 @@ public static class Program
         if (options.JsonPath is { } jsonPath)
         {
             Baseline.Save(jsonPath, results);
-            Console.WriteLine($"Результаты записаны: {jsonPath}");
+            Console.WriteLine($"Results written: {jsonPath}");
         }
 
         string baselinePath = options.BaselinePath ?? Baseline.DefaultPath(options.BaselineDirectory);
@@ -53,7 +55,7 @@ public static class Program
         if (options.UpdateBaseline)
         {
             Baseline.Save(baselinePath, results);
-            Console.WriteLine($"Эталон обновлён: {baselinePath}");
+            Console.WriteLine($"Baseline updated: {baselinePath}");
             return 0;
         }
 
@@ -65,8 +67,8 @@ public static class Program
         if (baseline is null)
         {
             Console.Error.WriteLine(
-                $"Эталон не найден: {baselinePath}. " +
-                "Создайте его командой --update-baseline и закоммитьте.");
+                $"Baseline not found: {baselinePath}. " +
+                "Create it with --update-baseline and commit it.");
 
             return 1;
         }
@@ -76,18 +78,18 @@ public static class Program
 
         if (regressions.Count == 0)
         {
-            Console.WriteLine("Регрессий нет.");
+            Console.WriteLine("No regressions.");
             return 0;
         }
 
         Console.Error.WriteLine();
-        Console.Error.WriteLine($"Регрессий: {regressions.Count}");
+        Console.Error.WriteLine($"Regressions: {regressions.Count}");
 
         foreach (Regression regression in regressions)
         {
             Console.Error.WriteLine(
                 $"  {regression.Scenario} / {regression.Metric}: " +
-                $"было {regression.Baseline:F2}, стало {regression.Current:F2} " +
+                $"was {regression.Baseline:F2}, now {regression.Current:F2} " +
                 $"({Format.Percent(regression.Ratio)})");
         }
 
@@ -97,8 +99,8 @@ public static class Program
     private static void PrintDetails(IEnumerable<BenchmarkResult> results)
     {
         Console.WriteLine(
-            $"{"Сценарий",-34}{"медиана",10}{"p95",10}{"аллок/итер",14}" +
-            $"{"удержано",12}{"WS дельта",12}{"GC 0/1/2",12}");
+            $"{"Scenario",-34}{"median",10}{"p95",10}{"alloc/iter",14}" +
+            $"{"retained",12}{"WS delta",12}{"GC 0/1/2",12}");
 
         Console.WriteLine(new string('-', 104));
 
@@ -128,6 +130,11 @@ public static class Program
         public double AllocationTolerance { get; private set; } = 0.05;
         public bool ShowHelp { get; private set; }
 
+        /// <remarks>
+        /// Numbers are parsed in the invariant culture, as command-line arguments
+        /// should be. The current culture used to be used, and on a machine with
+        /// a comma decimal separator "--time-tolerance 0.3" threw FormatException.
+        /// </remarks>
         public static Options Parse(string[] args)
         {
             var options = new Options();
@@ -141,7 +148,7 @@ public static class Program
                         break;
 
                     case "--iterations" or "-n":
-                        options.Iterations = int.Parse(Next(args, ref i));
+                        options.Iterations = int.Parse(Next(args, ref i), CultureInfo.InvariantCulture);
                         break;
 
                     case "--json":
@@ -165,11 +172,11 @@ public static class Program
                         break;
 
                     case "--time-tolerance":
-                        options.TimeTolerance = double.Parse(Next(args, ref i));
+                        options.TimeTolerance = double.Parse(Next(args, ref i), CultureInfo.InvariantCulture);
                         break;
 
                     case "--alloc-tolerance":
-                        options.AllocationTolerance = double.Parse(Next(args, ref i));
+                        options.AllocationTolerance = double.Parse(Next(args, ref i), CultureInfo.InvariantCulture);
                         break;
 
                     case "--help" or "-h":
@@ -184,7 +191,7 @@ public static class Program
         private static string Next(string[] args, ref int index)
         {
             if (++index >= args.Length)
-                throw new ArgumentException($"Для {args[index - 1]} не задано значение.");
+                throw new ArgumentException($"No value given for {args[index - 1]}.");
 
             return args[index];
         }
@@ -194,16 +201,16 @@ public static class Program
             Console.WriteLine("""
                 ZeppelinForms.Benchmarks
 
-                  -f, --filter <текст>        запустить только сценарии с этой подстрокой в имени
-                  -n, --iterations <число>    переопределить число итераций для всех сценариев
-                      --json <путь>           записать результаты в файл
-                      --baseline <путь>       путь к эталону (иначе Baselines/baseline-<ось>.json)
-                      --baseline-dir <путь>   каталог эталонов
-                      --update-baseline       перезаписать эталон текущими результатами
-                      --check                 сравнить с эталоном; код возврата 1 при регрессии
-                      --time-tolerance <доля> допустимый рост медианы, по умолчанию 0.20
-                      --alloc-tolerance <доля> допустимый рост аллокаций, по умолчанию 0.05
-                  -h, --help                  эта справка
+                  -f, --filter <text>          run only scenarios with this substring in the name
+                  -n, --iterations <number>    override the number of iterations for all scenarios
+                      --json <path>            write the results to a file
+                      --baseline <path>        path to the baseline (otherwise Baselines/baseline-<platform>.json)
+                      --baseline-dir <path>    the baselines directory
+                      --update-baseline        overwrite the baseline with the current results
+                      --check                  compare with the baseline; exit code 1 on a regression
+                      --time-tolerance <ratio> allowed growth of the median, 0.20 by default
+                      --alloc-tolerance <ratio> allowed growth of allocations, 0.05 by default
+                  -h, --help                   this help
                 """);
         }
     }

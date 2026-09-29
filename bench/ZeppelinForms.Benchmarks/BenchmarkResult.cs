@@ -3,49 +3,48 @@
 namespace ZeppelinForms.Benchmarks;
 
 /// <summary>
-/// Результат одного сценария. Поля намеренно плоские и скалярные —
-/// файл эталона читается глазами в diff'е пулл-реквеста.
+/// The result of one scenario. The fields are deliberately flat and scalar —
+/// the baseline file is read by eye in a pull request diff.
 /// </summary>
 public sealed record BenchmarkResult
 {
-    /// <summary>Имя сценария. Оно же ключ в эталоне.</summary>
+    /// <summary>The scenario name. Also the key in the baseline.</summary>
     public required string Name { get; init; }
 
-    /// <summary>Сколько полезных итераций выполнено (без прогрева).</summary>
+    /// <summary>How many useful iterations were run (without the warm-up).</summary>
     public required int Iterations { get; init; }
 
-    /// <summary>Медианное время итерации, мс.</summary>
+    /// <summary>The median iteration time, ms.</summary>
     public required double MedianMs { get; init; }
 
-    /// <summary>95-й процентиль времени итерации, мс.
-    /// Именно он ловит подтормаживания, которые видит пользователь,
-    /// а среднее их размазывает.</summary>
+    /// <summary>The 95th percentile of iteration time, ms.
+    /// It is what catches the stutters the user sees,
+    /// while the average smears them out.</summary>
     public required double P95Ms { get; init; }
 
     public required double MaxMs { get; init; }
 
-    /// <summary>Байт аллокаций на одну итерацию. Главная метрика фазы 1:
-    /// пул SKPaint и кэш измерений текста бьют именно по ней.</summary>
+    /// <summary>Bytes allocated per iteration. The main metric of phase 1:
+    /// the SKPaint pool and the text measurement cache hit exactly this one.</summary>
     public required long AllocatedBytesPerIteration { get; init; }
 
-    /// <summary>Сколько памяти осталось занято после полной сборки мусора.
-    /// Растёт только там, где что-то удерживается — статические кэши,
-    /// закреплённые буферы, неосвобождённые нативные объекты.</summary>
+    /// <summary>How much memory stayed occupied after a full garbage collection.
+    /// Grows only where something is retained — static caches, pinned buffers,
+    /// unreleased native objects.</summary>
     public required long RetainedBytes { get; init; }
 
-    /// <summary>Прирост рабочего множества процесса, байт. Единственная
-    /// метрика, которая видит нативную сторону Skia: копии пикселей
-    /// в SKImage в управляемую кучу не попадают.</summary>
+    /// <summary>The growth of the process working set, bytes. The only metric that
+    /// sees Skia's native side: pixel copies in SKImage don't get into the managed heap.</summary>
     public required long WorkingSetDeltaBytes { get; init; }
 
     public required int Gen0Collections { get; init; }
     public required int Gen1Collections { get; init; }
     public required int Gen2Collections { get; init; }
 
-    /// <summary>Собственный отчёт сценария, если он его даёт.</summary>
-    /// <remarks>В эталон не пишется: это диагностика для глаз,
-    /// а не метрика для сравнения. Гейт на ней строить нельзя —
-    /// счётчики зависят от числа итераций.</remarks>
+    /// <summary>The scenario's own report, if it gives one.</summary>
+    /// <remarks>Not written into the baseline: this is diagnostics for the eye,
+    /// not a metric for comparison. A gate must not be built on it —
+    /// the counters depend on the number of iterations.</remarks>
     [JsonIgnore]
     public string? Report { get; init; }
 
@@ -57,12 +56,12 @@ public sealed record BenchmarkResult
         (Report is null ? "" : $"  {Report}");
 }
 
-/// <summary>Файл эталона целиком.</summary>
+/// <summary>The whole baseline file.</summary>
 public sealed record BaselineFile
 {
-    /// <summary>Ось, для которой снят эталон. Отрисовка текста
-    /// отличается между платформами, поэтому эталоны раздельные —
-    /// как и снимки в tests/.../Snapshots/Expected/{win,linux}.</summary>
+    /// <summary>The platform the baseline was taken for. Text rendering differs
+    /// between platforms, so the baselines are separate — like the snapshots
+    /// in tests/.../Snapshots/Expected/{win,linux}.</summary>
     public required string Platform { get; init; }
 
     public required DateTimeOffset CreatedUtc { get; init; }
@@ -72,8 +71,8 @@ public sealed record BaselineFile
 
 public static class Format
 {
-    /// <summary>Человекочитаемый размер. Бенчмарк читают глазами
-    /// чаще, чем машиной, поэтому байты не показываем.</summary>
+    /// <summary>A human-readable size. A benchmark is read by eye more often
+    /// than by a machine, so raw bytes are not shown.</summary>
     public static string Bytes(long value)
     {
         double abs = Math.Abs((double)value);

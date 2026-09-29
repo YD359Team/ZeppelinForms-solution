@@ -24,20 +24,19 @@ public static class Scenarios
     ];
 
     /// <summary>
-    /// Полный проход раскладки без кэша измерения. Measure и Arrange
-    /// публичные, а вот Form.PerformLayout — internal, поэтому дёргаем
-    /// Content напрямую.
+    /// A full layout pass without the measure cache. Measure and Arrange are public,
+    /// while Form.PerformLayout is internal, so Content is called directly.
     /// </summary>
     /// <remarks>
-    /// Кэш выключается явно: с ним повторный Measure с тем же ограничением
-    /// почти бесплатен, и сценарий мерил бы попадание в кэш, а не раскладку.
-    /// Честная стоимость прохода всё равно нужна: именно её платит первый
-    /// кадр и любое изменение, затронувшее всё дерево.
+    /// The cache is turned off explicitly: with it a repeated Measure with the same
+    /// constraint is almost free, and the scenario would measure a cache hit rather
+    /// than layout. The honest cost of a pass is still needed: it is exactly what
+    /// the first frame pays, and any change that touches the whole tree.
     /// </remarks>
     private static Benchmark Layout() => new()
     {
         Name = "layout.business-form",
-        Description = "Measure + Arrange всего дерева деловой формы, без кэша измерения",
+        Description = "Measure + Arrange of the whole business form tree, without the measure cache",
         Iterations = 300,
         Setup = () =>
         {
@@ -57,19 +56,19 @@ public static class Scenarios
         {
             UIElement.MeasureCacheEnabled = true;
 
-            return "кэш измерения выключен на время сценария";
+            return "measure cache off for the duration of the scenario";
         },
     };
 
     /// <summary>
-    /// Тот же проход, но с кэшем измерения — то есть повторная раскладка,
-    /// в которой не изменилось ничего. Это ровно то, что происходит,
-    /// когда за кадр поменялось одно свойство одного контрола.
+    /// The same pass, but with the measure cache — that is, a repeated layout in
+    /// which nothing changed. This is exactly what happens when one property of
+    /// one control changed within a frame.
     /// </summary>
     private static Benchmark LayoutCached() => new()
     {
         Name = "layout.business-form-cached",
-        Description = "Повторный Measure + Arrange при попадании в кэш измерения",
+        Description = "A repeated Measure + Arrange hitting the measure cache",
         Iterations = 300,
         Setup = () => Scenes.BusinessForm(),
         Body = state =>
@@ -83,20 +82,19 @@ public static class Scenarios
     };
 
     /// <summary>
-    /// Кадр прокрутки виртуализованного списка целиком: смещение,
-    /// пересборка видимого диапазона, раскладка и отрисовка.
+    /// A whole scrolling frame of a virtualized list: the offset, rebuilding the
+    /// visible range, layout and drawing.
     /// </summary>
     /// <remarks>
-    /// Главный сценарий этого релиза. Пять тысяч строк в источнике,
-    /// и стоимость кадра не должна от их числа зависеть: меняется только
-    /// то, что видно. Прокрутка идёт на высоту строки за итерацию —
-    /// так же, как при прокрутке пальцем, и с пересечением границы строк,
-    /// на котором панель и пересобирает контейнеры.
+    /// Five thousand rows in the source, and the cost of a frame must not depend
+    /// on their number: only what is visible changes. Scrolling goes by one row
+    /// height per iteration — as when scrolling with a finger, and crossing row
+    /// boundaries, which is where the panel rebuilds its containers.
     /// </remarks>
     private static Benchmark ScrollVirtualized() => new()
     {
         Name = "scroll.virtualized-list",
-        Description = "Кадр прокрутки списка из 5000 строк: диапазон, раскладка, отрисовка",
+        Description = "A scrolling frame of a 5000-row list: range, layout, drawing",
         Iterations = 200,
         Setup = () => Scenes.VirtualizedList(),
         Body = state =>
@@ -104,8 +102,8 @@ public static class Scenarios
             var scene = (Scene)state;
             var list = (VirtualizingStackPanel)scene.Form.Content!;
 
-            // по высоте строки за кадр, по кругу: иначе список упрётся
-            // в конец, и дальше сценарий мерил бы стояние на месте
+            // one row height per frame, in a circle: otherwise the list would hit
+            // the end, and from then on the scenario would measure standing still
             float next = list.ScrollY + list.ItemHeight;
             list.ScrollTo(0, next > 4000 ? 0 : next);
 
@@ -117,14 +115,16 @@ public static class Scenarios
     };
 
     /// <summary>
-    /// Кадр целиком. Главный сценарий фазы 1: сюда попадают
-    /// и 25 мест `new SKPaint` в SkiaGraphics, и тройной вызов
-    /// SplitRuns в DrawRuns.
+    /// A whole frame. Guards what phase 1 fixed: SkiaGraphics used to create
+    /// a new SKPaint for every primitive and split every line into runs several
+    /// times per frame. The brush pool and the parsed-line cache keep both near
+    /// zero, and the report shows they still do — two brushes, a bounded number
+    /// of lines.
     /// </summary>
     private static Benchmark RenderBusinessForm() => new()
     {
         Name = "render.business-form",
-        Description = "SkiaRenderer.Render всей формы в offscreen-поверхность",
+        Description = "SkiaRenderer.Render of the whole form into an offscreen surface",
         Iterations = 200,
         Setup = () => Scenes.BusinessForm(),
         Body = state =>
@@ -138,11 +138,11 @@ public static class Scenarios
             $"lines {SkiaDiagnostics.LineEntries}",
     };
 
-    /// <summary>Тот же кадр, но с преобладанием текста.</summary>
+    /// <summary>The same frame, but dominated by text.</summary>
     private static Benchmark RenderTextHeavy() => new()
     {
         Name = "render.text-heavy",
-        Description = "Кадр из 300 подписей — нагрузка на отрисовку текста",
+        Description = "A frame of 300 captions — a load on text drawing",
         Iterations = 150,
         Setup = () => Scenes.TextHeavy(),
         Body = state =>
@@ -154,15 +154,15 @@ public static class Scenarios
     };
 
     /// <summary>
-    /// Чистое измерение текста, без отрисовки. Сейчас кэша нет вовсе:
-    /// SkiaTextMeasurer.MeasureText каждый раз заново перебирает руны
-    /// и вызывает ContainsGlyph на каждый символ. После фазы 1
-    /// эта цифра должна упасть на порядок.
+    /// Pure text measurement, without drawing. Every call after the first hits
+    /// the parsed-line cache; before it existed, MeasureText walked the runes and
+    /// called ContainsGlyph for every character each time. A jump in this number
+    /// means the cache stopped hitting.
     /// </summary>
     private static Benchmark MeasureText() => new()
     {
         Name = "text.measure-repeated",
-        Description = "1000 повторных измерений одних и тех же строк",
+        Description = "1000 repeated measurements of the same lines",
         Iterations = 100,
         Setup = () =>
         {
@@ -190,17 +190,16 @@ public static class Scenarios
         Font Font);
 
     /// <summary>
-    /// Детектор удержания картинок. Каждая итерация создаёт новую
-    /// Image и рисует её. SkiaGraphics.GetOrCreate закрепляет
-    /// image.Pixels через GCHandle и делает нативную копию в SKImage;
-    /// ConditionalWeakTable должен отпустить запись, когда Image
-    /// станет недостижимой. Если RetainedBytes или WorkingSetDelta
-    /// растут линейно — не отпускает.
+    /// An image retention detector. Every iteration creates a new Image and draws
+    /// it. SkiaGraphics.GetOrCreate makes a native copy of the pixels in an SKImage
+    /// (FromPixelCopy) and keeps it in a ConditionalWeakTable, which must let the
+    /// entry go when the Image becomes unreachable. If RetainedBytes or
+    /// WorkingSetDelta grow linearly — it doesn't.
     /// </summary>
     private static Benchmark ImageRetention() => new()
     {
         Name = "memory.image-retention",
-        Description = "Создание и отрисовка одноразовых изображений 256x256",
+        Description = "Creating and drawing one-off 256x256 images",
         Iterations = 200,
         WarmupIterations = 10,
         Setup = () =>
@@ -226,22 +225,21 @@ public static class Scenarios
     private sealed record ImageState(SKSurface Surface, SkiaGraphics Graphics);
 
     /// <summary>
-    /// Рост кэша подстановок шрифтов. Ключ Fallbacks — это
-    /// (family, weight, style, codepoint), то есть запись на каждый
-    /// уникальный символ вне основного шрифта. Сценарий кормит
-    /// измеритель редкими кодовыми точками и смотрит, сколько
-    /// памяти остаётся занято после сборки мусора.
+    /// Growth of the font fallback cache. The Fallbacks key is (family, weight,
+    /// style, codepoint), that is, an entry for every unique character outside the
+    /// primary font. The scenario feeds the measurer rare code points and watches
+    /// how much memory stays occupied after garbage collection.
     /// </summary>
     /// <remarks>
-    /// Задевает два кэша сразу: 32 новых кодпоинта и одну новую строку
-    /// на итерацию, то есть записи копятся и в Fallbacks, и в Lines.
-    /// Поэтому в отчёт идут оба счётчика: по одной удержанной памяти
-    /// их вклады не разделить.
+    /// Touches two caches at once: 32 new code points and one new line per
+    /// iteration, so entries accumulate both in Fallbacks and in Lines. That's why
+    /// both counters go into the report: their contributions can't be separated
+    /// by retained memory alone.
     /// </remarks>
     private static Benchmark FontFallbackRetention() => new()
     {
         Name = "memory.font-fallback-growth",
-        Description = "Измерение текста с редкими кодовыми точками (рост Fallbacks)",
+        Description = "Measuring text with rare code points (Fallbacks growth)",
         Iterations = 100,
         WarmupIterations = 5,
         Setup = () =>
@@ -253,8 +251,8 @@ public static class Scenarios
         {
             var fallback = (FallbackState)state;
 
-            // диапазон CJK: символы почти наверняка отсутствуют
-            // в базовом латинском шрифте и уходят в подстановку
+            // the CJK range: the characters are almost certainly absent from
+            // the base Latin font and go to a fallback
             int start = 0x4E00 + fallback.Next * 32;
             fallback.Next++;
 
@@ -265,28 +263,28 @@ public static class Scenarios
             fallback.Measurer.MeasureText(builder.ToString(), Font.Default);
         },
 
-        // Ограниченный кэш держит число записей около лимита независимо
-        // от того, сколько символов через него прошло. Растущее число —
-        // признак того, что потолок не работает.
+        // A bounded cache keeps the number of entries around the limit regardless
+        // of how many characters have gone through it. A growing number is a sign
+        // that the ceiling doesn't work.
         Report = _ =>
             $"fallbacks {SkiaDiagnostics.FallbackEntries}, lines {SkiaDiagnostics.LineEntries}",
     };
 
     /// <summary>
-    /// Текст и кегль, меняющиеся на каждой итерации. Проверяет потолки
-    /// кэшей: и строка, и размер шрифта каждый раз новые, поэтому
-    /// без ограничения Lines и Fonts росли бы линейно — так ведут себя
-    /// часы, счётчики и живая фильтрация списка.
+    /// Text and font size changing on every iteration. Checks the caches' ceilings:
+    /// both the line and the font size are new each time, so without a limit Lines
+    /// and Fonts would grow linearly — this is how clocks, counters and live list
+    /// filtering behave.
     /// </summary>
     /// <remarks>
-    /// Время здесь второстепенно: каждая итерация промахивается мимо
-    /// обоих кэшей по построению, и меряется стоимость промаха, а не
-    /// работа приложения. Предмет измерения — счётчики и удержание.
+    /// Time is secondary here: every iteration misses both caches by construction,
+    /// and what is measured is the cost of a miss, not the application's work.
+    /// The subject of the measurement is the counters and retention.
     /// </remarks>
     private static Benchmark TextChurn() => new()
     {
         Name = "memory.text-churn",
-        Description = "Уникальная строка и кегль на каждой итерации (потолки Lines и Fonts)",
+        Description = "A unique line and font size on every iteration (Lines and Fonts ceilings)",
         Iterations = 600,
         WarmupIterations = 10,
         Setup = () =>
@@ -299,8 +297,8 @@ public static class Scenarios
             var churn = (ChurnState)state;
             int n = churn.Next++;
 
-            // кегль дробный и всякий раз новый: Font — запись, Size входит
-            // в её равенство, поэтому каждое значение заводит свой SKFont
+            // the font size is fractional and new every time: Font is a record,
+            // Size is part of its equality, so each value gets its own SKFont
             Font font = Font.Default.WithSize(14f + n * 0.01f);
 
             churn.Measurer.MeasureText($"Обновление {n}: значение счётчика", font);

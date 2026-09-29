@@ -15,10 +15,15 @@ using ZeppelinForms.Theming;
 namespace ZeppelinForms.Benchmarks;
 
 /// <summary>
-/// Сцена: форма с деревом контролов плюс offscreen-поверхность Skia,
-/// в которую её рисуют. Держит всё, что нужно одному сценарию,
-/// и освобождает нативную поверхность в Dispose.
+/// A scene: a form with a control tree plus an offscreen Skia surface it is drawn
+/// into. Holds everything one scenario needs and releases the native surface
+/// in Dispose.
 /// </summary>
+/// <remarks>
+/// The scenes' text content — captions, list rows — is kept as it was, in Russian,
+/// on purpose: the cost of measuring and drawing text depends on the text itself,
+/// and changing it would make the committed baselines incomparable with new runs.
+/// </remarks>
 public sealed class Scene : IDisposable
 {
     public required Form Form { get; init; }
@@ -28,8 +33,8 @@ public sealed class Scene : IDisposable
 
     public SKCanvas Canvas => Surface.Canvas;
 
-    /// <summary>Сколько элементов в дереве — печатается рядом
-    /// с результатом, иначе цифры не с чем соотнести.</summary>
+    /// <summary>How many elements are in the tree — printed next to the result,
+    /// otherwise the numbers have nothing to be related to.</summary>
     public required int ElementCount { get; init; }
 
     public void Dispose() => Surface.Dispose();
@@ -43,9 +48,9 @@ public static class Scenes
     private static bool _servicesRegistered;
 
     /// <summary>
-    /// Headless-платформа с настоящими Skia-сервисами. Ровно тот же
-    /// набор, что в SnapshotFixture: заглушки из Headless мерить
-    /// бессмысленно — HeadlessGraphics не делает ничего.
+    /// A headless platform with real Skia services. Exactly the same set as in
+    /// SnapshotFixture: measuring the Headless stand-ins is pointless —
+    /// HeadlessGraphics does nothing.
     /// </summary>
     public static void EnsureServices()
     {
@@ -64,8 +69,8 @@ public static class Scenes
     }
 
     /// <summary>
-    /// Длинный виртуализованный список. Строк нарочно много: смысл
-    /// сценария в том, что стоимость кадра не должна от их числа зависеть.
+    /// A long virtualized list. There are many rows on purpose: the point of the
+    /// scenario is that the cost of a frame must not depend on their number.
     /// </summary>
     public static Scene VirtualizedList(
         int rows = 5000,
@@ -100,16 +105,16 @@ public static class Scenes
             Width = width,
             Height = height,
 
-            // созданных контейнеров, а не строк источника: именно их
-            // и меряет кадр
+            // the created containers, not the source rows:
+            // those are exactly what a frame measures
             ElementCount = list.Children.Count,
         };
     }
 
     /// <summary>
-    /// Типовая деловая форма: заголовок, панель кнопок, сетка полей,
-    /// список. Нарочно без анимаций и эффектов — меряем базовую
-    /// стоимость обычного окна, а не пиковую.
+    /// A typical business form: a header, a button bar, a grid of fields, a list.
+    /// Deliberately without animations and effects — we measure the base cost
+    /// of an ordinary window, not the peak one.
     /// </summary>
     public static Scene BusinessForm(
         int rows = 40,
@@ -167,8 +172,8 @@ public static class Scenes
             Content = root,
         };
 
-        // registerServices: false — сервисы уже зарегистрированы
-        // выше и заменять их заглушками нельзя.
+        // registerServices: false — the services are already registered
+        // above, and replacing them with stand-ins is not allowed.
         new HeadlessPlatform(registerServices: false).CreateWindow(form);
 
         return new Scene
@@ -182,9 +187,9 @@ public static class Scenes
     }
 
     /// <summary>
-    /// Текстовая сцена: много подписей разной длины. Бьёт ровно
-    /// по SkiaFontCache.SplitRuns и SkiaTextMeasurer.MeasureText —
-    /// тем местам, где сейчас нет кэша и строка перебирается по рунам.
+    /// A text scene: many captions of different lengths. Hits exactly
+    /// SkiaFontCache.GetLine and SkiaTextMeasurer.MeasureText — the paths
+    /// the text caches were introduced for.
     /// </summary>
     public static Scene TextHeavy(
         int labels = 300,
@@ -234,10 +239,10 @@ public static class Scenes
 
         return SKSurface.Create(info)
             ?? throw new InvalidOperationException(
-                "Не удалось создать offscreen-поверхность Skia.");
+                "Could not create an offscreen Skia surface.");
     }
 
-    /// <summary>Число элементов в поддереве — для контекста в отчёте.</summary>
+    /// <summary>The number of elements in a subtree — for context in the report.</summary>
     public static int Count(UIElement element)
     {
         int total = 1;

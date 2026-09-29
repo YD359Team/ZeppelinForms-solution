@@ -3,39 +3,39 @@
 namespace ZeppelinForms.Benchmarks;
 
 /// <summary>
-/// Описание сценария. setup выполняется один раз и его стоимость
-/// в измерение не входит; body — то, что меряем.
+/// A scenario description. setup runs once and its cost doesn't count
+/// towards the measurement; body is what we measure.
 /// </summary>
 public sealed class Benchmark
 {
     public required string Name { get; init; }
 
-    /// <summary>Короткое пояснение, что именно нагружается. Печатается
-    /// рядом с результатом, чтобы через полгода не гадать.</summary>
+    /// <summary>A short explanation of what exactly is loaded. Printed next to
+    /// the result, so that there is no guessing half a year later.</summary>
     public required string Description { get; init; }
 
-    /// <summary>Подготовка сцены. Возвращает состояние, которое
-    /// получает body: так сцена строится один раз, а не на каждой итерации.</summary>
+    /// <summary>Scene preparation. Returns the state body gets: this way the scene
+    /// is built once rather than on every iteration.</summary>
     public required Func<object> Setup { get; init; }
 
-    /// <summary>Одна итерация. Аргумент — то, что вернул Setup.</summary>
+    /// <summary>One iteration. The argument is what Setup returned.</summary>
     public required Action<object> Body { get; init; }
 
-    /// <summary>Сколько полезных итераций. У дорогих сценариев меньше.</summary>
+    /// <summary>How many useful iterations. Expensive scenarios have fewer.</summary>
     public int Iterations { get; init; } = 200;
 
-    /// <summary>Итерации прогрева: JIT, ленивая инициализация кэшей,
-    /// первая загрузка шрифта. Без них первая итерация в разы дороже
-    /// остальных и портит и медиану, и максимум.</summary>
+    /// <summary>Warm-up iterations: JIT, lazy cache initialization, the first font
+    /// load. Without them the first iteration costs several times more than the rest
+    /// and spoils both the median and the maximum.</summary>
     public int WarmupIterations { get; init; } = 20;
 
     /// <summary>
-    /// Что показать рядом с результатом помимо чисел раннера. Зовётся
-    /// один раз после измерения; аргумент — состояние от Setup.
+    /// What to show next to the result besides the runner's numbers. Called once
+    /// after the measurement; the argument is the state from Setup.
     /// </summary>
-    /// <remarks>Нужно там, где агрегированные метрики не отвечают
-    /// на вопрос сценария: удержанная память не отличает рабочий объём
-    /// ограниченного кэша от роста, а число записей — отличает.</remarks>
+    /// <remarks>Needed where aggregate metrics don't answer the scenario's question:
+    /// retained memory can't tell the working set of a bounded cache from growth,
+    /// while the number of entries can.</remarks>
     public Func<object, string>? Report { get; init; }
 }
 
@@ -50,8 +50,8 @@ public static class BenchmarkRunner
         for (int i = 0; i < benchmark.WarmupIterations; i++)
             benchmark.Body(state);
 
-        // Точка отсчёта берётся после прогрева: всё, что сценарий
-        // выделил на разогреве, к регрессиям отношения не имеет.
+        // The reference point is taken after the warm-up: whatever the scenario
+        // allocated while warming up has nothing to do with regressions.
         Settle();
 
         long workingSetBefore = CurrentWorkingSet();
@@ -77,16 +77,16 @@ public static class BenchmarkRunner
         int gen1After = GC.CollectionCount(1);
         int gen2After = GC.CollectionCount(2);
 
-        // Удержанное меряем только после полной уборки: иначе в цифру
-        // попадёт мусор, который просто не успели собрать, и сценарий
-        // без утечек выглядел бы как сценарий с утечкой.
+        // Retained memory is measured only after a full collection: otherwise the
+        // number would include garbage that simply hasn't been collected yet, and
+        // a scenario without leaks would look like one with a leak.
         Settle();
 
         long heapAfter = GC.GetTotalMemory(forceFullCollection: false);
         long workingSetAfter = CurrentWorkingSet();
 
-        // После замера аллокаций: сам отчёт строит строку, и попади он
-        // выше — она вошла бы в цифру аллокаций сценария.
+        // After the allocation measurement: the report itself builds a string,
+        // and placed above it would count towards the scenario's allocations.
         string? report = benchmark.Report?.Invoke(state);
 
         Array.Sort(timings);
@@ -109,10 +109,9 @@ public static class BenchmarkRunner
     }
 
     /// <summary>
-    /// Довести кучу до покоя. Два прохода обязательны: у обёрток
-    /// SkiaSharp есть финализаторы, и объект, освобождённый в первом
-    /// проходе, попадает в очередь финализации, а его память
-    /// возвращается только во втором.
+    /// Bring the heap to rest. Two passes are mandatory: SkiaSharp wrappers have
+    /// finalizers, and an object freed in the first pass goes into the finalization
+    /// queue, while its memory comes back only in the second.
     /// </summary>
     private static void Settle()
     {
@@ -127,14 +126,14 @@ public static class BenchmarkRunner
 
     private static long CurrentWorkingSet()
     {
-        // Refresh обязателен: Process кэширует снимок счётчиков
-        // с момента создания объекта.
+        // Refresh is mandatory: Process caches a snapshot of the counters
+        // from the moment the object was created.
         using var process = Process.GetCurrentProcess();
         process.Refresh();
         return process.WorkingSet64;
     }
 
-    /// <summary>Процентиль по уже отсортированному массиву.</summary>
+    /// <summary>A percentile over an already sorted array.</summary>
     private static double Percentile(double[] sorted, double q)
     {
         if (sorted.Length == 0) return 0;
