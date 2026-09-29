@@ -45,10 +45,11 @@ public class SiberiaRegressionTests
     {
         int clicks = 0;
 
+        // no Margin: it is applied by panels, and the form's root content
+        // doesn't get it — the button stands at (0, 0)
         var button = new Button
         {
             Size = new Size(200, 20),
-            Margin = new Thickness(100, 140, 0, 0),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
             Rotation = 90f,
@@ -58,14 +59,14 @@ public class SiberiaRegressionTests
 
         Form form = CreateForm(button);
 
-        // turned a quarter around its center (200, 150), the button stands upright:
-        // x 190..210, y 50..250. At twice the angle — the old bug — it would lie
-        // flat again, exactly where it was before turning
-        HeadlessInput.Click(form, 200, 60);
+        // turned a quarter around its center (100, 10), the button stands upright:
+        // x 90..110, y -90..110. At twice the angle — the old bug — it would lie
+        // flat again, x 0..200, y 0..20, and this click would miss
+        HeadlessInput.Click(form, 100, 80);
         Assert.Equal(1, clicks);
 
         // where it lay before turning, it is no longer
-        HeadlessInput.Click(form, 120, 150);
+        HeadlessInput.Click(form, 180, 10);
         Assert.Equal(1, clicks);
     }
 
@@ -100,7 +101,8 @@ public class SiberiaRegressionTests
         form.UpdateLayout();
 
         // the frame the transition starts in: `first` has moved to y 40..80 by layout,
-        // but is drawn at its old place, y 0..40
+        // but is drawn at its old place, y 0..40. Horizontally the boxes are centered —
+        // UnitControl's default alignment — so they span x 150..250
         ElementTreeRenderer.Draw(form.Content!, new HeadlessGraphics());
         form.TakeDirtyRegion();
 
@@ -111,7 +113,7 @@ public class SiberiaRegressionTests
         Rectangle? dirty = form.TakeDirtyRegion();
 
         Assert.NotNull(dirty);
-        Assert.True(dirty.Value.Contains(new Point(50, 5)),
+        Assert.True(dirty.Value.Contains(new Point(200, 5)),
             $"the first tick must repaint where the row was drawn; dirty was {dirty}");
     }
 
