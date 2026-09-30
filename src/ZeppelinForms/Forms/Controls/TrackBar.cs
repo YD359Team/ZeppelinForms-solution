@@ -180,7 +180,10 @@ public partial class TrackBar : InteractiveControl
             new Size(ThumbSize, ThumbSize));
 
         g.FillEllipse(thumb, ThumbColor);
-        g.DrawEllipse(thumb, IsFocused ? FillColor : ThumbBorderColor, 1.5f);
+
+        // the thumb's accent outline is the track bar's focus mark — shown only
+        // while focus is visible: under the mouse the thumb is visibly in hand
+        g.DrawEllipse(thumb, IsFocusVisible ? FillColor : ThumbBorderColor, 1.5f);
     }
 
     private void SetValueFromPoint(Point location)

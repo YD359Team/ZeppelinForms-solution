@@ -9,6 +9,9 @@
 - `Theme` moved from the global namespace to `ZeppelinForms.Theming`. Code that
   names the type needs `using ZeppelinForms.Theming;`
 - `FontWeight` values are now numeric CSS/OpenType weights (Light = 300, Normal = 400, SemiBold = 600, Bold = 700).
+- Breaking changes: focus rings and focus borders of non-text controls are shown only after keyboard input 
+(`Form.IsFocusVisible`, `UIElement.IsFocusVisible`), in every theme. Text fields always show focus. FocusRingColor 
+and ShowFocusRing moved from `ButtonBase` to `InteractiveControl`; source compatible.
 
 ### Fixes
 
@@ -28,6 +31,13 @@
 - UIElement.TextStyle;
 - FontWeight.Light / SemiBold;
 - ColorExtensions.RelativeLuminance / ContrastRatio.
+- Two-stroke focus ring (FocusRingInnerColor/Thickness, ButtonBase.FocusRingInset);
+- Focus rings on CheckBox and RadioButton;
+- Geometry as styled properties: CheckBox.BoxSize/BoxCornerRadius/BoxBorderWidth, RadioButton.CircleSize/CircleBorderWidth/DotSize, 
+ToggleSwitch.TrackSize/ThumbInset/TrackBorderWidth;
+- ButtonBase.ElevationBorderColor;
+- TextInputControl.UnderlineColor/FocusUnderlineColor/FocusUnderlineThickness;
+- CheckBox.CheckGlyphColor, RadioButton.CheckedCircleBackground/DotColor, ToggleSwitch.OnThumbColor/OffBorderColor.
 
 ### Examples
 

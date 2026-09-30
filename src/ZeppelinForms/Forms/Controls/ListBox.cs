@@ -343,9 +343,11 @@ public partial class ListBox : ItemsControl, IInputElement
         return -1;
     }
 
-    /// <summary>When focused the border is highlighted — the base draws it itself.</summary>
+    /// <summary>When focused the border is highlighted — the base draws it itself.
+    /// Only while focus is visible: a list clicked with the mouse shows where it
+    /// was clicked by its selection, and a frame on top of that is noise.</summary>
     protected override Color CurrentBorderColor =>
-        IsFocused && FocusBorderColor.A > 0 ? FocusBorderColor : BorderColor;
+        IsFocusVisible && FocusBorderColor.A > 0 ? FocusBorderColor : BorderColor;
 
     protected override void OnKeyDown(KeyEventArgs e)
     {

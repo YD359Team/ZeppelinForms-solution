@@ -62,12 +62,23 @@ public abstract partial class ButtonBase : InteractiveControl
     public partial Color DisabledTextColor { get; set; }
     private static Color DisabledTextColorDefault => new(255, 160, 160, 160);
 
-    [Styled(Category = "Button")]
-    public partial Color FocusRingColor { get; set; }
+    // FocusRingColor and ShowFocusRing moved to InteractiveControl: check boxes,
+    // radio buttons and switches need the ring too. The names stay the same, so
+    // code that sets them on a button doesn't change
 
+    /// <summary>How far inside the button's bounds the focus ring runs. Inside, not
+    /// outside: a parent clips its children, and a ring past the edge was cut off.</summary>
+    [Styled(Category = "Focus")]
+    public partial float FocusRingInset { get; set; }
+    private static float FocusRingInsetDefault => 2f;
+
+    /// <summary>The lower edge of the border — the one that makes a Fluent button
+    /// look raised above the page. Transparent — a flat border of one color.</summary>
+    /// <remarks>Not drawn while the button is pressed or disabled: a pressed button
+    /// is pushed into the page, a disabled one doesn't respond, and both are flat.</remarks>
     [Styled(Category = "Button")]
-    public partial bool ShowFocusRing { get; set; }
-    private static bool ShowFocusRingDefault => true;
+    public partial Color ElevationBorderColor { get; set; }
+    private static Color ElevationBorderColorDefault => Colors.Transparent;
 
     /// <summary>The latched state — for ToggleButton and the like.</summary>
     protected virtual bool IsCheckedState => false;
@@ -139,16 +150,36 @@ public abstract partial class ButtonBase : InteractiveControl
 
     protected override void DrawDecoration(Graphics g)
     {
-        if (!IsFocused || !ShowFocusRing || FocusRingColor.A == 0) return;
+        DrawElevation(g);
+
+        // the ring sits slightly inside the bounds, otherwise the parent's clip cuts it off
+        DrawFocusRing(g, Grow(LocalBounds, -FocusRingInset), CornerRadius);
+    }
+
+    /// <summary>The lower edge of the border in its own color. The border is drawn
+    /// again over itself, clipped to a band at the bottom: that way the corners get
+    /// the second color along their curve rather than a straight line cut across.</summary>
+    private void DrawElevation(Graphics g)
+    {
+        if (ElevationBorderColor.A == 0 || BorderWidth <= 0f) return;
+        if (IsPressed || !IsEnabled) return;
 
         Rectangle bounds = LocalBounds;
 
-        // the ring sits slightly inside the bounds, otherwise the parent's clip cuts it off
-        var ring = new Rectangle(
-            new Point(bounds.X + 2, bounds.Y + 2),
-            new Size(Math.Max(0, bounds.Width - 4), Math.Max(0, bounds.Height - 4)));
+        // the band covers the lower corners, and at least twice the stroke
+        // on a button with square ones — otherwise the edge is lost in antialiasing
+        float band = Math.Max(
+            Math.Max(CornerRadius.BottomLeft, CornerRadius.BottomRight),
+            BorderWidth * 2f);
 
-        g.DrawRoundRectangle(ring, CornerRadius, FocusRingColor, 1f);
+        g.Save();
+        g.ClipRect(new Rectangle(
+            new Point(bounds.X, bounds.Bottom - band),
+            new Size(bounds.Width, band)));
+
+        g.DrawRoundRectangle(bounds, CornerRadius, ElevationBorderColor, BorderWidth);
+
+        g.Restore();
     }
 
     protected override void OnClick(MouseClickEventArgs e)

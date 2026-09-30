@@ -297,6 +297,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
     internal void OnPointerDown(PointerEventArgs e)
     {
+        // the pointer is in use: focus rings go away until the next key press
+        NotePointerInput();
+
         HideToolTip();
 
         if (e.Button == MouseButton.Left && _flyouts.Count > 0 && !IsInsideAnyFlyout(e.Location))
@@ -828,6 +831,10 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     internal void OnKeyDown(Key key, KeyModifiers modifiers, bool isRepeat)
     {
         Keyboard.OnDown(key, modifiers);
+
+        // before dispatching: a handler that moves focus on this very key must
+        // already find the form in keyboard mode, and the new focus shown
+        NoteKeyboardInput(key);
 
         if (key == Key.F12 || (key == Key.I && modifiers.HasFlag(KeyModifiers.Control) && modifiers.HasFlag(KeyModifiers.Shift)))
         {

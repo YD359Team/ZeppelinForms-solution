@@ -1260,6 +1260,17 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
                 bounds = bounds.Inflate(spread);
             }
 
+            // drawing of one's own past the bounds, such as a focus ring around an
+            // indicator at the edge. Taken by its largest side and after the
+            // transforms, like the shadow: a few pixels need no exact geometry
+            Thickness overflow = VisualOverflow;
+            float outset = Math.Max(
+                Math.Max(overflow.Left, overflow.Right),
+                Math.Max(overflow.Top, overflow.Bottom));
+
+            if (outset > 0f)
+                bounds = bounds.Inflate(outset);
+
             return bounds.Inflate(2f);   // margin for antialiasing and the border
         }
     }
