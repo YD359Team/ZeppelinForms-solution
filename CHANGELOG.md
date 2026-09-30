@@ -8,6 +8,7 @@
 
 - `Theme` moved from the global namespace to `ZeppelinForms.Theming`. Code that
   names the type needs `using ZeppelinForms.Theming;`
+- `FontWeight` values are now numeric CSS/OpenType weights (Light = 300, Normal = 400, SemiBold = 600, Bold = 700).
 
 ### Fixes
 
@@ -21,6 +22,12 @@
 ### Features
 
 - Add `TextTransform` property for case transforming in text controls
+- ThemeMetrics shape tokens and TypeRamp on Theme;
+- Theme.For<T>(Action<T, Theme>); optional Fluent color roles in ThemeColors;
+- ThemeColors.WithAccent, Theme.WithColors / WithAccent;
+- UIElement.TextStyle;
+- FontWeight.Light / SemiBold;
+- ColorExtensions.RelativeLuminance / ContrastRatio.
 
 ### Examples
 
