@@ -27,6 +27,16 @@ and system drag and drop is not supported — see the browser section below.
 
 Android: dialogs are async-only, and there is no file dialog yet.
 
+### 🐥 TL;DR
+
+| Reason to choose Zeppelin Forms | WinForms | WPF | Avalonia |
+|---|:---:|:---:|:---:|
+| Cross-platform UI | ✓ | ✓ | |
+| Simple code-first UI | | ✓ | ✓ |
+| Modern controls out of the box | ✓ | ✓ | |
+
+Completely free. No registration required.
+
 ### 🧠 Philosophy
 
 In short: combine the simplicity of WinForms with selected ideas from WPF and Flutter, the cross-platform capabilities of Avalonia, and get rid of tons of legacy baggage along the way.
