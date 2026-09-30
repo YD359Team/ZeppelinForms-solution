@@ -93,7 +93,13 @@ public sealed class MaskDefinition
         return -1;
     }
 
-    public static MaskDefinition Phone => new("+7 (000) 000-00-00");
+    /// <summary>A Russian phone number: +7 and ten digits.</summary>
+    public static MaskDefinition RussianPhone => new("+7 (000) 000-00-00");
+
+    /// <summary>Phone formats differ between countries and can't be derived
+    /// from a culture; the Russian one was published under a general name.</summary>
+    [Obsolete("This is the Russian format. Use MaskDefinition.RussianPhone, or a pattern of your own.")]
+    public static MaskDefinition Phone => RussianPhone;
     public static MaskDefinition Date => new("00.00.0000");
     public static MaskDefinition Time => new("00:00");
     public static MaskDefinition Inn => new("000000000000");

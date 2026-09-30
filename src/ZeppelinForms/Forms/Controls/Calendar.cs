@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -10,8 +11,8 @@ namespace ZeppelinForms.Forms.Controls;
 
 public partial class Calendar : DecoratedControl
 {
-    /// <summary>The culture for the month name, the day captions and the first
-    /// day of the week. Null — the thread's current culture.</summary>
+    /// <summary>The culture for the month name, day captions and the first day
+    /// of the week. Null — the interface language, Localization.Culture.</summary>
     public CultureInfo? Culture
     {
         get;
@@ -25,7 +26,7 @@ public partial class Calendar : DecoratedControl
         }
     }
 
-    private CultureInfo EffectiveCulture => Culture ?? CultureInfo.CurrentCulture;
+    private CultureInfo EffectiveCulture => Culture ?? Localization.Culture;
 
     // the captions are computed every frame, while a culture change is a rare event
     private CultureInfo? _dayNamesCulture;
@@ -146,8 +147,9 @@ public partial class Calendar : DecoratedControl
     /// <summary>Day captions, starting from the culture's first day of the week.</summary>
     /// <remarks>
     /// In .NET the day arrays always start with Sunday regardless of the culture,
-    /// so they must be rotated to its first day — otherwise the captions
-    /// would not match the columns.
+    /// so they must be rotated to its first day — otherwise the captions would not
+    /// match the columns. They are capitalized: a column header is a caption,
+    /// while Russian, for one, gives the abbreviations in lower case.
     /// </remarks>
     private string[] GetDayNames(bool shortest)
     {
@@ -157,24 +159,44 @@ public partial class Calendar : DecoratedControl
         {
             DateTimeFormatInfo format = culture.DateTimeFormat;
 
-            _abbreviatedDayNames = Rotate(format.AbbreviatedDayNames, format.FirstDayOfWeek);
-            _shortestDayNames = Rotate(format.ShortestDayNames, format.FirstDayOfWeek);
+            _abbreviatedDayNames = Rotate(format.AbbreviatedDayNames, format.FirstDayOfWeek, culture);
+            _shortestDayNames = Rotate(format.ShortestDayNames, format.FirstDayOfWeek, culture);
             _dayNamesCulture = culture;
         }
 
         return (shortest ? _shortestDayNames : _abbreviatedDayNames)!;
 
-        static string[] Rotate(string[] source, DayOfWeek firstDay)
+        static string[] Rotate(string[] source, DayOfWeek firstDay, CultureInfo culture)
         {
             var names = new string[Columns];
             int start = (int)firstDay;
 
             for (int i = 0; i < Columns; i++)
-                names[i] = source[(start + i) % 7];
+                names[i] = Capitalize(source[(start + i) % 7], culture);
 
             return names;
         }
     }
+
+    /// <summary>The header caption: the culture's own year-month pattern — the order
+    /// and the words differ between languages — with a capital first letter.
+    /// Russian gives the month in lower case, "сентябрь 2026".</summary>
+    private string MonthCaption
+    {
+        get
+        {
+            CultureInfo culture = EffectiveCulture;
+
+            return Capitalize(
+                _displayMonth.ToString(culture.DateTimeFormat.YearMonthPattern, culture),
+                culture);
+        }
+    }
+
+    private static string Capitalize(string text, CultureInfo culture) =>
+        text.Length == 0 || !char.IsLower(text[0])
+            ? text
+            : culture.TextInfo.ToUpper(text[0]) + text[1..];
 
     // the background, border and corner radius are drawn by the base — only the date grid here
     protected override void DrawContent(Graphics g)
@@ -220,7 +242,7 @@ public partial class Calendar : DecoratedControl
             // and the rectangle would go negative
             new Size(Math.Max(0, content.Width - (2 * layout.ArrowWidth)), lineHeight));
 
-        g.DrawText(_displayMonth.ToString("MMMM yyyy", EffectiveCulture), monthRect, TextColor, font,
+        g.DrawText(MonthCaption, monthRect, TextColor, font,
             HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
         string[] abbreviated = GetDayNames(shortest: false);

@@ -320,15 +320,17 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// Controls call it in both places: measuring the original and drawing the
     /// transformed text would cut off a caption that grew.</summary>
     /// <remarks>
-    /// By the current culture's rules: in Turkish "i" becomes "İ", not "I".
-    /// When localization arrives, this will follow the application's culture.
+    /// By the rules of the interface language, Localization.Culture: in Turkish
+    /// "i" becomes "İ", not "I". Not the thread's culture — the application's
+    /// language is what the captions are written in.
     /// </remarks>
     protected string ApplyTextTransform(string text) => TextTransform switch
     {
-        Enums.TextTransform.UpperCase => text.ToUpper(CultureInfo.CurrentCulture),
-        Enums.TextTransform.LowerCase => text.ToLower(CultureInfo.CurrentCulture),
+        Enums.TextTransform.UpperCase => text.ToUpper(Localization.Culture),
+        Enums.TextTransform.LowerCase => text.ToLower(Localization.Culture),
         _ => text,
     };
+
     //
     /// <summary>Rotation in degrees around the element's center.</summary>
     [Styled(Category = "Appearance")]

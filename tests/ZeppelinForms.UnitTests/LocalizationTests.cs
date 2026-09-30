@@ -6,6 +6,7 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Text;
+using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Headless;
 
 namespace ZeppelinForms.UnitTests;
@@ -201,6 +202,23 @@ public class LocalizationTests
             // it is the OnLocalizationChanged hook that rebuilds it
             Localization.Culture = new CultureInfo("ru-RU");
             Assert.Equal("Файл не выбран", status.Text);
+        });
+    }
+
+    [Fact]
+    public void TextTransformFollowsTheInterfaceLanguage()
+    {
+        WithCulture("tr-TR", () =>
+        {
+            var box = new TextBox { TextTransform = TextTransform.UpperCase };
+            var form = new Form { Size = new Size(200, 100), Content = box };
+            new HeadlessPlatform().CreateWindow(form);
+            form.Show();
+
+            HeadlessInput.TypeText(form, "i");
+
+            // Turkish has a dotted capital I; the invariant rules would give "I"
+            Assert.Equal("İ", box.Text);
         });
     }
 }

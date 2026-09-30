@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Globalization;
+using ZeppelinForms.Core.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -17,7 +19,10 @@ public class TimePicker : InteractiveControl
 
     public TimeOnly Value { get; private set; } = new(12, 0);
 
-    public string Format
+    /// <summary>The time format. Null — the culture's short time pattern.</summary>
+    /// <remarks>Used to default to "HH:mm". The Russian short pattern is "H:mm",
+    /// without the leading zero; set the format explicitly to keep it.</remarks>
+    public string? Format
     {
         get;
         set
@@ -29,7 +34,22 @@ public class TimePicker : InteractiveControl
             // the picker's size is computed from the formatted time
             Invalidate();
         }
-    } = "HH:mm";
+    }
+
+    /// <summary>The culture for the time. Null — the interface language, Localization.Culture.</summary>
+    public CultureInfo? Culture
+    {
+        get;
+        set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            field = value;
+            Invalidate();
+        }
+    }
+
+    private string FormattedValue => Value.ToString(Format ?? "t", Culture ?? Localization.Culture);
 
     public int MinuteStep { get; set; } = 5;
 
@@ -62,7 +82,7 @@ public class TimePicker : InteractiveControl
     {
         var content = ContentBounds;
 
-        g.DrawText(Value.ToString(Format),
+        g.DrawText(FormattedValue,
             new Rectangle(content.Position, new Size(Math.Max(0, content.Width - IconWidth), content.Height)),
             TextColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
@@ -186,7 +206,7 @@ public class TimePicker : InteractiveControl
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = TextMeasurer.Current.MeasureText(Value.ToString(Format), EffectiveFont);
+        Size textSize = TextMeasurer.Current.MeasureText(FormattedValue, EffectiveFont);
 
         return ResolveSize(
             new Size(

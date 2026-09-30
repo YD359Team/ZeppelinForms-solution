@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Globalization;
+using ZeppelinForms.Core.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -17,7 +19,9 @@ public class DateTimePicker : InteractiveControl
 
     public DateTime Value { get; private set; } = DateTime.Today;
 
-    public string Format
+    /// <summary>The date format. Null — the culture's short date pattern.</summary>
+    /// <remarks>Used to default to "dd.MM.yyyy" — the Russian format for everyone.</remarks>
+    public string? Format
     {
         get;
         set
@@ -29,7 +33,25 @@ public class DateTimePicker : InteractiveControl
             // the picker's size is computed from the formatted date
             Invalidate();
         }
-    } = "dd.MM.yyyy";
+    }
+
+    /// <summary>The culture for the date and for the drop-down calendar.
+    /// Null — the interface language, Localization.Culture.</summary>
+    public CultureInfo? Culture
+    {
+        get;
+        set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            field = value;
+            Invalidate();
+        }
+    }
+
+    private CultureInfo EffectiveCulture => Culture ?? Localization.Culture;
+
+    private string FormattedValue => Value.ToString(Format ?? "d", EffectiveCulture);
 
     public event EventHandler? ValueChanged;
 
@@ -60,7 +82,7 @@ public class DateTimePicker : InteractiveControl
     {
         var content = ContentBounds;
 
-        g.DrawText(Value.ToString(Format),
+        g.DrawText(FormattedValue,
             new Rectangle(content.Position, new Size(Math.Max(0, content.Width - IconWidth), content.Height)),
             TextColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
@@ -106,6 +128,9 @@ public class DateTimePicker : InteractiveControl
     private UIElement BuildCalendar()
     {
         var calendar = new Calendar();
+        // the calendar follows the picker: a picker with a culture of its own
+        // must not open a calendar in the interface language
+        calendar.Culture = Culture;
         calendar.SetSelectedDate(Value);
 
         calendar.DateSelected += (_, date) =>
@@ -144,7 +169,7 @@ public class DateTimePicker : InteractiveControl
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = TextMeasurer.Current.MeasureText(Value.ToString(Format), EffectiveFont);
+        Size textSize = TextMeasurer.Current.MeasureText(FormattedValue, EffectiveFont);
 
         return ResolveSize(
             new Size(

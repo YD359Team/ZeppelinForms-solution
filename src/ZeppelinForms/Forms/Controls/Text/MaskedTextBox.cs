@@ -13,7 +13,7 @@ public partial class MaskedTextBox : TextInputControl
 {
     private const float CaretWidth = 1f;
 
-    private MaskDefinition _mask = MaskDefinition.Phone;
+    private MaskDefinition _mask = MaskDefinition.RussianPhone;
     private char[] _buffer;
     private int _caretIndex;
 

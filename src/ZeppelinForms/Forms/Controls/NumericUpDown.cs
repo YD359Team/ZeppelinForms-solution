@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -70,6 +71,24 @@ public partial class NumericUpDown : TextInputControl
             Invalidate();
         }
     }
+
+    /// <summary>The culture for display and for parsing what is typed.
+    /// Null — the interface language, Localization.Culture.</summary>
+    public CultureInfo? Culture
+    {
+        get;
+        set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            field = value;
+
+            // the separator and the digits' width may change
+            Invalidate();
+        }
+    }
+
+    private CultureInfo EffectiveCulture => Culture ?? Localization.Culture;
 
     /// <summary>Allow entering the value from the keyboard.</summary>
     public bool IsEditable { get; set; } = true;
@@ -147,12 +166,11 @@ public partial class NumericUpDown : TextInputControl
         Cursor = CursorKind.Arrow;
     }
 
-    private string Formatted => Value.ToString($"F{DecimalPlaces}");
-
     private string DisplayText => _isEditing ? _editText ?? string.Empty : Formatted;
 
-    private static char DecimalSeparator =>
-        CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator[0];
+    private string Formatted => Value.ToString($"F{DecimalPlaces}", EffectiveCulture);
+
+    private char DecimalSeparator => EffectiveCulture.NumberFormat.NumberDecimalSeparator[0];
 
     private Rectangle UpButtonRect => new(
         new Point(ActualSize.Width - ButtonWidth, 0),
@@ -270,7 +288,7 @@ public partial class NumericUpDown : TextInputControl
 
         _isEditing = false;
 
-        if (decimal.TryParse(_editText, NumberStyles.Number, CultureInfo.CurrentCulture, out decimal parsed))
+        if (decimal.TryParse(_editText, NumberStyles.Number, EffectiveCulture, out decimal parsed))
             Value = Math.Round(parsed, DecimalPlaces, MidpointRounding.AwayFromZero);
 
         // didn't parse — silently return the previous value,
@@ -381,8 +399,8 @@ public partial class NumericUpDown : TextInputControl
     {
         // measure by the widest of the boundary values, so that the field
         // doesn't jump in width while stepping
-        Size minSize = TextMeasurer.Current.MeasureText(Minimum.ToString($"F{DecimalPlaces}"), EffectiveFont);
-        Size maxSize = TextMeasurer.Current.MeasureText(Maximum.ToString($"F{DecimalPlaces}"), EffectiveFont);
+        Size minSize = TextMeasurer.Current.MeasureText(Minimum.ToString($"F{DecimalPlaces}", EffectiveCulture), EffectiveFont);
+        Size maxSize = TextMeasurer.Current.MeasureText(Maximum.ToString($"F{DecimalPlaces}", EffectiveCulture), EffectiveFont);
 
         Size textSize = minSize.Width >= maxSize.Width ? minSize : maxSize;
 
