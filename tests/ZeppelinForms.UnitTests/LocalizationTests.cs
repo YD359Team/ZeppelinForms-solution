@@ -167,4 +167,40 @@ public class LocalizationTests
             }
         });
     }
+
+    [Fact]
+    public void BuiltInRussianTableIsRegistered()
+    {
+        WithCulture("ru-RU", () => Assert.Equal("Отмена", Localization.Get(ZfText.Cancel)));
+        WithCulture("en-US", () => Assert.Equal("Cancel", Localization.Get(ZfText.Cancel)));
+    }
+
+    [Theory]
+    [InlineData(3, "Не короче 3 символов")]
+    [InlineData(21, "Не короче 21 символа")]
+    public void LengthValidatorUsesRussianPlurals(int min, string expected)
+    {
+        Func<string, string?> validator = ZeppelinForms.Forms.Validation.Validators.Length(min, 100);
+
+        WithCulture("ru-RU", () => Assert.Equal(expected, validator(string.Empty)));
+    }
+
+    [Fact]
+    public void ComposedTextFollowsTheLanguage()
+    {
+        WithCulture("en-US", () =>
+        {
+            var attach = new AttachButton();
+            var form = new Form { Size = new Size(400, 100), Content = attach };
+            new HeadlessPlatform().CreateWindow(form);
+
+            Label status = attach.Children.OfType<Label>().Single();
+            Assert.Equal("No file chosen", status.Text);
+
+            // composed by the control itself, not a key on a property:
+            // it is the OnLocalizationChanged hook that rebuilds it
+            Localization.Culture = new CultureInfo("ru-RU");
+            Assert.Equal("Файл не выбран", status.Text);
+        });
+    }
 }

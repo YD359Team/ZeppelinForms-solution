@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using ZeppelinForms.Core.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
@@ -68,28 +69,28 @@ internal sealed class MessageBoxForm : Form
         switch (buttons)
         {
             case MessageBoxButtons.Ok:
-                yield return MakeButton("ОК", MessageBoxResult.Ok, primary: true);
+                yield return MakeButton(ZfText.Ok, MessageBoxResult.Ok, primary: true);
                 break;
 
             case MessageBoxButtons.OkCancel:
-                yield return MakeButton("Отмена", MessageBoxResult.Cancel, primary: false);
-                yield return MakeButton("ОК", MessageBoxResult.Ok, primary: true);
+                yield return MakeButton(ZfText.Cancel, MessageBoxResult.Cancel, primary: false);
+                yield return MakeButton(ZfText.Ok, MessageBoxResult.Ok, primary: true);
                 break;
 
             case MessageBoxButtons.YesNo:
-                yield return MakeButton("Нет", MessageBoxResult.No, primary: false);
-                yield return MakeButton("Да", MessageBoxResult.Yes, primary: true);
+                yield return MakeButton(ZfText.No, MessageBoxResult.No, primary: false);
+                yield return MakeButton(ZfText.Yes, MessageBoxResult.Yes, primary: true);
                 break;
 
             case MessageBoxButtons.YesNoCancel:
-                yield return MakeButton("Отмена", MessageBoxResult.Cancel, primary: false);
-                yield return MakeButton("Нет", MessageBoxResult.No, primary: false);
-                yield return MakeButton("Да", MessageBoxResult.Yes, primary: true);
+                yield return MakeButton(ZfText.Cancel, MessageBoxResult.Cancel, primary: false);
+                yield return MakeButton(ZfText.No, MessageBoxResult.No, primary: false);
+                yield return MakeButton(ZfText.Yes, MessageBoxResult.Yes, primary: true);
                 break;
         }
     }
 
-    private Button MakeButton(string caption, MessageBoxResult result, bool primary)
+    private Button MakeButton(TextKey caption, MessageBoxResult result, bool primary)
     {
         Button button = primary ? Buttons.Primary(caption) : Buttons.Secondary(caption);
 

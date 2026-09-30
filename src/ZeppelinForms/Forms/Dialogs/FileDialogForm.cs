@@ -1,4 +1,5 @@
 ﻿using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
@@ -40,12 +41,20 @@ internal sealed class FileDialogForm : Form
               ? SelectionMode.Extended
               : SelectionMode.Single;
 
-        Title = options.Title ?? mode switch
+        // an explicit title stays as given; the default one follows the language
+        if (options.Title is { } title)
         {
-            FileDialogMode.Save => "Сохранить файл",
-            FileDialogMode.Folder => "Выбрать папку",
-            _ => "Открыть файл",
-        };
+            Title = title;
+        }
+        else
+        {
+            LocalizeTitle(mode switch
+            {
+                FileDialogMode.Save => ZfText.SaveFileTitle,
+                FileDialogMode.Folder => ZfText.SelectFolderTitle,
+                _ => ZfText.OpenFileTitle,
+            });
+        }
 
         Size = new Size(680, 460);
 
@@ -72,21 +81,21 @@ internal sealed class FileDialogForm : Form
 
         // "all files" is always needed: otherwise there is no way out
         // of the dialog if none of the filters fit
-        yield return new FileFilter("Все файлы");
+        yield return new FileFilter(Localization.Get(ZfText.AllFiles));
     }
 
     private FileFilter CurrentFilter =>
-        _filter.SelectedItem as FileFilter ?? new FileFilter("Все файлы");
+        _filter.SelectedItem as FileFilter ?? new FileFilter(Localization.Get(ZfText.AllFiles));
 
     private UIElement BuildLayout()
     {
-        _accept.Text = _mode == FileDialogMode.Save ? "Сохранить" : "Выбрать";
+        _accept.Localize(_mode == FileDialogMode.Save ? ZfText.Save : ZfText.Select);
         _accept.Click += (_, _) => Activate();
 
-        Button cancel = new() { Text = "Отмена" };
+        Button cancel = new Button().Localize(ZfText.Cancel);
         cancel.Click += (_, _) => Cancel();
 
-        Button up = new() { Text = "Вверх" };
+        Button up = new Button().Localize(ZfText.Up);
         up.Click += (_, _) => NavigateUp();
 
         StackPanel top = new()
@@ -256,7 +265,7 @@ internal sealed class FileDialogForm : Form
         if (_mode == FileDialogMode.Open && !File.Exists(full)) return;
 
         if (_mode == FileDialogMode.Save && File.Exists(full) &&
-            !MessageBox.Confirm(this, $"Файл «{name}» уже есть. Заменить?"))
+            !MessageBox.Confirm(this, Localization.Get(ZfText.FileExists, name)))
             return;
 
         Accept(new[] { full });

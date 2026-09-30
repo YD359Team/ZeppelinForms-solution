@@ -94,6 +94,13 @@ public static class Localization
         }
     }
 
+    /// <summary>The built-in tables. Registered before anything can ask for a text,
+    /// and before the culture is known — so no Changed is raised for them.</summary>
+    static Localization()
+    {
+        Register(new ZfRussianStrings());
+    }
+
     /// <summary>Add a table. A table for the language already on screen
     /// updates the texts right away.</summary>
     public static void Register(StringTable table)

@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using ZeppelinForms.Core.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -20,7 +21,9 @@ public partial class CheckedComboBox : InteractiveControl
     public List<object> Items { get; init; } = [];
     public Func<object, string>? DisplaySelector { get; set; }
 
-    public string PlaceholderText
+    /// <summary>Text when nothing is checked. Null — the localized default,
+    /// resolved when drawn, so it follows the language.</summary>
+    public string? PlaceholderText
     {
         get;
         set
@@ -32,7 +35,7 @@ public partial class CheckedComboBox : InteractiveControl
             // the width is computed from the placeholder too
             Invalidate();
         }
-    } = "Не выбрано";
+    }
 
     public float DropDownHeight { get; set; } = 200f;
 
@@ -75,10 +78,10 @@ public partial class CheckedComboBox : InteractiveControl
     {
         get
         {
-            if (_checked.Count == 0) return PlaceholderText;
+            if (_checked.Count == 0) return PlaceholderText ?? Localization.Get(ZfText.NothingSelected);
 
             if (_checked.Count >= SummaryThreshold)
-                return $"Выбрано: {_checked.Count}";
+                return Localization.Get(ZfText.SelectedCount, _checked.Count);
 
             return string.Join(", ", CheckedItems.Select(TextOf));
         }
@@ -180,7 +183,7 @@ public partial class CheckedComboBox : InteractiveControl
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        float widest = TextMeasurer.Current.MeasureText(PlaceholderText, EffectiveFont).Width;
+        float widest = TextMeasurer.Current.MeasureText(PlaceholderText ?? Localization.Get(ZfText.NothingSelected), EffectiveFont).Width;
 
         foreach (object item in Items)
             widest = Math.Max(widest, TextMeasurer.Current.MeasureText(TextOf(item), EffectiveFont).Width);

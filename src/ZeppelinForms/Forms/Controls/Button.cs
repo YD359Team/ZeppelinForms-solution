@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Helpers;
 using ZeppelinForms.Drawing.Primitives;
@@ -126,4 +127,9 @@ public static class Buttons
     public static PrimaryButton Primary(string caption) => new() { Text = caption };
     public static SecondaryButton Secondary(string caption) => new() { Text = caption };
     public static DangerButton Danger(string caption) => new() { Text = caption };
+
+    // the caption as a key: the button follows the language
+    public static PrimaryButton Primary(TextKey caption) => new PrimaryButton().Localize(caption);
+    public static SecondaryButton Secondary(TextKey caption) => new SecondaryButton().Localize(caption);
+    public static DangerButton Danger(TextKey caption) => new DangerButton().Localize(caption);
 }

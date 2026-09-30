@@ -1,8 +1,9 @@
-﻿using ZeppelinForms.Forms.Controls.Text;
+﻿using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Core.Globalization;
+using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Dialogs;
-using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Forms.Enums;
-using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls;
 
@@ -22,17 +23,16 @@ public partial class AttachButton : StackPanel
     /// <summary>A dialog is open: a second press must not open another one on top.</summary>
     private bool _browsing;
 
-    /// <summary>The caption on the button. Describes the action, not the state.</summary>
+    /// <summary>The caption on the button. Describes the action, not the state.
+    /// Null — the localized default.</summary>
+    /// <remarks>No default value in the generator: it is computed once at registration
+    /// and would freeze in the language the application started with.</remarks>
     [Styled(Category = "Attach", AffectsLayout = true)]
-    public partial string BrowseText { get; set; }
+    public partial string? BrowseText { get; set; }
 
-    private static string BrowseTextDefault => "Выбрать файл…";
-
-    /// <summary>Text when nothing is selected.</summary>
+    /// <summary>Text when nothing is selected. Null — the localized default.</summary>
     [Styled(Category = "Attach", AffectsLayout = true)]
-    public partial string EmptyText { get; set; }
-
-    private static string EmptyTextDefault => "Файл не выбран";
+    public partial string? EmptyText { get; set; }
 
     /// <summary>Show a clear cross when something is selected.
     /// The native control has none, and that is its well-known flaw.</summary>
@@ -65,12 +65,11 @@ public partial class AttachButton : StackPanel
 
         SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Left);
 
-        _browse.Text = BrowseText;
         _browse.Click += (_, _) => Browse();
 
         _clear.Text = "✕";
         _clear.IsVisible = false;
-        _clear.ToolTip = "Сбросить выбор";
+        _clear.Localize(nameof(ToolTip), static (button, text) => button.ToolTip = text, ZfText.AttachClear);
         _clear.Click += (_, _) => Clear();
 
         Children.AddRange([_browse, _status, _clear]);
@@ -136,42 +135,31 @@ public partial class AttachButton : StackPanel
 
     private void UpdateStatus()
     {
-        _browse.Text = BrowseText;
+        _browse.Text = BrowseText ?? Localization.Get(ZfText.AttachBrowse);
 
         if (_files.Length == 0)
         {
-            _status.Text = EmptyText;
+            _status.Text = EmptyText ?? Localization.Get(ZfText.AttachEmpty);
             _status.ToolTip = null;
             _clear.IsVisible = false;
 
             return;
         }
 
-        // the name, not the path: a path stretches the layout and gets cut off anyway
+        // the name, not the path: a path stretches the layout and gets cut off anyway.
+        // The count goes through the language's plural rules: a wrong form next
+        // to a number is more glaring than it seems
         _status.Text = _files.Length == 1
             ? Path.GetFileName(_files[0].TrimEnd(Path.DirectorySeparatorChar))
-            : $"{_files.Length} {Plural(_files.Length, "файл", "файла", "файлов")}";
+            : Localization.Get(ZfText.FilesSelected, _files.Length);
 
         _status.ToolTip = string.Join(Environment.NewLine, _files);
         _clear.IsVisible = AllowClear;
     }
 
-    /// <summary>The noun form for a number. Without it a wrong form next to a number
-    /// is more glaring than it seems. Russian rules for now; general plural rules
-    /// come with localization.</summary>
-    private static string Plural(int count, string one, string few, string many)
-    {
-        int tail = count % 100;
-
-        if (tail is >= 11 and <= 14) return many;
-
-        return (count % 10) switch
-        {
-            1 => one,
-            2 or 3 or 4 => few,
-            _ => many,
-        };
-    }
+    /// <summary>The status line is composed from keys and the file count,
+    /// so it is rebuilt here rather than through a key on a property.</summary>
+    protected override void OnLocalizationChanged() => UpdateStatus();
 
     protected override void OnStyledPropertyChanged(StyledProperty property)
     {

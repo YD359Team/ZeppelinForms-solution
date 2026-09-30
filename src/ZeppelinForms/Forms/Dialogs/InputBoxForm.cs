@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Core.Globalization;
+using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
@@ -27,11 +28,11 @@ internal sealed class InputBoxForm : Form
         // Enter in the field is the same as pressing OK — that is how system dialogs behave
         _input.Accepted += (_, _) => Accept(_input.Text ?? string.Empty);
 
-        var ok = Buttons.Primary("ОК");
+        var ok = Buttons.Primary(ZfText.Ok);
         ok.Size = new Size(96, 32);
         ok.Click += (_, _) => Accept(_input.Text ?? string.Empty);
 
-        var cancel = Buttons.Secondary("Отмена");
+        var cancel = Buttons.Secondary(ZfText.Cancel);
         cancel.Size = new Size(96, 32);
         cancel.Click += (_, _) => Cancel();
 

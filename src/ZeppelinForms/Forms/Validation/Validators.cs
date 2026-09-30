@@ -2,24 +2,32 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
+using ZeppelinForms.Core.Globalization;
 
 namespace ZeppelinForms.Forms.Validation;
 
+/// <remarks>
+/// A null message means the localized default. It is resolved when validation
+/// runs, not when the validator is created, so a language switch applies to the
+/// next check without rebuilding the validators.
+/// </remarks>
 public static class Validators
 {
-    public static Func<string, string?> Required(string message = "Поле обязательно") =>
-        value => string.IsNullOrWhiteSpace(value) ? message : null;
+    public static Func<string, string?> Required(string? message = null) =>
+        value => string.IsNullOrWhiteSpace(value) ? message ?? Localization.Get(ZfText.Required) : null;
 
-    public static Func<string, string?> Email(string message = "Некорректный адрес") =>
-        value => string.IsNullOrEmpty(value) || EmailPattern.IsMatch(value) ? null : message;
+    public static Func<string, string?> Email(string? message = null) =>
+        value => string.IsNullOrEmpty(value) || EmailPattern.IsMatch(value)
+            ? null
+            : message ?? Localization.Get(ZfText.InvalidEmail);
 
     public static Func<string, string?> Length(int min, int max) =>
-        value => value.Length < min ? $"Не короче {min} символов"
-            : value.Length > max ? $"Не длиннее {max} символов"
+        value => value.Length < min ? Localization.Get(ZfText.TooShort, min)
+            : value.Length > max ? Localization.Get(ZfText.TooLong, max)
             : null;
 
-    public static Func<string, string?> Digits(string message = "Только цифры") =>
-        value => value.All(char.IsAsciiDigit) ? null : message;
+    public static Func<string, string?> Digits(string? message = null) =>
+        value => value.All(char.IsAsciiDigit) ? null : message ?? Localization.Get(ZfText.DigitsOnly);
 
     public static Func<string, string?> Combine(params Func<string, string?>[] validators) =>
         value =>

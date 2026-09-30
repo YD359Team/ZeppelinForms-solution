@@ -1,16 +1,22 @@
-﻿namespace ZeppelinForms.Forms.Dialogs;
+﻿using ZeppelinForms.Core.Globalization;
 
+namespace ZeppelinForms.Forms.Dialogs;
+
+/// <remarks>
+/// A null title means the localized default.
+/// </remarks>
 public static class InputBox
 {
     /// <summary>Asks for a string. Returns null if cancelled.</summary>
     public static string? Show(
         Form owner,
         string prompt,
-        string title = "Ввод",
+        string? title = null,
         string initialValue = "",
         char? passwordChar = null)
     {
-        var dialog = new InputBoxForm(prompt, title, initialValue, passwordChar);
+        var dialog = new InputBoxForm(
+            prompt, title ?? Localization.Get(ZfText.InputTitle), initialValue, passwordChar);
 
         return Unwrap(dialog.ShowDialog<string>(owner));
     }
@@ -18,11 +24,12 @@ public static class InputBox
     public static async Task<string?> ShowAsync(
         Form owner,
         string prompt,
-        string title = "Ввод",
+        string? title = null,
         string initialValue = "",
         char? passwordChar = null)
     {
-        var dialog = new InputBoxForm(prompt, title, initialValue, passwordChar);
+        var dialog = new InputBoxForm(
+            prompt, title ?? Localization.Get(ZfText.InputTitle), initialValue, passwordChar);
 
         return Unwrap(await dialog.ShowDialogAsync<string>(owner));
     }
@@ -31,13 +38,15 @@ public static class InputBox
     public static decimal? ShowNumber(
         Form owner,
         string prompt,
-        string title = "Ввод числа",
+        string? title = null,
         decimal initialValue = 0,
         decimal minimum = decimal.MinValue,
         decimal maximum = decimal.MaxValue,
         int decimalPlaces = 0)
     {
-        var dialog = new NumberBoxForm(prompt, title, initialValue, minimum, maximum, decimalPlaces);
+        var dialog = new NumberBoxForm(
+            prompt, title ?? Localization.Get(ZfText.NumberInputTitle),
+            initialValue, minimum, maximum, decimalPlaces);
 
         return UnwrapNumber(dialog.ShowDialog<decimal>(owner));
     }
@@ -45,13 +54,15 @@ public static class InputBox
     public static async Task<decimal?> ShowNumberAsync(
         Form owner,
         string prompt,
-        string title = "Ввод числа",
+        string? title = null,
         decimal initialValue = 0,
         decimal minimum = decimal.MinValue,
         decimal maximum = decimal.MaxValue,
         int decimalPlaces = 0)
     {
-        var dialog = new NumberBoxForm(prompt, title, initialValue, minimum, maximum, decimalPlaces);
+        var dialog = new NumberBoxForm(
+            prompt, title ?? Localization.Get(ZfText.NumberInputTitle),
+            initialValue, minimum, maximum, decimalPlaces);
 
         return UnwrapNumber(await dialog.ShowDialogAsync<decimal>(owner));
     }

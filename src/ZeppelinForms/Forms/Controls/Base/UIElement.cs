@@ -431,7 +431,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     {
         // the language may have changed while the element was out of every form's
         // tree: no form walked it then, so it catches up here, before anyone sees it
-        if (_localized is not null && _localizationVersion != Localization.Version)
+        if (_localizationVersion != Localization.Version)
             ApplyLocalization();
 
         OnAttached();
@@ -1144,17 +1144,26 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     internal void RemoveLocalized(string property) =>
         _localized?.RemoveAll(existing => existing.Property == property);
 
-    /// <summary>Resolve every key again — the language changed.</summary>
+    /// <summary>Resolve every key again and let the control rebuild the texts
+    /// it composes itself — the language changed.</summary>
     internal void ApplyLocalization()
     {
-        if (_localized is null) return;
-
-        // a copy: a setter is user code and may localize another property
-        foreach (LocalizedBinding binding in _localized.ToArray())
-            binding.Apply(this);
+        if (_localized is not null)
+        {
+            // a copy: a setter is user code and may localize another property
+            foreach (LocalizedBinding binding in _localized.ToArray())
+                binding.Apply(this);
+        }
 
         _localizationVersion = Localization.Version;
+
+        OnLocalizationChanged();
     }
+
+    /// <summary>The language changed. For controls that compose texts themselves
+    /// from keys and state — "3 files" — which a key on a property can't express.
+    /// Called when a form walks its tree, and on attaching after a missed change.</summary>
+    protected virtual void OnLocalizationChanged() { }
 
     // === effects
 
