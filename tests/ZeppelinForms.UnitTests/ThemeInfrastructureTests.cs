@@ -322,7 +322,7 @@ public class ThemeInfrastructureTests
     [Fact]
     public void RampHasNoStepForNone()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => TypeRamp.Default[TextStyle.None]);
+        Assert.Null(TypeRamp.Default[TextStyle.None]);
 
         var font = new Font("Arial", 11);
         Assert.Same(font, TypeRamp.Default.Apply(font, TextStyle.None));

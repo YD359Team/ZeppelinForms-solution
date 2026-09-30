@@ -37,10 +37,14 @@ public sealed record TypeRamp
     public TypeRampStep TitleLarge { get; init; } = new(40f, FontWeight.SemiBold);
     public TypeRampStep Display { get; init; } = new(68f, FontWeight.SemiBold);
 
-    /// <summary>The step of a style. <see cref="TextStyle.None"/> has no step
-    /// of its own — it means the element's font as it is — and asking for it
-    /// is a mistake of the caller.</summary>
-    public TypeRampStep this[TextStyle style] => style switch
+    /// <summary>The step of a style, or null for <see cref="TextStyle.None"/>:
+    /// that one has no step of its own — it stands for the element's font as it is.</summary>
+    /// <remarks>
+    /// Null rather than an exception: None is an ordinary value of the property,
+    /// the one every element has by default, and a lookup that throws on it turns
+    /// every caller into a guard-then-call pair that must never drift apart.
+    /// </remarks>
+    public TypeRampStep? this[TextStyle style] => style switch
     {
         TextStyle.Caption => Caption,
         TextStyle.Body => Body,
@@ -50,18 +54,13 @@ public sealed record TypeRamp
         TextStyle.Title => Title,
         TextStyle.TitleLarge => TitleLarge,
         TextStyle.Display => Display,
-        _ => throw new ArgumentOutOfRangeException(nameof(style), style,
-            "TextStyle.None has no step in the ramp: it stands for the element's own font."),
+        _ => null,
     };
 
     /// <summary>A font of the style over a base font: the family, slant
     /// and file are taken from the base, the size and weight — from the step.</summary>
-    public Font Apply(Font baseFont, TextStyle style)
-    {
-        if (style == TextStyle.None) return baseFont;
-
-        TypeRampStep step = this[style];
-
-        return baseFont with { Size = step.Size, Weight = step.Weight };
-    }
+    public Font Apply(Font baseFont, TextStyle style) =>
+        this[style] is { } step
+            ? baseFont with { Size = step.Size, Weight = step.Weight }
+            : baseFont;
 }

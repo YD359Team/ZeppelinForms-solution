@@ -247,6 +247,27 @@ public class FocusVisualTests
     }
 
     [Fact]
+    public void ValidationErrorKeepsBorderAndUnderline()
+    {
+        var box = new TextBox
+        {
+            ErrorColor = Colors.Red,
+            UnderlineColor = Colors.Blue,
+            Validator = _ => "error",
+        };
+
+        CreateForm(box);
+        box.Validate();
+
+        RecordingGraphics g = Record(box);
+
+        // the border says it on its own, the underline repeats it rather than argue
+        Assert.True(g.Stroked(Colors.Red));
+        Assert.True(g.Filled(Colors.Red));
+        Assert.False(g.Filled(Colors.Blue));
+    }
+
+    [Fact]
     public void CheckGlyphTakesItsColor()
     {
         var check = new CheckBox { IsChecked = true, CheckGlyphColor = Colors.Black };

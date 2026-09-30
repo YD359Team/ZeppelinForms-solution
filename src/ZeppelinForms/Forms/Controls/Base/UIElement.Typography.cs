@@ -45,12 +45,11 @@ public abstract partial class UIElement
         {
             Font inherited = GetInheritedValue(FontProperty) ?? FindOwner()?.Font ?? Font.Default;
 
-            TextStyle style = TextStyle;
-
-            if (style == Enums.TextStyle.None || IsLocal(FontProperty) || IsBound(FontProperty))
+            // an own font is an explicit word about this very element — stronger than
+            // a style; and TextStyle.None has no step in the ramp at all
+            if (IsLocal(FontProperty) || IsBound(FontProperty) ||
+                App.Theme.TypeRamp[TextStyle] is not { } step)
                 return inherited;
-
-            TypeRampStep step = App.Theme.TypeRamp[style];
 
             // the step is checked against the result rather than remembered apart:
             // a theme switch changes the ramp while the base stays the same instance

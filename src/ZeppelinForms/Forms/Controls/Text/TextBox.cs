@@ -252,6 +252,16 @@ public partial class TextBox : TextInputControl, ITextElement
         InvalidateVisual();
     }
 
+    /// <summary>The border shows the validation result. SuccessColor and ErrorColor
+    /// were declared but used nowhere, so a field with an error looked like any
+    /// other. An error beats the focus color: it is what needs attention.</summary>
+    protected override Color CurrentBorderColor => ValidationState switch
+    {
+        ValidationState.Error => ErrorColor,
+        ValidationState.Success => SuccessColor,
+        _ => base.CurrentBorderColor,
+    };
+
     /// <summary>The underline follows the same rule as the border: under an
     /// accent underline the red border of an error would read as two answers
     /// at once. Only where a theme draws an underline at all.</summary>
