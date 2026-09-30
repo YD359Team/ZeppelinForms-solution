@@ -1075,11 +1075,6 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         }
     }
 
-    /// <summary>Own font, or if not set — the nearest one set on an ancestor,
-    /// then the form's font, otherwise Font.Default.</summary>
-    public Font EffectiveFont =>
-        GetInheritedValue(FontProperty) ?? FindOwner()?.Font ?? Font.Default;
-
     protected bool IsHovered { get; set; }
     protected bool IsPressed { get; set; }
 

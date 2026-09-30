@@ -144,9 +144,14 @@ internal static class SkiaFontCache
         // FilePath was set — bold text was drawn regular. So they are synthesized:
         // the cache key includes Weight and Style, so the styles end up in different
         // SKFonts over one typeface.
+        //
+        // Skia's embolden has a single strength, so SemiBold is synthesized the same
+        // way as Bold: drawn regular, the Fluent type ramp would lose its titles —
+        // they differ from body text by weight as much as by size. Light has no
+        // synthesis at all and is drawn with the file's own weight.
         if (font.FilePath is not null)
         {
-            if (font.Weight == FontWeight.Bold)
+            if (font.Weight >= FontWeight.SemiBold)
                 skFont.Embolden = true;
 
             if (font.Style == FontStyle.Italic)
@@ -384,9 +389,14 @@ internal static class SkiaFontCache
             if (Typefaces.TryGetValue(key, out SKTypeface? cached))
                 return cached;
 
+            // FontWeight holds the numeric weights of CSS and OpenType, the same
+            // scale SKFontStyle takes, so the value is passed as is. It used to be
+            // mapped to Bold or Normal only — a scale of two points, where Light and
+            // SemiBold had no place. A family without the exact face is matched to
+            // the nearest one by the font manager
             var style = new SKFontStyle(
-                font.Weight == FontWeight.Bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
-                SKFontStyleWidth.Normal,
+                (int)font.Weight,
+                (int)SKFontStyleWidth.Normal,
                 font.Style == FontStyle.Italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);
 
             SKTypeface? resolved = null;
