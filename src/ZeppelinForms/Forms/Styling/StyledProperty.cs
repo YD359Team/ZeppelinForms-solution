@@ -68,6 +68,14 @@ public abstract class StyledProperty
         }
     }
 
+    /// <summary>The property with this registry number. The element's source masks
+    /// keep only numbers, and whoever walks a mask needs the property back.</summary>
+    internal static StyledProperty ByIndex(int index)
+    {
+        lock (RegistrySync)
+            return Registry[index];
+    }
+
     /// <summary>Properties declared by this type and its ancestors.</summary>
     public static IEnumerable<StyledProperty> For(Type type)
     {
@@ -102,6 +110,10 @@ public abstract class StyledProperty
     /// The only consumer is the binding: there the value comes
     /// from PropertyInfo.GetValue, and there is nowhere to type it.</summary>
     internal abstract void WriteBoxedDirect(UIElement element, object? value);
+
+    /// <summary>Put the value the theme no longer sets back to its default.
+    /// Typed dispatch for code that knows the property only by its number.</summary>
+    internal abstract void WithdrawThemeValue(UIElement element);
 }
 
 public sealed class StyledProperty<T> : StyledProperty
@@ -173,4 +185,7 @@ public sealed class StyledProperty<T> : StyledProperty
             T typed => typed,
             _ => DefaultValue,
         });
+
+    internal override void WithdrawThemeValue(UIElement element) =>
+        element.WithdrawThemeValue(this);
 }

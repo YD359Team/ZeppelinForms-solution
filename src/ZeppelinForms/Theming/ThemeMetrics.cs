@@ -23,6 +23,17 @@ public sealed record ThemeMetrics
     /// <summary>The classic look: the shapes the controls draw on their own.</summary>
     public static ThemeMetrics Default { get; } = new();
 
+    /// <summary>Fluent 2 (WinUI 3): ControlCornerRadius 4, OverlayCornerRadius 8,
+    /// and the focus visual of a 2 px outer stroke over a 1 px inner one.</summary>
+    public static ThemeMetrics Fluent { get; } = new()
+    {
+        ControlCornerRadius = new(4f),
+        OverlayCornerRadius = new(8f),
+        StrokeThickness = 1f,
+        FocusStrokeThickness = 2f,
+        FocusStrokeInnerThickness = 1f,
+    };
+
     /// <summary>The rounding of small controls: buttons, text boxes,
     /// check boxes, combo boxes.</summary>
     public CornerRadius ControlCornerRadius { get; init; } = new(4f);

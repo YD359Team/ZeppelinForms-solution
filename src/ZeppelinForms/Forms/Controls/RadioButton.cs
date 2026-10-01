@@ -63,7 +63,7 @@ public partial class RadioButton : InteractiveControl, ITextElement
     // ===== geometry =====
     //
     // Constants before 0.13: the classic look drew a 16 px circle with an 8 px
-    // dot, while Fluent's is 20 px with a 10 px dot and a thinner stroke.
+    // dot, while Fluent's is 20 px with a 12 px dot and a thinner stroke.
 
     /// <summary>The diameter of the circle.</summary>
     [Styled(Category = "Box", AffectsLayout = true)]

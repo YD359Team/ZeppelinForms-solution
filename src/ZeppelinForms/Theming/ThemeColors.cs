@@ -49,6 +49,7 @@ public sealed record ThemeColors
     private readonly Color? _controlFill;
     private readonly Color? _controlStroke;
     private readonly Color? _controlStrokeSecondary;
+    private readonly Color? _controlStrongStroke;
     private readonly Color? _focusStrokeOuter;
     private readonly Color? _focusStrokeInner;
 
@@ -74,6 +75,21 @@ public sealed record ThemeColors
     {
         get => _controlStrokeSecondary ?? ControlStroke;
         init => _controlStrokeSecondary = value;
+    }
+
+    /// <summary>The stroke of a control that is an outline and nothing else: an empty
+    /// check box, an empty radio circle, a switch that is off, the lower edge of
+    /// a text field. Falls back to <see cref="TextSecondary"/>.</summary>
+    /// <remarks>
+    /// Added with the Fluent themes, beyond the roles planned first. The ordinary
+    /// control stroke is too faint for such a control — there is no fill inside to
+    /// see it by — and the secondary text color is close but not the same shade:
+    /// a theme should be able to tell the two apart.
+    /// </remarks>
+    public Color ControlStrongStroke
+    {
+        get => _controlStrongStroke ?? TextSecondary;
+        init => _controlStrongStroke = value;
     }
 
     /// <summary>The outer stroke of the keyboard focus ring. Falls back to

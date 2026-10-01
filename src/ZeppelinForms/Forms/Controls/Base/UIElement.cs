@@ -670,9 +670,8 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     // ===== value source of styled properties =====
 
     // Values live in ordinary fields; only the source is here: two bits
-    // per property — "was ever set" and "was set from user code".
-    // The arrays are created on the first write: most elements have
-    // at best one property out of fifty set explicitly
+    // per property — "was ever set" and "was set from user code". The third,
+    // "set by the current theme", lives in UIElement.ThemeValues.cs.
     private ulong[]? _assigned;
     private ulong[]? _local;
 
@@ -721,6 +720,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
         SetBit(ref _assigned, property.Index);
         ClearBit(_local, property.Index);
+        ClearBit(_themed, property.Index);
+
+        // remembered for the type: a value the theme stops setting, or the user
+        // clears, goes back to this default rather than to the property's
+        RememberControlDefault(property, value);
     }
 
     /// <summary>A bridge for property editors: write the value the same way
@@ -743,7 +747,15 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         {
             // same value, but the source may have changed: the user assigned
             // exactly what the theme had already put there — and now it is theirs
-            if (!ApplyingTheme) SetBit(ref _local, property.Index);
+            if (!ApplyingTheme)
+            {
+                SetBit(ref _local, property.Index);
+                ClearBit(_themed, property.Index);
+            }
+
+            // the theme set the value it already had: it still owns it, and the
+            // end of the pass must not take it for a value the theme dropped
+            else NoteThemeWrite(property.Index);
 
             return false;
         }
@@ -761,8 +773,16 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
         SetBit(ref _assigned, property.Index);
 
-        if (ApplyingTheme) ClearBit(_local, property.Index);
-        else SetBit(ref _local, property.Index);
+        if (ApplyingTheme)
+        {
+            ClearBit(_local, property.Index);
+            NoteThemeWrite(property.Index);
+        }
+        else
+        {
+            SetBit(ref _local, property.Index);
+            ClearBit(_themed, property.Index);
+        }
 
         // the element's own reaction goes before the invalidation,
         // see OnStyledPropertyChanged
@@ -786,7 +806,13 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
         if (assigned && EqualityComparer<T>.Default.Equals(property.GetValue(this), value))
         {
-            if (!ApplyingTheme) SetBit(ref _local, property.Index);
+            if (!ApplyingTheme)
+            {
+                SetBit(ref _local, property.Index);
+                ClearBit(_themed, property.Index);
+            }
+            else NoteThemeWrite(property.Index);
+
             return false;
         }
 
@@ -798,8 +824,16 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
         SetBit(ref _assigned, property.Index);
 
-        if (ApplyingTheme) ClearBit(_local, property.Index);
-        else SetBit(ref _local, property.Index);
+        if (ApplyingTheme)
+        {
+            ClearBit(_local, property.Index);
+            NoteThemeWrite(property.Index);
+        }
+        else
+        {
+            SetBit(ref _local, property.Index);
+            ClearBit(_themed, property.Index);
+        }
 
         OnStyledPropertyChanged(property);
 
@@ -852,9 +886,17 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         Unbind(property);
 
         ClearBit(_local, property.Index);
-        ClearBit(_assigned, property.Index);
+        ClearBit(_themed, property.Index);
 
-        property.Write(this, property.DefaultValue);
+        // back to the control's own default where it has one: the property's
+        // default used to be written here, and a cleared Padding of a button
+        // came back as zero instead of the button's 14×6
+        T fallback = DefaultFor(property, out bool own);
+
+        if (own) SetBit(ref _assigned, property.Index);
+        else ClearBit(_assigned, property.Index);
+
+        property.Write(this, fallback);
 
         // the write above bypassed SetValue, so the element's reaction is called
         // by hand: without it the OnStyledPropertyChanged reactions (Label's line

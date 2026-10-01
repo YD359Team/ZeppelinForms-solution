@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing.Helpers;
+﻿using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Helpers;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
@@ -12,7 +13,7 @@ using ZeppelinForms.Forms.Controls.Tree;
 
 namespace ZeppelinForms.Theming;
 
-public static class Themes
+public static partial class Themes
 {
     public static Theme Light { get; } = Build(new ThemeColors
     {
@@ -74,9 +75,21 @@ public static class Themes
         ScrollThumb = new Color(110, 255, 255, 255),
     }, "Dark");
 
-    private static Theme Build(ThemeColors colors, string name)
+    /// <summary>The rules shared by every built-in theme. The Fluent themes start
+    /// from them and replace the rules of the types they draw differently.</summary>
+    private static Theme Build(
+        ThemeColors colors,
+        string name,
+        ThemeMetrics? metrics = null,
+        Font? baseFont = null)
     {
-        return new Theme { Name = name, Colors = colors }
+        return new Theme
+        {
+            Name = name,
+            Colors = colors,
+            Metrics = metrics ?? ThemeMetrics.Default,
+            BaseFont = baseFont ?? Font.Default,
+        }
 
             // text color is inherited, so it is set once at the root:
             // specific controls override it only where the color differs
@@ -188,6 +201,10 @@ public static class Themes
                 box.BoxBackground = c.Surface;
                 box.BoxBorderColor = c.Border;
                 box.CheckColor = c.Accent;
+
+                // the glyph lies on the accent, so it takes the text-on-accent color:
+                // a fixed white matched it only while the accent was dark enough
+                box.CheckGlyphColor = c.TextOnAccent;
             })
 
             .For<RadioButton>((radio, c) =>

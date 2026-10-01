@@ -105,7 +105,9 @@ public sealed class Theme
     {
         Action<UIElement, Theme>[] chain = GetChain(element.GetType());
 
-        if (chain.Length == 0) return;
+        // the pass runs even without rules: an element the previous theme
+        // styled must give those values back when this one has nothing for it
+        UIElement.ThemePassState pass = element.BeginThemePass();
 
         // for the duration of the walk, setters mark entries as "from the theme".
         // The previous value is saved rather than reset to false:
@@ -124,6 +126,10 @@ public sealed class Theme
         finally
         {
             UIElement.ApplyingTheme = wasApplying;
+
+            // after the flag is lowered: what goes back to the defaults is not
+            // a theme value, and must not be recorded as one
+            element.EndThemePass(pass);
         }
     }
 
