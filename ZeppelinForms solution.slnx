@@ -13,7 +13,7 @@
     <File Path="assets/Logo-0.12.0.jpg" />
     <File Path="assets/Logo-0.13.0.jpg" />
     <File Path="assets/Logo-0.9.0.jpg" />
-    <File Path="assets/ZF_medium.jpg" />
+    <File Path="assets/ZF_13_medium.jpg" />
   </Folder>
   <Folder Name="/bench/">
     <Project Path="bench/ZeppelinForms.Benchmarks/ZeppelinForms.Benchmarks.csproj" />

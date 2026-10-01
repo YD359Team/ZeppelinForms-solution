@@ -5,7 +5,7 @@ namespace ZeppelinForms;
 /// <summary>Built-in resources of the framework.</summary>
 public static class Assets
 {
-    private const string IconResource = "ZeppelinForms.Resources.ZF.ico";
+    private const string IconResource = "ZeppelinForms.Resources.ZF_13.ico";
 
     private static Icon? _logo;
 

@@ -1,6 +1,6 @@
 # ZeppelinForms
 
-![Logo](assets/ZF_medium.jpg)
+![Logo](assets/ZF_13_medium.jpg)
 
 **ZeppelinForms** (ZF) is an experimental project aimed at creating a simple, platform-independent UI framework with hardware acceleration (on Windows) and straightforward code-behind UI development.
 
