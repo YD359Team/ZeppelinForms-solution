@@ -6,7 +6,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Linux;
 
-public sealed class X11Platform : IPlatform, INestedLoopSupport
+public sealed partial class X11Platform : IPlatform, INestedLoopSupport
 {
     private readonly Dictionary<nuint, X11Window> _windows = [];
     private bool _running;
@@ -26,6 +26,8 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
         Skia.SkiaImageDecoder.Register();
         Skia.SkiaTextMeasurer.Register();
         Skia.SkiaOffscreenRenderer.Register();
+
+        InitAppearance();
     }
 
     private X11Clipboard? _clipboard;
@@ -156,6 +158,9 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
             }
         }
 
+        // the session bus: the portal's signals, handled on this thread
+        PollAppearance();
+
         DispatchTick();
 
         // one frame per pump for every window that asked for one: after the input
@@ -192,7 +197,11 @@ public sealed class X11Platform : IPlatform, INestedLoopSupport
             Microseconds = (timeoutMs % 1000) * 1000,
         };
 
-        X11.select(fd + 1, ref readSet, 0, 0, ref timeout);
+        // the session bus is waited on together with the X connection:
+        // a theme change on the desktop wakes the loop like any input
+        int nfds = WatchAppearance(ref readSet, fd + 1);
+
+        X11.select(nfds, ref readSet, 0, 0, ref timeout);
     }
 
     private void DispatchTick()

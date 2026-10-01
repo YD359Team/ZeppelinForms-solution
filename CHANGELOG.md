@@ -49,6 +49,9 @@ ToggleSwitch.TrackSize/ThumbInset/TrackBorderWidth;
 - AccentPalette with system shades (Windows AccentPalette, Android 12 tonal palette) or readable derived ones.
 - Theme.AccentRule: Fluent themes take the WinUI shade for their page.
 - The Windows title bar follows the app theme (dark caption).
+- Linux: ISystemAppearance through the XDG Desktop Portal (org.freedesktop.appearance color-scheme and accent-color, 
+live SettingChanged) with a built-in minimal D-Bus client — no new dependencies.
+- The session bus is watched by the X11 event loop itself.
 
 ### Examples
 
