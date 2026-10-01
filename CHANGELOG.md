@@ -21,6 +21,8 @@ and ShowFocusRing moved from `ButtonBase` to `InteractiveControl`; source compat
 - Fix `Form` invalidation pipeline
 - Fix gestures kinetic
 - Add missing themes for controls
+- Switching themes now withdraws values the previous theme set and the new one doesn't, back to the control's own default (e.g. Fluent's 20 px check box no longer survives a switch back to Light);
+- ClearValue restores the control's own default instead of the property's.
 
 ### Features
 
@@ -28,6 +30,10 @@ and ShowFocusRing moved from `ButtonBase` to `InteractiveControl`; source compat
 - ThemeMetrics shape tokens and TypeRamp on Theme;
 - Theme.For<T>(Action<T, Theme>); optional Fluent color roles in ThemeColors;
 - ThemeColors.WithAccent, Theme.WithColors / WithAccent;
+- Themes.FluentLight and Themes.FluentDark with the WinUI 3 palette (opt-in);
+- ThemeMetrics.Fluent;
+- Optional ThemeColors.ControlStrongStroke role;
+- Classic themes set CheckBox.CheckGlyphColor from TextOnAccent.
 - UIElement.TextStyle;
 - FontWeight.Light / SemiBold;
 - ColorExtensions.RelativeLuminance / ContrastRatio.
