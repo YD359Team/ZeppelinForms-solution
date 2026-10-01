@@ -14,6 +14,36 @@ public class App
     public required Form MainForm { get; init; }
     public Icon? Icon { get; init; }
 
+    /// <summary>The theme the application starts with, set right where the
+    /// application is described: <c>new App(platform) { StartupTheme = Themes.FluentLight,
+    /// MainForm = new MainForm() }</c>. Null — keep the current one.</summary>
+    /// <remarks>
+    /// <para>
+    /// The theme itself is static — one for all forms — and C# doesn't let an
+    /// object initializer set a static property, so <c>Theme = …</c> there doesn't
+    /// compile, and an instance can't have a property of the same name. Without this
+    /// the only way was a separate <c>App.Theme = …</c> line before the App, which
+    /// nothing in the App's own description hinted at.
+    /// </para>
+    /// <para>
+    /// Applied at once, not in <see cref="Run"/>: put first in the initializer, it is
+    /// already in place when the main form is built, and the form is styled once
+    /// rather than first classic and then again. It is an explicit choice, so like
+    /// setting <see cref="Theme"/> it stops following the system.
+    /// </para>
+    /// </remarks>
+    public Theme? StartupTheme
+    {
+        get;
+        init
+        {
+            field = value;
+
+            if (value is not null)
+                Theme = value;
+        }
+    }
+
     private readonly IPlatform _platform;
     private static Theme _theme = Themes.Light;
 

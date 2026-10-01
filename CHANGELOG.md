@@ -21,7 +21,8 @@ and ShowFocusRing moved from `ButtonBase` to `InteractiveControl`; source compat
 - Fix `Form` invalidation pipeline
 - Fix gestures kinetic
 - Add missing themes for controls
-- Switching themes now withdraws values the previous theme set and the new one doesn't, back to the control's own default (e.g. Fluent's 20 px check box no longer survives a switch back to Light);
+- Switching themes now withdraws values the previous theme set and the new one doesn't, back to the control's own default
+(e.g. Fluent's 20 px check box no longer survives a switch back to Light);
 - ClearValue restores the control's own default instead of the property's.
 
 ### Features
@@ -52,6 +53,8 @@ ToggleSwitch.TrackSize/ThumbInset/TrackBorderWidth;
 - Linux: ISystemAppearance through the XDG Desktop Portal (org.freedesktop.appearance color-scheme and accent-color, 
 live SettingChanged) with a built-in minimal D-Bus client — no new dependencies.
 - The session bus is watched by the X11 event loop itself.
+- App.StartupTheme sets the theme in the App initializer, e.g. new App(platform) { StartupTheme = Themes.FluentLight, MainForm = … }; 
+a theme parameter is added to BrowserApp.RunAsync and AndroidApp.Run.
 
 ### Examples
 

@@ -1,6 +1,7 @@
 ﻿using ZeppelinForms;
 using ZF_SharedLib;
 using ZeppelinForms.Windows;
+using ZeppelinForms.Theming;
 
 namespace ZF_Win;
 
@@ -12,7 +13,8 @@ public class Program
         WindowsPlatform windowsPlatform = new();
         App myApp = new(windowsPlatform)
         {
-            MainForm = new ExampleMainForm()
+            MainForm = new ExampleMainForm(),
+            StartupTheme = Themes.FluentLight,
         };
         myApp.Run();
     }

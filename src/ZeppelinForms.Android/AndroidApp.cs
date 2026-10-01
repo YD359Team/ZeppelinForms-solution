@@ -6,6 +6,10 @@ using ZeppelinForms.Forms;
 // with the same name, and inside this namespace Assets resolves to the former
 using ZfAssets = ZeppelinForms.Assets;
 
+// and the theme by an alias too: an activity has a Theme of its own, and the
+// Android bindings are full of the name
+using ZfTheme = ZeppelinForms.Theming.Theme;
+
 namespace ZeppelinForms.Android;
 
 /// <summary>
@@ -22,10 +26,16 @@ public static class AndroidApp
     /// ones that go into Image.LoadAsset. There is no need to name a font: Android
     /// has system fonts, and Skia finds them itself — unlike the browser, which has
     /// no fonts of its own at all.</param>
+    /// <param name="theme">The theme to start with — App.StartupTheme;
+    /// null keeps the current one.</param>
     /// <returns>The created platform. Through it the application subscribes to the
     /// lifecycle: Paused, Resumed and Saving — the last chance to save the state
     /// before the system may kill the process.</returns>
-    public static AndroidPlatform Run(Activity activity, Func<Form> mainForm, IEnumerable<string>? assets = null)
+    public static AndroidPlatform Run(
+        Activity activity,
+        Func<Form> mainForm,
+        IEnumerable<string>? assets = null,
+        ZfTheme? theme = null)
     {
         string files = activity.FilesDir?.AbsolutePath
             ?? throw new InvalidOperationException("FilesDir is unavailable.");

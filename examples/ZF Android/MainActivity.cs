@@ -2,6 +2,7 @@
 using Android.Content.PM;
 using Android.OS;
 using ZeppelinForms.Android;
+using ZeppelinForms.Theming;
 using ZF_SharedLib;
 
 namespace ZF_Android;
@@ -23,6 +24,6 @@ public sealed class MainActivity : Activity
     {
         base.OnCreate(savedInstanceState);
 
-        AndroidApp.Run(this, () => new ExampleMainForm(), assets: ["Laughing.png"]);
+        AndroidApp.Run(this, () => new ExampleMainForm(), assets: ["Laughing.png"], theme: Themes.FluentLight);
     }
 }

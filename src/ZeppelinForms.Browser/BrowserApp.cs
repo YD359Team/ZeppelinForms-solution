@@ -1,5 +1,6 @@
 ﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Forms;
+using ZeppelinForms.Theming;
 
 namespace ZeppelinForms.Browser;
 
@@ -22,13 +23,16 @@ public static class BrowserApp
     /// pictures for Image.LoadAsset and anything else from disk.</param>
     /// <param name="fontFamily">The family name. By default it is taken
     /// from the file name — "Inter-Regular.ttf" gives "Inter".</param>
+    /// <param name="theme">The theme to start with — App.StartupTheme;
+    /// null keeps the current one.</param>
     public static async Task RunAsync(
         Func<Form> mainForm,
         string? font = null,
         IEnumerable<string>? preload = null,
         string? fontFamily = null,
         float fontSize = 14f,
-        string canvasId = "zf-canvas")
+        string canvasId = "zf-canvas",
+        Theme? theme = null)
     {
         try
         {
