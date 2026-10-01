@@ -19,8 +19,8 @@ namespace ZeppelinForms.Theming;
 /// fill for strokes — so the themes need neither layers nor alpha from the renderer.
 /// Each value names the WinUI resource it comes from. The accent is the Windows
 /// default blue, as WinUI picks it: SystemAccentColorDark1 in the light theme and
-/// SystemAccentColorLight2 in the dark one; <see cref="Theme.WithAccent"/> puts
-/// another accent in its place.
+/// SystemAccentColorLight2 in the dark one; <see cref="Theme.WithAccent(AccentPalette)"/>
+/// puts another accent in its place, by the Fluent rule below.
 /// </para>
 /// <para>
 /// The Fluent themes start from the rules shared by all built-in themes and
@@ -113,9 +113,30 @@ public static partial class Themes
     /// Segoe UI where it's missing, the system sans-serif off Windows.</summary>
     private static Font FluentFont => new("Segoe UI Variable Text, Segoe UI, sans-serif", 14);
 
+    /// <summary>How a Fluent theme takes an accent, as WinUI does: the shade for its
+    /// page — Dark1 on the light one, Light2 on the dark — with hover and press as
+    /// that shade at 90 % and 80 % over the page, so both are lighter than rest in
+    /// the light theme and darker in the dark one. The text on the accent stays
+    /// white and black: the shades are chosen to carry it.</summary>
+    private static ThemeColors FluentAccent(ThemeColors colors, AccentPalette palette)
+    {
+        bool dark = colors.IsDark;
+        Color accent = dark ? palette.ForDarkPage() : palette.ForLightPage();
+
+        return colors with
+        {
+            Accent = accent,
+            AccentHover = Color.Lerp(colors.Background, accent, 0.9f),
+            AccentPressed = Color.Lerp(colors.Background, accent, 0.8f),
+            BorderFocused = accent,
+            TextOnAccent = dark ? Colors.Black : Colors.White,
+            Selection = Color.Lerp(colors.Surface, accent, dark ? 0.3f : 0.2f),
+        };
+    }
+
     private static Theme BuildFluent(ThemeColors colors, string name)
     {
-        return Build(colors, name, ThemeMetrics.Fluent, FluentFont)
+        return Build(colors, name, ThemeMetrics.Fluent, FluentFont, FluentAccent)
 
             // every control: the two-stroke focus ring, the rounding of small
             // controls, and no border change on hover — Fluent answers hover with

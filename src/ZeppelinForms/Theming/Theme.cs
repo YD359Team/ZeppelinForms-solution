@@ -39,6 +39,22 @@ public sealed class Theme
     /// <summary>The type ramp elements pick their text style from.</summary>
     public TypeRamp TypeRamp { get; init; } = TypeRamp.Default;
 
+    /// <summary>How the theme takes another accent: the palette it had and the new
+    /// accent in, the palette with the accent in place out. By default —
+    /// <see cref="ThemeColors.WithAccent"/> with the accent as it is.</summary>
+    /// <remarks>
+    /// A theme decides this, not the palette: the same accent goes into a classic
+    /// theme as it is, with darker hover shades, while a Fluent theme takes the
+    /// shade for its page — Dark1 on light, Light2 on dark — and lightens it on
+    /// hover, as WinUI does. Without the rule <see cref="App.UseSystemTheme(Theme, Theme, bool)"/>
+    /// would have to know which kind of theme it was given.
+    /// </remarks>
+    public Func<ThemeColors, AccentPalette, ThemeColors> AccentRule { get; init; } = ClassicAccent;
+
+    /// <summary>The default <see cref="AccentRule"/>: the accent as it is.</summary>
+    internal static ThemeColors ClassicAccent(ThemeColors colors, AccentPalette accent) =>
+        colors.WithAccent(accent.Accent);
+
     /// <summary>How to style a control of this type. Derived types pick up
     /// the ancestor's styling when they have none of their own.</summary>
     /// <remarks>
@@ -84,6 +100,7 @@ public sealed class Theme
             BaseFont = BaseFont,
             Metrics = Metrics,
             TypeRamp = TypeRamp,
+            AccentRule = AccentRule,
         };
 
         // only the rules are copied: the chains are derived from them and are
@@ -97,9 +114,13 @@ public sealed class Theme
         return copy;
     }
 
-    /// <summary>A copy of the theme with another accent color;
-    /// see <see cref="ThemeColors.WithAccent"/> for what follows the accent.</summary>
-    public Theme WithAccent(Color accent) => WithColors(Colors.WithAccent(accent));
+    /// <summary>A copy of the theme with another accent color, taken in
+    /// by the theme's <see cref="AccentRule"/>.</summary>
+    public Theme WithAccent(Color accent) => WithAccent(new AccentPalette(accent));
+
+    /// <summary>A copy of the theme with another accent and the shades the system
+    /// gave with it, taken in by the theme's <see cref="AccentRule"/>.</summary>
+    public Theme WithAccent(AccentPalette accent) => WithColors(AccentRule(Colors, accent));
 
     internal void Apply(UIElement element)
     {

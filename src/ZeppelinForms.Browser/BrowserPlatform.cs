@@ -14,7 +14,7 @@ namespace ZeppelinForms.Browser;
 /// receiving events is impossible in a browser, so Form.ShowDialog honestly
 /// throws — only ShowDialogAsync works.
 /// </summary>
-public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSettings
+public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSettings
 {
     /// <summary>The dimming under a modal dialog. A browser has no windows of its
     /// own, and without it it's unclear that the form below stopped taking input.</summary>
@@ -81,6 +81,8 @@ public sealed class BrowserPlatform : IPlatform, IAppLifecycle, ISystemMotionSet
 
         platform._reducedMotion = Interop.PrefersReducedMotion();
         ZeppelinForms.Animation.Motion.UseSystemSettings(platform);
+
+        platform.InitAppearance();
 
         return platform;
     }

@@ -125,6 +125,15 @@ public sealed class ZeppelinView : SKCanvasView
         }
     }
 
+    /// <summary>Comes only to an activity that handles the change itself, see
+    /// AndroidPlatform.Appearance.cs; otherwise the activity is recreated.</summary>
+    protected override void OnConfigurationChanged(global::Android.Content.Res.Configuration? newConfig)
+    {
+        base.OnConfigurationChanged(newConfig);
+
+        _platform.HandleConfigurationChanged(newConfig);
+    }
+
     protected override void OnSizeChanged(int w, int h, int oldw, int oldh)
     {
         base.OnSizeChanged(w, h, oldw, oldh);

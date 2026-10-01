@@ -177,12 +177,18 @@ public class FluentThemeTests
     {
         Theme green = Themes.FluentDark.WithAccent(Colors.Green);
 
+        // the dark Fluent theme takes the light shade of the accent, not the accent
+        // itself: Green as it is would carry no black text
+        Color shade = new AccentPalette(Colors.Green).ForDarkPage();
+
+        Assert.Equal(shade, green.Colors.Accent);
+
         WithTheme(green, () =>
         {
             var primary = new PrimaryButton { Text = "x" };
             CreateForm(primary);
 
-            Assert.Equal(Colors.Green, primary.BackgroundColor);
+            Assert.Equal(shade, primary.BackgroundColor);
             Assert.Equal(new CornerRadius(4f), primary.CornerRadius);
             Assert.False(primary.RippleEnabled);
         });

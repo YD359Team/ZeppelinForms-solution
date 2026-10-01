@@ -44,6 +44,11 @@ ToggleSwitch.TrackSize/ThumbInset/TrackBorderWidth;
 - ButtonBase.ElevationBorderColor;
 - TextInputControl.UnderlineColor/FocusUnderlineColor/FocusUnderlineThickness;
 - CheckBox.CheckGlyphColor, RadioButton.CheckedCircleBackground/DotColor, ToggleSwitch.OnThumbColor/OffBorderColor.
+- ISystemAppearance (dark mode and accent) on Windows, Browser and Android.
+- App.UseSystemTheme(light, dark, followAccent) follows the system mode and accent; setting App.Theme in code stops following.
+- AccentPalette with system shades (Windows AccentPalette, Android 12 tonal palette) or readable derived ones.
+- Theme.AccentRule: Fluent themes take the WinUI shade for their page.
+- The Windows title bar follows the app theme (dark caption).
 
 ### Examples
 

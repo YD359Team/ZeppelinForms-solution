@@ -81,7 +81,8 @@ public static partial class Themes
         ThemeColors colors,
         string name,
         ThemeMetrics? metrics = null,
-        Font? baseFont = null)
+        Font? baseFont = null,
+        Func<ThemeColors, AccentPalette, ThemeColors>? accentRule = null)
     {
         return new Theme
         {
@@ -89,6 +90,7 @@ public static partial class Themes
             Colors = colors,
             Metrics = metrics ?? ThemeMetrics.Default,
             BaseFont = baseFont ?? Font.Default,
+            AccentRule = accentRule ?? Theme.ClassicAccent,
         }
 
             // text color is inherited, so it is set once at the root:

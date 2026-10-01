@@ -17,7 +17,7 @@ namespace ZeppelinForms.Android;
 /// receiving events is impossible, so Form.ShowDialog honestly throws — only
 /// ShowDialogAsync works.
 /// </summary>
-public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLifecycle
+public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLifecycle
 {
     /// <summary>The system "back" button or gesture was pressed.
     /// Set Handled so that the system doesn't close the activity.</summary>
@@ -87,6 +87,8 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
         };
 
         ZeppelinForms.Animation.Motion.UseSystemSettings(platform);
+
+        platform.InitAppearance();
 
         // the bridge existed but was never registered: Paused, Resumed and Saving
         // never came, frames kept running in the background, and the last chance
@@ -187,6 +189,9 @@ public sealed class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLife
             // while the application was in the background, the user may have gone
             // into accessibility and changed the motion setting
             platform.RefreshReducedMotion();
+
+            // the night mode and the wallpaper colors are changed there too
+            platform.RefreshAppearance();
 
             platform.Resumed?.Invoke(platform, EventArgs.Empty);
         }

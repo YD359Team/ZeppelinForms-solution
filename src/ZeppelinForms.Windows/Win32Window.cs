@@ -13,7 +13,7 @@ using static ZeppelinForms.Windows.NativeMethods;
 
 namespace ZeppelinForms.Windows;
 
-internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
+internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 {
     private const string ClassName = "ZeppelinForms.Window";
 
@@ -66,6 +66,9 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
     {
         if (_handle != 0)
             return;
+
+        // before the first show: a dark window must not flash a white caption
+        AttachCaptionTheme();
 
         RegisterWindowClass();
 
@@ -551,6 +554,7 @@ internal sealed class Win32Window : IPlatformWindow, IDesktopWindow
                 }
 
             case NativeConstants.WM_DESTROY:
+                DetachCaptionTheme();
                 _form.OnWindowClosed();
                 _platform.WindowDestroyed();
                 return 0;

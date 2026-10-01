@@ -44,6 +44,31 @@ export function prefersReducedMotion() {
     return reducedMotion.matches;
 }
 
+const darkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+
+export function prefersDarkColorScheme() {
+    return darkScheme.matches;
+}
+
+// The CSS system color AccentColor, computed on a probe element. Firefox and
+// Safari give the system accent; where the keyword is unknown the answer is an
+// empty string, and the theme keeps its own accent
+export function systemAccentColor() {
+    if (!globalThis.CSS || !CSS.supports("color", "AccentColor")) {
+        return "";
+    }
+
+    const probe = document.createElement("span");
+    probe.style.color = "AccentColor";
+    probe.style.display = "none";
+
+    document.body.appendChild(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+
+    return color;
+}
+
 export function init(canvasId) {
     canvas = document.getElementById(canvasId);
     if (!canvas) {
@@ -130,6 +155,9 @@ export function init(canvasId) {
     // "reduce motion" in the system settings — the browser gives it as a media
     // query, and a change of the setting on the fly as well
     reducedMotion.addEventListener("change", e => zf().OnReducedMotionChange(e.matches));
+
+    // light or dark in the system settings; .NET re-reads the accent along with it
+    darkScheme.addEventListener("change", () => zf().OnColorSchemeChange());
 
     // pagehide rather than beforeunload: on mobile the latter often doesn't come
     window.addEventListener("pagehide", () => zf().OnPageHide());

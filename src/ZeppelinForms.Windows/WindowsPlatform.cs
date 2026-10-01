@@ -3,7 +3,7 @@ using ZeppelinForms.Forms;
 
 namespace ZeppelinForms.Windows;
 
-public class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMotionSettings
+public partial class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMotionSettings
 {
     private int _windowCount = 0;
     private bool _reducedMotion;
@@ -24,6 +24,8 @@ public class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMotionSetti
 
         _reducedMotion = QueryReducedMotion();
         Motion.UseSystemSettings(this);
+
+        InitAppearance();
     }
 
     public bool PrefersReducedMotion => _reducedMotion;
@@ -43,6 +45,10 @@ public class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMotionSetti
     /// several windows.</summary>
     internal void OnSystemSettingsChanged()
     {
+        // first, and on its own: the motion check below returns early
+        // when nothing changed there
+        RefreshAppearance();
+
         bool reduced = QueryReducedMotion();
 
         if (reduced == _reducedMotion) return;

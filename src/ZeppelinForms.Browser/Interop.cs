@@ -16,6 +16,14 @@ internal static partial class Interop
     [JSImport("prefersReducedMotion", ModuleName)]
     internal static partial bool PrefersReducedMotion();
 
+    [JSImport("prefersDarkColorScheme", ModuleName)]
+    internal static partial bool PrefersDarkColorScheme();
+
+    /// <summary>The CSS system color AccentColor as computed, "rgb(r, g, b)";
+    /// an empty string where the browser doesn't support it.</summary>
+    [JSImport("systemAccentColor", ModuleName)]
+    internal static partial string SystemAccentColor();
+
     /// <summary>The page address. HttpClient in a browser doesn't know its origin
     /// by itself, and it doesn't accept relative addresses without a BaseAddress.</summary>
     [JSImport("baseUri", ModuleName)]
@@ -147,8 +155,17 @@ internal static partial class Interop
     internal static void OnFocusLost() => Platform?.InputTarget()?.HandleFocusLost();
 
     [JSExport]
-    internal static void OnVisibilityChange(bool visible) =>
+    internal static void OnVisibilityChange(bool visible)
+    {
+        // back on the tab: the accent may have been changed in the system meanwhile,
+        // and the browser has no event for it
+        if (visible) Platform?.RefreshAppearance();
+
         Platform?.HandleVisibilityChange(visible);
+    }
+
+    [JSExport]
+    internal static void OnColorSchemeChange() => Platform?.RefreshAppearance();
 
     [JSExport]
     internal static void OnReducedMotionChange(bool reduced) =>
