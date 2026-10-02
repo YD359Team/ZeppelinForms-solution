@@ -56,6 +56,15 @@ live SettingChanged) with a built-in minimal D-Bus client — no new dependencie
 - App.StartupTheme sets the theme in the App initializer, e.g. new App(platform) { StartupTheme = Themes.FluentLight, MainForm = … }; 
 a theme parameter is added to BrowserApp.RunAsync and AndroidApp.Run.
 
+#### Accessibility semantic model
+
+- lazily created peers for all built-in controls (AccessibilityPeer, UIElementPeer, AccessibilityRole/States/Actions);
+- UIElement.AccessibleName/AccessibleDescription/LabeledBy/AccessibleRole/IsAccessibilityHidden/HeadingLevel/LiveSetting;
+- Label.Target;
+- AccessibilityEvents;
+- Form.Announce;
+- AccessibilityTree.Dump.
+
 ### Examples
 
 - Add binding example

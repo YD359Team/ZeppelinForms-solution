@@ -89,6 +89,9 @@ public partial class ComboBox : InteractiveControl
         _flyout.Closed += (_, _) => InvalidateVisual();
     }
 
+    /// <summary>Whether the drop-down is open — for the accessibility peer,
+    /// which reports it as the expanded state.</summary>
+    internal bool IsDropDownOpen => _flyout.IsOpen;
 
     private string TextOf(object item) => DisplaySelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;
 

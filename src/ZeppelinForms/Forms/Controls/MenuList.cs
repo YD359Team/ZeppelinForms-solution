@@ -131,14 +131,39 @@ public partial class MenuList : DecoratedControl
         int index = IndexFromPoint(e.Location);
         if (index < 0) return;
 
-        MenuItem item = Items[index];
         e.Handled = true;
 
+        InvokeItem(index);
+    }
+
+    /// <summary>Run the item: its Click, then ItemInvoked. The click and the
+    /// accessibility peer's Invoke come here. False — a separator or a disabled item.</summary>
+    internal bool InvokeItem(int index)
+    {
+        MenuItem item = Items[index];
+
         if (item.IsSeparator || !item.IsEnabled)
-            return;
+            return false;
 
         item.RaiseClick();
         ItemInvoked?.Invoke(this, item);
+
+        return true;
+    }
+
+    /// <summary>An item's row in the form's coordinates — for the accessibility
+    /// peer, whose items are not elements and have no bounds of their own.</summary>
+    internal Rectangle ItemBounds(int index)
+    {
+        Point origin = GetAbsolutePosition();
+        float y = Padding.Top;
+
+        for (int i = 0; i < index; i++)
+            y += HeightOf(Items[i]);
+
+        return new Rectangle(
+            new Point(origin.X, origin.Y + y),
+            new Size(ActualSize.Width, HeightOf(Items[index])));
     }
 
     protected override Size MeasureOverride(Size availableSize)

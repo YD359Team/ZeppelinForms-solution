@@ -113,6 +113,13 @@ public partial class MenuBar : DecoratedControl
 
         e.Handled = true;
 
+        ToggleItem(index);
+    }
+
+    /// <summary>Open the item's submenu, or close it if it is the open one.
+    /// The click and the accessibility peer's Expand and Collapse come here.</summary>
+    internal void ToggleItem(int index)
+    {
         if (_openIndex == index)
         {
             FindOwner()?.CloseAllFlyouts();
@@ -122,6 +129,24 @@ public partial class MenuBar : DecoratedControl
         }
 
         OpenSubmenu(index);
+    }
+
+    /// <summary>The item whose submenu is open; −1 — none.</summary>
+    internal int OpenIndex => _openIndex;
+
+    /// <summary>An item's cell in the form's coordinates — for the accessibility
+    /// peer, whose items are not elements and have no bounds of their own.</summary>
+    internal Rectangle ItemBounds(int index)
+    {
+        Point origin = GetAbsolutePosition();
+        float x = 0;
+
+        for (int i = 0; i < index; i++)
+            x += WidthOf(Items[i]);
+
+        return new Rectangle(
+            new Point(origin.X + x, origin.Y),
+            new Size(WidthOf(Items[index]), ActualSize.Height));
     }
 
     private void OpenSubmenu(int index)

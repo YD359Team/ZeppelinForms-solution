@@ -273,6 +273,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         App.ThemeChanged += OnThemeChanged;
         Localization.Changed += OnLocalizationChanged;
         _focusDispatcher.FocusChanged += OnFocusChangedForKeyboard;
+        _focusDispatcher.FocusChanged += OnFocusChangedForAccessibility;
     }
 
     /// <summary>The keyboard follows focus: a field got it — show the keyboard,
@@ -1069,6 +1070,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         AttachTree(content);
 
         _overlays.Add(content);
+        RaiseOverlaysChanged();
     }
 
     /// <summary>Remove an overlay and detach the subtree. Without detaching,
@@ -1081,6 +1083,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         DetachTree(content);
         content.Owner = null;
 
+        RaiseOverlaysChanged();
         return true;
     }
 

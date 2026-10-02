@@ -51,7 +51,8 @@ public class DateTimePicker : InteractiveControl
 
     private CultureInfo EffectiveCulture => Culture ?? Localization.Culture;
 
-    private string FormattedValue => Value.ToString(Format ?? "d", EffectiveCulture);
+    /// <summary>The value as the picker shows it — also what a screen reader reads.</summary>
+    internal string FormattedValue => Value.ToString(Format ?? "d", EffectiveCulture);
 
     public event EventHandler? ValueChanged;
 

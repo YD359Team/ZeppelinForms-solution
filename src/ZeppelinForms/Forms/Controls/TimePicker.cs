@@ -49,7 +49,8 @@ public class TimePicker : InteractiveControl
         }
     }
 
-    private string FormattedValue => Value.ToString(Format ?? "t", Culture ?? Localization.Culture);
+    /// <summary>The value as the picker shows it — also what a screen reader reads.</summary>
+    internal string FormattedValue => Value.ToString(Format ?? "t", Culture ?? Localization.Culture);
 
     public int MinuteStep { get; set; } = 5;
 

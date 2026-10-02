@@ -153,7 +153,9 @@ public partial class TabControl : DecoratedPanel, IInputElement
         }
     }
 
-    private Rectangle HeaderRect(int index)
+    // internal for the accessibility peer: tabs are not elements, and their
+    // bounds come from here
+    internal Rectangle HeaderRect(int index)
     {
         float offset = 0;
 

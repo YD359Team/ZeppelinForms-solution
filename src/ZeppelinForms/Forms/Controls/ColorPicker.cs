@@ -46,6 +46,10 @@ public class ColorPicker : InteractiveControl
         _flyout.Closed += (_, _) => InvalidateVisual();
     }
 
+    /// <summary>Whether the drop-down is open — for the accessibility peer,
+    /// which reports it as the expanded state.</summary>
+    internal bool IsDropDownOpen => _flyout.IsOpen;
+
     private static string HexOf(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
     protected override void DrawContent(Graphics g)

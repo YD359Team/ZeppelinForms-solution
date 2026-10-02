@@ -447,6 +447,31 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         InvalidateVisual();
     }
 
+    /// <summary>A row's band in the form's coordinates, scrolled as drawn — for the
+    /// accessibility peer, whose rows are not elements. Outside the visible part the
+    /// band lies outside the body too; the caller clips it.</summary>
+    internal Rectangle RowBounds(int rowIndex)
+    {
+        Rectangle body = BodyBounds;
+        Point origin = GetAbsolutePosition();
+
+        return new Rectangle(
+            new Point(origin.X + body.X, origin.Y + body.Y + rowIndex * RowHeight - _scrollY),
+            new Size(body.Width, RowHeight));
+    }
+
+    /// <summary>The body in the form's coordinates: what is visible of the rows.</summary>
+    internal Rectangle VisibleBodyBounds
+    {
+        get
+        {
+            Rectangle body = BodyBounds;
+            Point origin = GetAbsolutePosition();
+
+            return new Rectangle(new Point(origin.X + body.X, origin.Y + body.Y), body.Size);
+        }
+    }
+
     /// <summary>Bring a row into the visible part.</summary>
     public void ScrollIntoView(int rowIndex)
     {

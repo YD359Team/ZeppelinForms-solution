@@ -638,6 +638,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
             field = value;
             BumpOwnerGeneration();
+            OnParentChangedForAccessibility(value);
         }
     }
 
