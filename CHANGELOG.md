@@ -62,6 +62,9 @@ live SettingChanged) with a built-in minimal D-Bus client — no new dependencie
 - a radio group is a single Tab stop with arrow navigation;
 - Ctrl+Tab / Ctrl+PageUp/PageDown in TabControl;
 - Form.DefaultButton; Escape closes the top flyout or cancels a dialog.
+- DataGridView takes focus; arrows, PageUp/PageDown, Home and End move the selected row and scroll it into view;
+- Calendar takes focus with a keyboard cursor separate from the selection (arrows, PageUp/PageDown, Ctrl for years, Home/End, Enter/Space);
+- an open DateTimePicker drop-down takes the arrows; Alt+Down and F4 open it.
 
 #### Accessibility semantic model
 
@@ -75,6 +78,7 @@ live SettingChanged) with a built-in minimal D-Bus client — no new dependencie
 #### Behaviour
 
 - A single-line TextBox without Accepted subscribers leaves Enter to the default button.
+- Behaviour change: Tab now stops on Calendar and DataGridView.
 
 ### Examples
 

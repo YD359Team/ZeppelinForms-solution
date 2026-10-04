@@ -87,18 +87,22 @@ public class CalendarPeer : UIElementPeer
     {
         _calendar = owner;
         owner.DateSelected += (_, _) => RaisePropertyChanged(AccessibilityProperty.Value);
+        owner.KeyboardDateChanged += (_, _) => RaisePropertyChanged(AccessibilityProperty.Value);
     }
 
     protected override AccessibilityRole DefaultRole => AccessibilityRole.Calendar;
 
     /// <summary>In the long form: "Friday, 2 October 2026" reads better than
-    /// "02.10.2026", and says the weekday a sighted user sees in the grid.</summary>
+    /// "02.10.2026", and says the weekday a sighted user sees in the grid.
+    /// While the calendar has the focus — the day the arrows are on: that is
+    /// what the user moves through, and must hear.</summary>
     public override string? Value =>
-        _calendar.SelectedDate?.ToString("D", _calendar.Culture ?? Localization.Culture);
+        (_calendar.IsFocused ? _calendar.KeyboardDate : _calendar.SelectedDate)
+            ?.ToString("D", _calendar.Culture ?? Localization.Culture);
 }
 
-/// <summary>A label with an explanation behind it: the explanation is its description.</summary>
-public class HintLabelPeer(HintLabel owner) : TextPeer(owner)
+    /// <summary>A label with an explanation behind it: the explanation is its description.</summary>
+    public class HintLabelPeer(HintLabel owner) : TextPeer(owner)
 {
     public override string? Description => owner.Hint ?? base.Description;
 

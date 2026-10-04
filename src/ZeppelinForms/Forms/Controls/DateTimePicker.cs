@@ -126,9 +126,14 @@ public class DateTimePicker : InteractiveControl
         _flyout.Toggle(BuildCalendar);
     }
 
+
+    /// <summary>The calendar of the open drop-down; null while it is closed.</summary>
+    private Calendar? _calendar;
+
     private UIElement BuildCalendar()
     {
         var calendar = new Calendar();
+        _calendar = calendar;
         // the calendar follows the picker: a picker with a culture of its own
         // must not open a calendar in the interface language
         calendar.Culture = Culture;
@@ -145,10 +150,25 @@ public class DateTimePicker : InteractiveControl
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        // while the drop-down is open the calendar has the arrows: the focus stays
+        // on the picker, and the calendar inside the flyout can't take it
+        if (_flyout.IsOpen && _calendar?.HandleNavigationKey(e.Key, e.Modifiers) == true)
+        {
+            e.Handled = true;
+            return;
+        }
+
         switch (e.Key)
         {
             case Key.Escape when _flyout.IsOpen:
                 _flyout.Close();
+                e.Handled = true;
+                break;
+
+            // the drop-down from the keyboard: Alt+Down and F4, as every combo box
+            case Key.Down when e.Modifiers.HasFlag(KeyModifiers.Alt):
+            case Key.F4:
+                _flyout.Toggle(BuildCalendar);
                 e.Handled = true;
                 break;
 

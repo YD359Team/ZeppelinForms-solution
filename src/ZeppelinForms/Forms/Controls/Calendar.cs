@@ -301,6 +301,16 @@ public partial class Calendar : DecoratedControl
                 g.DrawText(date.Day.ToString(), rect, color, font,
                     HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
+                // the keyboard's day: an outline, so it shows over a fill of any kind
+                if (ShowsCursor && date.Date == KeyboardDate)
+                {
+                    var outline = new Rectangle(
+                        new Point(rect.X + 1.5f, rect.Y + 1.5f),
+                        new Size(Math.Max(0, rect.Width - 3f), Math.Max(0, rect.Height - 3f)));
+
+                    g.DrawRectangle(outline, selected ? Colors.White : TextColor, 1.5f);
+                }
+
                 date = date.AddDays(1);
             }
         }
@@ -321,8 +331,17 @@ public partial class Calendar : DecoratedControl
 
         if (cell < 0) return;
 
+        // the mouse picked: the keyboard's cursor goes there, and hides until a key
         DateTime picked = FirstCellDate.AddDays(cell);
+        _keyboardDate = picked.Date;
+        _cursorShown = false;
 
+        Pick(picked);
+    }
+
+    /// <summary>Select a day: the click and Enter come here.</summary>
+    private void Pick(DateTime picked)
+    {
         SelectedDate = picked;
         _displayMonth = picked;
         Invalidate();
@@ -385,6 +404,10 @@ public partial class Calendar : DecoratedControl
     {
         SelectedDate = date;
         _displayMonth = date;
+
+        // the keyboard starts from the selected day
+        _keyboardDate = date.Date;
+
         Invalidate();
     }
 

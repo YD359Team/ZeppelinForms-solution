@@ -56,8 +56,8 @@ public class DataGridPeer : UIElementPeer
     public override AccessibilityPeer? FocusedDescendant =>
         IsFocused(_grid) && _grid.SelectedIndex >= 0 ? RowPeer(_grid.SelectedIndex) : null;
 
-    /// <summary>The grid takes no keyboard focus yet; it does once it is an input
-    /// element, and then its current row is reported as the focus.</summary>
+    /// <summary>Whether the grid has the keyboard focus; its current row is then
+    /// reported as the focus.</summary>
     internal static bool IsFocused(DataGridView grid) => grid is IInputElement { IsFocused: true };
 
     internal DataGridRowPeer RowPeer(int row) =>

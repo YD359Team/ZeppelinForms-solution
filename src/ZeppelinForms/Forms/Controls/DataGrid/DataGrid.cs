@@ -771,6 +771,17 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             if (row == SelectedIndex) g.FillRectangle(rowRect, SelectionColor);
             else if (row == _hoveredRow) g.FillRectangle(rowRect, RowHoverColor);
 
+            // the keyboard's row: an outline inside the band, over the selection
+            // fill, while focus is visible
+            if (row == SelectedIndex && IsFocusVisible)
+            {
+                var outline = new Rectangle(
+                    new Point(body.X + 1f, top + 1f),
+                    new Size(Math.Max(0, body.Width - 2f), Math.Max(0, RowHeight - 2f)));
+
+                g.DrawRectangle(outline, TextColor, 1f);
+            }
+
             float x = body.X - _scrollX - _overscroll.X;
 
             for (int col = 0; col < Columns.Count; col++)
