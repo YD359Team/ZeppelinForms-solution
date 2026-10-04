@@ -90,10 +90,15 @@ public partial class Label : DecoratedControl, ITextElement
         {
             if (lines[i].Length == 0) continue;
 
-            g.DrawText(ApplyTextTransform(lines[i]),
-                new Rectangle(new Point(content.X, startY + i * lineHeight),
-                    new Size(content.Width, lineHeight)),
+            var lineRect = new Rectangle(new Point(content.X, startY + i * lineHeight),
+                new Size(content.Width, lineHeight));
+
+            g.DrawText(ApplyTextTransform(lines[i]), lineRect,
                 TextColor, EffectiveFont,
+                this.HorizontalContentAlign, VerticalContentAlignment.Center);
+
+            // per line: the mark is in whichever line it fell into after wrapping
+            DrawAccessKeyUnderline(g, lines[i], lineRect, TextColor,
                 this.HorizontalContentAlign, VerticalContentAlignment.Center);
         }
     }

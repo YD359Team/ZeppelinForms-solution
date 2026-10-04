@@ -316,15 +316,18 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     [Styled(Category = "Text", AffectsLayout = true, Inherits = true)]
     public partial TextTransform TextTransform { get; set; }
 
-    /// <summary>The caption as it should be drawn and measured under TextTransform.
-    /// Controls call it in both places: measuring the original and drawing the
-    /// transformed text would cut off a caption that grew.</summary>
     /// <remarks>
     /// By the rules of the interface language, Localization.Culture: in Turkish
     /// "i" becomes "İ", not "I". Not the thread's culture — the application's
     /// language is what the captions are written in.
+    /// With <see cref="UseMnemonic"/> the access key marks are taken out first:
+    /// what is measured and drawn is the caption as shown.
     /// </remarks>
-    protected string ApplyTextTransform(string text) => TextTransform switch
+    protected string ApplyTextTransform(string text) =>
+        TransformCase(UseMnemonic ? Mnemonic.Strip(text) : text);
+
+    /// <summary>The case transform alone, without the access key marks.</summary>
+    private protected string TransformCase(string text) => TextTransform switch
     {
         Enums.TextTransform.UpperCase => text.ToUpper(Localization.Culture),
         Enums.TextTransform.LowerCase => text.ToLower(Localization.Culture),

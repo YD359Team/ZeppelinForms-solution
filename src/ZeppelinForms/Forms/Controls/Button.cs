@@ -89,6 +89,7 @@ public class Button : ButtonBase, ITextElement
             new Size(Math.Max(0, content.X + content.Width - textLeft), content.Height));
 
         g.DrawText(ApplyTextTransform(Text), textRect, CurrentTextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
+        DrawAccessKeyUnderline(g, Text, textRect, CurrentTextColor, this.HorizontalContentAlign, this.VerticalContentAlign);
     }
 
     protected override Size MeasureOverride(Size availableSize)

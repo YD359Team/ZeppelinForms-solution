@@ -326,23 +326,57 @@ public partial class TabControl : DecoratedPanel, IInputElement
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        // Ctrl+Tab and Ctrl+PageDown from anywhere inside: the key bubbles up from
+        // the focused element, so the innermost tab control takes it. Wrapping
+        // around, as browsers and every tabbed editor do
+        if (e.Modifiers.HasFlag(KeyModifiers.Control) && e.Key is Key.Tab or Key.PageDown or Key.PageUp)
+        {
+            bool back = e.Key == Key.PageUp || (e.Key == Key.Tab && e.Modifiers.HasFlag(KeyModifiers.Shift));
+
+            if (SelectNextEnabled(back ? -1 : 1, wrap: true))
+            {
+                // the focused element left with its page: the strip takes the focus,
+                // so the next Ctrl+Tab still has somewhere to come from
+                FindOwner()?.FocusForAccessibility(this);
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        // the arrows only while the strip itself has the focus: they bubbled up
+        // here from a button inside a page as well, and switched the tab under it
+        if (!IsFocused) return;
+
         bool forward = IsVertical ? e.Key == Key.Down : e.Key == Key.Right;
         bool backward = IsVertical ? e.Key == Key.Up : e.Key == Key.Left;
 
         if (!forward && !backward) return;
 
         // skip disabled tabs, otherwise the arrow would "get stuck"
-        int step = forward ? 1 : -1;
+        if (SelectNextEnabled(forward ? 1 : -1, wrap: false))
+            e.Handled = true;
+    }
 
-        for (int i = _selectedIndex + step; i >= 0 && i < Tabs.Count; i += step)
+    /// <summary>Select the next enabled tab in the direction of <paramref name="step"/>.
+    /// False — there is none.</summary>
+    private bool SelectNextEnabled(int step, bool wrap)
+    {
+        for (int n = 1; n < Tabs.Count; n++)
         {
+            int i = _selectedIndex + step * n;
+
+            if (wrap) i = (i % Tabs.Count + Tabs.Count) % Tabs.Count;
+            else if (i < 0 || i >= Tabs.Count) return false;
+
             if (Tabs[i].IsEnabled)
             {
                 SelectedIndex = i;
-                e.Handled = true;
-                return;
+                return true;
             }
         }
+
+        return false;
     }
 
     // ===== layout =====

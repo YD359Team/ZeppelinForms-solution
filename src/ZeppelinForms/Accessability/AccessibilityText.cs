@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
@@ -11,13 +12,19 @@ namespace ZeppelinForms.Accessibility;
 internal static class AccessibilityText
 {
     /// <summary>The element's own text, if it has one.</summary>
-    public static string? Own(UIElement element) => element switch
+    public static string? Own(UIElement element)
     {
-        ITextElement text => text.Text,
-        RichLabel rich => string.Concat(rich.Inlines.Select(run => run.Text)),
-        HintLabel hint => hint.Text,
-        _ => null,
-    };
+        string? text = element switch
+        {
+            ITextElement textElement => textElement.Text,
+            RichLabel rich => string.Concat(rich.Inlines.Select(run => run.Text)),
+            HintLabel hint => hint.Text,
+            _ => null,
+        };
+
+        // the caption as shown: "&Save" is read "Save", its key is the AccessKey
+        return text is not null && element.UseMnemonic ? Mnemonic.Strip(text) : text;
+    }
 
     /// <summary>The own text, or else the texts inside, joined: the name of a list
     /// item whose template is an icon and two labels is the two labels.</summary>

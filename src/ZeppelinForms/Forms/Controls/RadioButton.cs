@@ -4,6 +4,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Styling;
+using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
@@ -118,6 +119,62 @@ public partial class RadioButton : InteractiveControl, ITextElement
         InvalidateVisual();
     }
 
+    // ===== keyboard =====
+    //
+    // A group is one stop for Tab, and the arrows move within it: the way radio
+    // buttons work in every system. Tabbing through each of them, and having to
+    // press Space to check one, made a group of five cost ten keystrokes.
+
+    /// <summary>The visible, enabled buttons of this button's group, in order.</summary>
+    private List<RadioButton> Group() =>
+        Parent is PanelControl panel
+            ? [.. panel.Children.OfType<RadioButton>()
+                .Where(radio => radio.GroupName == GroupName && radio.IsVisible && radio.IsEffectivelyEnabled)]
+            : [this];
+
+    /// <summary>Whether Tab stops on this button: the checked one of its group,
+    /// or the first one while none is checked.</summary>
+    internal bool IsGroupTabStop
+    {
+        get
+        {
+            List<RadioButton> group = Group();
+            RadioButton? checkedOne = group.Find(radio => radio.IsChecked);
+
+            return ReferenceEquals(checkedOne ?? group.FirstOrDefault(), this);
+        }
+    }
+
+    /// <summary>The arrows check the next or the previous button of the group and
+    /// move the focus with it, wrapping around at the ends.</summary>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        int step = e.Key switch
+        {
+            Key.Down or Key.Right => 1,
+            Key.Up or Key.Left => -1,
+            _ => 0,
+        };
+
+        if (step == 0)
+        {
+            base.OnKeyDown(e);
+            return;
+        }
+
+        List<RadioButton> group = Group();
+        int index = group.IndexOf(this);
+
+        if (group.Count < 2 || index < 0) return;
+
+        RadioButton next = group[(index + step + group.Count) % group.Count];
+
+        next.SetChecked(true);
+        FindOwner()?.FocusForAccessibility(next);
+
+        e.Handled = true;
+    }
+
     private void UncheckSiblings()
     {
         if (Parent is not PanelControl panel) return;
@@ -182,6 +239,8 @@ public partial class RadioButton : InteractiveControl, ITextElement
             new Size(Math.Max(0, content.Width - circleSize - Gap), content.Height));
 
         g.DrawText(ApplyTextTransform(Text), textRect, TextColor, EffectiveFont,
+            this.HorizontalContentAlign, this.VerticalContentAlign);
+        DrawAccessKeyUnderline(g, Text, textRect, TextColor,
             this.HorizontalContentAlign, this.VerticalContentAlign);
     }
 

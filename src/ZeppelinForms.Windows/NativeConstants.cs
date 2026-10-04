@@ -49,6 +49,12 @@ internal static class NativeConstants
     public const int VK_CONTROL = 0x11;
     public const int VK_MENU = 0x12;
     public const uint WM_CHAR = 0x0102;
+    // keys pressed with Alt, and F10: Windows sends them as "system" keys, and
+    // DefWindowProc turns them into the system menu and a beep
+    public const uint WM_SYSKEYDOWN = 0x0104;
+    public const uint WM_SYSKEYUP = 0x0105;
+    public const uint WM_SYSCHAR = 0x0106;
+    public const int VK_F4 = 0x73;
     public const int CW_USEDEFAULT = unchecked((int)0x80000000);
     public const int SM_CXSCREEN = 0;
     public const int SM_CYSCREEN = 1;

@@ -200,6 +200,7 @@ public partial class CheckBox : InteractiveControl, ITextElement
             new Size(Math.Max(0, content.Width - boxSize - Gap), content.Height));
 
         g.DrawText(ApplyTextTransform(Text), textRect, TextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
+        DrawAccessKeyUnderline(g, Text, textRect, TextColor, this.HorizontalContentAlign, this.VerticalContentAlign);
     }
 
     /// <summary>The focus ring goes around the box, not around the whole control:

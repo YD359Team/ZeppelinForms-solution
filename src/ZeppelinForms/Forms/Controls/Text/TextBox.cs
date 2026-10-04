@@ -346,9 +346,17 @@ public partial class TextBox : TextInputControl, ITextElement
         {
             case Key.Enter:
                 if (IsMultiline && !IsEnterAccepted && !IsReadOnly)
+                {
                     _document.Insert("\n");
-                else
-                    Accepted?.Invoke(this, EventArgs.Empty);
+                    break;
+                }
+
+                // nobody listens to Accepted on a single-line field: Enter is left
+                // unhandled and goes on to the form's default button
+                if (Accepted is null && !IsMultiline)
+                    return;
+
+                Accepted?.Invoke(this, EventArgs.Empty);
                 break;
 
             case Key.Tab when IsTabAccepted && !IsReadOnly:

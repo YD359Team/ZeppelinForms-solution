@@ -16,6 +16,11 @@ public partial class MenuBar : DecoratedControl
     private int _hoveredIndex = -1;
     private int _openIndex = -1;
 
+    /// <summary>The bar is worked from the keyboard — F10, Alt, an access key.
+    /// The highlight is then the keyboard's, and the mouse leaving the bar
+    /// must not take it away.</summary>
+    private bool _keyboardMode;
+
     /// <summary>The form whose FlyoutClosed we listen to while a submenu is open.</summary>
     private Form? _menuOwner;
 
@@ -38,8 +43,10 @@ public partial class MenuBar : DecoratedControl
         SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Top);
     }
 
+    /// <summary>The width of an item's cell, by its caption as shown —
+    /// without the access key mark.</summary>
     private float WidthOf(MenuItem item) =>
-        TextMeasurer.Current.MeasureText(item.Text, EffectiveFont).Width + ItemPadding * 2;
+        TextMeasurer.Current.MeasureText(Mnemonic.Strip(item.Text), EffectiveFont).Width + ItemPadding * 2;
 
     // the background, border and corner radius are drawn by the base — only the menu items here
     protected override void DrawContent(Graphics g)
@@ -56,8 +63,16 @@ public partial class MenuBar : DecoratedControl
             else if (i == _hoveredIndex)
                 g.FillRectangle(cell, HoverColor);
 
-            g.DrawText(Items[i].Text, cell, TextColor, EffectiveFont,
+            (string caption, int accessKey) = Mnemonic.Parse(Items[i].Text);
+
+            g.DrawText(caption, cell, TextColor, EffectiveFont,
                 HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
+
+            if (FindOwner() is { ShowsAccessKeys: true })
+            {
+                Mnemonic.DrawUnderline(g, caption, accessKey, cell, TextColor, EffectiveFont,
+                    HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
+            }
 
             x += width;
         }
@@ -98,7 +113,8 @@ public partial class MenuBar : DecoratedControl
 
     protected override void OnMouseExit(MouseMoveEventArgs args)
     {
-        if (_hoveredIndex < 0) return;
+        // the keyboard's highlight stays: the pointer only passed by
+        if (_hoveredIndex < 0 || _keyboardMode) return;
 
         _hoveredIndex = -1;
 
@@ -133,6 +149,61 @@ public partial class MenuBar : DecoratedControl
 
     /// <summary>The item whose submenu is open; −1 — none.</summary>
     internal int OpenIndex => _openIndex;
+
+    // ===== keyboard =====
+    //
+    // The form drives these: it knows which keys reach a menu and when menu mode
+    // starts and ends. The bar only moves its highlight and opens submenus.
+
+    /// <summary>Start being worked from the keyboard, with the first item highlighted
+    /// — or the given one, for an access key.</summary>
+    internal void BeginKeyboard(int index = 0)
+    {
+        _keyboardMode = true;
+        _hoveredIndex = Items.Count == 0 ? -1 : Math.Clamp(index, 0, Items.Count - 1);
+        InvalidateVisual();
+    }
+
+    internal void EndKeyboard()
+    {
+        _keyboardMode = false;
+        _hoveredIndex = -1;
+        InvalidateVisual();
+    }
+
+    /// <summary>Move the highlight to the neighbour, wrapping around. With a
+    /// submenu open, the neighbour's opens in its place — as Left and Right do
+    /// in every menu bar.</summary>
+    internal void MoveHighlight(int step)
+    {
+        if (Items.Count == 0) return;
+
+        bool reopen = _openIndex >= 0;
+        _hoveredIndex = ((_hoveredIndex < 0 ? 0 : _hoveredIndex) + step + Items.Count) % Items.Count;
+
+        if (reopen)
+        {
+            if (Items[_hoveredIndex].Items.Count > 0)
+                OpenSubmenu(_hoveredIndex);
+            else
+                FindOwner()?.CloseAllFlyouts();
+        }
+
+        InvalidateVisual();
+    }
+
+    /// <summary>Open the highlighted item's submenu. False — nothing to open.</summary>
+    internal bool OpenHighlighted()
+    {
+        if (_hoveredIndex < 0 || !Items[_hoveredIndex].IsEnabled) return false;
+
+        OpenSubmenu(_hoveredIndex);
+        return _openIndex == _hoveredIndex;
+    }
+
+    /// <summary>The item whose caption marks this access key; −1 — none.</summary>
+    internal int IndexOfAccessKey(char key) =>
+        Items.FindIndex(item => item.IsEnabled && Mnemonic.Key(item.Text) == key);
 
     /// <summary>An item's cell in the form's coordinates — for the accessibility
     /// peer, whose items are not elements and have no bounds of their own.</summary>
@@ -213,6 +284,7 @@ public partial class MenuBar : DecoratedControl
 
         _openIndex = -1;
         _hoveredIndex = -1;
+        _keyboardMode = false;
     }
 
     protected override Size MeasureOverride(Size availableSize)

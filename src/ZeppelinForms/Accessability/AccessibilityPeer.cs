@@ -60,6 +60,10 @@ public abstract class AccessibilityPeer
 
     public virtual AccessibilityLiveSetting LiveSetting => AccessibilityLiveSetting.Off;
 
+    /// <summary>The access key, as a screen reader announces it: "Alt+S".
+    /// Null — none.</summary>
+    public virtual string? AccessKey => null;
+
     /// <summary>Null for the root — the peer of a form.</summary>
     public abstract AccessibilityPeer? Parent { get; }
 

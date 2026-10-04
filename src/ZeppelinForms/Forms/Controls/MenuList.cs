@@ -79,8 +79,16 @@ public partial class MenuList : DecoratedControl
                     new Point(content.X + IconWidth, y),
                     new Size(Math.Max(0, content.Width - IconWidth - 6), height));
 
-                g.DrawText(item.Text, text, color, EffectiveFont,
+                (string caption, int accessKey) = Mnemonic.Parse(item.Text);
+
+                g.DrawText(caption, text, color, EffectiveFont,
                     HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
+
+                if (FindOwner() is { ShowsAccessKeys: true })
+                {
+                    Mnemonic.DrawUnderline(g, caption, accessKey, text, color, EffectiveFont,
+                        HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
+                }
             }
 
             y += height;
@@ -151,6 +159,60 @@ public partial class MenuList : DecoratedControl
         return true;
     }
 
+    // ===== keyboard =====
+    //
+    // The highlight is shared with the mouse, as in system menus: the arrows move
+    // what hover shows, and Enter runs it. The form routes the keys here while the
+    // menu is the topmost flyout.
+
+    /// <summary>The highlighted item; −1 — none.</summary>
+    internal int HighlightedIndex => _hoveredIndex;
+
+    /// <summary>Move the highlight by one, wrapping around, over the items that can
+    /// be run: separators and disabled items are passed by.</summary>
+    internal void MoveHighlight(int step)
+    {
+        if (Items.Count == 0) return;
+
+        int index = _hoveredIndex < 0 ? (step > 0 ? -1 : Items.Count) : _hoveredIndex;
+
+        for (int i = 0; i < Items.Count; i++)
+        {
+            index = (index + step + Items.Count) % Items.Count;
+
+            if (!Items[index].IsSeparator && Items[index].IsEnabled)
+            {
+                _hoveredIndex = index;
+                InvalidateVisual();
+                return;
+            }
+        }
+    }
+
+    internal void HighlightFirst()
+    {
+        _hoveredIndex = -1;
+        MoveHighlight(1);
+    }
+
+    internal void HighlightLast()
+    {
+        _hoveredIndex = -1;
+        MoveHighlight(-1);
+    }
+
+    /// <summary>Run the highlighted item. False — none is highlighted.</summary>
+    internal bool InvokeHighlighted() => _hoveredIndex >= 0 && InvokeItem(_hoveredIndex);
+
+    /// <summary>Run the item whose caption marks this access key.</summary>
+    internal bool InvokeAccessKey(char key)
+    {
+        int index = Items.FindIndex(item =>
+            !item.IsSeparator && item.IsEnabled && Mnemonic.Key(item.Text) == key);
+
+        return index >= 0 && InvokeItem(index);
+    }
+
     /// <summary>An item's row in the form's coordinates — for the accessibility
     /// peer, whose items are not elements and have no bounds of their own.</summary>
     internal Rectangle ItemBounds(int index)
@@ -176,7 +238,7 @@ public partial class MenuList : DecoratedControl
             height += HeightOf(item);
 
             if (!item.IsSeparator)
-                width = Math.Max(width, TextMeasurer.Current.MeasureText(item.Text, EffectiveFont).Width);
+                width = Math.Max(width, TextMeasurer.Current.MeasureText(Mnemonic.Strip(item.Text), EffectiveFont).Width);
         }
 
         var content = new Size(

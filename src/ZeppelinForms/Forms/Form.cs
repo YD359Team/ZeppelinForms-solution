@@ -843,6 +843,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             return;
         }
 
+        // menus and access keys go before the focused element
+        if (HandleKeyboardBeforeFocus(key, modifiers)) return;
+
         var args = new KeyEventArgs(key, modifiers);
 
         // the preview goes from the root to the focused element
@@ -877,11 +880,17 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
             else
                 _focusDispatcher.MoveNext(Content);
         }
+        else if (!args.Handled)
+        {
+            // Escape and Enter for the window as a whole
+            HandleKeyboardAfterFocus(key, modifiers);
+        }
     }
 
     internal void OnKeyUp(Key key, KeyModifiers modifiers)
     {
         Keyboard.OnUp(key, modifiers);
+        HandleKeyboardKeyUp(key);
 
         var args = new KeyEventArgs(key, modifiers);
 

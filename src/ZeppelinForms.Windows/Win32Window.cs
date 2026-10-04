@@ -426,6 +426,30 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             case NativeConstants.WM_KEYUP:
                 _form.OnKeyUp((Key)(int)wParam, GetModifiers());
                 return 0;
+            // Alt combinations and F10 come as system keys. They used to go straight
+            // to DefWindowProc: the form never saw Alt+S or F10, and a tap of Alt put
+            // the window into its system menu. Now the form gets them; Alt+F4 still
+            // goes on to close the window, as the user expects of any window
+            case NativeConstants.WM_SYSKEYDOWN:
+                _form.OnKeyDown((Key)(int)wParam, GetModifiers(),
+                   isRepeat: ((long)lParam & (1L << 30)) != 0);
+
+                return (int)wParam == NativeConstants.VK_F4
+                    ? NativeMethods.DefWindowProc(hWnd, message, wParam, lParam)
+                    : 0;
+
+            case NativeConstants.WM_SYSKEYUP:
+                _form.OnKeyUp((Key)(int)wParam, GetModifiers());
+                return 0;
+
+            // the character of an Alt combination in the current layout: access keys
+            // in any language. Alt+Space stays the system menu of the window
+            case NativeConstants.WM_SYSCHAR:
+                if ((char)wParam == ' ')
+                    return NativeMethods.DefWindowProc(hWnd, message, wParam, lParam);
+
+                _form.OnAccessKeyChar((char)wParam);
+                return 0;
             case NativeConstants.WM_CLOSE:
                 Close();
                 return 0;

@@ -113,7 +113,11 @@ public class MenuItemPeer : AccessibilityPeer
     public override AccessibilityRole Role =>
         _item.IsSeparator ? AccessibilityRole.Separator : AccessibilityRole.MenuItem;
 
-    public override string Name => _item.IsSeparator ? string.Empty : _item.Text;
+    /// <summary>The caption as shown: the access key mark is not read out.</summary>
+    public override string Name => _item.IsSeparator ? string.Empty : Mnemonic.Strip(_item.Text);
+
+    public override string? AccessKey =>
+        Mnemonic.Key(_item.Text) is { } key ? $"Alt+{key}" : null;
 
     public override AccessibilityStates States =>
         _item.IsSeparator ? AccessibilityStates.None

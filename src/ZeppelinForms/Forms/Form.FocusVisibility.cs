@@ -32,7 +32,13 @@ public partial class Form
     }
 
     /// <summary>A pointer went down: the mouse, a pen or a finger is in use.</summary>
-    private void NotePointerInput() => SetFocusVisible(false);
+    private void NotePointerInput()
+    {
+        SetFocusVisible(false);
+
+        // the mouse is in charge now: menu mode, entered from the keyboard, ends
+        ExitMenuModeOnPointer();
+    }
 
     private void SetFocusVisible(bool visible)
     {

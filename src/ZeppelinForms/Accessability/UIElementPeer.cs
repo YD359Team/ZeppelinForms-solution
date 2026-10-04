@@ -100,6 +100,8 @@ public class UIElementPeer : AccessibilityPeer
 
     public override AccessibilityLiveSetting LiveSetting => Owner.LiveSetting;
 
+    public override string? AccessKey => Owner.AccessKey is { } key ? $"Alt+{key}" : null;
+
     public override AccessibilityPeer? Parent =>
         Owner.Parent is { } parent
             ? parent.GetAccessibilityPeer()

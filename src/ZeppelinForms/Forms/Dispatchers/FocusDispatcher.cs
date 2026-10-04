@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Interfaces;
 
@@ -103,8 +104,13 @@ public class FocusDispatcher
         if (!element.IsVisible || !element.IsEnabled)
             return;
 
-        if (element is IInputElement { TabStop: true })
+        // a radio group is one stop: its checked button, or the first one
+        // while none is checked — the arrows move within the group
+        if (element is IInputElement { TabStop: true } &&
+            element is not RadioButton { IsGroupTabStop: false })
+        {
             stops.Add(element);
+        }
 
         switch (element)
         {
