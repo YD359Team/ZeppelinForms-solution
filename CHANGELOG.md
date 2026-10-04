@@ -24,6 +24,8 @@ and ShowFocusRing moved from `ButtonBase` to `InteractiveControl`; source compat
 - Switching themes now withdraws values the previous theme set and the new one doesn't, back to the control's own default
 (e.g. Fluent's 20 px check box no longer survives a switch back to Light);
 - ClearValue restores the control's own default instead of the property's.
+- Windows: Alt combinations and F10 now reach the form (WM_SYSKEYDOWN/WM_SYSKEYUP/WM_SYSCHAR), and a tap of Alt no longer enters the system menu;
+- arrow keys bubbling up from inside a tab page no longer switch tabs.
 
 ### Features
 
@@ -54,7 +56,12 @@ ToggleSwitch.TrackSize/ThumbInset/TrackBorderWidth;
 live SettingChanged) with a built-in minimal D-Bus client — no new dependencies.
 - The session bus is watched by the X11 event loop itself.
 - App.StartupTheme sets the theme in the App initializer, e.g. new App(platform) { StartupTheme = Themes.FluentLight, MainForm = … }; 
-a theme parameter is added to BrowserApp.RunAsync and AndroidApp.Run.
+- a theme parameter is added to BrowserApp.RunAsync and AndroidApp.Run.
+- access keys: UIElement.UseMnemonic, & marks with underlines while Alt is held, Alt+letter including non-Latin layouts on Windows, AccessKey on peers;
+- keyboard menus: F10, Alt tap, arrows, Enter, Escape, item access keys;
+- a radio group is a single Tab stop with arrow navigation;
+- Ctrl+Tab / Ctrl+PageUp/PageDown in TabControl;
+- Form.DefaultButton; Escape closes the top flyout or cancels a dialog.
 
 #### Accessibility semantic model
 
@@ -64,6 +71,10 @@ a theme parameter is added to BrowserApp.RunAsync and AndroidApp.Run.
 - AccessibilityEvents;
 - Form.Announce;
 - AccessibilityTree.Dump.
+
+#### Behaviour
+
+- A single-line TextBox without Accepted subscribers leaves Enter to the default button.
 
 ### Examples
 
