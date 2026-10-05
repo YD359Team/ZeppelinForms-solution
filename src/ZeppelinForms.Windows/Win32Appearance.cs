@@ -40,6 +40,64 @@ internal static class Win32Appearance
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(nint hwnd, uint attribute, ref int value, uint size);
 
+    // ===== high contrast =====
+
+    private const uint SPI_GETHIGHCONTRAST = 0x0042;
+    private const uint HCF_HIGHCONTRASTON = 0x00000001;
+
+    private const int COLOR_WINDOW = 5;
+    private const int COLOR_WINDOWTEXT = 8;
+    private const int COLOR_HIGHLIGHT = 13;
+    private const int COLOR_HIGHLIGHTTEXT = 14;
+    private const int COLOR_BTNFACE = 15;
+    private const int COLOR_GRAYTEXT = 17;
+    private const int COLOR_BTNTEXT = 18;
+    private const int COLOR_HOTLIGHT = 26;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct HIGHCONTRAST
+    {
+        public uint cbSize;
+        public uint dwFlags;
+        public nint lpszDefaultScheme;
+    }
+
+    [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW")]
+    private static extern bool SystemParametersInfo(uint action, uint param, ref HIGHCONTRAST value, uint winIni);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetSysColor(int index);
+
+    /// <summary>A contrast theme is on: "Contrast themes" in Settings, or the
+    /// Left Alt+Left Shift+Print Screen shortcut.</summary>
+    internal static bool IsHighContrast()
+    {
+        var info = new HIGHCONTRAST { cbSize = (uint)Marshal.SizeOf<HIGHCONTRAST>() };
+
+        return SystemParametersInfo(SPI_GETHIGHCONTRAST, info.cbSize, ref info, 0) &&
+            (info.dwFlags & HCF_HIGHCONTRASTON) != 0;
+    }
+
+    /// <summary>The system colors of the contrast theme in effect — the user's
+    /// own choice of them, which the theme must use as they are.</summary>
+    internal static HighContrastPalette ReadHighContrastPalette() => new(
+        Window: SysColor(COLOR_WINDOW),
+        WindowText: SysColor(COLOR_WINDOWTEXT),
+        ButtonFace: SysColor(COLOR_BTNFACE),
+        ButtonText: SysColor(COLOR_BTNTEXT),
+        Highlight: SysColor(COLOR_HIGHLIGHT),
+        HighlightText: SysColor(COLOR_HIGHLIGHTTEXT),
+        GrayText: SysColor(COLOR_GRAYTEXT),
+        Hotlight: SysColor(COLOR_HOTLIGHT));
+
+    /// <summary>A COLORREF is 0x00BBGGRR.</summary>
+    private static Color SysColor(int index)
+    {
+        uint value = GetSysColor(index);
+
+        return new Color((byte)value, (byte)(value >> 8), (byte)(value >> 16));
+    }
+
     /// <summary>"Choose your default app mode" is Dark. Missing value — light:
     /// Windows before 1809 has no dark mode for applications.</summary>
     internal static bool AppsUseDarkTheme() =>

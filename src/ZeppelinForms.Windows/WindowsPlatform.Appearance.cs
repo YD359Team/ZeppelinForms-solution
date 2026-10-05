@@ -8,6 +8,7 @@ public partial class WindowsPlatform : ISystemAppearance
 {
     private bool _isDark;
     private AccentPalette? _accent;
+    private HighContrastPalette? _highContrast;
     private EventHandler? _appearanceChanged;
 
     public bool IsDark => _isDark;
@@ -17,6 +18,12 @@ public partial class WindowsPlatform : ISystemAppearance
     /// <summary>The whole Windows palette: the shades WinUI draws with,
     /// rather than ones derived from the accent.</summary>
     public AccentPalette? AccentPalette => _accent;
+
+    public bool IsHighContrast => _highContrast is not null;
+
+    /// <summary>The user's own contrast colors, from the system: Windows lets them
+    /// be edited, and the presets are only a starting point.</summary>
+    public HighContrastPalette? HighContrastPalette => _highContrast;
 
     // explicit: ISystemMotionSettings has its own Changed, and one public event
     // would fire for both — a theme rebuilt on every animation setting and back
@@ -30,9 +37,14 @@ public partial class WindowsPlatform : ISystemAppearance
     {
         _isDark = Win32Appearance.AppsUseDarkTheme();
         _accent = Win32Appearance.ReadAccentPalette();
+        _highContrast = ReadHighContrast();
 
         App.UseSystemAppearance(this);
     }
+
+    /// <summary>The contrast colors while contrast is on; null while it is off.</summary>
+    private static HighContrastPalette? ReadHighContrast() =>
+        Win32Appearance.IsHighContrast() ? Win32Appearance.ReadHighContrastPalette() : null;
 
     /// <summary>Re-read on WM_SETTINGCHANGE. The mode and the accent come with
     /// "ImmersiveColorSet", but the parameter is not checked: the read is cheap,
@@ -41,11 +53,13 @@ public partial class WindowsPlatform : ISystemAppearance
     {
         bool dark = Win32Appearance.AppsUseDarkTheme();
         AccentPalette? accent = Win32Appearance.ReadAccentPalette();
+        HighContrastPalette? highContrast = ReadHighContrast();
 
-        if (dark == _isDark && accent == _accent) return;
+        if (dark == _isDark && accent == _accent && highContrast == _highContrast) return;
 
         _isDark = dark;
         _accent = accent;
+        _highContrast = highContrast;
 
         _appearanceChanged?.Invoke(this, EventArgs.Empty);
     }

@@ -27,10 +27,15 @@ namespace ZeppelinForms.Android;
 public sealed partial class AndroidPlatform : ISystemAppearance
 {
     private bool _isDark;
+    private bool _isHighContrast;
     private AccentPalette? _accent;
     private EventHandler? _appearanceChanged;
 
     public bool IsDark => _isDark;
+
+    /// <summary>"High contrast text" of the accessibility settings. Android gives
+    /// no palette for it: the built-in one is used, light or dark by the night mode.</summary>
+    public bool IsHighContrast => _isHighContrast;
 
     public Color? AccentColor => _accent?.Accent;
 
@@ -63,11 +68,13 @@ public sealed partial class AndroidPlatform : ISystemAppearance
     {
         bool dark = QueryDark(configuration);
         AccentPalette? accent = QueryAccent(_activity);
+        bool highContrast = QueryHighContrast(_activity);
 
-        if (dark == _isDark && accent == _accent) return;
+        if (dark == _isDark && accent == _accent && highContrast == _isHighContrast) return;
 
         _isDark = dark;
         _accent = accent;
+        _isHighContrast = highContrast;
 
         _appearanceChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -75,6 +82,14 @@ public sealed partial class AndroidPlatform : ISystemAppearance
     private static bool QueryDark(Configuration? configuration) =>
         configuration is not null &&
         (configuration.UiMode & UiMode.NightMask) == UiMode.NightYes;
+
+    /// <summary>The setting behind "High contrast text": a secure setting any
+    /// application may read, the same the system's own apps look at. There is no
+    /// notification for it; it is re-read on returning from the background,
+    /// which is where the user changes it.</summary>
+    private static bool QueryHighContrast(Activity activity) =>
+        activity.ContentResolver is { } resolver &&
+        global::Android.Provider.Settings.Secure.GetInt(resolver, "high_text_contrast_enabled", 0) == 1;
 
     /// <summary>The tones by resource name: the system_accent1_* colors appeared in
     /// API 31, and looking them up by name keeps the code free of identifiers the

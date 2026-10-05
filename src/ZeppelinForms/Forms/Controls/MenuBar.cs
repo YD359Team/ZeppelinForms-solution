@@ -36,6 +36,12 @@ public partial class MenuBar : DecoratedControl
 
     private static Color OpenColorDefault => new(255, 214, 228, 252);
 
+    /// <summary>The text of a highlighted or open item. Transparent — the ordinary
+    /// text color; a contrast theme pairs its own with the highlight fill.</summary>
+    [Styled(Category = "Menu")]
+    public partial Color HighlightedTextColor { get; set; }
+    private static Color HighlightedTextColorDefault => Colors.Transparent;
+
     public MenuBar()
     {
         SetControlDefault(BackgroundProperty, new Color(255, 248, 248, 248));
@@ -65,12 +71,16 @@ public partial class MenuBar : DecoratedControl
 
             (string caption, int accessKey) = Mnemonic.Parse(Items[i].Text);
 
-            g.DrawText(caption, cell, TextColor, EffectiveFont,
+            Color text = (i == _openIndex || i == _hoveredIndex) && HighlightedTextColor.A > 0
+                ? HighlightedTextColor
+                : TextColor;
+
+            g.DrawText(caption, cell, text, EffectiveFont,
                 HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
             if (FindOwner() is { ShowsAccessKeys: true })
             {
-                Mnemonic.DrawUnderline(g, caption, accessKey, cell, TextColor, EffectiveFont,
+                Mnemonic.DrawUnderline(g, caption, accessKey, cell, text, EffectiveFont,
                     HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
             }
 

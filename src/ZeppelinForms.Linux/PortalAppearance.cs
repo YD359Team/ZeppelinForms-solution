@@ -40,6 +40,11 @@ internal sealed class PortalAppearance : ISystemAppearance, IDisposable
 
     public Color? AccentColor { get; private set; }
 
+    /// <summary>"contrast" of the appearance namespace: 1 — the user asked for
+    /// higher contrast. The portal gives no colors for it: the built-in contrast
+    /// palette is used, light or dark by the color scheme.</summary>
+    public bool IsHighContrast { get; private set; }
+
     public event EventHandler? Changed;
 
     /// <summary>The bus socket, for the select of the X11 loop; −1 once closed.</summary>
@@ -76,6 +81,8 @@ internal sealed class PortalAppearance : ISystemAppearance, IDisposable
 
         portal.IsDark = IsDarkScheme(scheme);
         portal.AccentColor = ToAccent(portal.Read("accent-color", out _));
+
+        portal.IsHighContrast = IsHigherContrast(portal.Read("contrast", out _));
 
         return portal;
     }
@@ -134,18 +141,21 @@ internal sealed class PortalAppearance : ISystemAppearance, IDisposable
 
         bool dark = IsDark;
         Color? accent = AccentColor;
+        bool highContrast = IsHighContrast;
 
         switch (key)
         {
             case "color-scheme": dark = IsDarkScheme(value.Unwrap()); break;
             case "accent-color": accent = ToAccent(value.Unwrap()); break;
+            case "contrast": highContrast = IsHigherContrast(value.Unwrap()); break;
             default: return;
         }
 
-        if (dark == IsDark && accent == AccentColor) return;
+        if (dark == IsDark && accent == AccentColor && highContrast == IsHighContrast) return;
 
         IsDark = dark;
         AccentColor = accent;
+        IsHighContrast = highContrast;
 
         Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -153,6 +163,9 @@ internal sealed class PortalAppearance : ISystemAppearance, IDisposable
     /// <summary>1 — prefer dark. "No preference" is light: that is what the
     /// desktops show an application that asks nothing.</summary>
     private static bool IsDarkScheme(object? value) => value is 1u;
+
+    /// <summary>1 — higher contrast; 0 — no preference.</summary>
+    private static bool IsHigherContrast(object? value) => value is 1u;
 
     /// <summary>(ddd) in 0…1; out of range — the user picked no accent.</summary>
     private static Color? ToAccent(object? value)

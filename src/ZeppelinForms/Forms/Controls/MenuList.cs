@@ -29,6 +29,12 @@ public partial class MenuList : DecoratedControl
     public partial Color HoverColor { get; set; }
     private static Color HoverColorDefault => new(255, 232, 240, 254);
 
+    /// <summary>The text of the highlighted item. Transparent — the ordinary text
+    /// color; a contrast theme pairs its own with the highlight fill.</summary>
+    [Styled(Category = "Menu")]
+    public partial Color HighlightedTextColor { get; set; }
+    private static Color HighlightedTextColorDefault => Colors.Transparent;
+
     [Styled(Category = "Menu")]
     public partial Color SeparatorColor { get; set; }
     private static Color SeparatorColorDefault => new(255, 220, 220, 220);
@@ -65,7 +71,9 @@ public partial class MenuList : DecoratedControl
                 if (i == _hoveredIndex && item.IsEnabled)
                     g.FillRectangle(row, HoverColor);
 
-                Color color = item.IsEnabled ? TextColor : DisabledColor;
+                Color color = !item.IsEnabled ? DisabledColor
+                            : i == _hoveredIndex && HighlightedTextColor.A > 0 ? HighlightedTextColor
+                            : TextColor;
 
                 if (!string.IsNullOrEmpty(item.PathData))
                 {

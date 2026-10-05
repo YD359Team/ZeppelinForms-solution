@@ -7,7 +7,7 @@ using ZeppelinForms.Theming;
 
 namespace ZeppelinForms;
 
-public class App
+public partial class App
 {
     public static event EventHandler? ThemeChanged;
 
@@ -45,13 +45,28 @@ public class App
     }
 
     private readonly IPlatform _platform;
+
+    /// <summary>The theme in effect — what the forms are styled with.</summary>
     private static Theme _theme = Themes.Light;
 
+    /// <summary>The theme the application asked for, by code or by following the
+    /// system. The one in effect differs only while high contrast takes over.</summary>
+    private static Theme _requestedTheme = Themes.Light;
+
     /// <summary>The current theme. A change applies to all open forms.</summary>
-    /// <remarks>Setting it stops following the system, see
+    /// <remarks>
+    /// <para>
+    /// Setting it stops following the system, see
     /// <see cref="UseSystemTheme(Theme, Theme, bool)"/>: a theme chosen in code
     /// is the application's decision, and the next change in the system settings
-    /// must not quietly take it back.</remarks>
+    /// must not quietly take it back.
+    /// </para>
+    /// <para>
+    /// While the system's high contrast is on, the getter returns the contrast
+    /// theme — that is what the forms show; what was set is kept in
+    /// <see cref="RequestedTheme"/> and comes back when contrast is turned off.
+    /// </para>
+    /// </remarks>
     public static Theme Theme
     {
         get => _theme;
@@ -62,10 +77,24 @@ public class App
         }
     }
 
+    /// <summary>The theme the application asked for, by code or by following the
+    /// system — the one in effect unless high contrast took over.</summary>
+    public static Theme RequestedTheme => _requestedTheme;
+
     /// <summary>Switch the theme without touching the following of the system:
     /// the path both for code and for the system's changes.</summary>
     private static void SetTheme(Theme value)
     {
+        _requestedTheme = value;
+        ApplyEffectiveTheme();
+    }
+
+    /// <summary>Put in place what the forms are to show: the system's high contrast
+    /// over everything, otherwise the requested theme.</summary>
+    private static void ApplyEffectiveTheme()
+    {
+        Theme value = HighContrastTheme() ?? _requestedTheme;
+
         if (ReferenceEquals(_theme, value)) return;
 
         _theme = value;
@@ -110,6 +139,9 @@ public class App
 
         // UseSystemTheme may have come first — before the platform was created
         if (s_systemThemes is not null) ApplySystemTheme();
+
+        // the system may be in high contrast already at startup
+        ApplyEffectiveTheme();
     }
 
     /// <summary>Follow the system: the light or the dark theme of the pair by the
@@ -146,6 +178,10 @@ public class App
     private static void OnSystemAppearanceChanged(object? sender, EventArgs e)
     {
         if (s_systemThemes is not null) ApplySystemTheme();
+
+        // contrast turned on or off, or its colors changed: whatever the
+        // application follows or not, high contrast is the system's word
+        ApplyEffectiveTheme();
     }
 
     private static void ApplySystemTheme()

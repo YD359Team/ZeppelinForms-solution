@@ -24,6 +24,14 @@ internal static partial class Interop
     [JSImport("systemAccentColor", ModuleName)]
     internal static partial string SystemAccentColor();
 
+    [JSImport("forcedColorsActive", ModuleName)]
+    internal static partial bool ForcedColorsActive();
+
+    /// <summary>The forced-colors system colors, "|"-separated, in the order of
+    /// HighContrastPalette.</summary>
+    [JSImport("systemColors", ModuleName)]
+    internal static partial string SystemColors();
+
     /// <summary>The page address. HttpClient in a browser doesn't know its origin
     /// by itself, and it doesn't accept relative addresses without a BaseAddress.</summary>
     [JSImport("baseUri", ModuleName)]

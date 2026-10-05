@@ -75,10 +75,20 @@ live SettingChanged) with a built-in minimal D-Bus client — no new dependencie
 - Form.Announce;
 - AccessibilityTree.Dump.
 
-#### Behaviour
+### System high contrast:
+
+- Windows: contrast themes with the user's own colors;
+- browser: forced colors;
+- Linux: portal contrast;
+- Android: high-contrast text.
+- Themes.HighContrast(palette), Themes.HighContrastBlack/HighContrastWhite, HighContrastPalette.
+- High contrast overrides any theme while on (App.RespectHighContrast to opt out); App.RequestedTheme keeps the application's choice.
+- SelectedTextColor on ListBox/DataGridView/Calendar and HighlightedTextColor on MenuBar/MenuList, so selected text uses the pair matching its fill.
+
+#### Behavior
 
 - A single-line TextBox without Accepted subscribers leaves Enter to the default button.
-- Behaviour change: Tab now stops on Calendar and DataGridView.
+- Behavior change: Tab now stops on Calendar and DataGridView.
 
 ### Examples
 

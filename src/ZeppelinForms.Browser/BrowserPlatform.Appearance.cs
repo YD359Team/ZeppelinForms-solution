@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Text.RegularExpressions;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Theming;
 
 namespace ZeppelinForms.Browser;
 
@@ -17,11 +18,19 @@ public sealed partial class BrowserPlatform : ISystemAppearance
 {
     private bool _isDark;
     private Color? _accent;
+    private bool _isHighContrast;
+    private HighContrastPalette? _highContrast;
     private EventHandler? _appearanceChanged;
 
     public bool IsDark => _isDark;
 
     public Color? AccentColor => _accent;
+
+    /// <summary>Forced colors: Windows contrast themes reach the page through it,
+    /// and the browser hands over the user's colors as CSS system colors.</summary>
+    public bool IsHighContrast => _isHighContrast;
+
+    public HighContrastPalette? HighContrastPalette => _highContrast;
 
     // explicit: ISystemMotionSettings has a Changed of its own
     event EventHandler? ISystemAppearance.Changed
@@ -34,6 +43,8 @@ public sealed partial class BrowserPlatform : ISystemAppearance
     {
         _isDark = Interop.PrefersDarkColorScheme();
         _accent = ParseCssColor(Interop.SystemAccentColor());
+        _isHighContrast = Interop.ForcedColorsActive();
+        _highContrast = _isHighContrast ? ReadHighContrast() : null;
 
         App.UseSystemAppearance(this);
     }
@@ -43,13 +54,34 @@ public sealed partial class BrowserPlatform : ISystemAppearance
     {
         bool dark = Interop.PrefersDarkColorScheme();
         Color? accent = ParseCssColor(Interop.SystemAccentColor());
+        bool isHighContrast = Interop.ForcedColorsActive();
+        HighContrastPalette? highContrast = isHighContrast ? ReadHighContrast() : null;
 
-        if (dark == _isDark && accent == _accent) return;
+        if (dark == _isDark && accent == _accent &&
+            isHighContrast == _isHighContrast && highContrast == _highContrast)
+        {
+            return;
+        }
 
         _isDark = dark;
         _accent = accent;
+        _isHighContrast = isHighContrast;
+        _highContrast = highContrast;
 
         _appearanceChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>The forced colors; null when the browser didn't give all eight —
+    /// a half palette would mix pairs, and the built-in one is used instead.</summary>
+    private static HighContrastPalette? ReadHighContrast()
+    {
+        Color?[] colors = [.. Interop.SystemColors().Split('|').Select(ParseCssColor)];
+
+        if (colors.Length != 8 || colors.Any(color => color is null)) return null;
+
+        return new HighContrastPalette(
+            colors[0]!.Value, colors[1]!.Value, colors[2]!.Value, colors[3]!.Value,
+            colors[4]!.Value, colors[5]!.Value, colors[6]!.Value, colors[7]!.Value);
     }
 
     /// <summary>A computed color as getComputedStyle gives it: "rgb(r, g, b)"

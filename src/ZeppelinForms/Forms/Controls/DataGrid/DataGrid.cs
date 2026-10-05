@@ -135,6 +135,12 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     public partial Color SelectionColor { get; set; }
     private static Color SelectionColorDefault => new(255, 205, 226, 252);
 
+    /// <summary>The text of the selected row. Transparent — the ordinary text
+    /// color; a contrast theme pairs its own with the selection fill.</summary>
+    [Styled(Category = "DataGrid")]
+    public partial Color SelectedTextColor { get; set; }
+    private static Color SelectedTextColorDefault => Colors.Transparent;
+
     [Styled(Category = "DataGrid")]
     public partial Color RowHoverColor { get; set; }
     private static Color RowHoverColorDefault => new(20, 0, 0, 0);
@@ -792,7 +798,11 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
                         Math.Max(0, _widths[col] - CellPadding.Horizontal),
                         Math.Max(0, RowHeight - CellPadding.Vertical)));
 
-                g.DrawText(Columns[col].TextOf(RowItem(row)), cell, TextColor, font,
+                // the selected row's text in its own color where the theme pairs one
+                // with the selection fill — high contrast does
+                Color text = row == SelectedIndex && SelectedTextColor.A > 0 ? SelectedTextColor : TextColor;
+
+                g.DrawText(Columns[col].TextOf(RowItem(row)), cell, text, font,
                     Columns[col].Align, VerticalContentAlignment.Center);
 
                 x += _widths[col];

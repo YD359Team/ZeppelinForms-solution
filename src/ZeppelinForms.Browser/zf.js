@@ -46,6 +46,31 @@ export function prefersReducedMotion() {
 
 const darkScheme = window.matchMedia("(prefers-color-scheme: dark)");
 
+const forcedColors = window.matchMedia("(forced-colors: active)");
+
+export function forcedColorsActive() {
+    return forcedColors.matches;
+}
+
+// The CSS system colors of forced-colors mode, in the order of HighContrastPalette,
+// each as computed — "rgb(r, g, b)" — and joined with "|"
+export function systemColors() {
+    const names = ["Canvas", "CanvasText", "ButtonFace", "ButtonText",
+        "Highlight", "HighlightText", "GrayText", "LinkText"];
+
+    const probe = document.createElement("span");
+    probe.style.display = "none";
+    document.body.appendChild(probe);
+
+    const colors = names.map(name => {
+        probe.style.color = name;
+        return getComputedStyle(probe).color;
+    });
+
+    probe.remove();
+    return colors.join("|");
+}
+
 export function prefersDarkColorScheme() {
     return darkScheme.matches;
 }
@@ -158,6 +183,9 @@ export function init(canvasId) {
 
     // light or dark in the system settings; .NET re-reads the accent along with it
     darkScheme.addEventListener("change", () => zf().OnColorSchemeChange());
+
+    // forced colors on or off — the browser's high contrast
+    forcedColors.addEventListener("change", () => zf().OnColorSchemeChange());
 
     // pagehide rather than beforeunload: on mobile the latter often doesn't come
     window.addEventListener("pagehide", () => zf().OnPageHide());

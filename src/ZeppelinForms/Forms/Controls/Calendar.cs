@@ -112,6 +112,12 @@ public partial class Calendar : DecoratedControl
     public partial Color SelectionColor { get; set; }
     private static Color SelectionColorDefault => new(255, 0x0D, 0x6E, 0xFD);
 
+    /// <summary>The text of the selected day. Was a fixed white, lost on a light
+    /// selection fill — the contrast themes have one.</summary>
+    [Styled(Category = "Calendar")]
+    public partial Color SelectedTextColor { get; set; }
+    private static Color SelectedTextColorDefault => Colors.White;
+
     [Styled(Category = "Calendar")]
     public partial Color TodayColor { get; set; }
     private static Color TodayColorDefault => new(255, 220, 235, 255);
@@ -295,7 +301,7 @@ public partial class Calendar : DecoratedControl
                     g.FillRectangle(rect, TodayColor);
 
                 Color color = date.Month == _displayMonth.Month
-                    ? selected ? Colors.White : TextColor
+                    ? selected ? SelectedTextColor : TextColor
                     : MutedColor;
 
                 g.DrawText(date.Day.ToString(), rect, color, font,
@@ -308,7 +314,7 @@ public partial class Calendar : DecoratedControl
                         new Point(rect.X + 1.5f, rect.Y + 1.5f),
                         new Size(Math.Max(0, rect.Width - 3f), Math.Max(0, rect.Height - 3f)));
 
-                    g.DrawRectangle(outline, selected ? Colors.White : TextColor, 1.5f);
+                    g.DrawRectangle(outline, selected ? SelectedTextColor : TextColor, 1.5f);
                 }
 
                 date = date.AddDays(1);

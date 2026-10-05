@@ -37,7 +37,17 @@ public interface ISystemAppearance
     /// the accent alone, and a theme derives the shades it needs itself.</summary>
     AccentPalette? AccentPalette => AccentColor is { } accent ? new AccentPalette(accent) : null;
 
-    /// <summary>The user changed the mode or the accent while the application
-    /// was running. Raised on the UI thread.</summary>
+    /// <summary>The user turned on high contrast: the system's own contrast
+    /// theme on Windows, forced colors in the browser, "higher contrast" of the
+    /// desktop portal, high-contrast text on Android. By default — off.</summary>
+    bool IsHighContrast => false;
+
+    /// <summary>The colors of the system's contrast theme, where the system has
+    /// them — Windows and the browser give the user's own; null — a built-in
+    /// palette is used, light or dark by <see cref="IsDark"/>.</summary>
+    HighContrastPalette? HighContrastPalette => null;
+
+    /// <summary>The user changed the mode, the accent or the contrast while the
+    /// application was running. Raised on the UI thread.</summary>
     event EventHandler? Changed;
 }

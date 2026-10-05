@@ -120,6 +120,7 @@ public partial class ListBox : ItemsControl, IInputElement
 
     private void RaiseSelectionChanged()
     {
+        UpdateSelectedText();
         SelectionChanged?.Invoke(this, EventArgs.Empty);
         InvalidateVisual();
     }
