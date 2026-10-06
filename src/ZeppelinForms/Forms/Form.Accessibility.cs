@@ -24,9 +24,9 @@ public partial class Form
         AccessibilityEvents.RaiseAnnouncement(this, text, politeness);
     }
 
-    /// <summary>Move the focus to an element on a peer's request.</summary>
-    internal bool FocusForAccessibility(UIElement element) =>
-        element.FindOwner() == this && _focusDispatcher.FocusElement(element);
+    /// <summary>The focused element — for a platform bridge answering "where is
+    /// the focus" for the whole window.</summary>
+    internal UIElement? FocusedElementForAccessibility => _focusDispatcher.FocusedElement;
 
     /// <summary>Report the new focus. Inside a list, a tree or a grid the focus is
     /// reported on its current item: that is what the user moves through.</summary>

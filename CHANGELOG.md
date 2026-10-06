@@ -67,6 +67,11 @@ live SettingChanged) with a built-in minimal D-Bus client — no new dependencie
 - an open DateTimePicker drop-down takes the arrows; Alt+Down and F4 open it.
 - Opt-in system text scale: App.UseSystemTextScale(), App.TextScale, ISystemAppearance.TextScale. Sources are Windows "Text size" and Android font scale. Every font is scaled in EffectiveFont, and forms re-measure on change.
 - Accessibility audit: AccessibilityAudit.Run, which reports missing names, unnamed images, WCAG text contrast and targets under 24×24. It is shown in the F12 inspector as a list with outlines, and choosing an issue selects its element.
+- Windows UI Automation bridge: Narrator, NVDA, JAWS and other UIA clients see the accessibility tree.
+- Providers are created lazily over the peers and answer WM_GETOBJECT.
+- Patterns: Invoke, Toggle, ExpandCollapse, SelectionItem, Value, RangeValue, ScrollItem.
+- Focus, property, structure and live-region events are raised; Form.Announce becomes a UIA notification.
+- Built on source-generated COM, compatible with trimming and AOT.
 
 #### Accessibility semantic model
 

@@ -579,6 +579,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
             case NativeConstants.WM_DESTROY:
                 DetachCaptionTheme();
+                DisposeAutomation();
                 _form.OnWindowClosed();
                 _platform.WindowDestroyed();
                 return 0;
@@ -627,6 +628,15 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                     _form.OnTextInput(c);
                     return 0;
                 }
+
+            // a screen reader or another UI Automation client asks for the window's tree
+            case Automation.UiaNative.WM_GETOBJECT:
+                return HandleGetObject(hWnd, message, wParam, lParam);
+
+            // a provider call carried over from a UIA thread
+            case Automation.UiaBridge.WM_UIA_CALL:
+                Automation.UiaBridge.RunCall(lParam);
+                return 0;
 
             case NativeConstants.WM_INVOKE:
                 {
