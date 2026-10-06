@@ -9,6 +9,7 @@ public partial class WindowsPlatform : ISystemAppearance
     private bool _isDark;
     private AccentPalette? _accent;
     private HighContrastPalette? _highContrast;
+    private float _textScale = 1f;
     private EventHandler? _appearanceChanged;
 
     public bool IsDark => _isDark;
@@ -25,6 +26,8 @@ public partial class WindowsPlatform : ISystemAppearance
     /// be edited, and the presets are only a starting point.</summary>
     public HighContrastPalette? HighContrastPalette => _highContrast;
 
+    public float TextScale => _textScale;
+
     // explicit: ISystemMotionSettings has its own Changed, and one public event
     // would fire for both — a theme rebuilt on every animation setting and back
     event EventHandler? ISystemAppearance.Changed
@@ -38,6 +41,7 @@ public partial class WindowsPlatform : ISystemAppearance
         _isDark = Win32Appearance.AppsUseDarkTheme();
         _accent = Win32Appearance.ReadAccentPalette();
         _highContrast = ReadHighContrast();
+        _textScale = Win32Appearance.ReadTextScale();
 
         App.UseSystemAppearance(this);
     }
@@ -54,12 +58,18 @@ public partial class WindowsPlatform : ISystemAppearance
         bool dark = Win32Appearance.AppsUseDarkTheme();
         AccentPalette? accent = Win32Appearance.ReadAccentPalette();
         HighContrastPalette? highContrast = ReadHighContrast();
+        float textScale = Win32Appearance.ReadTextScale();
 
-        if (dark == _isDark && accent == _accent && highContrast == _highContrast) return;
+        if (dark == _isDark && accent == _accent && highContrast == _highContrast &&
+            textScale == _textScale)
+        {
+            return;
+        }
 
         _isDark = dark;
         _accent = accent;
         _highContrast = highContrast;
+        _textScale = textScale;
 
         _appearanceChanged?.Invoke(this, EventArgs.Empty);
     }

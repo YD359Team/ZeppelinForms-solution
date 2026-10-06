@@ -142,6 +142,9 @@ public partial class App
 
         // the system may be in high contrast already at startup
         ApplyEffectiveTheme();
+
+        // and its text larger
+        ApplyTextScale();
     }
 
     /// <summary>Follow the system: the light or the dark theme of the pair by the
@@ -182,6 +185,8 @@ public partial class App
         // contrast turned on or off, or its colors changed: whatever the
         // application follows or not, high contrast is the system's word
         ApplyEffectiveTheme();
+
+        ApplyTextScale();
     }
 
     private static void ApplySystemTheme()

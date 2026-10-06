@@ -65,6 +65,8 @@ live SettingChanged) with a built-in minimal D-Bus client — no new dependencie
 - DataGridView takes focus; arrows, PageUp/PageDown, Home and End move the selected row and scroll it into view;
 - Calendar takes focus with a keyboard cursor separate from the selection (arrows, PageUp/PageDown, Ctrl for years, Home/End, Enter/Space);
 - an open DateTimePicker drop-down takes the arrows; Alt+Down and F4 open it.
+- Opt-in system text scale: App.UseSystemTextScale(), App.TextScale, ISystemAppearance.TextScale. Sources are Windows "Text size" and Android font scale. Every font is scaled in EffectiveFont, and forms re-measure on change.
+- Accessibility audit: AccessibilityAudit.Run, which reports missing names, unnamed images, WCAG text contrast and targets under 24×24. It is shown in the F12 inspector as a list with outlines, and choosing an issue selects its element.
 
 #### Accessibility semantic model
 
@@ -75,7 +77,7 @@ live SettingChanged) with a built-in minimal D-Bus client — no new dependencie
 - Form.Announce;
 - AccessibilityTree.Dump.
 
-### System high contrast:
+#### System high contrast
 
 - Windows: contrast themes with the user's own colors;
 - browser: forced colors;

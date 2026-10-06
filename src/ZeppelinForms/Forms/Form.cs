@@ -59,6 +59,10 @@ public partial class Form : IDisposable
 
             _themeAtUnsubscribe = null;
 
+            // the text scale the same way: renewed with every window, and a change
+            // made while the form was closed is caught up with now
+            RenewTextScaleSubscription();
+
             // the language subscription is renewed the same way as the theme's,
             // and a language switched while the form was closed is applied now
             Localization.Changed -= OnLocalizationChanged;
@@ -260,8 +264,13 @@ public partial class Form : IDisposable
     // ===== Inspector (F12) =====
     public bool IsInspectorEnabled { get; private set; }
     public UIElement? InspectedElement { get; private set; }
+
     private bool IsInsideInspector(Point point) =>
-_inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not null;
+        (_inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not null) ||
+        IsInsideAudit(point);
+
+    /// <summary>The width of the inspector's property grid at the right edge.</summary>
+    private const float InspectorWidth = 320f;
 
     private bool _dialogAccepted;
     private object? _dialogValue;
@@ -271,9 +280,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     public Form()
     {
         App.ThemeChanged += OnThemeChanged;
+        App.ThemeChanged += OnThemeChanged;
+        App.TextScaleChanged += OnTextScaleChanged;
         Localization.Changed += OnLocalizationChanged;
-        _focusDispatcher.FocusChanged += OnFocusChangedForKeyboard;
-        _focusDispatcher.FocusChanged += OnFocusChangedForAccessibility;
     }
 
     /// <summary>The keyboard follows focus: a field got it — show the keyboard,
@@ -1426,6 +1435,9 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         App.ThemeChanged -= OnThemeChanged;
         _themeAtUnsubscribe = App.Theme;
 
+        // the text scale's event is static too, and would hold the form the same way
+        DropTextScaleSubscription();
+
         // static like the theme's event, and it would hold the form the same way
         Localization.Changed -= OnLocalizationChanged;
         _localizationVersionAtUnsubscribe = Localization.Version;
@@ -1676,10 +1688,13 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
 
         if (IsInspectorEnabled)
         {
+            // the accessibility audit: its outlines go under the grid
+            ShowAudit();
+
             _inspectorGrid = new PropertyGrid
             {
-                Size = new Size(320, ClientSize.Height),
-                Position = new Point(Math.Max(0, ClientSize.Width - 320), 0),
+                Size = new Size(InspectorWidth, ClientSize.Height),
+                Position = new Point(Math.Max(0, ClientSize.Width - InspectorWidth), 0),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
             };
@@ -1690,6 +1705,8 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
         {
             DetachOverlay(_inspectorGrid);
             _inspectorGrid = null;
+
+            HideAudit();
         }
 
         Invalidate();
@@ -1887,6 +1904,7 @@ _inspectorGrid is not null && HitTester.HitTest(_inspectorGrid, point) is not nu
     public void Dispose()
     {
         App.ThemeChanged -= OnThemeChanged;
+        App.TextScaleChanged -= OnTextScaleChanged;
 
         Localization.Changed -= OnLocalizationChanged;
 

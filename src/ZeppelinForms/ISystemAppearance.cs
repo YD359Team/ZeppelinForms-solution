@@ -47,7 +47,12 @@ public interface ISystemAppearance
     /// palette is used, light or dark by <see cref="IsDark"/>.</summary>
     HighContrastPalette? HighContrastPalette => null;
 
-    /// <summary>The user changed the mode, the accent or the contrast while the
-    /// application was running. Raised on the UI thread.</summary>
+    /// <summary>The size of text the user asked for, as a multiplier: 1 — the
+    /// standard, 1.5 — half again larger. Windows: "Text size" of Accessibility;
+    /// Android: the font scale. By default — 1.</summary>
+    float TextScale => 1f;
+
+    /// <summary>The user changed the mode, the accent, the contrast or the text
+    /// size while the application was running. Raised on the UI thread.</summary>
     event EventHandler? Changed;
 }

@@ -38,29 +38,44 @@ public abstract partial class UIElement
     /// <summary>Own font, or if not set — the nearest one set on an ancestor,
     /// then the form's font, otherwise Font.Default. <see cref="TextStyle"/>,
     /// when set, replaces the size and weight of that font with the step of the
-    /// current theme's type ramp — unless the element set a font of its own.</summary>
+    /// current theme's type ramp — unless the element set a font of its own.
+    /// The size is then multiplied by <see cref="App.TextScale"/>.</summary>
+    /// <remarks>
+    /// The text scale applies to every font, an own one included: the user asked
+    /// for larger text, not for larger text except where the application chose
+    /// a size. Each element scales its own font, never an inherited result —
+    /// a child takes the unscaled font from its ancestors and scales it once.
+    /// </remarks>
     public Font EffectiveFont
     {
         get
         {
             Font inherited = GetInheritedValue(FontProperty) ?? FindOwner()?.Font ?? Font.Default;
+            float scale = App.TextScale;
 
             // an own font is an explicit word about this very element — stronger than
             // a style; and TextStyle.None has no step in the ramp at all
-            if (IsLocal(FontProperty) || IsBound(FontProperty) ||
-                App.Theme.TypeRamp[TextStyle] is not { } step)
+            TypeRampStep? step = IsLocal(FontProperty) || IsBound(FontProperty)
+                ? null
+                : App.Theme.TypeRamp[TextStyle];
+
+            if (step is null && scale == 1f)
                 return inherited;
 
-            // the step is checked against the result rather than remembered apart:
-            // a theme switch changes the ramp while the base stays the same instance
+            float size = (step?.Size ?? inherited.Size) * scale;
+            FontWeight weight = step?.Weight ?? inherited.Weight;
+
+            // the result is checked rather than what it was built from: a theme switch
+            // changes the ramp, and the system the scale, while the base stays the
+            // same instance
             if (ReferenceEquals(_rampBase, inherited) &&
                 _rampFont is { } cached &&
-                cached.Size == step.Size &&
-                cached.Weight == step.Weight)
+                cached.Size == size &&
+                cached.Weight == weight)
                 return cached;
 
             _rampBase = inherited;
-            _rampFont = inherited with { Size = step.Size, Weight = step.Weight };
+            _rampFont = inherited with { Size = size, Weight = weight };
 
             return _rampFont;
         }

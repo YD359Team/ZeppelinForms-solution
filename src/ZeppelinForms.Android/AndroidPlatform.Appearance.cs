@@ -11,7 +11,7 @@ namespace ZeppelinForms.Android;
 /// <remarks>
 /// <para>
 /// The mode changes on the fly only for an activity that declares it handles the
-/// change itself — <c>ConfigurationChanges = ConfigChanges.UiMode</c> in its
+/// change itself — <c>ConfigurationChanges = ConfigChanges.UiMode | ConfigChanges.FontScale</c> in its
 /// [Activity] attribute. Then ZeppelinView receives the new configuration and passes
 /// it here. Without the declaration Android recreates the activity, and the new
 /// application starts in the new mode anyway.
@@ -28,6 +28,7 @@ public sealed partial class AndroidPlatform : ISystemAppearance
 {
     private bool _isDark;
     private bool _isHighContrast;
+    private float _textScale = 1f;
     private AccentPalette? _accent;
     private EventHandler? _appearanceChanged;
 
@@ -36,6 +37,10 @@ public sealed partial class AndroidPlatform : ISystemAppearance
     /// <summary>"High contrast text" of the accessibility settings. Android gives
     /// no palette for it: the built-in one is used, light or dark by the night mode.</summary>
     public bool IsHighContrast => _isHighContrast;
+
+    /// <summary>"Font size" of the display settings — the same multiplier the
+    /// system applies to sp units.</summary>
+    public float TextScale => _textScale;
 
     public Color? AccentColor => _accent?.Accent;
 
@@ -52,6 +57,8 @@ public sealed partial class AndroidPlatform : ISystemAppearance
     {
         _isDark = QueryDark(_activity.Resources?.Configuration);
         _accent = QueryAccent(_activity);
+        _isHighContrast = QueryHighContrast(_activity);
+        _textScale = _activity.Resources?.Configuration?.FontScale ?? 1f;
 
         App.UseSystemAppearance(this);
     }
@@ -69,12 +76,18 @@ public sealed partial class AndroidPlatform : ISystemAppearance
         bool dark = QueryDark(configuration);
         AccentPalette? accent = QueryAccent(_activity);
         bool highContrast = QueryHighContrast(_activity);
+        float textScale = configuration?.FontScale ?? 1f;
 
-        if (dark == _isDark && accent == _accent && highContrast == _isHighContrast) return;
+        if (dark == _isDark && accent == _accent && highContrast == _isHighContrast &&
+            textScale == _textScale)
+        {
+            return;
+        }
 
         _isDark = dark;
         _accent = accent;
         _isHighContrast = highContrast;
+        _textScale = textScale;
 
         _appearanceChanged?.Invoke(this, EventArgs.Empty);
     }

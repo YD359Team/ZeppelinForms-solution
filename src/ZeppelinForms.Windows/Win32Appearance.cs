@@ -98,6 +98,16 @@ internal static class Win32Appearance
         return new Color((byte)value, (byte)(value >> 8), (byte)(value >> 16));
     }
 
+    private const string AccessibilityKey = @"Software\Microsoft\Accessibility";
+
+    /// <summary>"Text size" of Accessibility in Settings, 100 to 225 percent — the
+    /// value UISettings.TextScaleFactor returns. Missing — 1: never changed, or
+    /// a Windows before 1809, which has no such setting.</summary>
+    internal static float ReadTextScale() =>
+        ReadDword(AccessibilityKey, "TextScaleFactor") is uint percent and >= 100 and <= 500
+            ? percent / 100f
+            : 1f;
+
     /// <summary>"Choose your default app mode" is Dark. Missing value — light:
     /// Windows before 1809 has no dark mode for applications.</summary>
     internal static bool AppsUseDarkTheme() =>
