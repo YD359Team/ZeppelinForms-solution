@@ -88,9 +88,11 @@ public static class Localization
     {
         get
         {
-            if (_culture is null) _ = Culture;
-
-            return _layoutDirection;
+            lock (Sync)
+            {
+                if (_culture is null) Initialize(CultureInfo.CurrentUICulture);
+                return _layoutDirection;
+            }
         }
     }
 
