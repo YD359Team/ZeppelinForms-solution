@@ -7,6 +7,7 @@
 		<Nullable>enable</Nullable>
 		<!-- Span<byte> поверх неуправляемого буфера кадра -->
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Description>The WebAssembly platform of ZeppelinForms: a canvas hosting the forms, pointer and keyboard input, and an ARIA mirror for screen readers. The page needs the zf.js module, attached to every release.</Description>
 	</PropertyGroup>
 
 	<ItemGroup>

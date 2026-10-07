@@ -1,21 +1,49 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Description>A cross-platform UI framework drawn with SkiaSharp: controls, layout, themes, input, animation and accessibility. Add the package of your platform — ZeppelinForms.Windows, .Linux, .Android or .Browser — to run it.</Description>
 
-  <ItemGroup>
-    <None Remove="Resources\ZF_13.ico" />
-  </ItemGroup>
+		<!-- the XML documentation goes into the package: IntelliSense of the
+         applications shows the summaries. Not every public member has one yet
+         (CS1591), and not every documented method documents every parameter
+         (CS1573): those two are not errors here -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+
+		<!-- the analyzers ship inside this package: see _ZfAnalyzersInPackage -->
+		<TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_ZfAnalyzersInPackage</TargetsForTfmSpecificContentInPackage>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="Resources\ZF_13.ico" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<EmbeddedResource Include="Resources\ZF_13.ico" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<!-- PrivateAssets: the analyzers are not a package of their own, so the
+		     reference must not turn into a package dependency -->
+		<ProjectReference Include="..\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
 	</ItemGroup>
+
+	<!-- The analyzer assembly goes into analyzers/dotnet/cs of this package: an
+	     application referencing ZeppelinForms gets the ZF diagnostics with it,
+	     as it does with a project reference -->
+	<Target Name="_ZfAnalyzersInPackage">
+		<MSBuild Projects="..\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj"
+		         Targets="GetTargetPath"
+		         Properties="Configuration=$(Configuration)">
+			<Output TaskParameter="TargetOutputs" ItemName="_ZfAnalyzerAssembly" />
+		</MSBuild>
+
+		<ItemGroup>
+			<TfmSpecificPackageFile Include="@(_ZfAnalyzerAssembly)" PackagePath="analyzers/dotnet/cs" />
+		</ItemGroup>
+	</Target>
 
 </Project>

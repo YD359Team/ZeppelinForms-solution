@@ -9,13 +9,13 @@ namespace ZeppelinForms.Forms.Controls;
 /// Graphics has no gradient stroke, so the ring is assembled from two
 /// fills: the gradient over the whole rectangle and the background on top
 /// of the inner part. Hence the requirement: <see cref="UIElement.Padding"/>
-/// no less than <see cref="DecoratedWrapControl.BorderWidth"/>, otherwise
+/// no less than <see cref="UIElement.BorderWidth"/>, otherwise
 /// the child will overlap the border.
 /// </summary>
 public class GradientBorder : DecoratedWrapControl
 {
     /// <summary>Gradient stops. Fewer than two — the border is drawn with the plain
-    /// <see cref="DecoratedWrapControl.BorderColor"/>, like Border.</summary>
+    /// <see cref="UIElement.BorderColor"/>, like Border.</summary>
     public List<GradientStop> Stops { get; init; } = [];
 
     /// <summary>Gradient direction in degrees: 0 — left to right.</summary>

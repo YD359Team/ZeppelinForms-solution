@@ -8,6 +8,7 @@
 		<OutputType>Library</OutputType>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<Description>The Android platform of ZeppelinForms: a view hosting the forms, touch input, the on-screen keyboard, the application lifecycle and the system theme.</Description>
 	</PropertyGroup>
 
 	<ItemGroup>

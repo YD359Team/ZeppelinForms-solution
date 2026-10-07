@@ -4,6 +4,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Description>The Linux platform of ZeppelinForms: X11 windows and input, and the system theme through the XDG desktop portal.</Description>
 	</PropertyGroup>
 
 	<ItemGroup>

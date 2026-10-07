@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Description>The Windows platform of ZeppelinForms: Win32 windows and input, clipboard, drag and drop, the system theme, and UI Automation for screen readers.</Description>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\ZeppelinForms.Skia\ZeppelinForms.Skia.csproj" />
