@@ -4,113 +4,191 @@
 
 ![Siberia](assets/Logo-0.13.0.jpg)
 
+Accessibility, and the look and manners of a native application. Every control
+now speaks to screen readers on Windows and in the browser and works from the
+keyboard, and the framework follows the system: its dark mode, accent, high
+contrast and text size. Fluent themes give applications the look of Windows 11,
+and the framework's own texts can be translated.
+
 ### Breaking changes
 
 - `Theme` moved from the global namespace to `ZeppelinForms.Theming`. Code that
   names the type needs `using ZeppelinForms.Theming;`
-- `FontWeight` values are now numeric CSS/OpenType weights (Light = 300, Normal = 400, SemiBold = 600, Bold = 700).
-- Breaking changes: focus rings and focus borders of non-text controls are shown only after keyboard input 
-(`Form.IsFocusVisible`, `UIElement.IsFocusVisible`), in every theme. Text fields always show focus. FocusRingColor 
-and ShowFocusRing moved from `ButtonBase` to `InteractiveControl`; source compatible.
+- `FontWeight` values are numeric CSS/OpenType weights: Light = 300,
+  Normal = 400, SemiBold = 600, Bold = 700
+- Focus rings and focus borders of non-text controls appear only after keyboard
+  input (`Form.IsFocusVisible`, `UIElement.IsFocusVisible`), in every theme.
+  Text fields always show focus. `FocusRingColor` and `ShowFocusRing` moved from
+  `ButtonBase` to `InteractiveControl`, which keeps the source compatible
+- Switching themes withdraws the values the previous theme set and the new one
+  doesn't, back to the control's own default: Fluent's 20 px check box no longer
+  survives a switch back to Light. `ClearValue` restores the control's own
+  default instead of the property's
+- While the system's high contrast is on, `App.Theme` returns the contrast
+  theme. The theme the application set is kept in `App.RequestedTheme` and comes
+  back when contrast is turned off; `App.RespectHighContrast = false` opts out
+- `Calendar` and `DataGridView` take focus, so Tab now stops on them
+- Arrow keys switch tabs only while the tab strip itself has the focus. Before,
+  an arrow not handled by a control inside a page bubbled up and switched the tab
+  under it
+- A single-line `TextBox` without `Accepted` subscribers leaves Enter unhandled,
+  so it reaches `Form.DefaultButton`. Before, the field always swallowed Enter
+
+### Fluent and theming
+
+- `Themes.FluentLight` and `Themes.FluentDark` with the WinUI 3 palette, opt-in.
+  Every color is named after its WinUI resource
+- Shape tokens in `ThemeMetrics` (`ThemeMetrics.Default`, `ThemeMetrics.Fluent`)
+  and a type ramp in `TypeRamp`. `UIElement.TextStyle` takes a step of the ramp:
+  Caption, Body, BodyStrong, Subtitle, Title and the rest
+- `Theme.For<T>(Action<T, Theme>)` gives a rule the whole theme, metrics and
+  type ramp included. `Theme.WithColors` and `Theme.WithAccent` derive a theme
+- Optional Fluent color roles in `ThemeColors` — `ControlFill`, `ControlStroke`,
+  `ControlStrongStroke`, the focus strokes and others — each falling back to a
+  classic role. `ThemeColors.WithAccent` recolors the accent shades, the text on
+  the accent and the selection
+- Two-stroke focus ring: `FocusRingInnerColor`, `FocusRingInnerThickness` and
+  `ButtonBase.FocusRingInset`. `CheckBox` and `RadioButton` draw the ring around
+  the box and the circle
+- Control geometry as styled properties: `CheckBox.BoxSize`, `BoxCornerRadius`
+  and `BoxBorderWidth`; `RadioButton.CircleSize`, `CircleBorderWidth` and
+  `DotSize`; `ToggleSwitch.TrackSize`, `ThumbInset` and `TrackBorderWidth`
+- New colors: `ButtonBase.ElevationBorderColor`; `TextInputControl.UnderlineColor`,
+  `FocusUnderlineColor` and `FocusUnderlineThickness`; `CheckBox.CheckGlyphColor`,
+  which classic themes take from `TextOnAccent`; `RadioButton.CheckedCircleBackground`
+  and `DotColor`; `ToggleSwitch.OnThumbColor` and `OffBorderColor`
+- `FontWeight.Light` and `FontWeight.SemiBold`; `ColorExtensions.RelativeLuminance`
+  and `ContrastRatio`
+- Theme rules for controls that had none, among them `TreeView`, the charts and
+  the map
+
+### System appearance
+
+- `ISystemAppearance`: the system's dark mode, accent, high contrast and text
+  size, on Windows, in the browser, on Android, and on Linux through the XDG
+  Desktop Portal. Linux uses a built-in minimal D-Bus client whose connection is
+  watched by the X11 event loop itself — no new dependencies
+- `App.UseSystemTheme(light, dark, followAccent)` follows the system's mode and
+  accent; setting `App.Theme` in code stops following
+- `AccentPalette` with the system's own shades — the Windows accent palette, the
+  Android 12 tonal palette — or readable ones derived from the accent.
+  `Theme.AccentRule` lets the Fluent themes take the WinUI shade for their page
+- The Windows title bar follows the application's theme, dark caption included
+- `App.StartupTheme` sets the theme in the `App` initializer:
+  `new App(platform) { StartupTheme = Themes.FluentLight, MainForm = … }`.
+  `BrowserApp.RunAsync` and `AndroidApp.Run` take a theme parameter
+- High contrast: the system's contrast theme replaces any theme while it is on.
+  Windows contrast themes and browser forced colors bring the user's own colors;
+  the Linux portal's `contrast` key and Android's high-contrast text use a
+  built-in palette. `Themes.HighContrast(palette)`, `Themes.HighContrastBlack`
+  and `Themes.HighContrastWhite`, `HighContrastPalette`
+- `SelectedTextColor` on `ListBox`, `DataGridView` and `Calendar`, and
+  `HighlightedTextColor` on `MenuBar` and `MenuList`: selected text takes the
+  color paired with the selection fill
+- Opt-in system text scale: `App.UseSystemTextScale()` and `App.TextScale`, from
+  the Windows "Text size" setting and the Android font scale. Every font is
+  scaled in `UIElement.EffectiveFont`, and forms measure again when the scale
+  changes
+
+### Localization
+
+- Typed text keys instead of resource files: `TextKey`, `PluralKey` for counted
+  texts, a `StringTable` per language, `Localization.Register` and
+  `Localization.Get`
+- `Localization.Culture` switches the language at run time, and open forms
+  update their localized texts. `element.Localize(key)` binds a text property
+  of an element to a key
+- Plural forms by the rules of each language (`PluralRules`)
+- The framework's own texts — file dialogs, `AttachButton`, `CheckedComboBox`
+  and others — are localized; Russian is built in
+- Right-to-left languages mirror the layout (`Localization.LayoutDirection`,
+  `Localization.MirrorLayoutForRightToLeft`)
+- `Calendar`, `DateTimePicker`, `TimePicker` and `NumericUpDown` take a
+  `Culture`; without one they follow `Localization.Culture`
+
+### Accessibility
+
+- A semantic model under every control: lazily created peers
+  (`AccessibilityPeer`, `UIElementPeer`) with a role, a name, states, actions and
+  children. Nothing is created until an assistive technology asks
+- `UIElement.AccessibleName`, `AccessibleDescription`, `LabeledBy`,
+  `AccessibleRole`, `IsAccessibilityHidden`, `HeadingLevel` and `LiveSetting`.
+  `Label.Target` names the field a label stands before
+- `AccessibilityEvents` for platform bridges. `Form.Announce` has a screen
+  reader say a text without moving the focus. `AccessibilityTree.Dump` prints
+  the tree, for tests and debugging
+- Windows UI Automation: Narrator, NVDA, JAWS and other UIA clients see the tree.
+  Providers are created over the peers when a client first asks the window, with
+  the Invoke, Toggle, ExpandCollapse, SelectionItem, Value, RangeValue and
+  ScrollItem patterns. Focus, property, structure and live-region events are
+  raised, and `Form.Announce` becomes a UIA notification. Built on
+  source-generated COM, compatible with trimming and AOT
+- Browser: an ARIA mirror of transparent DOM nodes with roles and `aria-*`
+  attributes over each element. The canvas is `role="application"` and points at
+  the focused node with `aria-activedescendant`; dialogs are modal to assistive
+  technology, a screen reader's click runs the element's default action, and
+  `Form.Announce` uses live regions. On by default;
+  `BrowserPlatform.AccessibilityMirror = false` turns it off
+- `AccessibilityAudit.Run` reports missing names, unnamed images, text contrast
+  below WCAG and targets smaller than 24×24. The F12 inspector lists the issues
+  and outlines them in place; choosing an issue selects its element
+
+### Keyboard
+
+- Access keys: with `UIElement.UseMnemonic` an `&` in a caption marks the key,
+  underlined while Alt is held. Alt and the letter press a button, toggle a check
+  box or focus a label's target. Menu items always read the mark. On Windows
+  access keys work in any keyboard layout
+- Menus from the keyboard: F10 or a tap of Alt, the arrows, Enter, Escape and
+  the items' access keys
+- A radio group is a single Tab stop; the arrows check the next button
+- Ctrl+Tab and Ctrl+PageUp/PageDown switch tabs from anywhere inside a
+  `TabControl`
+- `DataGridView`: the arrows, PageUp, PageDown, Home and End move the selected
+  row and scroll it into view
+- `Calendar`: a keyboard cursor separate from the selection — the arrows, PageUp
+  and PageDown (with Ctrl by a year), Home, End, Enter and Space. An open
+  `DateTimePicker` passes these keys to its calendar; Alt+Down or F4 opens it
+- `Form.DefaultButton` is pressed by Enter; Escape closes the top flyout or
+  cancels a dialog
+- `Form.FocusOnShow`: the first text field takes the focus when a form or a page
+  is shown — except on touch screens, where that would raise the on-screen
+  keyboard unasked
+
+### Text
+
+- `Label.Text` is a styled property
+- `TextTransform` changes the case of a control's text, by the rules of
+  `Localization.Culture`
 
 ### Fixes
 
-- Now `TextBox.Text` is styled property
-- Add hover\\pressed visual effects for controls where was he meant
-- Now `TextBox` will be focused if first interactive control in view
-- Fix `Form` invalidation pipeline
-- Fix gestures kinetic
-- Add missing themes for controls
-- Switching themes now withdraws values the previous theme set and the new one doesn't, back to the control's own default
-(e.g. Fluent's 20 px check box no longer survives a switch back to Light);
-- ClearValue restores the control's own default instead of the property's.
-- Windows: Alt combinations and F10 now reach the form (WM_SYSKEYDOWN/WM_SYSKEYUP/WM_SYSCHAR), and a tap of Alt no longer enters the system menu;
-- arrow keys bubbling up from inside a tab page no longer switch tabs.
-- restored the focus subscriptions in the Form constructor and Form.FocusForAccessibility, both lost while merging the text-scale and UIA changes.
+- Windows: Alt combinations and F10 reach the form, and a tap of Alt no longer
+  puts the window into its system menu
+- Hover and pressed effects on interactive controls that had none
+- Invalidated areas in software rendering
+- The pan, pinch and rotate recognizers and kinetic scrolling
+- `DataGridView` and `DataGridViewColumn`
 
-### Features
+### Known limitations
 
-- Add `TextTransform` property for case transforming in text controls
-- ThemeMetrics shape tokens and TypeRamp on Theme;
-- Theme.For<T>(Action<T, Theme>); optional Fluent color roles in ThemeColors;
-- ThemeColors.WithAccent, Theme.WithColors / WithAccent;
-- Themes.FluentLight and Themes.FluentDark with the WinUI 3 palette (opt-in);
-- ThemeMetrics.Fluent;
-- Optional ThemeColors.ControlStrongStroke role;
-- Classic themes set CheckBox.CheckGlyphColor from TextOnAccent.
-- UIElement.TextStyle;
-- FontWeight.Light / SemiBold;
-- ColorExtensions.RelativeLuminance / ContrastRatio.
-- Two-stroke focus ring (FocusRingInnerColor/Thickness, ButtonBase.FocusRingInset);
-- Focus rings on CheckBox and RadioButton;
-- Geometry as styled properties: CheckBox.BoxSize/BoxCornerRadius/BoxBorderWidth, RadioButton.CircleSize/CircleBorderWidth/DotSize, 
-ToggleSwitch.TrackSize/ThumbInset/TrackBorderWidth;
-- ButtonBase.ElevationBorderColor;
-- TextInputControl.UnderlineColor/FocusUnderlineColor/FocusUnderlineThickness;
-- CheckBox.CheckGlyphColor, RadioButton.CheckedCircleBackground/DotColor, ToggleSwitch.OnThumbColor/OffBorderColor.
-- ISystemAppearance (dark mode and accent) on Windows, Browser and Android.
-- App.UseSystemTheme(light, dark, followAccent) follows the system mode and accent; setting App.Theme in code stops following.
-- AccentPalette with system shades (Windows AccentPalette, Android 12 tonal palette) or readable derived ones.
-- Theme.AccentRule: Fluent themes take the WinUI shade for their page.
-- The Windows title bar follows the app theme (dark caption).
-- Linux: ISystemAppearance through the XDG Desktop Portal (org.freedesktop.appearance color-scheme and accent-color, 
-live SettingChanged) with a built-in minimal D-Bus client — no new dependencies.
-- The session bus is watched by the X11 event loop itself.
-- App.StartupTheme sets the theme in the App initializer, e.g. new App(platform) { StartupTheme = Themes.FluentLight, MainForm = … }; 
-- a theme parameter is added to BrowserApp.RunAsync and AndroidApp.Run.
-- access keys: UIElement.UseMnemonic, & marks with underlines while Alt is held, Alt+letter including non-Latin layouts on Windows, AccessKey on peers;
-- keyboard menus: F10, Alt tap, arrows, Enter, Escape, item access keys;
-- a radio group is a single Tab stop with arrow navigation;
-- Ctrl+Tab / Ctrl+PageUp/PageDown in TabControl;
-- Form.DefaultButton; Escape closes the top flyout or cancels a dialog.
-- DataGridView takes focus; arrows, PageUp/PageDown, Home and End move the selected row and scroll it into view;
-- Calendar takes focus with a keyboard cursor separate from the selection (arrows, PageUp/PageDown, Ctrl for years, Home/End, Enter/Space);
-- an open DateTimePicker drop-down takes the arrows; Alt+Down and F4 open it.
-- Opt-in system text scale: App.UseSystemTextScale(), App.TextScale, ISystemAppearance.TextScale. Sources are Windows "Text size" and Android font scale. Every font is scaled in EffectiveFont, and forms re-measure on change.
-- Accessibility audit: AccessibilityAudit.Run, which reports missing names, unnamed images, WCAG text contrast and targets under 24×24. It is shown in the F12 inspector as a list with outlines, and choosing an issue selects its element.
-- Windows UI Automation bridge: Narrator, NVDA, JAWS and other UIA clients see the accessibility tree.
-- Providers are created lazily over the peers and answer WM_GETOBJECT.
-- Patterns: Invoke, Toggle, ExpandCollapse, SelectionItem, Value, RangeValue, ScrollItem.
-- Focus, property, structure and live-region events are raised; Form.Announce becomes a UIA notification.
-- Built on source-generated COM, compatible with trimming and AOT.
-- The browser ARIA mirror lets screen readers in the browser see the canvas.
-	- Transparent DOM nodes with roles and aria-* attributes are placed over each element; the canvas is role="application" and points at the focused node with aria-activedescendant.
-	- Dialogs are modal to assistive technology.
-	- A screen reader's click triggers the element's default action.
-	- Form.Announce uses live regions.
-	- On by default; opt out with BrowserPlatform.AccessibilityMirror = false.
-
-#### Accessibility semantic model
-
-- lazily created peers for all built-in controls (AccessibilityPeer, UIElementPeer, AccessibilityRole/States/Actions);
-- UIElement.AccessibleName/AccessibleDescription/LabeledBy/AccessibleRole/IsAccessibilityHidden/HeadingLevel/LiveSetting;
-- Label.Target;
-- AccessibilityEvents;
-- Form.Announce;
-- AccessibilityTree.Dump.
-
-#### System high contrast
-
-- Windows: contrast themes with the user's own colors;
-- browser: forced colors;
-- Linux: portal contrast;
-- Android: high-contrast text.
-- Themes.HighContrast(palette), Themes.HighContrastBlack/HighContrastWhite, HighContrastPalette.
-- High contrast overrides any theme while on (App.RespectHighContrast to opt out); App.RequestedTheme keeps the application's choice.
-- SelectedTextColor on ListBox/DataGridView/Calendar and HighlightedTextColor on MenuBar/MenuList, so selected text uses the pair matching its fill.
-
-#### Behavior
-
-- A single-line TextBox without Accepted subscribers leaves Enter to the default button.
-- Behavior change: Tab now stops on Calendar and DataGridView.
+- Android TalkBack and Linux AT-SPI bridges are planned for 0.14; until then the
+  accessibility tree reaches screen readers on Windows and in the browser only
+- Access keys in non-Latin keyboard layouts work on Windows; elsewhere they
+  answer Latin letters and digits
+- The system text scale is read on Windows and Android; in the browser and on
+  Linux it stays 1
+- Linux and Android give no contrast colors, so high contrast there uses the
+  built-in palettes, light or dark by the system's mode
 
 ### Examples
 
-- Add binding example
+- A data binding example
+- The Fluent Light theme in the examples
 
-### Translation
+### Code base
 
-- More comments translated to English language
+- Comments throughout the source translated to English
 
 ## [0.12.0] - El Dorado
 
