@@ -2,7 +2,7 @@
 
 ## [0.13.1]
 
-
+- Fix Localization.LayoutDirection.get race
 
 ## [0.13.0] - Siberia
 
