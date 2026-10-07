@@ -94,6 +94,221 @@ export function systemAccentColor() {
     return color;
 }
 
+// ==== the ARIA mirror ====
+//
+// The accessibility tree as transparent DOM over the canvas: one element per node,
+// with its role and aria-* attributes, placed where the node is drawn — touch
+// exploration finds elements by position. The canvas keeps the keyboard focus and
+// points at the focused node with aria-activedescendant; the mirror is owned by it
+// through aria-owns, which is what makes that reference valid.
+//
+// The tree comes as a snapshot; nodes are kept by id and only what changed is
+// touched, so a screen reader's place in the tree survives updates.
+
+let mirror = null;
+let livePolite = null;
+let liveAssertive = null;
+const mirrorNodes = new Map();
+
+function ensureMirror() {
+    if (mirror) return;
+
+    mirror = document.createElement("div");
+    mirror.id = "zf-a11y";
+
+    // over the canvas, invisible and transparent to the pointer: the canvas
+    // gets every click, the mirror is for screen readers only
+    Object.assign(mirror.style, {
+        position: "fixed",
+        pointerEvents: "none",
+        color: "transparent",
+        overflow: "hidden",
+        zIndex: "0",
+    });
+
+    livePolite = liveRegion("polite", "status");
+    liveAssertive = liveRegion("assertive", "alert");
+
+    document.body.appendChild(mirror);
+    document.body.appendChild(livePolite);
+    document.body.appendChild(liveAssertive);
+
+    canvas.setAttribute("role", "application");
+    canvas.setAttribute("aria-owns", mirror.id);
+
+    placeMirror();
+    window.addEventListener("scroll", placeMirror, { passive: true });
+}
+
+function liveRegion(politeness, role) {
+    const region = document.createElement("div");
+    region.setAttribute("aria-live", politeness);
+    region.setAttribute("role", role);
+    region.setAttribute("aria-atomic", "true");
+
+    // visually hidden in the usual way: a live region needs no place
+    Object.assign(region.style, {
+        position: "fixed", width: "1px", height: "1px", overflow: "hidden",
+        clipPath: "inset(50%)", whiteSpace: "nowrap", left: "0", top: "0",
+    });
+
+    return region;
+}
+
+function placeMirror() {
+    if (!mirror) return;
+
+    const rect = canvas.getBoundingClientRect();
+    mirror.style.left = rect.left + "px";
+    mirror.style.top = rect.top + "px";
+    mirror.style.width = rect.width + "px";
+    mirror.style.height = rect.height + "px";
+}
+
+export function updateAccessibilityTree(json) {
+    ensureMirror();
+    placeMirror();
+
+    const tree = JSON.parse(json);
+    const seen = new Set();
+
+    canvas.setAttribute("aria-label", tree.label || document.title);
+
+    tree.windows.forEach((win, index) => {
+        const el = mirrorNode(win.id, seen);
+
+        setRole(el, win.dialog ? "dialog" : "group");
+        setManaged(el, {
+            "aria-label": win.label || null,
+            "aria-modal": win.dialog ? "true" : null,
+            "aria-hidden": win.hidden ? "true" : null,
+        });
+        place(el, win);
+        attach(mirror, el, index);
+        children(el, win.children, seen);
+    });
+
+    // nodes gone from the tree leave the DOM
+    for (const [id, el] of mirrorNodes) {
+        if (!seen.has(id)) {
+            el.remove();
+            mirrorNodes.delete(id);
+        }
+    }
+
+    // the keyboard's place: a screen reader announces it as the focus
+    if (tree.focus && mirrorNodes.has(tree.focus)) {
+        canvas.setAttribute("aria-activedescendant", tree.focus);
+    } else {
+        canvas.removeAttribute("aria-activedescendant");
+    }
+}
+
+function children(parent, nodes, seen) {
+    nodes.forEach((node, index) => {
+        const el = mirrorNode(node.id, seen);
+
+        setRole(el, node.role || null);
+
+        const attrs = Object.assign({}, node.attrs, { "aria-label": node.label || null });
+        setManaged(el, attrs);
+        place(el, node);
+        attach(parent, el, index);
+
+        // text content only where the node has no children: it is the text of
+        // static text, or the value of a field — never mixed with child nodes
+        if (node.children.length === 0) {
+            const text = node.text || "";
+            if (el.textContent !== text) el.textContent = text;
+        } else {
+            if (el.firstChild && el.firstChild.nodeType === Node.TEXT_NODE) el.firstChild.remove();
+            children(el, node.children, seen);
+        }
+    });
+
+    // children past the new count are either moved elsewhere or gone
+    const elements = Array.from(parent.children);
+    for (let i = nodes.length; i < elements.length; i++) {
+        if (!seen.has(elements[i].id)) elements[i].remove();
+    }
+}
+
+function mirrorNode(id, seen) {
+    seen.add(id);
+
+    let el = mirrorNodes.get(id);
+    if (el) return el;
+
+    el = document.createElement("div");
+    el.id = id;
+    el.style.position = "absolute";
+    el.style.overflow = "hidden";
+
+    // a screen reader acting on the node: a double tap, a click from the virtual
+    // cursor, focus moved by touch exploration
+    el.addEventListener("click", e => {
+        e.stopPropagation();
+        zf().OnAccessibilityAction(id, "click");
+    });
+    el.addEventListener("focus", () => {
+        zf().OnAccessibilityAction(id, "focus");
+        canvas.focus();
+    });
+
+    mirrorNodes.set(id, el);
+    return el;
+}
+
+function setRole(el, role) {
+    if (role) {
+        if (el.getAttribute("role") !== role) el.setAttribute("role", role);
+    } else if (el.hasAttribute("role")) {
+        el.removeAttribute("role");
+    }
+}
+
+// set the attributes given, remove the ones set before and not given now
+function setManaged(el, attrs) {
+    const previous = el._zfAttrs || new Set();
+    const current = new Set();
+
+    for (const [name, value] of Object.entries(attrs)) {
+        if (value === null || value === undefined) continue;
+
+        current.add(name);
+        if (el.getAttribute(name) !== value) el.setAttribute(name, value);
+    }
+
+    for (const name of previous) {
+        if (!current.has(name)) el.removeAttribute(name);
+    }
+
+    el._zfAttrs = current;
+}
+
+function place(el, node) {
+    el.style.left = node.x + "px";
+    el.style.top = node.y + "px";
+    el.style.width = node.w + "px";
+    el.style.height = node.h + "px";
+}
+
+function attach(parent, el, index) {
+    if (parent.children[index] !== el) {
+        parent.insertBefore(el, parent.children[index] || null);
+    }
+}
+
+// the same text twice is still announced twice: the region is emptied first,
+// and filled in the next task — a change, not a repetition, is what is read
+export function announce(text, assertive) {
+    ensureMirror();
+
+    const region = assertive ? liveAssertive : livePolite;
+    region.textContent = "";
+    setTimeout(() => { region.textContent = text; }, 50);
+}
+
 export function init(canvasId) {
     canvas = document.getElementById(canvasId);
     if (!canvas) {
@@ -192,7 +407,7 @@ export function init(canvasId) {
 
     // ResizeObserver rather than window.onresize: the canvas may change size
     // without the window changing — in a CSS grid, for example
-    new ResizeObserver(() => resize()).observe(canvas);
+    new ResizeObserver(() => { resize(); placeMirror(); }).observe(canvas);
     window.addEventListener("resize", () => resize());
 
     resize();

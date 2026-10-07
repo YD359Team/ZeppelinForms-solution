@@ -50,6 +50,15 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
     private readonly string _canvasId;
     private readonly BrowserSkiaSurface _surface = new();
     private readonly List<BrowserWindow> _windows = [];
+
+    /// <summary>The ARIA mirror; null when turned off by <see cref="AccessibilityMirror"/>.</summary>
+    internal BrowserAccessibility? AriaMirror { get; private set; }
+
+    /// <summary>Mirror the accessibility tree into hidden DOM for screen readers.
+    /// On by default; set before the first window to turn it off — an application
+    /// with its own DOM for that, or a canvas that is decoration in a larger page.</summary>
+    public static bool AccessibilityMirror { get; set; } = true;
+
     private readonly Queue<Action> _invokeQueue = new();
 
     private int _physicalWidth;
@@ -148,6 +157,9 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
         {
             _initialized = true;
             Interop.Platform = this;
+
+            if (AccessibilityMirror)
+                AriaMirror = new BrowserAccessibility(this);
 
             // init calls resize itself, and that calls HandleResize: the canvas size
             // is unknown until then, there is nothing to lay out
@@ -290,6 +302,9 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
         }
 
         _surface.EndFrame();
+
+        // after the frame: layout is done, and the bounds are the drawn ones
+        AriaMirror?.AfterPaint(_windows);
     }
 
     private void DimBelow(SKCanvas canvas)

@@ -280,9 +280,10 @@ public partial class Form : IDisposable
     public Form()
     {
         App.ThemeChanged += OnThemeChanged;
-        App.ThemeChanged += OnThemeChanged;
         App.TextScaleChanged += OnTextScaleChanged;
         Localization.Changed += OnLocalizationChanged;
+        _focusDispatcher.FocusChanged += OnFocusChangedForKeyboard;
+        _focusDispatcher.FocusChanged += OnFocusChangedForAccessibility;
     }
 
     /// <summary>The keyboard follows focus: a field got it — show the keyboard,

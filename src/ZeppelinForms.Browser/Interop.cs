@@ -24,6 +24,16 @@ internal static partial class Interop
     [JSImport("systemAccentColor", ModuleName)]
     internal static partial string SystemAccentColor();
 
+    /// <summary>Apply a snapshot of the accessibility tree to the ARIA mirror,
+    /// see AriaSnapshot.</summary>
+    [JSImport("updateAccessibilityTree", ModuleName)]
+    internal static partial void UpdateAccessibilityTree(string json);
+
+    /// <summary>Have a screen reader say the text: into the polite live region,
+    /// or the assertive one.</summary>
+    [JSImport("announce", ModuleName)]
+    internal static partial void Announce(string text, bool assertive);
+
     [JSImport("forcedColorsActive", ModuleName)]
     internal static partial bool ForcedColorsActive();
 
@@ -109,6 +119,12 @@ internal static partial class Interop
 
     [JSExport]
     internal static void OnDrain() => Platform?.DrainInvokes();
+
+    /// <summary>A screen reader acted on a node of the ARIA mirror: "click" — the
+    /// default action, "focus" — moved its own focus there.</summary>
+    [JSExport]
+    internal static void OnAccessibilityAction(string id, string action) =>
+        Platform?.AriaMirror?.Act(id, action);
 
     [JSExport]
     internal static void OnResize(int physicalWidth, int physicalHeight, double scale) =>

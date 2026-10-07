@@ -26,6 +26,7 @@ and ShowFocusRing moved from `ButtonBase` to `InteractiveControl`; source compat
 - ClearValue restores the control's own default instead of the property's.
 - Windows: Alt combinations and F10 now reach the form (WM_SYSKEYDOWN/WM_SYSKEYUP/WM_SYSCHAR), and a tap of Alt no longer enters the system menu;
 - arrow keys bubbling up from inside a tab page no longer switch tabs.
+- restored the focus subscriptions in the Form constructor and Form.FocusForAccessibility, both lost while merging the text-scale and UIA changes.
 
 ### Features
 
@@ -72,6 +73,12 @@ live SettingChanged) with a built-in minimal D-Bus client — no new dependencie
 - Patterns: Invoke, Toggle, ExpandCollapse, SelectionItem, Value, RangeValue, ScrollItem.
 - Focus, property, structure and live-region events are raised; Form.Announce becomes a UIA notification.
 - Built on source-generated COM, compatible with trimming and AOT.
+- The browser ARIA mirror lets screen readers in the browser see the canvas.
+	- Transparent DOM nodes with roles and aria-* attributes are placed over each element; the canvas is role="application" and points at the focused node with aria-activedescendant.
+	- Dialogs are modal to assistive technology.
+	- A screen reader's click triggers the element's default action.
+	- Form.Announce uses live regions.
+	- On by default; opt out with BrowserPlatform.AccessibilityMirror = false.
 
 #### Accessibility semantic model
 
