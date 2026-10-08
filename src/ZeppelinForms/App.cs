@@ -53,6 +53,8 @@ public partial class App
     /// system. The one in effect differs only while high contrast takes over.</summary>
     private static Theme _requestedTheme = Themes.Light;
 
+    private static readonly Lock _themeLocker = new();
+
     /// <summary>The current theme. A change applies to all open forms.</summary>
     /// <remarks>
     /// <para>
@@ -69,7 +71,10 @@ public partial class App
     /// </remarks>
     public static Theme Theme
     {
-        get => _theme;
+        get
+        {
+            lock (_themeLocker) return _theme;
+        }
         set
         {
             s_systemThemes = null;
@@ -180,13 +185,16 @@ public partial class App
 
     private static void OnSystemAppearanceChanged(object? sender, EventArgs e)
     {
-        if (s_systemThemes is not null) ApplySystemTheme();
+        lock (_themeLocker)
+        {
+            if (s_systemThemes is not null) ApplySystemTheme();
 
-        // contrast turned on or off, or its colors changed: whatever the
-        // application follows or not, high contrast is the system's word
-        ApplyEffectiveTheme();
+            // contrast turned on or off, or its colors changed: whatever the
+            // application follows or not, high contrast is the system's word
+            ApplyEffectiveTheme();
 
-        ApplyTextScale();
+            ApplyTextScale();
+        }
     }
 
     private static void ApplySystemTheme()
