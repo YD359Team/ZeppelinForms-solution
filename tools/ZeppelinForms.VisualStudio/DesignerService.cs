@@ -4,6 +4,7 @@ using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Threading;
+using ZeppelinForms.Design.Protocol;
 
 namespace ZeppelinForms.VisualStudio;
 

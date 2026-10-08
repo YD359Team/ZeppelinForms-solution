@@ -46,7 +46,7 @@
 
 	<ItemGroup>
 		<!-- the wire protocol is one file shared with the host -->
-		<Compile Include="..\..\src\ZeppelinForms.Design\Protocol\DesignerProtocol.cs" Link="Protocol\DesignerProtocol.cs" />
+		<Compile Include="..\ZeppelinForms.Design\Protocol\DesignerProtocol.cs" Link="Protocol\DesignerProtocol.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
