@@ -1,10 +1,52 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿/* Styles of the "Styles" page of the example.
+   Run the example in Debug and edit this file: every save shows up at once. */
 
-namespace ZF_SharedLib.Assets
-{
-    class styles
-    {
+$radius: 8;
+
+/* the page's own buttons: a class per kind */
+StackPanel.styles-demo {
+    Button {
+        CornerRadius: $radius;
+        Padding: 16 8;
+        transition: BackgroundColor 150ms ease-out;
     }
+
+    Button.accent {
+        BackgroundColor: @Accent;
+        TextColor: @TextOnAccent;
+
+        &:hover { BackgroundColor: @AccentHover; }
+        &:pressed { BackgroundColor: @AccentPressed; }
+    }
+
+    Button.danger {
+        BackgroundColor: @Error;
+        TextColor: white;
+
+        &:hover { BackgroundColor: darken(@Error, 0.1); }
+    }
+
+    /* a zebra list: every other row tinted with the accent */
+    StackPanel.zebra > Label {
+        Padding: 8 4;
+        transition: Background 120ms;
+    }
+
+    StackPanel.zebra > Label:odd { Background: alpha(@Accent, 0.08); }
+    StackPanel.zebra > Label:hover { Background: alpha(@Accent, 0.2); }
+
+    /* a group lights up while the focus is inside it */
+    StackPanel.group {
+        BorderWidth: 1;
+        BorderColor: @Border;
+        CornerRadius: $radius;
+        Padding: 12;
+        transition: BorderColor 150ms;
+
+        &:focus-within { BorderColor: @Accent; }
+    }
+
+    TextBox:invalid { BorderColor: @Error; }
+
+    CheckBox:checked { TextColor: @Accent; }
 }

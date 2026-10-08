@@ -39,6 +39,11 @@
   <Folder Name="/tests/">
     <Project Path="tests/ZeppelinForms.UnitTests/ZeppelinForms.UnitTests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/ZeppelinForms.Design/ZeppelinForms.Design.csproj" />
+    <Project Path="tools/ZeppelinForms.Designer/ZeppelinForms.Designer.csproj" />
+    <Project Path="tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.csproj" />
+  </Folder>
   <Folder Name="/Элементы решения/">
     <File Path=".gitattributes" />
     <File Path="CHANGELOG.md" />

@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Description>The previewer's engine: finds the previews of a project, runs them without a window and talks to an IDE over the designer protocol. Used by ZeppelinForms.Designer, the host process the IDE extensions start.</Description>
+
+		<!-- a design-time tool, not a dependency of applications -->
+		<IsPackable>false</IsPackable>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\src\ZeppelinForms.Skia\ZeppelinForms.Skia.csproj" />
+	  <ProjectReference Include="..\..\src\ZeppelinForms\ZeppelinForms.csproj" />
+	</ItemGroup>
+
+</Project>

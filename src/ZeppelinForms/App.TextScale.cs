@@ -37,11 +37,32 @@ public partial class App
     /// <summary>Whether the system's text scale is followed.</summary>
     public static bool IsFollowingSystemTextScale => s_followTextScale;
 
+    /// <summary>A text scale set by a design tool rather than read from the system:
+    /// the previewer shows a view at 150 % text without touching the machine's
+    /// settings. Null gives the scale back to <see cref="UseSystemTextScale"/>.</summary>
+    internal static void OverrideTextScale(float? scale)
+    {
+        s_textScaleOverride = scale is { } value ? Math.Clamp(value, 1f, 3f) : null;
+        ApplyTextScale();
+    }
+
+    private static float? s_textScaleOverride;
+
     /// <summary>Put the scale in place: the system's while following, otherwise 1.
     /// Kept between 1 and 3 — a system never asks for less, and a scale out of that
     /// range is a broken setting rather than a wish.</summary>
+
     private static void ApplyTextScale()
     {
+        if (s_textScaleOverride is { } overridden)
+        {
+            if (overridden == TextScale) return;
+
+            TextScale = overridden;
+            TextScaleChanged?.Invoke(null, EventArgs.Empty);
+            return;
+        }
+
         float scale = s_followTextScale && s_appearance is { } appearance
             ? Math.Clamp(appearance.TextScale, 1f, 3f)
             : 1f;

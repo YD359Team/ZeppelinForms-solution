@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <Extern href="stdidcmd.h" />
+  <Extern href="vsshlids.h" />
+
+  <Commands package="guidZeppelinFormsPackage">
+    <Buttons>
+      <!-- View > Other Windows > ZeppelinForms Preview -->
+      <Button guid="guidZeppelinFormsCommandSet" id="cmdidShowPreview" priority="0x0100" type="Button">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
+        <Strings>
+          <ButtonText>ZeppelinForms Preview</ButtonText>
+        </Strings>
+      </Button>
+    </Buttons>
+  </Commands>
+
+  <KeyBindings>
+    <KeyBinding guid="guidZeppelinFormsCommandSet" id="cmdidShowPreview" editor="guidVSStd97" key1="P" mod1="Control Shift Alt" />
+  </KeyBindings>
+
+  <Symbols>
+    <GuidSymbol name="guidZeppelinFormsPackage" value="{de640047-399c-45dc-8ad4-139c0a2265e5}" />
+
+    <GuidSymbol name="guidZeppelinFormsCommandSet" value="{61e83f1d-2200-4895-9866-eff903281f91}">
+      <IDSymbol name="cmdidShowPreview" value="0x0100" />
+    </GuidSymbol>
+  </Symbols>
+</CommandTable>

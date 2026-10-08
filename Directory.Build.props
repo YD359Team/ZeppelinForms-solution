@@ -36,4 +36,13 @@
 		<AnalysisLevel>latest</AnalysisLevel>
 		<EnableNETAnalyzers>true</EnableNETAnalyzers>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- the Visual Studio extension (tools/ZeppelinForms.VisualStudio). The SDK is
+         that of the oldest Visual Studio the extension installs into, 17.10: built
+         against a newer one, it could call what 17.10 doesn't have. The build tools
+         only build, and the newest are fine -->
+		<PackageVersion Include="Microsoft.VisualStudio.SDK" Version="17.10.40171" />
+		<PackageVersion Include="Microsoft.VSSDK.BuildTools" Version="17.14.2101" />
+	</ItemGroup>
 </Project>

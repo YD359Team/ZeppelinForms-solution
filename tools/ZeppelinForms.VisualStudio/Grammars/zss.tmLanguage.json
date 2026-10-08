@@ -1,0 +1,290 @@
+﻿{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "ZeppelinForms Style Sheet",
+    "scopeName": "source.zss",
+    "fileTypes": [
+        "zss"
+    ],
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#import"
+        },
+        {
+            "include": "#variable-declaration"
+        },
+        {
+            "include": "#rule"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.block.zss",
+                    "begin": "/\\*",
+                    "end": "\\*/"
+                },
+                {
+                    "name": "comment.line.double-slash.zss",
+                    "match": "(?<!:)//.*$"
+                }
+            ]
+        },
+        "import": {
+            "match": "(@import)\\s+(\"[^\"]*\"|'[^']*')\\s*(;)?",
+            "captures": {
+                "1": {
+                    "name": "keyword.control.at-rule.import.zss"
+                },
+                "2": {
+                    "name": "string.quoted.zss"
+                },
+                "3": {
+                    "name": "punctuation.terminator.zss"
+                }
+            }
+        },
+        "variable-declaration": {
+            "begin": "(\\$[A-Za-z_][\\w-]*)\\s*(:)",
+            "beginCaptures": {
+                "1": {
+                    "name": "variable.other.declaration.zss"
+                },
+                "2": {
+                    "name": "punctuation.separator.key-value.zss"
+                }
+            },
+            "end": ";",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.terminator.zss"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#value"
+                }
+            ]
+        },
+        "rule": {
+            "begin": "(?=[^\\s{};/@$][^{};]*\\{)",
+            "end": "(?<=\\})",
+            "patterns": [
+                {
+                    "include": "#selector"
+                },
+                {
+                    "include": "#block"
+                }
+            ]
+        },
+        "selector": {
+            "begin": "(?=[^{])",
+            "end": "(?=\\{)",
+            "patterns": [
+                {
+                    "include": "#selector-parts"
+                }
+            ]
+        },
+        "block": {
+            "begin": "\\{",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.section.property-list.begin.zss"
+                }
+            },
+            "end": "\\}",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.section.property-list.end.zss"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#comments"
+                },
+                {
+                    "include": "#declaration"
+                },
+                {
+                    "include": "#rule"
+                }
+            ]
+        },
+        "declaration": {
+            "comment": "Property: value; — a colon followed by a space tells it from a pseudo-class of a nested selector.",
+            "begin": "([A-Za-z][\\w-]*)\\s*(:)(?=\\s)",
+            "beginCaptures": {
+                "1": {
+                    "name": "support.type.property-name.zss"
+                },
+                "2": {
+                    "name": "punctuation.separator.key-value.zss"
+                }
+            },
+            "end": ";|(?=\\})",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.terminator.zss"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#value"
+                }
+            ]
+        },
+        "value": {
+            "patterns": [
+                {
+                    "include": "#comments"
+                },
+                {
+                    "name": "string.quoted.double.zss",
+                    "match": "\"[^\"]*\""
+                },
+                {
+                    "name": "string.quoted.single.zss",
+                    "match": "'[^']*'"
+                },
+                {
+                    "name": "constant.other.color.hex.zss",
+                    "match": "#[0-9A-Fa-f]{3,8}\\b"
+                },
+                {
+                    "name": "variable.other.zss",
+                    "match": "\\$[A-Za-z_][\\w-]*"
+                },
+                {
+                    "name": "support.constant.theme.zss",
+                    "match": "@[A-Za-z_][\\w.]*"
+                },
+                {
+                    "match": "\\b(rgba?|alpha|lighten|darken|mix)(\\()",
+                    "captures": {
+                        "1": {
+                            "name": "support.function.zss"
+                        },
+                        "2": {
+                            "name": "punctuation.section.function.begin.zss"
+                        }
+                    }
+                },
+                {
+                    "match": "(-?\\d*\\.?\\d+)(px|ms|s)?\\b",
+                    "captures": {
+                        "1": {
+                            "name": "constant.numeric.zss"
+                        },
+                        "2": {
+                            "name": "keyword.other.unit.zss"
+                        }
+                    }
+                },
+                {
+                    "name": "constant.language.zss",
+                    "match": "\\b(none|null|true|false|transparent)\\b"
+                },
+                {
+                    "name": "support.constant.zss",
+                    "match": "\\b[A-Za-z][\\w-]*\\b"
+                }
+            ]
+        },
+        "selector-parts": {
+            "patterns": [
+                {
+                    "match": "(:)(nth-child|nth-last-child)(\\()([^)]*)(\\))",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.definition.entity.zss"
+                        },
+                        "2": {
+                            "name": "entity.other.attribute-name.pseudo-class.zss"
+                        },
+                        "3": {
+                            "name": "punctuation.section.function.begin.zss"
+                        },
+                        "4": {
+                            "name": "constant.numeric.zss"
+                        },
+                        "5": {
+                            "name": "punctuation.section.function.end.zss"
+                        }
+                    }
+                },
+                {
+                    "begin": "(:)(not)(\\()",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.entity.zss"
+                        },
+                        "2": {
+                            "name": "entity.other.attribute-name.pseudo-class.zss"
+                        },
+                        "3": {
+                            "name": "punctuation.section.function.begin.zss"
+                        }
+                    },
+                    "end": "\\)",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.section.function.end.zss"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#selector-parts"
+                        }
+                    ]
+                },
+                {
+                    "include": "#comments"
+                },
+                {
+                    "name": "entity.name.tag.nesting.zss",
+                    "match": "&"
+                },
+                {
+                    "name": "keyword.operator.combinator.zss",
+                    "match": ">"
+                },
+                {
+                    "name": "punctuation.separator.list.zss",
+                    "match": ","
+                },
+                {
+                    "name": "entity.name.tag.wildcard.zss",
+                    "match": "\\*"
+                },
+                {
+                    "match": "(:)([A-Za-z][\\w-]*)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.definition.entity.zss"
+                        },
+                        "2": {
+                            "name": "entity.other.attribute-name.pseudo-class.zss"
+                        }
+                    }
+                },
+                {
+                    "name": "entity.other.attribute-name.class.zss",
+                    "match": "\\.[A-Za-z_-][\\w-]*"
+                },
+                {
+                    "name": "entity.other.attribute-name.id.zss",
+                    "match": "#[A-Za-z_-][\\w-]*"
+                },
+                {
+                    "name": "entity.name.tag.zss",
+                    "match": "[A-Za-z_][\\w]*"
+                }
+            ]
+        }
+    }
+}

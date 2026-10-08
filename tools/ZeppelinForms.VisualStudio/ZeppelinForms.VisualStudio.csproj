@@ -1,0 +1,71 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The Visual Studio extension: the previewer's tool window, .zss highlighting
+	     and .zss problems in the Error List. Builds with Visual Studio's MSBuild on
+	     Windows only — open ZeppelinForms.VisualStudio.sln — which is why it is not
+	     in the main solution that CI builds with dotnet on Linux too. -->
+
+	<PropertyGroup>
+		<TargetFramework>net472</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
+		<RootNamespace>ZeppelinForms.VisualStudio</RootNamespace>
+		<AssemblyName>ZeppelinForms.VisualStudio</AssemblyName>
+		<IsPackable>false</IsPackable>
+
+		<!-- VSIX -->
+		<GeneratePkgDefFile>true</GeneratePkgDefFile>
+		<UseCodebase>true</UseCodebase>
+		<IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
+		<IncludeDebugSymbolsInVSIXContainer>true</IncludeDebugSymbolsInVSIXContainer>
+		<IncludeDebugSymbolsInLocalVSIXDeployment>true</IncludeDebugSymbolsInLocalVSIXDeployment>
+		<CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
+		<CopyOutputSymbolsToOutputDirectory>true</CopyOutputSymbolsToOutputDirectory>
+		<StartAction>Program</StartAction>
+		<StartProgram>$(DevEnvDir)devenv.exe</StartProgram>
+		<StartArguments>/rootsuffix Exp</StartArguments>
+
+		<!-- the solution's rule — a warning breaks the build — is kept for the
+		     framework. Here the VS SDK's threading analyzers apply, the project is
+		     built outside CI, and a first build should not fail on a style rule -->
+		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.VisualStudio.SDK" ExcludeAssets="runtime" />
+		<PackageReference Include="Microsoft.VSSDK.BuildTools" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- the wire protocol is one file shared with the host -->
+		<Compile Include="..\ZeppelinForms.Design\Protocol\DesignerProtocol.cs" Link="Protocol\DesignerProtocol.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="source.extension.vsixmanifest" SubType="Designer" />
+		<None Include="ZeppelinForms.VisualStudio.sln" />
+		<VSCTCompile Include="ZeppelinForms.vsct" ResourceName="Menus.ctmenu" />
+
+		<Content Include="Grammars\**\*" IncludeInVSIX="true" />
+		<Content Include="ZeppelinForms.pkgdef" IncludeInVSIX="true" />
+		<Content Include="Resources\Icon.png" IncludeInVSIX="true" />
+	</ItemGroup>
+
+	<!-- The host process goes into the extension, published next to it in Designer\.
+	     dotnet publish rather than an MSBuild call: the host is .NET 10, and the
+	     MSBuild of an older Visual Studio may not know that SDK -->
+	<Target Name="PublishDesignerHost" BeforeTargets="PrepareForBuild">
+		<PropertyGroup>
+			<DesignerHostOutput>$(MSBuildProjectDirectory)\obj\Designer\</DesignerHostOutput>
+		</PropertyGroup>
+
+		<Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)\..\ZeppelinForms.Designer\ZeppelinForms.Designer.csproj&quot; -c $(Configuration) -o &quot;$(DesignerHostOutput)&quot; --nologo" />
+
+		<ItemGroup>
+			<Content Include="$(DesignerHostOutput)**\*" IncludeInVSIX="true" VSIXSubPath="Designer\%(RecursiveDir)" />
+		</ItemGroup>
+	</Target>
+
+</Project>

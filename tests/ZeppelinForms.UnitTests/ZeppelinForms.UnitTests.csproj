@@ -10,13 +10,22 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="xunit.v3"  />
+    <Compile Remove="PreviewerTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="PreviewerTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ZeppelinForms.Linux\ZeppelinForms.Linux.csproj" />
     <ProjectReference Include="..\..\src\ZeppelinForms.Windows\ZeppelinForms.Windows.csproj" />
     <ProjectReference Include="..\..\src\ZeppelinForms\ZeppelinForms.csproj" />
+    <ProjectReference Include="..\..\tools\ZeppelinForms.Design\ZeppelinForms.Design.csproj" />
   </ItemGroup>
 
 </Project>

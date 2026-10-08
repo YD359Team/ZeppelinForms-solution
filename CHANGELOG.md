@@ -2,7 +2,24 @@
 
 ## Future [0.14.0] - Unknown
 
+### Previewer
 
+- Live previews in Visual Studio 2022 17.10+ and Visual Studio 2026: the
+  "ZeppelinForms Tools" extension (`tools/ZeppelinForms.VisualStudio`), View ›
+  Other Windows › ZeppelinForms Preview
+- `[Preview]` on a static method returning a `UIElement` or a `Form`, with an
+  optional name, group, size, theme, culture, right-to-left layout and text scale.
+  Forms with a constructor without parameters are listed without an attribute
+- `[PreviewSetup]` marks what `Main` would do before showing a form — loading style
+  sheets, choosing a theme — since `Main` doesn't run in the previewer
+- The preview is live — hover, click, type, scroll; animations run — and reloads
+  after each build. `.zss` sheets loaded with `watch: true` update without a build
+- The toolbar overrides theme, size, culture, direction and text scale; the window
+  shows the active document's previews first; an exception is shown in place
+- `.zss` highlighting, and the problems of a sheet in the Error List on open and save
+- `ZeppelinForms.Design`: the previewer's engine — catalog, session, server and the
+  designer protocol — and `ZeppelinForms.Designer`, the host process the extension
+  starts. The protocol is plain framed binary, ready for a Rider plugin
 
 ## [0.13.1]
 
