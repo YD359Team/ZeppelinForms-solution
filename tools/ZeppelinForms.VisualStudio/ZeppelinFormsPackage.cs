@@ -53,7 +53,9 @@ public sealed class ZeppelinFormsPackage : AsyncPackage
         Designer = new DesignerService(this, dte, Log);
         Sheets = new SheetChecker(this, dte, Designer);
 
-        if (await GetServiceAsync(typeof(IMenuCommandService)) is OleMenuCommandService commands)
+        // the interface, not OleMenuCommandService: its base, MenuCommandService, lives
+        // in System.Design, and AddCommand is all that is needed here
+        if (await GetServiceAsync(typeof(IMenuCommandService)) is IMenuCommandService commands)
             commands.AddCommand(new MenuCommand(ShowPreview, new CommandID(CommandSet, ShowPreviewCommandId)));
 
         Instance = this;

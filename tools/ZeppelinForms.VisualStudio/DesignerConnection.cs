@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
-using ZeppelinForms.Design.Protocol;
 
 namespace ZeppelinForms.VisualStudio;
 
