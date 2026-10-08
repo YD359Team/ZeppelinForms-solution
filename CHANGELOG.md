@@ -3,6 +3,8 @@
 ## [0.13.1]
 
 - Fix Localization.LayoutDirection.get race
+- Add system theme locker
+- Add frameclock locker
 
 ## [0.13.0] - Siberia
 

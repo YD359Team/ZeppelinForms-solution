@@ -47,6 +47,8 @@ internal sealed class FrameClock(Form form) : IDisposable
     private TimeSpan _lastFrame;
     private bool _suspended;
 
+    private readonly Lock _locker = new();
+
     /// <summary>Monotonic time since the form was created.</summary>
     public TimeSpan Now => _stopwatch.Elapsed;
 
@@ -141,11 +143,14 @@ internal sealed class FrameClock(Form form) : IDisposable
     /// <summary>A frame from the platform.</summary>
     public void Tick()
     {
-        TimeSpan now = _stopwatch.Elapsed;
-        double deltaMs = (now - _lastFrame).TotalMilliseconds;
-        _lastFrame = now;
+        lock (_locker) 
+        {
+            TimeSpan now = _stopwatch.Elapsed;
+            double deltaMs = (now - _lastFrame).TotalMilliseconds;
+            _lastFrame = now;
 
-        Advance(TimeSpan.FromMilliseconds(Math.Clamp(deltaMs, 0, MaxFrameDeltaMs)));
+            Advance(TimeSpan.FromMilliseconds(Math.Clamp(deltaMs, 0, MaxFrameDeltaMs)));
+        }
     }
 
     /// <summary>Advance animations by the given time. Separate from Tick
@@ -201,20 +206,23 @@ internal sealed class FrameClock(Form form) : IDisposable
     /// passes through there.</summary>
     public void Review()
     {
-        if (form.PlatformWindow?.Frames is not { } frames) return;
-
-        if (_suspended || !HasVisibleAnimation)
+        lock (_locker)
         {
-            if (frames.IsRunning) frames.Stop();
-            return;
+            if (form.PlatformWindow?.Frames is not { } frames) return;
+
+            if (_suspended || !HasVisibleAnimation)
+            {
+                if (frames.IsRunning) frames.Stop();
+                return;
+            }
+
+            if (frames.IsRunning) return;
+
+            // an unknown amount of time has passed between stop and start:
+            // the first step is counted from this moment, not from a long-gone frame
+            _lastFrame = _stopwatch.Elapsed;
+            frames.Start(form.FrameIntervalMs);
         }
-
-        if (frames.IsRunning) return;
-
-        // an unknown amount of time has passed between stop and start:
-        // the first step is counted from this moment, not from a long-gone frame
-        _lastFrame = _stopwatch.Elapsed;
-        frames.Start(form.FrameIntervalMs);
     }
 
     /// <summary>The application went to the background or the window was minimized.</summary>
