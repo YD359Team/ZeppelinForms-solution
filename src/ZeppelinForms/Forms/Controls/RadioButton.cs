@@ -16,7 +16,20 @@ public partial class RadioButton : InteractiveControl, ITextElement
     /// <summary>How far the focus ring runs outside the circle.</summary>
     private const float FocusRingGap = 2f;
 
-    public bool IsChecked { get; private set; }
+    /// <summary>Whether the button is the checked one of its group: the
+    /// <c>:checked</c> pseudo-class.</summary>
+    public bool IsChecked
+    {
+        get;
+        private set
+        {
+            if (field == value) return;
+
+            field = value;
+            SetPseudoClass(PseudoClass.Checked, value);
+        }
+    }
+
     public string? GroupName { get; set; }
 
     public event EventHandler? CheckedChanged;

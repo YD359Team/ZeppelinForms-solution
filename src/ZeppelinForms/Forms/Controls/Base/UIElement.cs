@@ -725,6 +725,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         SetBit(ref _assigned, property.Index);
         ClearBit(_local, property.Index);
         ClearBit(_themed, property.Index);
+        ClearBit(_styled, property.Index);
 
         // remembered for the type: a value the theme stops setting, or the user
         // clears, goes back to this default rather than to the property's
@@ -742,8 +743,13 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     protected bool SetValue<T>(StyledProperty<T> property, ref T storage, T value)
     {
         // The ladder of sources, top to bottom: explicit assignment, binding,
-        // theme, the control's default. The theme overrides neither the first nor the second.
+        // style, theme, the control's default. The theme and the styles override
+        // neither the first nor the second.
         if (ApplyingTheme && (IsLocal(property) || IsBound(property))) return false;
+
+        // a pass with matching styles collects its writes and commits each
+        // property once at the end, see UIElement.Styling.cs
+        if (ApplyingTheme && TryStage(property, value)) return true;
 
         bool assigned = HasValue(property);
 
@@ -761,6 +767,10 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
             // end of the pass must not take it for a value the theme dropped
             else NoteThemeWrite(property.Index);
 
+            // whoever wrote it now, it is not the style's unless a staged style
+            // write puts the bit back right after this call
+            ClearBit(_styled, property.Index);
+
             return false;
         }
 
@@ -776,6 +786,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         storage = value;
 
         SetBit(ref _assigned, property.Index);
+        ClearBit(_styled, property.Index);
 
         if (ApplyingTheme)
         {
@@ -795,6 +806,8 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         if (property.AffectsLayout) InvalidateLayoutFor(property);
         else InvalidateVisual();
 
+        OnStyledWriteForPseudoClasses(property);
+
         RaisePropertyChanged(property);
         return true;
     }
@@ -805,6 +818,8 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     protected bool SetValue<T>(StyledProperty<T> property, T value)
     {
         if (ApplyingTheme && (IsLocal(property) || IsBound(property))) return false;
+
+        if (ApplyingTheme && TryStage(property, value)) return true;
 
         bool assigned = HasValue(property);
 
@@ -817,6 +832,8 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
             }
             else NoteThemeWrite(property.Index);
 
+            ClearBit(_styled, property.Index);
+
             return false;
         }
 
@@ -827,6 +844,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         property.Write(this, value);
 
         SetBit(ref _assigned, property.Index);
+        ClearBit(_styled, property.Index);
 
         if (ApplyingTheme)
         {
@@ -843,6 +861,8 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
         if (property.AffectsLayout) InvalidateLayoutFor(property);
         else InvalidateVisual();
+
+        OnStyledWriteForPseudoClasses(property);
 
         RaisePropertyChanged(property);
         return true;
@@ -891,6 +911,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
         ClearBit(_local, property.Index);
         ClearBit(_themed, property.Index);
+        ClearBit(_styled, property.Index);
 
         // back to the control's own default where it has one: the property's
         // default used to be written here, and a cleared Padding of a button
@@ -926,12 +947,14 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// A binding counts the same as a manual value: on the ladder of sources it
     /// stands above the theme. Previously only explicit assignment was checked,
     /// so an element's own bound value lost to an ancestor's explicit one,
-    /// and a value bound on an ancestor did not reach its descendants at all.
+    /// A style's value stands above the theme too: <c>StackPanel.dark { TextColor }</c>
+    /// reaches the labels inside, as CSS inheritance does, while a label's own
+    /// style still beats it — the walk meets the element itself first.
     /// </remarks>
     public T GetInheritedValue<T>(StyledProperty<T> property)
     {
         for (UIElement? current = this; current is not null; current = current.Parent)
-            if (current.IsLocal(property) || current.IsBound(property))
+            if (current.IsLocal(property) || current.IsBound(property) || current.IsSetByStyle(property))
                 return property.GetValue(current);
 
         if (HasValue(property))
@@ -1074,7 +1097,21 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     }
 
     public string? ToolTip { get; set; }
-    public string Name { get; set; } = string.Empty;
+
+    /// <summary>The element's name: unique in its form, and what <c>#name</c>
+    /// in a style selector matches.</summary>
+    public string Name
+    {
+        get;
+        set
+        {
+            if (string.Equals(field, value, StringComparison.Ordinal)) return;
+
+            field = value;
+
+            if (StyleUsage.UsesIds) Restyle(subtree: false);
+        }
+    } = string.Empty;
 
     /// <summary>The backdrop color for the current state. Override it here rather
     /// than drawing the background by hand: the border and corner radius
@@ -1121,8 +1158,19 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         }
     }
 
-    protected bool IsHovered { get; set; }
-    protected bool IsPressed { get; set; }
+    /// <summary>The pointer is over the element: the <c>:hover</c> pseudo-class.</summary>
+    protected bool IsHovered
+    {
+        get => GetBit(_pseudo, PseudoClass.Hover.Index);
+        set => SetPseudoClass(PseudoClass.Hover, value);
+    }
+
+    /// <summary>The element is held down: the <c>:pressed</c> pseudo-class.</summary>
+    protected bool IsPressed
+    {
+        get => GetBit(_pseudo, PseudoClass.Pressed.Index);
+        set => SetPseudoClass(PseudoClass.Pressed, value);
+    }
 
     /// <summary>The direction from the element itself, its ancestors, its form —
     /// and last, from the culture: a right-to-left language mirrors the layout
@@ -1406,7 +1454,9 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     private void BeginTransition<T>(StyledProperty<T> property, T from)
     {
         if (!TransitionsActive) return;
-        if (_transitionRules is null || _transitionRules.Count == 0) return;
+
+        if ((_transitionRules is null || _transitionRules.Count == 0) && _styleTransitions is null)
+            return;
 
         // an element that hasn't been shown yet doesn't transition, it appears:
         // otherwise every form would open with all theme values sliding
@@ -1415,14 +1465,8 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
         if (FindOwner() is not { } owner) return;
 
-        Transition? rule = null;
-
-        foreach (Transition candidate in _transitionRules)
-            if (ReferenceEquals(candidate.Property, property))
-            {
-                rule = candidate;
-                break;
-            }
+        // the element's own rules first, then the matched styles'
+        Transition? rule = FindTransitionRule(property);
 
         if (rule is null) return;
 

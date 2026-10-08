@@ -1,4 +1,5 @@
 ﻿using ZeppelinForms.Forms.Layout;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls.Base;
 
@@ -44,6 +45,8 @@ public sealed class FlyoutHost
         // the subscription lives exactly as long as the flyout is open
         form.FlyoutClosed += OnFlyoutClosed;
         form.ShowFlyout(_owner, content, placement);
+
+        _owner.SetPseudoClass(PseudoClass.Open, true);
     }
 
     public void Close()
@@ -72,5 +75,7 @@ public sealed class FlyoutHost
 
         _form = null;
         _content = null;
+
+        _owner.SetPseudoClass(PseudoClass.Open, false);
     }
 }

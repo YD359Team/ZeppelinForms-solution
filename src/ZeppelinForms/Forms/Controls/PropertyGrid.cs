@@ -62,7 +62,7 @@ public partial class PropertyGrid : DecoratedPanel
         {
             Children.Add(new Label
             {
-                Text = property.Name,
+                Text = Caption(property),
                 HorizontalContentAlign = HorizontalContentAlignment.Left,
                 VerticalContentAlign = VerticalContentAlignment.Center,
                 Padding = new Thickness(6, 2),
@@ -72,6 +72,24 @@ public partial class PropertyGrid : DecoratedPanel
         }
 
         Invalidate();
+    }
+
+    /// <summary>The property's name, and where its value came from when it is not
+    /// a default: "BackgroundColor · style" says at a glance which step of the
+    /// ladder won.</summary>
+    private string Caption(PropertyDescriptor property)
+    {
+        if (property.StyledProperty is not { } styled || _target is not UIElement element)
+            return property.Name;
+
+        return element.GetValueSource(styled) switch
+        {
+            ValueSource.Local => $"{property.Name} · local",
+            ValueSource.Binding => $"{property.Name} · binding",
+            ValueSource.Style => $"{property.Name} · style",
+            ValueSource.Theme => $"{property.Name} · theme",
+            _ => property.Name,
+        };
     }
 
     private UIElement CreateEditor(PropertyDescriptor property)

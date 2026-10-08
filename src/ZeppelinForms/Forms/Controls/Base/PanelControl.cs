@@ -251,6 +251,12 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
                 }
         }
 
+        // places among siblings moved, and the panel may have become empty or not:
+        // restyle what selectors on those depend on. Only in a form — attaching
+        // styles the rest
+        if (owner is not null)
+            RestyleAfterChildrenChanged();
+
         if (SuppressChildrenInvalidate == 0)
             Invalidate();
     }

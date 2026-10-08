@@ -9,6 +9,6 @@ public class Program
     static Task Main() => BrowserApp.RunAsync(
         () => new ExampleMainForm(),
         font: "/fonts/Inter-Regular.ttf",
-        preload: ["/Assets/Laughing.png"], 
+        preload: ["/Assets/Laughing.png", "/Assets/styles.zss"],
         theme: Themes.FluentLight);
 }

@@ -61,6 +61,7 @@ public partial class Spoiler : DecoratedWrapControl
         {
             if (field == value) return;
             field = value;
+            SetPseudoClass(PseudoClass.Expanded, !value);
             OnCollapsedStateChanged(value);
             Invalidate();
         }
@@ -71,6 +72,9 @@ public partial class Spoiler : DecoratedWrapControl
         // a collapsed spoiler must shrink to its header
         // rather than stretch over the whole allotted height
         SetControlDefault(VerticalAlignmentProperty, VerticalAlignment.Top);
+
+        // a spoiler starts open
+        SetPseudoClass(PseudoClass.Expanded, true);
 
         SetControlDefault(BorderColorProperty, new Color(255, 200, 200, 200));
         SetControlDefault(BorderWidthProperty, 1f);

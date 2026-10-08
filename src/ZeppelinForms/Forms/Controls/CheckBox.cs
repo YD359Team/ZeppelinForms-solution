@@ -125,6 +125,10 @@ public partial class CheckBox : InteractiveControl, ITextElement
         if (_checkState == state) return;
 
         _checkState = state;
+
+        SetPseudoClass(PseudoClass.Checked, state == CheckedState.Checked);
+        SetPseudoClass(PseudoClass.Indeterminate, state == CheckedState.Intermediate);
+
         CheckedChanged?.Invoke(this, EventArgs.Empty);
         InvalidateVisual();
     }

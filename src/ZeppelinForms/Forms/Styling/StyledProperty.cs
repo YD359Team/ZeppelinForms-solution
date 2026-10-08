@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Theming;
 
 namespace ZeppelinForms.Forms.Styling;
 
@@ -114,6 +115,17 @@ public abstract class StyledProperty
     /// <summary>Put the value the theme no longer sets back to its default.
     /// Typed dispatch for code that knows the property only by its number.</summary>
     internal abstract void WithdrawThemeValue(UIElement element);
+
+    /// <summary>A style setter for a value given without its type: a value of the
+    /// property's type, a <see cref="ThemeValue{T}"/>, or a number for a numeric
+    /// property. Anything else throws now, not when the style is applied.</summary>
+    public abstract Setter CreateSetter(object? value);
+
+    /// <summary>A style setter whose value is computed from the theme and comes back
+    /// boxed: what a style sheet's <c>@Accent</c> compiles to.</summary>
+    internal abstract Setter CreateSetter(Func<Theme, object?> fromTheme);
+
+    public override string ToString() => $"{OwnerType.Name}.{Name}";
 }
 
 public sealed class StyledProperty<T> : StyledProperty
@@ -188,4 +200,32 @@ public sealed class StyledProperty<T> : StyledProperty
 
     internal override void WithdrawThemeValue(UIElement element) =>
         element.WithdrawThemeValue(this);
+
+    public override Setter CreateSetter(object? value) => value switch
+    {
+        ThemeValue<T> fromTheme => new Setter<T>(this, fromTheme.Pick),
+
+        IThemeValue other => throw new ArgumentException(
+            $"{this} takes {typeof(T).Name}; the theme value gives {other.ValueType.Name}.", nameof(value)),
+
+        null when default(T) is null => new Setter<T>(this, default(T)!),
+
+        T typed => new Setter<T>(this, typed),
+
+        // 8 for a float, 2.5 for a double: a style written by hand rarely
+        // types its numbers exactly, and there is nothing to lose in converting
+        IConvertible number when IsNumeric(typeof(T)) && IsNumeric(value.GetType()) =>
+            new Setter<T>(this, (T)Convert.ChangeType(number, typeof(T), System.Globalization.CultureInfo.InvariantCulture)),
+
+        _ => throw new ArgumentException(
+            $"{this} takes {typeof(T).Name}, not {value?.GetType().Name ?? "null"}.", nameof(value)),
+    };
+
+    internal override Setter CreateSetter(Func<Theme, object?> fromTheme) =>
+        new Setter<T>(this, theme => fromTheme(theme) is T typed ? typed : default!);
+
+    private static bool IsNumeric(Type type) =>
+        type == typeof(float) || type == typeof(double) || type == typeof(int) ||
+        type == typeof(long) || type == typeof(short) || type == typeof(byte) ||
+        type == typeof(decimal) || type == typeof(uint);
 }

@@ -27,6 +27,10 @@ public abstract class WrapControl : UIElement
                 field.Parent = null;
             }
 
+            // :empty of the wrapper may have changed
+            if (owner is not null)
+                RestyleAfterChildrenChanged();
+
             field = value;
 
             if (value is not null)

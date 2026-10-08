@@ -116,7 +116,9 @@ public abstract partial class UIElement
 
     /// <summary>Put the property back to its default after the theme stopped
     /// setting it — as a visible change: with a transition, the element's own
-    /// reaction, the invalidation and the notification.</summary>
+    /// reaction, the invalidation and the notification which properties the 
+    /// current theme — and the styles applied in its pass — set on the element, 
+    /// and what each of them goes back to when neither sets it any longer.</summary>
     internal void WithdrawThemeValue<T>(StyledProperty<T> property)
     {
         T fallback = DefaultFor(property, out bool own);
@@ -125,6 +127,9 @@ public abstract partial class UIElement
         // without a default of its own the property returns to "never set":
         // the same state it was in before any theme touched it
         if (!own) ClearBit(_assigned, property.Index);
+
+        // neither the theme nor a style sets it any longer
+        ClearBit(_styled, property.Index);
 
         if (EqualityComparer<T>.Default.Equals(current, fallback)) return;
 
@@ -135,6 +140,8 @@ public abstract partial class UIElement
 
         if (property.AffectsLayout) InvalidateLayoutFor(property);
         else InvalidateVisual();
+
+        OnStyledWriteForPseudoClasses(property);
 
         RaisePropertyChanged(property);
     }

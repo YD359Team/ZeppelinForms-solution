@@ -27,6 +27,9 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
             if (_isOn == value) return;
 
             _isOn = value;
+
+            SetPseudoClass(PseudoClass.Checked, value);
+
             AnimateThumb();
             Toggled?.Invoke(this, EventArgs.Empty);
         }

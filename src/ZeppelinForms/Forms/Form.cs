@@ -284,6 +284,7 @@ public partial class Form : IDisposable
         Localization.Changed += OnLocalizationChanged;
         _focusDispatcher.FocusChanged += OnFocusChangedForKeyboard;
         _focusDispatcher.FocusChanged += OnFocusChangedForAccessibility;
+        _focusDispatcher.FocusChanged += OnFocusChangedForStyles;
     }
 
     /// <summary>The keyboard follows focus: a field got it — show the keyboard,
@@ -953,6 +954,9 @@ public partial class Form : IDisposable
         foreach (UIElement overlay in _overlays.ToArray())
             Walk(overlay, static element => element.ApplyLocalization());
 
+        // a right-to-left language changes what :rtl and :ltr select
+        RestyleForDirection();
+
         // texts of another language have other lengths, and a right-to-left
         // language mirrors the whole layout — every measure is stale
         InvalidateMeasureTree();
@@ -1230,6 +1234,10 @@ public partial class Form : IDisposable
         {
             for (int pass = 0; ; pass++)
             {
+                // styles that depend on places among siblings, deferred from
+                // changes of children: before measuring, they change sizes
+                FlushStructureRestyles();
+
                 _layoutDirty = false;
 
                 LayoutPass();
@@ -1262,7 +1270,7 @@ public partial class Form : IDisposable
     /// must be fresh.</summary>
     internal void EnsureLayout()
     {
-        if (!_layoutDirty) return;
+        if (!_layoutDirty && !HasPendingRestyles) return;
 
         PerformLayout();
     }
@@ -1913,6 +1921,8 @@ public partial class Form : IDisposable
         _clock?.Dispose();
 
         _focusDispatcher.FocusChanged -= OnFocusChangedForKeyboard;
+        _focusDispatcher.FocusChanged -= OnFocusChangedForStyles;
+        _focusedForStyles = null;
 
         // a contact holds Chain — the whole path from the root to the pressed element.
         // The form may have been closed in the middle of a drag, and then

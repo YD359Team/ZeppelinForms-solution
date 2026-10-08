@@ -12,6 +12,11 @@ public sealed class PropertyDescriptor(
     public string Category { get; init; } = "Other";
 
     public Type Type { get; } = type;
+
+    /// <summary>The styled property behind the descriptor, if there is one: the
+    /// inspector shows where its value came from.</summary>
+    public Styling.StyledProperty? StyledProperty { get; init; }
+
     public bool IsReadOnly => set is null;
 
     public object? GetValue(object target) => get(target);

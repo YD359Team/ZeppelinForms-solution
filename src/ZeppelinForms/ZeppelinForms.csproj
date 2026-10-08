@@ -39,10 +39,7 @@
 	     are netstandard2.0, then answered with a net10.0 path that was never
 	     built. RemoveProperties lets them evaluate with their own framework -->
 	<Target Name="_ZfAnalyzersInPackage">
-		<MSBuild Projects="..\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj"
-		         Targets="GetTargetPath"
-		         Properties="Configuration=$(Configuration)"
-		         RemoveProperties="TargetFramework;TargetFrameworks;RuntimeIdentifier;SelfContained">
+		<MSBuild Projects="..\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework;TargetFrameworks;RuntimeIdentifier;SelfContained">
 			<Output TaskParameter="TargetOutputs" ItemName="_ZfAnalyzerAssembly" />
 		</MSBuild>
 

@@ -36,6 +36,9 @@ public partial class ToggleButton : Button
             if (_isChecked == value) return;
 
             _isChecked = value;
+
+            SetPseudoClass(PseudoClass.Checked, value);
+
             CheckedChanged?.Invoke(this, EventArgs.Empty);
             InvalidateVisual();
         }

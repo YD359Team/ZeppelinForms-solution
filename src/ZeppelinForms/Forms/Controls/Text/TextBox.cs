@@ -132,7 +132,20 @@ public partial class TextBox : TextInputControl, ITextElement
 
     public bool IsEnterAccepted { get; set; } = true;
     public bool IsTabAccepted { get; set; }
-    public bool IsReadOnly { get; set; }
+
+    /// <summary>The text can be selected and copied but not changed: the
+    /// <c>:read-only</c> pseudo-class.</summary>
+    public bool IsReadOnly
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            SetPseudoClass(PseudoClass.ReadOnly, value);
+        }
+    }
 
     public char? PasswordChar
     {
@@ -247,6 +260,9 @@ public partial class TextBox : TextInputControl, ITextElement
 
         ValidationState = state;
         ValidationMessage = message;
+
+        SetPseudoClass(PseudoClass.Invalid, state == ValidationState.Error);
+        SetPseudoClass(PseudoClass.Valid, state == ValidationState.Success);
 
         ValidationChanged?.Invoke(this, EventArgs.Empty);
         InvalidateVisual();

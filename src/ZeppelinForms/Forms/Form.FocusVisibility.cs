@@ -49,6 +49,9 @@ public partial class Form
         // only the focused element draws anything by this flag; the rest of the
         // form looks the same either way and doesn't need repainting
         _focusDispatcher.FocusedElement?.InvalidateVisual();
+
+        // and only its :focus-visible changes
+        OnFocusVisibleChangedForStyles();
     }
 
     private static bool IsModifierKey(Key key) => key is

@@ -3,6 +3,7 @@ using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Theming;
 
@@ -122,9 +123,26 @@ public sealed class Theme
     /// gave with it, taken in by the theme's <see cref="AccentRule"/>.</summary>
     public Theme WithAccent(AccentPalette accent) => WithColors(AccentRule(Colors, accent));
 
+    /// <summary>Style an element: the theme's rules, then the styles that match it.</summary>
+    /// <remarks>
+    /// <para>
+    /// Styles are applied in the theme's pass rather than in one of their own, so the
+    /// pass's bookkeeping covers them: what the pass doesn't write any more — a rule
+    /// of the previous theme, a style that stopped matching — goes back to the
+    /// default at its end. See UIElement.Styling.cs for the ladder of sources.
+    /// </para>
+    /// <para>
+    /// With matching styles the pass is staged: each property is written once, with
+    /// the strongest value, instead of the theme's and then the style's.
+    /// </para>
+    /// </remarks>
     internal void Apply(UIElement element)
     {
         Action<UIElement, Theme>[] chain = GetChain(element.GetType());
+
+        // matched before the pass starts: matching reads the tree and the element's
+        // state, not its styled values, and a pass with nothing to match is not staged
+        StyleCascade.Result styles = StyleCascade.Match(element);
 
         // the pass runs even without rules: an element the previous theme
         // styled must give those values back when this one has nothing for it
@@ -137,21 +155,48 @@ public sealed class Theme
         bool wasApplying = UIElement.ApplyingTheme;
         UIElement.ApplyingTheme = true;
 
+        bool staged = styles.Styles.Length > 0;
+        UIElement.StagingState outer = staged ? element.BeginStaging() : default;
+
         try
         {
             // from base type to derived: a specialization adds to
             // the general styling rather than replacing it wholesale
             foreach (Action<UIElement, Theme> apply in chain)
                 apply(element, this);
+
+            // before anything is committed: the commit starts the transitions,
+            // and the matched styles' rules must already be in place
+            element.SetStyleTransitions(styles.Transitions);
+
+            if (staged)
+            {
+                UIElement.StagingFromStyle = true;
+
+                // weakest first: a later write of the same property replaces
+                // the staged one, so the strongest style wins
+                foreach (Style style in styles.Styles)
+                    foreach (Setter setter in style.Setters)
+                        setter.Apply(element, this);
+
+                staged = false;
+                element.CommitStaging(outer);
+            }
         }
         finally
         {
+            // an exception in a rule: the staged writes are dropped, and staging
+            // must not stay switched on for whatever runs next on this thread
+            if (staged) UIElement.EndStaging(outer);
+
             UIElement.ApplyingTheme = wasApplying;
 
             // after the flag is lowered: what goes back to the defaults is not
             // a theme value, and must not be recorded as one
             element.EndThemePass(pass);
         }
+
+        element.CompleteThemePass(this);
     }
 
     /// <summary>The applier chain for a type, from base to derived.</summary>

@@ -23,7 +23,7 @@ using ZF_SharedLib.Models;
 
 namespace ZF_SharedLib;
 
-public class ExampleMainForm : Form
+public partial class ExampleMainForm : Form
 {
     public ExampleMainForm()
     {
@@ -53,6 +53,7 @@ public class ExampleMainForm : Form
         root.AddPage("table", () => GetView8(), "Table");
         root.AddPage("sysdnd", () => GetView9(), "System Drag&Drop");
         root.AddPage("binding", () => GetView10(), "Binding");
+        root.AddPage("styles", () => GetStylesView(), "Styles");
         return new DockPanel
         {
             Children =
