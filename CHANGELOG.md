@@ -1,6 +1,8 @@
 # Changes
 
-## Future [0.14.0] - Unknown
+## Future [0.14.0] - Eye of Sahara
+
+![Eye of Sahara](assets/Logo-0.14.0.jpg)
 
 ### Fixes
 
