@@ -234,7 +234,24 @@ public static partial class Themes
                                         strip.DisabledTextColor = c.TextDisabled;
                                         strip.AccentColor = c.Accent;
                                         strip.ButtonHoverColor = c.Accent;
-                                    });
+                                    })
+
+
+            // no tint: a translucent wash is a shade, and contrast has none.
+            // The pane is told from the content by its edge
+            .For<SplitView>((view, c) =>
+            {
+                view.PaneBackground = c.Background;
+                view.PaneBorderColor = c.Text;
+                view.ScrimColor = Colors.Transparent;
+            })
+
+            .For<RefreshContainer>((refresh, c) =>
+            {
+                refresh.IndicatorColor = c.Accent;
+                refresh.IndicatorBackground = c.Background;
+                refresh.IndicatorBorderColor = c.Text;
+            });
     }
 
     private static void ContrastButton(ButtonBase button, ThemeColors c, HighContrastPalette p)

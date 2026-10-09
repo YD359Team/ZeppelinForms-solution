@@ -50,5 +50,10 @@ internal sealed class ZfRussianStrings : StringTable
 
         Add(ZfText.CloseTab, "Закрыть вкладку");
         Add(ZfText.NewTab, "Новая вкладка");
+
+        Add(ZfText.Pane, "Панель");
+
+        Add(ZfText.Refreshing, "Обновление");
+        Add(ZfText.Refreshed, "Обновлено");
     }
 }

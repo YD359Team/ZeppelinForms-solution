@@ -118,11 +118,11 @@ public class UIElementPeer : AccessibilityPeer
 
     // ===== tree helpers =====
 
-    /// <summary>The element's own children, in the order they are laid out.</summary>
+    /// <summary>The element's own children, in the order they are read.</summary>
     internal static IEnumerable<UIElement> ChildElements(UIElement element) => element switch
     {
         WrapControl { Child: { } child } => [child],
-        PanelControl panel => panel.Children,
+        PanelControl panel => panel.NavigationOrder,
         _ => [],
     };
 

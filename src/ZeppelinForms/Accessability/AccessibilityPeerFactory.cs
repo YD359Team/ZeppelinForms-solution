@@ -70,6 +70,9 @@ internal static class AccessibilityPeerFactory
         // containers and pictures
         GroupBox group => new GroupPeer(group),
         Spoiler spoiler => new SpoilerPeer(spoiler),
+        SplitView split => new SplitViewPeer(split),
+        SplitViewPaneHost pane => new SplitViewPanePeer(pane),
+        RefreshContainer refresh => new RefreshContainerPeer(refresh),
         ChartBase chart => new ChartPeer(chart),
         PictureBox or SvgIcon => new ImagePeer(element),
         GridSplitter => new SeparatorPeer(element),

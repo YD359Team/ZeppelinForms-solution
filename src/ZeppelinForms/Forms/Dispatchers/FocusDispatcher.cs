@@ -119,7 +119,9 @@ public class FocusDispatcher
                 break;
 
             case PanelControl panel:
-                foreach (var child in panel.Children)
+                // the reading order, not the drawing one: a split view's pane is
+                // drawn last, over the content, but comes first
+                foreach (var child in panel.NavigationOrder)
                     Walk(child, stops);
                 break;
         }

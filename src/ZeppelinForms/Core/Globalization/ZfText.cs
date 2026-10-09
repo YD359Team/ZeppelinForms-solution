@@ -67,4 +67,15 @@ public static class ZfText
 
     public static readonly TextKey CloseTab = new("zf.tabs.close", "Close tab");
     public static readonly TextKey NewTab = new("zf.tabs.new", "New tab");
+
+
+    // ===== SplitView =====
+
+    /// <summary>The name of a split view's pane without a title of its own.</summary>
+    public static readonly TextKey Pane = new("zf.splitview.pane", "Pane");
+
+    // ===== RefreshContainer =====
+
+    public static readonly TextKey Refreshing = new("zf.refresh.refreshing", "Refreshing");
+    public static readonly TextKey Refreshed = new("zf.refresh.refreshed", "Updated");
 }

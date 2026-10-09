@@ -29,6 +29,10 @@
   translucent colors. The F12 inspector edits colors with alpha
 - `PageIndicator` shows a page's `Title` as a tooltip over its dot. Tooltips of the
   parts a control draws itself: `UIElement.GetToolTip(point)` and `RefreshToolTip()`
+- `PanelControl.NavigationOrder`: the order Tab and screen readers go through the
+  children, when it differs from the order they are drawn in
+- `PanGestureRecognizer.CanAccept`: asked at the break threshold with the travel so
+  far; false hands the contact to the next recognizer up the chain
 
 ### New controls
 
@@ -44,6 +48,19 @@
   `Contains`, `WordStartsWith`) or a `SuggestionProvider`; Up, Down, Enter, Escape
   and a click; the field keeps the focus. `TextBox.Select(start, length)` and
   `TextBox.OnTextEdited()` come with it
+ - `SplitView`: a pane beside the content, in four `DisplayMode`s — `Overlay`,
+  `Inline`, `CompactOverlay`, `CompactInline`; `OpenPaneLength`, `CompactPaneLength`,
+  `PanePlacement` (`Start`/`End`, mirrored under right-to-left). The pane slides
+  open, laid out at its full width throughout, so nothing in it reflows. A pane over
+  the content closes on a click on the content or Escape, takes the focus from inside
+  the view and gives it back; `PaneClosing` can keep it open. Tab and screen readers
+  go through the pane first. Pseudo-classes `:open`, `:compact`, `:overlay`
+- `RefreshContainer`: pull to refresh around any content, usually a scrolling list.
+  The pull starts only with the list at its edge — elsewhere the drag scrolls —
+  `TopToBottom` or `BottomToTop`; a finger and a pen pull, the mouse with
+  `AllowMousePull`. `RefreshRequested` with deferrals for asynchronous loading, F5,
+  `RequestRefresh()`, and `Invoke` for screen readers, which also hear the refresh
+  start and end. Pseudo-class `:refreshing`
 
 ### Previewer
 

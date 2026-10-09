@@ -41,6 +41,13 @@ public sealed class PanGestureRecognizer : GestureRecognizer
     /// take the gesture away from an outer panel that has somewhere to go.</summary>
     public Func<PointerContact, bool>? CanBegin { get; set; }
 
+
+    /// <summary>Asked once the movement passes the break threshold, with the travel
+    /// so far: whether to take the contact now. false yields it to the next
+    /// recognizer up the chain — a list scrolled to its top lets a downward drag go
+    /// to the pull-to-refresh around it.</summary>
+    public Func<PointerContact, Point, bool>? CanAccept { get; set; }
+
     public event EventHandler<PanGestureEventArgs>? Started;
     public event EventHandler<PanGestureEventArgs>? Updated;
     public event EventHandler<PanGestureEventArgs>? Completed;
@@ -98,6 +105,14 @@ public sealed class PanGestureRecognizer : GestureRecognizer
         }
 
         if (Direction == PanDirection.Vertical && MathF.Abs(dx) > MathF.Abs(dy))
+        {
+            Reject();
+            return;
+        }
+
+        // the direction is ours, but someone further up may have a better claim
+        // to this very movement; the arena hands it on in the same move
+        if (CanAccept is { } canAccept && !canAccept(contact, new Point(dx, dy)))
         {
             Reject();
             return;

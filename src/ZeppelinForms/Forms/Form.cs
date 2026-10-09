@@ -1064,6 +1064,24 @@ public partial class Form : IDisposable
         return _focusDispatcher.FocusFirstTextInput(root);
     }
 
+
+    /// <summary>The element with the keyboard focus, for a control that hands the
+    /// focus over and takes it back — a split view opening its pane.</summary>
+    internal UIElement? FocusedElement => _focusDispatcher.FocusedElement;
+
+    /// <summary>Focus an element of this form, if it takes the focus.</summary>
+    internal bool FocusElement(UIElement element) =>
+        element.FindOwner() == this && element is IInputElement && _focusDispatcher.FocusElement(element);
+
+    /// <summary>Focus the first Tab stop under root, unless the focus is already inside.</summary>
+    internal bool FocusFirstStop(UIElement root)
+    {
+        if (_focusDispatcher.FocusedElement is { } focused && IsInTree(root, focused))
+            return true;
+
+        return _focusDispatcher.MoveNext(root);
+    }
+
     public void Close() => PlatformWindow?.Close();
 
     public void Invoke(Action action) => PlatformWindow?.Invoke(action);

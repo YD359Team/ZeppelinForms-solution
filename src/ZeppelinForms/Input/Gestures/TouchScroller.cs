@@ -1,5 +1,6 @@
 ﻿using ZeppelinForms.Animation;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Input.Pointer;
 
@@ -58,7 +59,7 @@ internal sealed class TouchScroller
     {
         _target = target;
 
-        _pan = new PanGestureRecognizer { CanBegin = CanBegin };
+        _pan = new PanGestureRecognizer { CanBegin = CanBegin, CanAccept = CanAccept };
 
         _pan.Started += OnStarted;
         _pan.Updated += OnUpdated;
@@ -127,6 +128,12 @@ internal sealed class TouchScroller
 
         return true;
     }
+
+    /// <summary>Whether to take the movement now that it is a pan. Content at its
+    /// edge, pulled on past it, is a pull-to-refresh when a refresh container
+    /// waits around it — the bounce would only stand in its way.</summary>
+    private bool CanAccept(PointerContact contact, Point travel) =>
+        !RefreshContainer.ClaimsPull(_target, contact, travel);
 
     private void OnStarted(object? sender, PanGestureEventArgs e)
     {

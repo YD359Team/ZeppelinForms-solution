@@ -122,8 +122,18 @@ public sealed class PseudoClass
     /// <summary>An expandable element shows its content: an open spoiler.</summary>
     public static readonly PseudoClass Expanded = Register("expanded");
 
-    /// <summary>The element has its flyout open: a combo box, a date picker, a split button.</summary>
+    /// <summary>The element has its flyout open: a combo box, a date picker, a split button.
+    /// A split view whose pane is open.</summary>
     public static readonly PseudoClass Open = Register("open");
+
+    /// <summary>A split view that keeps a strip of its pane while the pane is closed.</summary>
+    public static readonly PseudoClass Compact = Register("compact");
+
+    /// <summary>A split view whose pane opens over the content rather than beside it.</summary>
+    public static readonly PseudoClass Overlay = Register("overlay");
+
+    /// <summary>A refresh container is waiting for its refresh to finish.</summary>
+    public static readonly PseudoClass Refreshing = Register("refreshing");
 
     /// <summary>A text field that can't be edited.</summary>
     public static readonly PseudoClass ReadOnly = Register("read-only");

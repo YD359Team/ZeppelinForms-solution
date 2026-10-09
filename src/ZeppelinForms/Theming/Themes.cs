@@ -418,6 +418,23 @@ public static partial class Themes
                 split.SplitterHoverColor = c.SurfaceHover;
             })
 
+
+            // the pane is a surface over the page; the scrim darkens the content
+            // a little more on a dark theme, where a light tint would glow
+            .For<SplitView>((view, c) =>
+            {
+                view.PaneBackground = c.Surface;
+                view.PaneBorderColor = c.Border;
+                view.ScrimColor = c.IsDark ? new Color(77, 0, 0, 0) : new Color(51, 0, 0, 0);
+            })
+
+            .For<RefreshContainer>((refresh, c) =>
+            {
+                refresh.IndicatorColor = c.Accent;
+                refresh.IndicatorBackground = c.Surface;
+                refresh.IndicatorBorderColor = c.Border;
+            })
+
             // the default separator is translucent white, made for an accent
             // button; on the theme's neutral button it disappeared
             .For<SplitButton>((button, c) => button.SeparatorColor = c.Border)

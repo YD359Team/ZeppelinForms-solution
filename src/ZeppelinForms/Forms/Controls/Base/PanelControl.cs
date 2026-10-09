@@ -26,6 +26,15 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
 
     public ObservableCollection<UIElement> Children { get; } = [];
 
+    /// <summary>The children in the order Tab and a screen reader go through them.</summary>
+    /// <remarks>
+    /// The same as <see cref="Children"/> by default, which is also the order they
+    /// are drawn in. A panel that draws its children in another order than they are
+    /// read gives its own: a split view draws its pane over the content, so the pane
+    /// comes last in Children, yet it is read and tabbed through first.
+    /// </remarks>
+    protected internal virtual IEnumerable<UIElement> NavigationOrder => Children;
+
     /// <summary>The children this panel has attached to itself.</summary>
     /// <remarks>
     /// ObservableCollection reports Clear() as Reset without OldItems, so the
