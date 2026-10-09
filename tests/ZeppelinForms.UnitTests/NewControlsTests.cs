@@ -1,5 +1,6 @@
 ﻿using Xunit;
 using ZeppelinForms.Accessibility;
+using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
@@ -197,7 +198,10 @@ public class NewControlsTests
         AccessibilityPeer upper = group.Children[1];
 
         Assert.Equal(AccessibilityRole.Slider, lower.Role);
-        Assert.Equal("Lower value", lower.Name);
+
+        // the names follow the language: the test may run under any culture
+        Assert.Equal(Localization.Get(ZfText.RangeLower), lower.Name);
+        Assert.Equal(Localization.Get(ZfText.RangeUpper), upper.Name);
         Assert.Equal(20d, lower.Range!.Value.Value);
         Assert.Equal(80d, upper.Range!.Value.Value);
 
