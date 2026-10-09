@@ -128,7 +128,7 @@ public static class ElementTreeRenderer
                 if (wrap.Child is not null)
                 {
                     g.Save();
-                    g.ClipRect(wrap.ContentBounds);
+                    g.ClipRect(wrap.ClipBounds);
                     wrap.ApplyChildTransform(g);
 
                     // a content transform of one's own is the same as rotation:
@@ -140,7 +140,7 @@ public static class ElementTreeRenderer
                         wrap.Child,
                         g,
                         position,
-                        cullChild ? Narrow(clip, wrap.ContentBounds, position) : null,
+                        cullChild ? Narrow(clip, wrap.ClipBounds, position) : null,
                         cullChild);
 
                     g.Restore();

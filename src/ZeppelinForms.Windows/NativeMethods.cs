@@ -128,6 +128,11 @@ internal static class NativeMethods
     public static extern bool UpdateWindow(
         nint hWnd);
 
+
+    [DllImport("user32.dll")]
+    public static extern bool IsWindowVisible(
+        nint hWnd);
+
     [DllImport(
         "user32.dll",
         EntryPoint = "SetWindowTextW",

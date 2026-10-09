@@ -109,7 +109,33 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
                 _exiting[i].Cancel(applyFinalValue: false);
     }
 
-    protected internal override Rectangle ClipBounds => Viewport;
+    /// <summary>Where the children are cut off: at the viewport along an axis that
+    /// scrolls, at the panel's own edge along one that doesn't.</summary>
+    /// <remarks>
+    /// It used to be the viewport always — the area inside the padding. What a
+    /// child draws a little past its own bounds — the stroke of a check box's
+    /// square, a focus ring — was cut by the padding of the panel around it: the
+    /// last check box of a padded group lost the bottom of its box. CSS cuts at
+    /// the same place, the padding box. Scrolled content still stops at the
+    /// viewport: it must not show through the padding.
+    /// </remarks>
+    protected internal override Rectangle ClipBounds
+    {
+        get
+        {
+            Rectangle view = Viewport;
+            Rectangle own = LocalBounds;
+
+            bool horizontal = ScrollsHorizontally;
+            bool vertical = ScrollsVertically;
+
+            if (horizontal && vertical) return view;
+
+            return new Rectangle(
+                new Point(horizontal ? view.X : own.X, vertical ? view.Y : own.Y),
+                new Size(horizontal ? view.Width : own.Width, vertical ? view.Height : own.Height));
+        }
+    }
 
     // overflow decides whether the content may grow along an axis,
     // that is, it directly affects measuring

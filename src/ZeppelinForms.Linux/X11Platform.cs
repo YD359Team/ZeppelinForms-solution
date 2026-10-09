@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
+using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
@@ -410,7 +411,10 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                     var focus = Marshal.PtrToStructure<X11.XAnyEvent>(eventPtr);
 
                     if (_windows.TryGetValue(focus.window, out X11Window? window))
+                    {
                         window.OnFocusIn();
+                        window.Form.OnWindowActivated(true);
+                    }
 
                     break;
                 }
@@ -426,6 +430,7 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                     {
                         window.OnFocusOut();
                         window.Form.OnWindowFocusLost();
+                        window.Form.OnWindowActivated(false);
                     }
 
                     break;
@@ -459,7 +464,10 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                     }
                     else if (window.IsDeleteMessage((nuint)message.data0))
                     {
-                        window.Close();
+                        // the close button of the title bar: the form's Closing
+                        // may keep the window open
+                        if (window.Form.RequestClose(CloseReason.UserClosing))
+                            window.Close();
                     }
 
                     break;

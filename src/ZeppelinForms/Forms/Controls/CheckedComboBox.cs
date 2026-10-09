@@ -111,7 +111,7 @@ public partial class CheckedComboBox : InteractiveControl
     {
         var content = ContentBounds;
 
-        g.DrawText(DisplayText,
+        g.DrawTextLine(DisplayText,
             new Rectangle(content.Position, new Size(Math.Max(0, content.Width - ArrowWidth), content.Height)),
             _checked.Count == 0 ? PlaceholderColor : TextColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);

@@ -297,7 +297,7 @@ internal sealed class FrameClock(Form form) : IDisposable
     }
 
     // ticks on a pool thread — marshal it, everything after this is on the UI thread
-    private void OnTimer(object? state) => form.Invoke(RunDue);
+    private void OnTimer(object? state) => form.BeginInvoke(RunDue);
 
     private void RunDue()
     {

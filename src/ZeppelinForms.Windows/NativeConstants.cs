@@ -92,6 +92,22 @@ internal static class NativeConstants
     0x00040000 |
     0x00020000 |
     0x00010000;
+
+    // the frame, piece by piece: Win32Window.Chrome builds it from the form
+    public const uint WS_POPUP = 0x80000000;
+    public const uint WS_CAPTION = 0x00C00000;
+    public const uint WS_SYSMENU = 0x00080000;
+    public const uint WS_EX_DLGMODALFRAME = 0x00000001;
+    public const uint WS_EX_TOOLWINDOW = 0x00000080;
+    public const uint WS_EX_WINDOWEDGE = 0x00000100;
+    public const uint WS_EX_APPWINDOW = 0x00040000;
+    public const int GWL_STYLE = -16;
+    public const int GWLP_HWNDPARENT = -8;
+    public const int SWP_NOSIZE = 0x0001;
+    public const int SWP_FRAMECHANGED = 0x0020;
+    public const int SW_HIDE = 0;
+    public const int SW_SHOWNA = 8;
+    public const uint WM_ACTIVATE = 0x0006;
     public const int SW_SHOW = 5;
     public const uint WM_NCCREATE = 0x0081;
     public const uint WM_CLOSE = 0x0010;

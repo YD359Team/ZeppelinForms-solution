@@ -188,7 +188,7 @@ public partial class NumericUpDown : TextInputControl
                 Math.Max(0, ActualSize.Width - ButtonWidth - Padding.Horizontal),
                 Math.Max(0, ActualSize.Height - Padding.Vertical)));
 
-        g.DrawText(DisplayText, textRect, TextColor, EffectiveFont,
+        g.DrawTextLine(DisplayText, textRect, TextColor, EffectiveFont,
             HorizontalContentAlignment.Right, VerticalContentAlignment.Center);
 
         if (_isEditing && IsFocused && CaretVisible)

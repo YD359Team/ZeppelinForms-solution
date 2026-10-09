@@ -386,7 +386,7 @@ public partial class MapControl : InteractiveControl
             // decoding went on in the background, and the control tree is touched
             // only on the UI thread. A redraw is requested even for a discarded tile:
             // it makes the current source's request go out for this position
-            FindOwner()?.Invoke(InvalidateVisual);
+            FindOwner()?.BeginInvoke(InvalidateVisual);
         }
         catch (Exception ex)
         {

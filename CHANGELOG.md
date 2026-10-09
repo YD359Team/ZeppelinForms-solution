@@ -4,11 +4,35 @@
 
 ![Eye of Sahara](assets/Logo-0.14.0.jpg)
 
+### Breaking changes
+
+- `Form.Invoke` runs the action and waits for it, as WinForms' `Invoke` does; on the
+  UI thread it runs at once. It used to queue the action and return — that is
+  `Form.BeginInvoke` now. Code that relied on the old behavior to defer work on the
+  UI thread switches to `BeginInvoke`
+- `Form.Close` raises `Closing` and may leave the form open
+- `IDesktopWindow.UpdateChrome()` is new; it has a default empty body, so an
+  outside implementation still compiles
+
 ### Fixes
 
 - `DataGridView`: the scrollbars take the mouse — the thumb drags, a press on the
   track pages. They were only drawn: a press on the vertical bar selected the row
   behind it
+- A button whose background comes from a style sheet or from code keeps it on
+  hover and press. The theme's grey hover was painted under the button's own text
+  color, and white text on it was unreadable. A sheet still says its states itself
+  (`.accent:hover { BackgroundColor: … }`); a background set from code leans toward
+  the text color
+- The bottom of a check box in a padded panel was cut off: the stroke of the box is
+  drawn inside it, and a panel that doesn't scroll clips its children at its own
+  edge, not inside the padding — where CSS clips. Scrolled content still stops at
+  the viewport. The same for radio buttons
+- The text of `TextBox`, `MaskedTextBox`, `NumericUpDown`, `ComboBox`,
+  `CheckedComboBox`, `DateTimePicker`, `TimePicker` and the hex field of
+  `ColorPicker` no longer jumps up and down as letters are typed: a line is placed
+  by the font's ascent and descent (`Graphics.DrawTextLine`), not centered by the
+  ink of the letters it happens to hold
 
 ### Controls
 
@@ -34,6 +58,36 @@
 - `PanGestureRecognizer.CanAccept`: asked at the break threshold with the travel so
   far; false hands the contact to the next recognizer up the chain
 - `Form.ClientSizeChanged`
+
+### Forms
+
+- A form whose `Size` is not set is 800×600, as in WinForms. A form of the
+  application changes it by overriding `DefaultSize`. The browser and Android still
+  size an unsized dialog to their surface
+- The frame: `FormBorderStyle` (`None`, `FixedSingle`, `Sizable`, `FixedDialog`,
+  `FixedToolWindow`, `SizableToolWindow`), `ControlBox` — the title bar buttons and
+  the window menu — and `ShowInTaskbar`. They, `CanMinimize`, `CanMaximize` and
+  `CanResize` apply to an open window at once; they used to be read only when the
+  window was created. `IsResizable` tells whether the frame can be dragged. On
+  Windows the styles are those of WinForms; on Linux they are Motif hints, size
+  limits and EWMH window types, which the window manager is free to refuse
+- Events, each with a protected virtual `On…` method to override: `Load` — once,
+  before the window is first seen; `Shown`; `Closing`, which may cancel the close
+  and tells the `CloseReason`; `Closed`; `Activated` and `Deactivated` with
+  `IsActive`; `WindowStateChanged`; `ClientSizeChanged`
+- Input at the form: `PreviewKeyDown` — before menus, access keys and the focused
+  element, for shortcuts of the whole window; `KeyDown` and `KeyUp` — what no
+  element took; `TextInput` — before the focused field, which `Handled` keeps the
+  character from; `PointerPressed`, `PointerMoved` and `PointerReleased`, which
+  only observe; `PreviewMouseWheel`
+- `Closing` is raised for the close button of the title bar and Alt+F4 too
+  (`CloseReason.UserClosing`), and for `Close`, `Accept` and `Cancel`
+  (`CloseReason.Code`). A refused `Accept` takes its result back
+- `Dispatcher`: `Dispatcher.UIThread` and `Form.Dispatcher` — `CheckAccess`,
+  `VerifyAccess`, `Invoke` and `Invoke<T>` that wait and rethrow on the calling
+  thread, `BeginInvoke`, `InvokeAsync` for actions, functions and async work. Work
+  queued before the first window waits for it. `ZfSynchronizationContext` goes
+  through it, so continuations keep running while any window of the thread is open
 
 ### New controls
 

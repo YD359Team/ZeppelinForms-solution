@@ -32,6 +32,12 @@ public class HeadlessGraphics : Graphics
     {
     }
 
+
+    /// <summary>Headless has no font metrics to place a baseline by: the line goes
+    /// through DrawText, where a recorder that watches the text sees it.</summary>
+    public override void DrawTextLine(string text, Rectangle rect, Color color, Font font, HorizontalContentAlignment hAlign = HorizontalContentAlignment.Left, VerticalContentAlignment vAlign = VerticalContentAlignment.Center) =>
+        DrawText(text, rect, color, font, hAlign, vAlign);
+
     public override void FillEllipse(Rectangle rect, Color color)
     {
     }

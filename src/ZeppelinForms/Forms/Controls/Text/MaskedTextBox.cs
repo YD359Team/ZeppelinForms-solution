@@ -258,7 +258,9 @@ public partial class MaskedTextBox : TextInputControl
 
             bool isPrompt = _mask.IsPlaceholder(i) && _buffer[i] == _mask.PromptChar;
 
-            g.DrawText(symbol,
+            // each character on the font's line: by its own ink a digit and
+            // a prompt underscore stood at different heights
+            g.DrawTextLine(symbol,
                 new Rectangle(new Point(x, y), new Size(float.MaxValue, lineHeight)),
                 isPrompt ? PromptColor : TextColor, EffectiveFont,
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);

@@ -250,6 +250,28 @@ internal static class X11
 
     [DllImport(Lib)] public static extern int XFree(nint data);
 
+
+    /// <summary>XSizeHints: the size limits the window manager keeps the window
+    /// within. PMinSize and PMaxSize equal — a window that can't be resized.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct XSizeHints
+    {
+        public nint flags;
+        public int x, y, width, height;
+        public int min_width, min_height;
+        public int max_width, max_height;
+        public int width_inc, height_inc;
+        public int min_aspect_x, min_aspect_y;
+        public int max_aspect_x, max_aspect_y;
+        public int base_width, base_height;
+        public int win_gravity;
+    }
+
+    public const nint PMinSize = 1 << 4;
+    public const nint PMaxSize = 1 << 5;
+
+    [DllImport(Lib)] public static extern void XSetWMNormalHints(nint display, nuint window, ref XSizeHints hints);
+
     [StructLayout(LayoutKind.Sequential)]
     public struct XSelectionRequestEvent
     {

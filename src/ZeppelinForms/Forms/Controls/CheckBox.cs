@@ -193,8 +193,14 @@ public partial class CheckBox : InteractiveControl, ITextElement
             : IsHovered && IsEnabled && HoverBorderColor.A > 0 ? HoverBorderColor
             : BoxBorderColor;
 
+        // the stroke lies inside the box: centered on its edge, half of it stood
+        // outside the control, and a parent cut it off — the box lost its bottom
         if (BoxBorderWidth > 0f)
-            g.DrawRoundRectangle(boxRect, radius, boxBorder, BoxBorderWidth);
+        {
+            float half = BoxBorderWidth / 2f;
+
+            g.DrawRoundRectangle(Grow(boxRect, -half), Grow(radius, -half), boxBorder, BoxBorderWidth);
+        }
 
         switch (_checkState)
         {

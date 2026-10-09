@@ -30,6 +30,39 @@ public abstract class Graphics
         HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
         VerticalContentAlignment vAlign = VerticalContentAlignment.Center);
 
+
+    /// <summary>A line of text placed by the font's metrics rather than by the ink
+    /// of its glyphs: where the text is edited or changes, it stays on one baseline.</summary>
+    /// <remarks>
+    /// <see cref="DrawText(string, Rectangle, Color, Font, HorizontalContentAlignment, VerticalContentAlignment)"/>
+    /// centers the glyphs actually drawn, which suits a caption that never changes.
+    /// In a field that is typed into it moved the line at every letter: "a" sits
+    /// lower than "Ag", and the text jumped as it was typed. Here the line's place
+    /// comes from the font alone — the ascent and descent every text of it shares,
+    /// as <see cref="DrawRuns"/> lays its runs out. What doesn't fit across is cut
+    /// off at the rectangle, as DrawText cuts it.
+    /// </remarks>
+    public virtual void DrawTextLine(
+        string text, Rectangle rect, Color color, Font font,
+        HorizontalContentAlignment hAlign = HorizontalContentAlignment.Left,
+        VerticalContentAlignment vAlign = VerticalContentAlignment.Center)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+
+        // across only: a line taller than the rectangle keeps its descenders
+        bool clip = rect.Width < float.MaxValue / 2f;
+
+        if (clip)
+        {
+            Save();
+            ClipRect(new Rectangle(new Point(rect.X, rect.Y - rect.Height), new Size(rect.Width, rect.Height * 3f)));
+        }
+
+        DrawRuns([new TextRun(text)], rect, font, color, hAlign, vAlign);
+
+        if (clip) Restore();
+    }
+
     public abstract void FillEllipse(Rectangle rect, Color color);
     public abstract void DrawEllipse(Rectangle rect, Color color, float width);
     public abstract void DrawLine(Point from, Point to, Color color, float width);

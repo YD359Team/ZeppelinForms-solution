@@ -102,8 +102,17 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
         try
         {
-            _selfHandle = GCHandle.Alloc(this);
-            uint style = NativeConstants.WS_OVERLAPPEDWINDOW;
+            // the frame, the title bar buttons and the taskbar button come from
+            // the form: FormBorderStyle, ControlBox, ShowInTaskbar, CanMinimize,
+            // CanMaximize, CanResize (see Win32Window.Chrome)
+            (uint style, uint exStyle) = ChromeStyles();
+
+            _handle = NativeMethods.CreateWindowEx(
+                exStyle, ClassName, _form.Title ?? string.Empty,
+                style,
+                x, y, width, height, ChromeOwner(), 0,
+                NativeMethods.GetModuleHandle(null),
+                GCHandle.ToIntPtr(_selfHandle));
 
             if (!_form.CanMinimize) style &= ~NativeConstants.WS_MINIMIZEBOX;
             if (!_form.CanMaximize) style &= ~NativeConstants.WS_MAXIMIZEBOX;
@@ -450,9 +459,20 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
                 _form.OnAccessKeyChar((char)wParam);
                 return 0;
+
+            // the close button, Alt+F4, the window menu, the taskbar: the form's
+            // Closing may keep the window open
             case NativeConstants.WM_CLOSE:
-                Close();
+                if (_form.RequestClose(CloseReason.UserClosing))
+                    Close();
+
                 return 0;
+
+            // the low word is WA_INACTIVE (0), WA_ACTIVE or WA_CLICKACTIVE. The
+            // system goes on with it: DefWindowProc gives the window the focus
+            case NativeConstants.WM_ACTIVATE:
+                _form.OnWindowActivated((wParam.ToInt64() & 0xFFFF) != 0);
+                return NativeMethods.DefWindowProc(hWnd, message, wParam, lParam);
 
             case NativeConstants.WM_NCDESTROY:
                 {

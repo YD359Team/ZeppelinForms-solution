@@ -112,11 +112,44 @@ public abstract partial class ButtonBase : InteractiveControl
                 return CheckedBackgroundColor;
             }
 
-            if (IsPressed && PressedBackgroundColor.A > 0) return PressedBackgroundColor;
-            if (IsHovered && HoverBackgroundColor.A > 0) return HoverBackgroundColor;
+            if (IsPressed && PressedBackgroundColor.A > 0)
+                return StateColor(PressedBackgroundColorProperty, PressedBackgroundColor, tint: 0.16f);
+
+            if (IsHovered && HoverBackgroundColor.A > 0)
+                return StateColor(HoverBackgroundColorProperty, HoverBackgroundColor, tint: 0.08f);
 
             return BackgroundColor;
         }
+    }
+
+
+    /// <summary>The color of a state — hover, press — over the button's background.</summary>
+    /// <remarks>
+    /// <para>
+    /// A state's own color counts only while it was set at least as firmly as the
+    /// background it replaces. The theme gives every button the same grey hover;
+    /// a style sheet or code that made a button blue with white text didn't ask
+    /// for that grey, and white text on it was unreadable. Such a background keeps
+    /// its own states instead.
+    /// </para>
+    /// <para>
+    /// A style sheet says its states itself, the CSS way —
+    /// <c>Button.accent:hover { BackgroundColor: … }</c> — so its background is
+    /// used as it is. A background set from code or a binding has nobody to say
+    /// them, and gets them by leaning toward the text color: darker on a light
+    /// button, lighter on a dark one, readable either way.
+    /// </para>
+    /// </remarks>
+    private Color StateColor(StyledProperty<Color> state, Color stateColor, float tint)
+    {
+        ValueSource background = GetValueSource(BackgroundColorProperty);
+
+        if (background < ValueSource.Style || GetValueSource(state) >= background)
+            return stateColor;
+
+        return background == ValueSource.Style
+            ? BackgroundColor
+            : Color.Lerp(BackgroundColor, TextColor, tint);
     }
 
     /// <summary>On a button, focus is shown by the ring in DrawDecoration.

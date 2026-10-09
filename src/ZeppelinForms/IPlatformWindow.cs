@@ -53,4 +53,11 @@ public interface IDesktopWindow
     void SetWindowState(WindowState state);
 
     bool SupportsTransparency { get; }
+
+
+    /// <summary>Rebuild the frame from the form: FormBorderStyle, ControlBox,
+    /// ShowInTaskbar, CanMinimize, CanMaximize, CanResize changed while the window
+    /// is open. A platform that reads them only when creating the window keeps
+    /// this empty.</summary>
+    void UpdateChrome() { }
 }

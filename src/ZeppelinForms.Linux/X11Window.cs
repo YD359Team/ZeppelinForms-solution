@@ -9,7 +9,7 @@ using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Linux;
 
-internal sealed class X11Window : IPlatformWindow, IDesktopWindow
+internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
 {
     private readonly X11Platform _platform;
     private readonly Form _form;
@@ -144,6 +144,11 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
             (uint)X11.XDefaultDepth(_display, screen));
 
         X11.XStoreName(_display, _window, _form.Title ?? string.Empty);
+
+        // before the window is mapped: the window type and the initial state are
+        // read by the manager when it takes the window (see X11Window.Chrome)
+        ApplyChrome(mapped: false);
+
         _platform.Register(this);
     }
 
@@ -226,10 +231,17 @@ internal sealed class X11Window : IPlatformWindow, IDesktopWindow
             X11.XStoreName(_display, _window, title ?? string.Empty);
     }
 
-    public void SetBounds(Rectangle bounds) =>
+    public void SetBounds(Rectangle bounds)
+    {
+        // a window that can't be resized is held by its size limits: they move
+        // with it, or the manager keeps the old size
+        if (_window != 0 && !_form.IsResizable)
+            SetSizeLimits((int)Math.Max(1, bounds.Width), (int)Math.Max(1, bounds.Height));
+
         X11.XMoveResizeWindow(_display, _window,
             (int)bounds.X, (int)bounds.Y,
             (uint)Math.Max(1, bounds.Width), (uint)Math.Max(1, bounds.Height));
+    }
 
     // a repaint has been requested and not done yet; _fullRepaint — the whole
     // window, otherwise the accumulated _pendingDirty

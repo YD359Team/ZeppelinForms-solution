@@ -92,6 +92,11 @@ public abstract class WrapControl : UIElement
         return finalSize;
     }
 
+    /// <summary>The child is cut off at the wrapper's own edge, not inside its padding:
+    /// a focus ring or a stroke a little past the child's bounds stays whole, as a
+    /// panel's children do. See <see cref="PanelControl.ClipBounds"/>.</summary>
+    protected internal override Rectangle ClipBounds => LocalBounds;
+
     // A hook for derived classes like ZoomBox — apply their own transform
     // (scale, rotation, etc.) to the canvas right before the child is drawn.
     // Does nothing by default.

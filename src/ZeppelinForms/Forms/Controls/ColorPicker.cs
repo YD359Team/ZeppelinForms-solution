@@ -118,7 +118,7 @@ public class ColorPicker : InteractiveControl
 
         if (!ShowHex) return;
 
-        g.DrawText(HexOf(_value),
+        g.DrawTextLine(HexOf(_value),
             new Rectangle(
                 new Point(content.X + swatchSize + 6, content.Y),
                 new Size(Math.Max(0, content.Width - swatchSize - 6), content.Height)),

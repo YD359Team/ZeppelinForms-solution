@@ -3,6 +3,7 @@ using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Core.Text;
 using ZeppelinForms.Diagnostics;
+using ZeppelinForms.Dispatchers;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
@@ -45,6 +46,10 @@ public partial class Form : IDisposable
 
             // a new window is a new life: the form may have been closed and shown again
             _isClosed = false;
+
+            // the thread that creates the window is the form's UI thread, and
+            // Invoke from other threads goes through the window's queue
+            _dispatcher = Dispatcher.Attach(value).ForWindow(value);
 
             // the theme subscription is renewed with every window: it is dropped
             // at close (see OnWindowClosed), and a form shown again must follow
@@ -151,7 +156,25 @@ public partial class Form : IDisposable
     public string? Title { get; set; }
     public Icon? Icon { get; set; }
     public Point Position { get; set; }
-    public Size Size { get; set; }
+
+    /// <summary>The size of the window, frame included. <see cref="DefaultSize"/>
+    /// until set: a form nobody sized opens as a usable window, not as a speck.</summary>
+    public Size Size
+    {
+        get => _size ?? DefaultSize;
+        set => _size = value;
+    }
+
+    private Size? _size;
+
+    /// <summary>The size of a form whose <see cref="Size"/> was not set, as WinForms
+    /// has it. A form of the application overrides it for its own default.</summary>
+    protected virtual Size DefaultSize => new(800, 600);
+
+    /// <summary>Whether <see cref="Size"/> was set: the browser and Android size an
+    /// unsized dialog to their own surface instead.</summary>
+    internal bool IsSizeSet => _size is not null;
+
     // TODO: add min\max size support
     public Size MinimumSize { get; set; } = Size.Auto;
     public Size MaximumSize { get; set; } = Size.Auto;
@@ -163,9 +186,46 @@ public partial class Form : IDisposable
 
     private WindowState _windowState = WindowState.Normal;
 
-    public bool CanMinimize { get; set; } = true;
-    public bool CanMaximize { get; set; } = true;
-    public bool CanResize { get; set; } = true;
+    // the title bar follows these while the window is open too: they used to
+    // be read only when the window was created
+
+    public bool CanMinimize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            UpdateChrome();
+        }
+    } = true;
+
+    public bool CanMaximize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            UpdateChrome();
+        }
+    } = true;
+
+    /// <summary>Whether the user can resize the window by its edges. Only a
+    /// <see cref="FormBorderStyle"/> with a sizing frame can be resized at all.</summary>
+    public bool CanResize
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            UpdateChrome();
+        }
+    } = true;
 
     public WindowState WindowState
     {
@@ -176,7 +236,7 @@ public partial class Form : IDisposable
 
             _windowState = value;
             DesktopWindow?.SetWindowState(value);
-            WindowStateChanged?.Invoke(this, EventArgs.Empty);
+            OnWindowStateChanged(EventArgs.Empty);
         }
     }
 
@@ -222,7 +282,7 @@ public partial class Form : IDisposable
 
             // before the layout the platform runs next: an overlay that covers
             // the window — an image viewer — takes the new size in the same pass
-            ClientSizeChanged?.Invoke(this, EventArgs.Empty);
+            OnClientSizeChanged(EventArgs.Empty);
         }
     }
 
@@ -326,6 +386,10 @@ public partial class Form : IDisposable
 
     internal void OnPointerDown(PointerEventArgs e)
     {
+        // a copy: the form observes, and a Handled set there must not take
+        // the pointer from the element under it
+        OnPointerPressed(e with { });
+
         // the pointer is in use: focus rings go away until the next key press
         NotePointerInput();
 
@@ -450,6 +514,8 @@ public partial class Form : IDisposable
 
     internal void OnPointerMove(PointerEventArgs e)
     {
+        OnPointerMoved(e with { });
+
         // the cursor position is a mouse concept: the tooltip and the inspector
         // rely on it, and a finger must not move it
         if (e.Kind == PointerKind.Mouse)
@@ -552,6 +618,8 @@ public partial class Form : IDisposable
 
     internal void OnPointerUp(PointerEventArgs e)
     {
+        OnPointerReleased(e with { });
+
         if (e.Kind == PointerKind.Mouse)
             _lastPointerPosition = e.Location;
 
@@ -871,10 +939,15 @@ public partial class Form : IDisposable
             return;
         }
 
+        var args = new KeyEventArgs(key, modifiers);
+
+        // the form's preview goes before everything: a shortcut of the window
+        // as a whole takes the key from menus and elements alike
+        OnPreviewKeyDown(args);
+        if (args.Handled) return;
+
         // menus and access keys go before the focused element
         if (HandleKeyboardBeforeFocus(key, modifiers)) return;
-
-        var args = new KeyEventArgs(key, modifiers);
 
         // the preview goes from the root to the focused element
         UIElement? focused = _focusDispatcher.FocusedElement;
@@ -900,6 +973,10 @@ public partial class Form : IDisposable
             current.RaiseKeyDown(args);
             if (args.Handled) break;
         }
+
+        // the form hears what no element took, before its own keys: Tab, Escape, Enter
+        if (!args.Handled)
+            OnKeyDown(args);
 
         if (!args.Handled && key == Key.Tab && Content is not null)
         {
@@ -927,6 +1004,9 @@ public partial class Form : IDisposable
             current.RaiseKeyUp(args);
             if (args.Handled) break;
         }
+
+        if (!args.Handled)
+            OnKeyUp(args);
     }
 
     private void OnThemeChanged(object? sender, EventArgs e)
@@ -1055,6 +1135,14 @@ public partial class Form : IDisposable
 
     public void Show()
     {
+        // once, before the window is first seen: the place to fill the form
+        // with data, as WinForms' Load is
+        if (!_loaded)
+        {
+            _loaded = true;
+            OnLoad(EventArgs.Empty);
+        }
+
         DesktopWindow?.SetOpacity(_opacity);
         DesktopWindow?.SetTitle(Title);
         PlatformWindow?.Show();
@@ -1063,8 +1151,10 @@ public partial class Form : IDisposable
         if (FocusOnShow && Content is not null)
             FocusFirstTextInput(Content);
 
-        Shown?.Invoke(this, EventArgs.Empty);
+        OnShown(EventArgs.Empty);
     }
+
+    private bool _loaded;
 
     /// <summary>Focus the first text field under root — on showing the form
     /// or a page. Leaves the focus alone if it is already inside root.</summary>
@@ -1099,9 +1189,31 @@ public partial class Form : IDisposable
         return _focusDispatcher.MoveNext(root);
     }
 
-    public void Close() => PlatformWindow?.Close();
+    /// <summary>Close the window. <see cref="Closing"/> may keep it open.</summary>
+    public void Close()
+    {
+        if (RequestClose(CloseReason.Code))
+            PlatformWindow?.Close();
+    }
 
-    public void Invoke(Action action) => PlatformWindow?.Invoke(action);
+    /// <summary>The dispatcher of the thread the form's window lives on: the way
+    /// back to it from any thread. It goes through the form's own window while the
+    /// window is open. Before the window is created — the application's.</summary>
+    public Dispatcher Dispatcher => _dispatcher ?? Dispatcher.UIThread;
+
+    private Dispatcher? _dispatcher;
+
+    /// <summary>Run an action on the UI thread and wait for it, as WinForms' Invoke:
+    /// at once when already there.</summary>
+    /// <remarks>Until 0.14 this only queued the action, as <see cref="BeginInvoke"/>
+    /// does now.</remarks>
+    public void Invoke(Action action) => Dispatcher.Invoke(action);
+
+    /// <summary>Run a function on the UI thread and wait for its result.</summary>
+    public T Invoke<T>(Func<T> function) => Dispatcher.Invoke(function);
+
+    /// <summary>Queue an action to the UI thread and return at once.</summary>
+    public void BeginInvoke(Action action) => Dispatcher.BeginInvoke(action);
 
     public UIElement? FindByName(string name) => NameScope.Find(name);
     public T? FindByName<T>(string name) where T : UIElement => NameScope.Find<T>(name);
@@ -1490,7 +1602,12 @@ public partial class Form : IDisposable
 
         _dialogClosed?.TrySetResult();
 
-        Closed?.Invoke(this, EventArgs.Empty);
+        // a destroyed window runs nothing: Invoke goes through the windows left
+        if (PlatformWindow is { } window)
+            _dispatcher?.Detach(window);
+
+        _isActive = false;
+        OnClosed(EventArgs.Empty);
     }
 
     /// <summary>Show the dialog and wait for the result. Requires a platform
@@ -1574,24 +1691,36 @@ public partial class Form : IDisposable
         _dialogClosed = null;
     }
 
-    private DialogResult<T> Result<T>() =>
+    internal DialogResult<T> Result<T>() =>
         _dialogAccepted && _dialogValue is T typed
             ? new DialogResult<T>(true, typed)
             : DialogResult<T>.Cancelled();
 
     /// <summary>Close the dialog with a result.</summary>
-    public void Accept(object? value = null)
-    {
-        _dialogAccepted = true;
-        _dialogValue = value;
-        Close();
-    }
+    public void Accept(object? value = null) => CloseWithResult(accepted: true, value);
 
-    public void Cancel()
+    public void Cancel() => CloseWithResult(accepted: false, value: null);
+
+    /// <summary>Close with a result. The result is set before <see cref="Closing"/>,
+    /// so a handler sees what the dialog is closing with; if the handler keeps the
+    /// dialog open, the result is taken back — the dialog is not closed, and a later
+    /// close from the title bar must not return what was refused.</summary>
+    private void CloseWithResult(bool accepted, object? value)
     {
-        _dialogAccepted = false;
-        _dialogValue = null;
-        Close();
+        bool previousAccepted = _dialogAccepted;
+        object? previousValue = _dialogValue;
+
+        _dialogAccepted = accepted;
+        _dialogValue = value;
+
+        if (RequestClose(CloseReason.Code))
+        {
+            PlatformWindow?.Close();
+            return;
+        }
+
+        _dialogAccepted = previousAccepted;
+        _dialogValue = previousValue;
     }
 
     // ==== Toast =====
@@ -1777,6 +1906,12 @@ public partial class Form : IDisposable
 
     internal void OnTextInput(char c)
     {
+        var args = new TextInputEventArgs(c);
+
+        // the form sees the character first and may keep it from the field
+        OnTextInput(args);
+        if (args.Handled) return;
+
         _focusDispatcher.FocusedElement?.RaiseTextInput(c);
     }
 
@@ -1811,10 +1946,13 @@ public partial class Form : IDisposable
     {
         EnsureLayout();
 
+        var args = new MouseWheelEventArgs(point, delta, horizontalDelta);
+
+        OnPreviewMouseWheel(args);
+        if (args.Handled) return;
+
         UIElement? hit = HitTestAll(point);
         if (hit is null) return;
-
-        var args = new MouseWheelEventArgs(point, delta, horizontalDelta);
 
         for (UIElement? current = hit; current is not null; current = current.Parent)
         {
@@ -1828,13 +1966,31 @@ public partial class Form : IDisposable
     /// anymore, so we assume nothing is pressed.</summary>
     internal void OnWindowFocusLost() => Keyboard.Reset();
 
+
+    /// <summary>The window became the active one, or stopped being it. Called by
+    /// the platform; Deactivated comes together with the focus loss.</summary>
+    internal void OnWindowActivated(bool active)
+    {
+        if (active == _isActive) return;
+
+        _isActive = active;
+
+        if (active) OnActivated(EventArgs.Empty);
+        else OnDeactivated(EventArgs.Empty);
+    }
+
+    private bool _isActive;
+
+    /// <summary>Whether the window is the active one: the one the keyboard types into.</summary>
+    public bool IsActive => _isActive;
+
     // called by the platform when the user changed the state themselves —
     // without calling back into SetWindowState, otherwise we'd get a loop
     internal void SetWindowStateFromPlatform(WindowState state)
     {
         if (_windowState == state) return;
         _windowState = state;
-        WindowStateChanged?.Invoke(this, EventArgs.Empty);
+        OnWindowStateChanged(EventArgs.Empty);
     }
 
     internal void OnContextMenu(Point point)

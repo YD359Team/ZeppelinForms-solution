@@ -230,8 +230,10 @@ public partial class RadioButton : InteractiveControl, ITextElement
 
         g.FillEllipse(circleRect, fill);
 
+        // inside the circle, as a check box's square: half a stroke past the
+        // control was cut off by the panel around it
         if (CircleBorderWidth > 0f)
-            g.DrawEllipse(circleRect, border, CircleBorderWidth);
+            g.DrawEllipse(Grow(circleRect, -CircleBorderWidth / 2f), border, CircleBorderWidth);
 
         if (IsChecked)
         {

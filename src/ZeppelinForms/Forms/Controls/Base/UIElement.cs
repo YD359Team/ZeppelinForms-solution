@@ -1011,12 +1011,16 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         new Size(
             NonNegative(SanitizedSize.Width - Padding.Horizontal),
             NonNegative(SanitizedSize.Height - Padding.Vertical)));
-    /// <summary>The rectangle to clip descendants by. Usually equals
-    /// ContentBounds; panels narrow it by the space for the scrollbars.</summary>
+
+    /// <summary>The rectangle to clip descendants by. ContentBounds by default;
+    /// panels and wrappers cut at their own edge instead, and a scrolling panel at
+    /// its viewport along the axis it scrolls.</summary>
     protected internal virtual Rectangle ClipBounds => ContentBounds;
+
     private Size SanitizedSize => new(
         float.IsFinite(_actualSize.Width) ? _actualSize.Width : 0f,
         float.IsFinite(_actualSize.Height) ? _actualSize.Height : 0f);
+
     private static float NonNegative(float value) =>
         float.IsFinite(value) && value > 0f ? value : 0f;
 

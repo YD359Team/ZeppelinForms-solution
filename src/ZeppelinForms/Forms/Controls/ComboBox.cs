@@ -105,10 +105,10 @@ public partial class ComboBox : InteractiveControl
             new Size(Math.Max(0, content.Width - ArrowWidth), content.Height));
 
         if (SelectedItem is object item)
-            g.DrawText(TextOf(item), textArea, TextColor, EffectiveFont,
+            g.DrawTextLine(TextOf(item), textArea, TextColor, EffectiveFont,
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
         else if (!string.IsNullOrEmpty(PlaceholderText))
-            g.DrawText(PlaceholderText, textArea, PlaceholderColor, EffectiveFont,
+            g.DrawTextLine(PlaceholderText, textArea, PlaceholderColor, EffectiveFont,
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 
         float cx = content.X + content.Width - ArrowWidth / 2f;

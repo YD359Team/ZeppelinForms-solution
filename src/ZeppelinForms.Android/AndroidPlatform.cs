@@ -392,11 +392,15 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
         Size surface = SurfaceSize;
         Size requested = window.Form.Size;
 
-        float width = requested.IsWidthAuto || requested.Width <= 0
+        // a form whose Size was never set has the desktop default, 800×600 —
+        // here it gets the share of the surface an unsized dialog always had
+        bool sized = window.Form.IsSizeSet;
+
+        float width = !sized || requested.IsWidthAuto || requested.Width <= 0
             ? surface.Width * 0.9f
             : Math.Min(requested.Width, surface.Width);
 
-        float height = requested.IsHeightAuto || requested.Height <= 0
+        float height = !sized || requested.IsHeightAuto || requested.Height <= 0
             ? surface.Height * 0.4f
             : Math.Min(requested.Height, surface.Height);
 

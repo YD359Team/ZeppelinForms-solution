@@ -83,7 +83,7 @@ public class TimePicker : InteractiveControl
     {
         var content = ContentBounds;
 
-        g.DrawText(FormattedValue,
+        g.DrawTextLine(FormattedValue,
             new Rectangle(content.Position, new Size(Math.Max(0, content.Width - IconWidth), content.Height)),
             TextColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);

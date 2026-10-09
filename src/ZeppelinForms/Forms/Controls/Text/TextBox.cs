@@ -1012,7 +1012,9 @@ public partial class TextBox : TextInputControl, ITextElement
 
             if (row.Text.Length > 0)
             {
-                g.DrawText(row.Text,
+                // on the font's line, not the glyphs' ink: the text no longer
+                // jumps up and down as letters with and without descenders are typed
+                g.DrawTextLine(row.Text,
                     new Rectangle(new Point(content.X - _scrollOffset, y), new Size(float.MaxValue, lineHeight)),
                     TextColor, EffectiveFont,
                     HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
@@ -1025,7 +1027,7 @@ public partial class TextBox : TextInputControl, ITextElement
         // a hint instead of the text while the field is empty and not focused
         if (_document.Text.Length == 0 && !IsFocused && !string.IsNullOrEmpty(Watermark))
         {
-            g.DrawText(Watermark,
+            g.DrawTextLine(Watermark,
                 new Rectangle(new Point(content.X, blockTop), new Size(content.Width, lineHeight)),
                 WatermarkColor, EffectiveFont,
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
@@ -1094,7 +1096,7 @@ public partial class TextBox : TextInputControl, ITextElement
         {
             float end = x + measurer.MeasureTextWidth(text, text.Length, font);
 
-            g.DrawText("¶",
+            g.DrawTextLine("¶",
                 new Rectangle(new Point(end + 1f, y), new Size(float.MaxValue, lineHeight)),
                 color, font,
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);

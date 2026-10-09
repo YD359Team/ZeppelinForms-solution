@@ -80,6 +80,13 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow
 
     public void SetWindowState(WindowState state) => WindowState = state;
 
+
+    /// <summary>How many times the frame was rebuilt — checked in tests: an open
+    /// window follows FormBorderStyle, ControlBox and the rest at once.</summary>
+    public int ChromeUpdateCount { get; private set; }
+
+    public void UpdateChrome() => ChromeUpdateCount++;
+
     /// <summary>Frames don't run by themselves in headless: nothing ticks
     /// unless a test calls Tick. The step of such a frame is still taken from
     /// the stopwatch, as on any platform; for an exact step tests use

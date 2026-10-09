@@ -305,7 +305,7 @@ public partial class RefreshContainer : DecoratedWrapControl
         // and asking again would post it once more, and again, forever
         if (Environment.CurrentManagedThreadId != _uiThread && FindOwner() is { } form)
         {
-            form.Invoke(() => FinishDeferral(generation));
+            form.BeginInvoke(() => FinishDeferral(generation));
             return;
         }
 

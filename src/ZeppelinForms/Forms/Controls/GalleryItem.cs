@@ -204,7 +204,7 @@ public class GalleryItem
         if (Environment.CurrentManagedThreadId == uiThread || form is null)
             Apply();
         else
-            form.Invoke(Apply);
+            form.BeginInvoke(Apply);
     }
 
     private void SetLoad(bool full, GalleryImageState state, bool report = true)
