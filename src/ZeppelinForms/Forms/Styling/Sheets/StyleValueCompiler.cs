@@ -76,8 +76,34 @@ internal static class StyleValueCompiler
         if (tokens.Count == 1)
             return CompileSingle(tokens[0], type, out error);
 
+        // several flags, listed the way CSS lists them: TextDecorations: underline strikethrough
+        if (type.IsEnum && type.IsDefined(typeof(FlagsAttribute), inherit: false))
+            return CompileFlags(tokens, type, out error);
+
         // several tokens: the arguments of a constructor
         return CompileConstructor(tokens, type, out error);
+    }
+
+    /// <summary>Flags listed one after another, with or without commas, are combined.</summary>
+    private static ValueExpr? CompileFlags(List<string> tokens, Type type, out string? error)
+    {
+        error = null;
+        ulong combined = 0;
+
+        foreach (string token in tokens)
+        {
+            if (token == ",") continue;
+
+            if (!Enum.TryParse(type, KebabToPascal(token.TrimEnd(',')), ignoreCase: true, out object? member))
+            {
+                error = $"'{token}' is not one of {string.Join(", ", Enum.GetNames(type))}";
+                return null;
+            }
+
+            combined |= Convert.ToUInt64(member, CultureInfo.InvariantCulture);
+        }
+
+        return ValueExpr.Constant(Enum.ToObject(type, combined));
     }
 
     private static ValueExpr? CompileSingle(string token, Type type, out string? error)

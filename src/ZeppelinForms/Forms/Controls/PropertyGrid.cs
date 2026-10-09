@@ -164,7 +164,8 @@ public partial class PropertyGrid : DecoratedPanel
 
         if (property.Type == typeof(Color))
         {
-            var picker = new ColorPicker { Value = current is Color c ? c : Colors.Black };
+            // theme colors are often translucent — grid lines, hover tints
+            var picker = new ColorPicker { Value = current is Color c ? c : Colors.Black, AllowAlpha = true };
             picker.ValueChanged += (_, _) => Apply(property, picker.Value);
             return picker;
         }

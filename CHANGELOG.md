@@ -8,6 +8,26 @@
   track pages. They were only drawn: a press on the vertical bar selected the row
   behind it
 
+### Controls
+
+- `Button.Icon`: an `IconSource` — SVG path data in the text's color, or a picture —
+  placed by `IconPlacement` at the start, the end, above or below the text; the icon
+  and the text are aligned as one group. `IconPathData` stays as a shortcut
+- `TextBox`: `LeadingIcon` and `TrailingIcon`, clickable through `LeadingIconClick`
+  and `TrailingIconClick`; `WordWrap` for multi-line fields, with Up, Down, Home and
+  End moving along the rows on screen; `ShowWhitespace` draws spaces, tabs and line
+  ends
+- Text decorations on every element, inherited like `TextTransform`:
+  `TextDecorations` (underline, strikethrough, overline), `TextDecorationColor`, and
+  an outline around the glyphs — `TextOutlineColor`, `TextOutlineWidth`. A style
+  sheet lists flags the CSS way: `TextDecorations: underline strikethrough;`
+- `CheckBox.IndeterminateGlyph`: a dash, the classic small square or a dot for the
+  third state; `DrawIndeterminateGlyph` draws one of one's own
+- `ColorPicker.AllowAlpha`: an alpha slider, `#RRGGBBAA` and a checkerboard under
+  translucent colors. The F12 inspector edits colors with alpha
+- `PageIndicator` shows a page's `Title` as a tooltip over its dot. Tooltips of the
+  parts a control draws itself: `UIElement.GetToolTip(point)` and `RefreshToolTip()`
+
 ### Previewer
 
 - Live previews in Visual Studio 2022 17.10+ and Visual Studio 2026: the

@@ -9,6 +9,12 @@ namespace ZeppelinForms.Drawing;
 
 public abstract class Graphics
 {
+    /// <summary>Decorations and an outline for the text drawn now — DrawText and
+    /// DrawRuns apply them. The tree renderer sets them for each element from its
+    /// text properties and puts the outer ones back after it, so a control draws
+    /// its captions as usual and they come out decorated.</summary>
+    public TextEffects TextEffects { get; set; }
+
     public abstract void DrawImage(
         Rectangle rect, Image image,
         ImageFlip flip = ImageFlip.None,

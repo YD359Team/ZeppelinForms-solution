@@ -28,8 +28,9 @@ public class Button : ButtonBase, ITextElement
     public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Center;
     public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
 
-    /// <summary>An icon to the left of the text — path data of a single SVG contour.</summary>
-    public string? IconPathData
+    /// <summary>An icon beside the text: SVG path data in the text's color, or a picture.
+    /// Where it stands — <see cref="IconPlacement"/>.</summary>
+    public IconSource? Icon
     {
         get;
         set
@@ -38,7 +39,31 @@ public class Button : ButtonBase, ITextElement
 
             field = value;
 
-            // an icon appearing or disappearing changes both the width and the gap
+            // an icon appearing or disappearing changes both the size and the gap
+            Invalidate();
+        }
+    }
+
+    /// <summary>An icon from path data of a single SVG contour — the same as
+    /// <see cref="Icon"/> = <see cref="IconSource.FromPath"/>.</summary>
+    public string? IconPathData
+    {
+        get => (Icon as PathIconSource)?.Data;
+        set => Icon = string.IsNullOrEmpty(value) ? null : new PathIconSource(value);
+    }
+
+    /// <summary>Before or after the text, above or below it. Before and after follow
+    /// the reading direction: in a right-to-left layout the start is on the right.</summary>
+    public IconPlacement IconPlacement
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // beside or above: the button's shape changes
             Invalidate();
         }
     }
@@ -67,30 +92,93 @@ public class Button : ButtonBase, ITextElement
         }
     } = 8f;
 
+    private bool IconIsVertical => IconPlacement is IconPlacement.Top or IconPlacement.Bottom;
+
+    /// <summary>Whether the icon comes first along the line: before the text in the
+    /// reading direction, mirrored in a right-to-left layout.</summary>
+    private bool IconIsLeft => (IconPlacement == IconPlacement.Start) != IsRightToLeft;
+
     protected override void DrawButtonContent(Graphics g)
     {
         Rectangle content = ContentBounds;
-        float textLeft = content.X;
+        IconSource? icon = Icon;
+        string? text = string.IsNullOrEmpty(Text) ? null : ApplyTextTransform(Text);
 
-        if (!string.IsNullOrEmpty(IconPathData))
+        if (icon is null)
         {
-            var icon = new Rectangle(
-                new Point(content.X, content.Y + (content.Height - IconSize) / 2f),
-                new Size(IconSize, IconSize));
+            if (text is null) return;
 
-            g.DrawSvgPath(IconPathData, icon, CurrentTextColor);
-            textLeft += IconSize + IconGap;
+            DrawCaption(g, content, this.HorizontalContentAlign, this.VerticalContentAlign);
+            return;
         }
 
-        if (string.IsNullOrEmpty(Text)) return;
+        Size textSize = text is null ? Size.Empty : TextMeasurer.Current.MeasureText(text, EffectiveFont);
+        float gap = text is null ? 0f : IconGap;
 
-        var textRect = new Rectangle(
-            new Point(textLeft, content.Y),
-            new Size(Math.Max(0, content.X + content.Width - textLeft), content.Height));
+        if (IconIsVertical)
+        {
+            // the icon and the text as one column, placed by the vertical alignment;
+            // each of them centered across by the horizontal one
+            float columnHeight = IconSize + gap + textSize.Height;
+            float top = Align(content.Y, content.Height, columnHeight, this.VerticalContentAlign);
 
-        g.DrawText(ApplyTextTransform(Text), textRect, CurrentTextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
-        DrawAccessKeyUnderline(g, Text, textRect, CurrentTextColor, this.HorizontalContentAlign, this.VerticalContentAlign);
+            float iconTop = IconPlacement == IconPlacement.Top ? top : top + textSize.Height + gap;
+            float textTop = IconPlacement == IconPlacement.Top ? top + IconSize + gap : top;
+
+            float iconLeft = Align(content.X, content.Width, IconSize, this.HorizontalContentAlign);
+
+            icon.Draw(g, new Rectangle(new Point(iconLeft, iconTop), new Size(IconSize, IconSize)), CurrentTextColor);
+
+            if (text is not null)
+                DrawCaption(g,
+                    new Rectangle(new Point(content.X, textTop), new Size(content.Width, textSize.Height)),
+                    this.HorizontalContentAlign, VerticalContentAlignment.Center);
+
+            return;
+        }
+
+        // the icon and the text as one row, placed by the horizontal alignment: a centered
+        // button centers the pair, not the text in what the icon left over. A row wider
+        // than the button starts at its edge, and the text gets what is left
+        float rowWidth = IconSize + gap + textSize.Width;
+        float left = rowWidth > content.Width
+            ? content.X
+            : Align(content.X, content.Width, rowWidth, this.HorizontalContentAlign);
+
+        float iconY = Align(content.Y, content.Height, IconSize, this.VerticalContentAlign);
+        float iconX = IconIsLeft ? left : Math.Min(left + textSize.Width + gap, content.X + content.Width - IconSize);
+
+        icon.Draw(g, new Rectangle(new Point(iconX, iconY), new Size(IconSize, IconSize)), CurrentTextColor);
+
+        if (text is null) return;
+
+        float textX = IconIsLeft ? left + IconSize + gap : left;
+        float textRight = IconIsLeft ? content.X + content.Width : iconX - gap;
+
+        DrawCaption(g,
+            new Rectangle(new Point(textX, content.Y), new Size(Math.Max(0, textRight - textX), content.Height)),
+            HorizontalContentAlignment.Left, this.VerticalContentAlign);
     }
+
+    private void DrawCaption(Graphics g, Rectangle area, HorizontalContentAlignment horizontal, VerticalContentAlignment vertical)
+    {
+        g.DrawText(ApplyTextTransform(Text!), area, CurrentTextColor, EffectiveFont, horizontal, vertical);
+        DrawAccessKeyUnderline(g, Text!, area, CurrentTextColor, horizontal, vertical);
+    }
+
+    private static float Align(float start, float available, float size, HorizontalContentAlignment alignment) => alignment switch
+    {
+        HorizontalContentAlignment.Left => start,
+        HorizontalContentAlignment.Right => start + available - size,
+        _ => start + (available - size) / 2f,
+    };
+
+    private static float Align(float start, float available, float size, VerticalContentAlignment alignment) => alignment switch
+    {
+        VerticalContentAlignment.Top => start,
+        VerticalContentAlignment.Bottom => start + available - size,
+        _ => start + (available - size) / 2f,
+    };
 
     protected override Size MeasureOverride(Size availableSize)
     {
@@ -98,13 +186,26 @@ public class Button : ButtonBase, ITextElement
             ? Size.Empty
             : TextMeasurer.Current.MeasureText(ApplyTextTransform(Text), EffectiveFont);
 
-        float width = textSize.Width + Padding.Horizontal;
-        float height = Math.Max(textSize.Height, string.IsNullOrEmpty(IconPathData) ? 0 : IconSize) + Padding.Vertical;
+        float width = textSize.Width;
+        float height = textSize.Height;
 
-        if (!string.IsNullOrEmpty(IconPathData))
-            width += IconSize + (textSize.Width > 0 ? IconGap : 0);
+        if (Icon is not null)
+        {
+            float gap = textSize.Width > 0 ? IconGap : 0;
 
-        return ResolveSize(new Size(width, height), availableSize);
+            if (IconIsVertical)
+            {
+                width = Math.Max(width, IconSize);
+                height += IconSize + gap;
+            }
+            else
+            {
+                width += IconSize + gap;
+                height = Math.Max(height, IconSize);
+            }
+        }
+
+        return ResolveSize(new Size(width + Padding.Horizontal, height + Padding.Vertical), availableSize);
     }
 }
 

@@ -1626,7 +1626,7 @@ public partial class Form : IDisposable
     {
         HideToolTip();
 
-        _toolTipOwner = target is not null && !string.IsNullOrEmpty(target.ToolTip) ? target : null;
+        _toolTipOwner = target is not null && !string.IsNullOrEmpty(target.GetToolTip(_lastPointerPosition)) ? target : null;
 
         if (_toolTipOwner is not null)
             _toolTipWake = Schedule(ToolTipDelay, ShowToolTipCore);
@@ -1634,7 +1634,7 @@ public partial class Form : IDisposable
 
     private void ShowToolTipCore()
     {
-        if (_toolTipOwner is null || string.IsNullOrEmpty(_toolTipOwner.ToolTip))
+        if (_toolTipOwner?.GetToolTip(_lastPointerPosition) is not { Length: > 0 } text)
             return;
 
         var tip = new Border
@@ -1646,7 +1646,7 @@ public partial class Form : IDisposable
             IsHitTestVisible = false,
             Child = new Label
             {
-                Text = _toolTipOwner.ToolTip,
+                Text = text,
                 TextColor = Colors.Black,
                 IsHitTestVisible = false,
             },
@@ -1672,6 +1672,25 @@ public partial class Form : IDisposable
         _activeToolTip = tip;
 
         Invalidate();
+    }
+
+    /// <summary>The hovered element's tooltip changed with the part under the pointer.</summary>
+    internal void RefreshToolTip(UIElement element)
+    {
+        if (!ReferenceEquals(element, _hoveredElement)) return;
+
+        bool shown = _activeToolTip is not null;
+
+        HideToolTip();
+
+        _toolTipOwner = !string.IsNullOrEmpty(element.GetToolTip(_lastPointerPosition)) ? element : null;
+
+        if (_toolTipOwner is null) return;
+
+        // moving between the parts of one control, the tip follows without
+        // the delay again — it was asked for already
+        if (shown) ShowToolTipCore();
+        else _toolTipWake = Schedule(ToolTipDelay, ShowToolTipCore);
     }
 
     private void HideToolTip()

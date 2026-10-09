@@ -86,6 +86,14 @@ public partial class CheckBox : InteractiveControl, ITextElement
     public partial Color CheckGlyphColor { get; set; }
     private static Color CheckGlyphColorDefault => Colors.White;
 
+    /// <summary>What the third state shows. A dash on a filled box is the Fluent and
+    /// macOS look; a small square in an empty box — classic Windows and GTK; a dot
+    /// on a filled box reads apart from both the check and the empty box at a glance.</summary>
+    /// <remarks>Something else entirely — an override of <see cref="DrawIndeterminateGlyph"/>.</remarks>
+    [Styled(Category = "Box")]
+    public partial IndeterminateGlyph IndeterminateGlyph { get; set; }
+    private static IndeterminateGlyph IndeterminateGlyphDefault => IndeterminateGlyph.Dash;
+
     // ===== geometry =====
     //
     // Constants before 0.13: the classic look drew a 16 px box rounded to 3,
@@ -172,8 +180,10 @@ public partial class CheckBox : InteractiveControl, ITextElement
         float boxSize = BoxSize;
         Rectangle boxRect = BoxRect;
 
-        // a filled box in the checked state looks closer to the system ones
-        bool filled = _checkState != CheckedState.Unchecked;
+        // a filled box in the checked state looks closer to the system ones; the
+        // classic square of the third state sits in an empty box instead
+        bool filled = _checkState == CheckedState.Checked ||
+                      (_checkState == CheckedState.Intermediate && IndeterminateFillsBox);
         CornerRadius radius = BoxCornerRadius;
 
         g.FillRoundRectangle(boxRect, radius, filled ? CheckColor : BoxBackground);
@@ -193,7 +203,7 @@ public partial class CheckBox : InteractiveControl, ITextElement
                 break;
 
             case CheckedState.Intermediate:
-                DrawDash(g, boxRect, CheckGlyphColor);
+                DrawIndeterminateGlyph(g, boxRect);
                 break;
         }
 
@@ -232,6 +242,42 @@ public partial class CheckBox : InteractiveControl, ITextElement
         g.DrawPolyline(points, color, box.Width * 0.14f);
     }
 
+    /// <summary>Whether the box is filled with <see cref="CheckColor"/> in the third
+    /// state: under a dash or a dot it is, around the classic square it is not.</summary>
+    protected virtual bool IndeterminateFillsBox => IndeterminateGlyph != IndeterminateGlyph.Square;
+
+    /// <summary>The glyph of the third state inside the box, by <see cref="IndeterminateGlyph"/>.
+    /// An override draws a glyph of its own; <see cref="IndeterminateFillsBox"/> says
+    /// whether it lies on a filled box.</summary>
+    protected virtual void DrawIndeterminateGlyph(Graphics g, Rectangle box)
+    {
+        switch (IndeterminateGlyph)
+        {
+            case IndeterminateGlyph.Square:
+                // the accent itself rather than the glyph color: the box around it is empty
+                var inner = new Rectangle(
+                    new Point(box.X + box.Width * 0.25f, box.Y + box.Height * 0.25f),
+                    new Size(box.Width * 0.5f, box.Height * 0.5f));
+
+                g.FillRoundRectangle(inner, new CornerRadius(box.Width * 0.08f), CheckColor);
+                break;
+
+            case IndeterminateGlyph.Dot:
+                float diameter = box.Width * 0.36f;
+
+                g.FillEllipse(
+                    new Rectangle(
+                        new Point(box.X + (box.Width - diameter) / 2f, box.Y + (box.Height - diameter) / 2f),
+                        new Size(diameter, diameter)),
+                    CheckGlyphColor);
+                break;
+
+            default:
+                DrawDash(g, box, CheckGlyphColor);
+                break;
+        }
+    }
+
     private static void DrawDash(Graphics g, Rectangle box, Color color)
     {
         g.DrawLine(
@@ -261,4 +307,17 @@ public enum CheckedState : byte
     Unchecked,
     Intermediate,
     Checked,
+}
+
+/// <summary>The glyph of <see cref="CheckedState.Intermediate"/>, see <see cref="CheckBox.IndeterminateGlyph"/>.</summary>
+public enum IndeterminateGlyph : byte
+{
+    /// <summary>A dash on a filled box: Fluent, macOS.</summary>
+    Dash,
+
+    /// <summary>A small filled square in an empty box: classic Windows, GTK.</summary>
+    Square,
+
+    /// <summary>A dot on a filled box.</summary>
+    Dot,
 }

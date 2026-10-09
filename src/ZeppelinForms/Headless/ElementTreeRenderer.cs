@@ -111,6 +111,11 @@ public static class ElementTreeRenderer
         if (effects is { IsEmpty: false })
             effects.Begin(g, element.LocalBounds);
 
+        // the element's text decorations and outline for every caption it draws;
+        // the parent's come back after it, for what the parent draws over its children
+        TextEffects outerText = g.TextEffects;
+        g.TextEffects = element.CurrentTextEffects;
+
         switch (element)
         {
             case UnitControl unit:
@@ -169,6 +174,8 @@ public static class ElementTreeRenderer
                 panel.DrawOverlay(g);
                 break;
         }
+
+        g.TextEffects = outerText;
 
         if (effects is { IsEmpty: false })
             effects.End(g, element.LocalBounds);

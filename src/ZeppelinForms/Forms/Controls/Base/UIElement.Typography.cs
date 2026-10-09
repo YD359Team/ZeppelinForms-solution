@@ -1,4 +1,5 @@
 ﻿using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Theming;
@@ -80,4 +81,34 @@ public abstract partial class UIElement
             return _rampFont;
         }
     }
+
+    // ===== text effects =====
+    //
+    // Inherited, like TextTransform: CSS doesn't inherit text-decoration but draws it
+    // through every inline descendant, which in a tree of controls comes to the same —
+    // underline a panel, and its captions are underlined.
+
+    /// <summary>Lines drawn with every caption of the element and its descendants.</summary>
+    [Styled(Category = "Text", Inherits = true)]
+    public partial TextDecorations TextDecorations { get; set; }
+
+    /// <summary>The color of <see cref="TextDecorations"/>; transparent — the text's own.</summary>
+    [Styled(Category = "Text", Inherits = true)]
+    public partial Color TextDecorationColor { get; set; }
+
+    /// <summary>An outline around the glyphs, drawn under them: the text keeps its
+    /// shape and color, the outline grows outside. Transparent — none. Text over
+    /// a photo or a video stays legible with a dark outline.</summary>
+    [Styled(Category = "Text", Inherits = true)]
+    public partial Color TextOutlineColor { get; set; }
+
+    /// <summary>How far the outline reaches outside the glyphs, in pixels.</summary>
+    [Styled(Category = "Text", Inherits = true)]
+    public partial float TextOutlineWidth { get; set; }
+    private static float TextOutlineWidthDefault => 1f;
+
+    /// <summary>The effects the renderer hands to <see cref="Graphics.TextEffects"/>
+    /// while it draws this element.</summary>
+    internal TextEffects CurrentTextEffects =>
+        new(TextDecorations, TextDecorationColor, TextOutlineColor, TextOutlineWidth);
 }

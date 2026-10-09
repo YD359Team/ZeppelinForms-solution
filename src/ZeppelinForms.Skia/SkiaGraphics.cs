@@ -377,8 +377,12 @@ public sealed class SkiaGraphics : Graphics
     {
         if (string.IsNullOrEmpty(text)) return;
 
-        SKPaint paint = FillPaint(color);
         CachedLine line = SkiaFontCache.GetLine(text, font);
+
+        // the outline goes under the glyphs: the fill then covers its inner half
+        DrawOutline(line, position.X, position.Y);
+
+        SKPaint paint = FillPaint(color);
 
         float x = position.X;
 
@@ -391,6 +395,8 @@ public sealed class SkiaGraphics : Graphics
 
             x += line.Runs[i].Width;
         }
+
+        DrawDecorations(TextEffects.Decorations, position.X, line.Width, position.Y, font, color);
     }
 
     public override void DrawText(
@@ -399,8 +405,6 @@ public sealed class SkiaGraphics : Graphics
         VerticalContentAlignment vAlign = VerticalContentAlignment.Center)
     {
         if (string.IsNullOrEmpty(text)) return;
-
-        SKPaint paint = FillPaint(color);
 
         // the width is computed from the same pieces as the drawing, otherwise
         // the alignment drifts on lines with emoji
@@ -435,6 +439,13 @@ public sealed class SkiaGraphics : Graphics
             ClipRect(rect);
         }
 
+        float start = x;
+
+        // the outline goes under the glyphs: the fill then covers its inner half
+        DrawOutline(line, start, baselineY);
+
+        SKPaint paint = FillPaint(color);
+
         for (int i = 0; i < line.Runs.Length; i++)
         {
             if (line.GetBlob(i) is { } blob)
@@ -443,8 +454,58 @@ public sealed class SkiaGraphics : Graphics
             x += line.Runs[i].Width;
         }
 
+        DrawDecorations(TextEffects.Decorations, start, textWidth, baselineY, font, color);
+
         if (clipped)
             Restore();
+    }
+
+    /// <summary>The current <see cref="Graphics.TextEffects"/> outline of a line: the same
+    /// blobs stroked twice as wide as the outline reaches out, before the fill.</summary>
+    private void DrawOutline(CachedLine line, float x, float baseline)
+    {
+        TextEffects effects = TextEffects;
+
+        if (!effects.HasOutline) return;
+
+        // round joins: miters spike out of the sharp corners of letters like A and V
+        SKPaint paint = StrokePaint(effects.OutlineColor, effects.OutlineWidth * 2f, join: SKStrokeJoin.Round);
+
+        for (int i = 0; i < line.Runs.Length; i++)
+        {
+            if (line.GetBlob(i) is { } blob)
+                _canvas.DrawText(blob, x, baseline, paint);
+
+            x += line.Runs[i].Width;
+        }
+    }
+
+    /// <summary>Decoration lines along a piece of text, at the same heights as the
+    /// underline and strikethrough of <see cref="TextRun"/>.</summary>
+    private void DrawDecorations(TextDecorations decorations, float x, float width, float baseline, Font font, Color textColor)
+    {
+        if (decorations == TextDecorations.None || width <= 0f) return;
+
+        SKPaint paint = StrokePaint(TextEffects.LineColor(textColor), Math.Max(1f, font.Size / 14f));
+
+        if ((decorations & TextDecorations.Underline) != 0)
+        {
+            float y = baseline + font.Size * 0.12f;
+            _canvas.DrawLine(x, y, x + width, y, paint);
+        }
+
+        if ((decorations & TextDecorations.Strikethrough) != 0)
+        {
+            float y = baseline - font.Size * 0.28f;
+            _canvas.DrawLine(x, y, x + width, y, paint);
+        }
+
+        if ((decorations & TextDecorations.Overline) != 0)
+        {
+            // the ascent is negative: up from the baseline to the top of the capitals
+            float y = baseline + SkiaFontCache.Get(font).Metrics.Ascent * 0.92f;
+            _canvas.DrawLine(x, y, x + width, y, paint);
+        }
     }
 
     public override void FillPie(Rectangle rect, float startAngle, float sweepAngle, Color color)
@@ -516,6 +577,8 @@ public sealed class SkiaGraphics : Graphics
                     backgroundPaint);
             }
 
+            DrawOutline(line, x, baseline);
+
             // the background is already drawn, the brush can be reconfigured for
             // the text: the calls go one after another, there is no overlap
             SKPaint paint = FillPaint(color);
@@ -528,22 +591,14 @@ public sealed class SkiaGraphics : Graphics
                 x += line.Runs[i].Width;
             }
 
-            if (run.Underline || run.Strikethrough)
-            {
-                SKPaint linePaint = StrokePaint(color, Math.Max(1f, font.Size / 14f));
+            // the run's own lines add to the element's: a link in an underlined
+            // paragraph is underlined once, a struck run in it — both
+            TextDecorations decorations = TextEffects.Decorations;
 
-                if (run.Underline)
-                {
-                    float y = baseline + font.Size * 0.12f;
-                    _canvas.DrawLine(runStart, y, runStart + runWidth, y, linePaint);
-                }
+            if (run.Underline) decorations |= TextDecorations.Underline;
+            if (run.Strikethrough) decorations |= TextDecorations.Strikethrough;
 
-                if (run.Strikethrough)
-                {
-                    float y = baseline - font.Size * 0.28f;
-                    _canvas.DrawLine(runStart, y, runStart + runWidth, y, linePaint);
-                }
-            }
+            DrawDecorations(decorations, runStart, runWidth, baseline, font, color);
         }
     }
 

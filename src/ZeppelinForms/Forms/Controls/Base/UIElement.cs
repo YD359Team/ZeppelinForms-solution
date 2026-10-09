@@ -1098,6 +1098,17 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
     public string? ToolTip { get; set; }
 
+    /// <summary>The tooltip at a point of the form: <see cref="ToolTip"/> by default.
+    /// An element that draws parts of its own — dots, cells, chart points — answers
+    /// with the part's text, and calls <see cref="RefreshToolTip"/> when the part
+    /// under the pointer changes.</summary>
+    protected internal virtual string? GetToolTip(Point location) => ToolTip;
+
+    /// <summary>The part under the pointer changed: the form asks
+    /// <see cref="GetToolTip"/> again. A tooltip already shown moves on to the new
+    /// part at once, as system tooltips do between the items of one control.</summary>
+    protected void RefreshToolTip() => FindOwner()?.RefreshToolTip(this);
+
     /// <summary>The element's name: unique in its form, and what <c>#name</c>
     /// in a style selector matches.</summary>
     public string Name

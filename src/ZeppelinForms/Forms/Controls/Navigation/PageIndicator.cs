@@ -16,6 +16,10 @@ public partial class PageIndicator : DecoratedControl
     private PageControl? _target;
     private int _hoveredIndex = -1;
 
+    /// <summary>The dot whose title the tooltip shows; tracked apart from the hover,
+    /// which a non-interactive indicator doesn't draw.</summary>
+    private int _titleIndex = -1;
+
     // the style and all the sizes define the indicator's desired size,
     // so each asks for a layout pass
 
@@ -80,6 +84,10 @@ public partial class PageIndicator : DecoratedControl
     private static Color HoverColorDefault => new(255, 150, 150, 150);
 
     public bool IsInteractive { get; set; } = true;
+
+    /// <summary>Hovering a dot shows its page's <see cref="Page.Title"/> as a tooltip.
+    /// A page without a title shows the indicator's own <see cref="UIElement.ToolTip"/>, if any.</summary>
+    public bool ShowPageTitles { get; set; } = true;
 
     public PageControl? Target
     {
@@ -235,17 +243,43 @@ public partial class PageIndicator : DecoratedControl
 
     protected override void OnMouseMove(MouseMoveEventArgs e)
     {
+        int index = IndexFromPoint(e.Location);
+
+        // another dot, another page: its title replaces the previous one — on an
+        // indicator that only shows the position too
+        if (index != _titleIndex)
+        {
+            _titleIndex = index;
+
+            if (ShowPageTitles) RefreshToolTip();
+        }
+
         if (!IsInteractive) return;
 
-        int index = IndexFromPoint(e.Location);
         if (index == _hoveredIndex) return;
 
         _hoveredIndex = index;
         InvalidateVisual();
     }
 
+    /// <summary>The title of the page under the pointer.</summary>
+    protected internal override string? GetToolTip(Point location)
+    {
+        if (ShowPageTitles)
+        {
+            int index = IndexFromPoint(location);
+            List<Page> pages = Pages;
+
+            if (index >= 0 && index < pages.Count && !string.IsNullOrEmpty(pages[index].Title))
+                return pages[index].Title;
+        }
+
+        return base.GetToolTip(location);
+    }
+
     protected override void OnMouseExit(MouseMoveEventArgs e)
     {
+        _titleIndex = -1;
         _hoveredIndex = -1;
         InvalidateVisual();
     }
