@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Snapshot tests: what a failed comparison rendered, for looking at — not a baseline
+tests/ZeppelinForms.UnitTests/Snapshots/Failed/
