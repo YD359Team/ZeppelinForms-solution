@@ -39,6 +39,7 @@ internal static class AccessibilityPeerFactory
         HintLabel hint => new HintLabelPeer(hint),
         Label or RichLabel => new TextPeer(element),
         TextBox textBox => new TextBoxPeer(textBox),
+        MarkdownViewer markdown => new MarkdownViewerPeer(markdown),
         MaskedTextBox masked => new MaskedTextBoxPeer(masked),
         NumericUpDown numeric => new SpinButtonPeer(numeric),
 

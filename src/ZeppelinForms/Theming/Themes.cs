@@ -449,6 +449,26 @@ public static partial class Themes
                 gallery.GlyphColor = c.TextSecondary;
             })
 
+
+            // code and table shades are the text laid thinly over the page, so they
+            // show on a light page and a dark one alike
+            .For<MarkdownViewer>((viewer, c) =>
+            {
+                viewer.LinkColor = c.Accent;
+                viewer.LinkHoverColor = c.AccentHover;
+                viewer.FocusColor = c.Text;
+                viewer.CodeBackground = Color.Lerp(c.Background, c.Text, 0.09f);
+                viewer.CodeBlockBackground = Color.Lerp(c.Background, c.Text, 0.05f);
+                viewer.QuoteBarColor = c.Border;
+                viewer.QuoteTextColor = c.TextSecondary;
+                viewer.RuleColor = c.Border;
+                viewer.TableBorderColor = c.Border;
+                viewer.TableHeaderBackground = Color.Lerp(c.Background, c.Text, 0.05f);
+                viewer.TableStripeColor = Color.Lerp(c.Background, c.Text, 0.025f);
+                viewer.TaskColor = c.Accent;
+                viewer.TaskCheckColor = c.TextOnAccent;
+            })
+
             // the default separator is translucent white, made for an accent
             // button; on the theme's neutral button it disappeared
             .For<SplitButton>((button, c) => button.SeparatorColor = c.Border)

@@ -75,6 +75,17 @@
   picture when it gets to it (`GalleryItem.ImageLoader`) and its neighbours ahead,
   showing the thumbnail meanwhile. With `ShowCloseButton` it is a dialog: Escape
   closes it and Tab stays inside
+- `MarkdownViewer`: a Markdown document wrapped to the width and scrolling —
+  headings, emphasis, code spans and blocks, quotes, nested and task lists, tables
+  with column alignment, rules, pictures through `ImageResolver`. `LinkClicked` for
+  every link; a `#heading` link nobody handles scrolls to the heading, and
+  `ScrollToAnchor` does it from code. Tab goes through the links, Enter follows one.
+  A screen reader gets the document's structure: headings with their levels,
+  paragraphs, lists, tables, links. Colors of links, code, quotes and tables are
+  styled, in all three themes
+- `MarkdownDocument`: the parser on its own — CommonMark with GitHub tables, task
+  lists, strikethrough and bare links; reference links; heading anchors as GitHub
+  makes them
 
 ### Previewer
 

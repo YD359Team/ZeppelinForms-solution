@@ -2,6 +2,7 @@
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.DataGrid;
+using ZeppelinForms.Forms.Controls.Text;
 
 namespace ZeppelinForms.Theming;
 
@@ -276,7 +277,28 @@ public static partial class Themes
                 viewer.CaptionColor = c.Text;
                 viewer.GlyphColor = c.Text;
                 viewer.BorderColor = c.Text;
-            });
+            })
+
+
+            // no shades: code is told by its font, tables and quotes by their lines
+            .For<MarkdownViewer>((viewer, c) =>
+            {
+                viewer.LinkColor = c.Accent;
+                viewer.LinkHoverColor = c.Accent;
+                viewer.FocusColor = c.Text;
+                viewer.HeadingColor = c.Text;
+                viewer.CodeTextColor = c.Text;
+                viewer.CodeBackground = Colors.Transparent;
+                viewer.CodeBlockBackground = Colors.Transparent;
+                viewer.QuoteBarColor = c.Text;
+                viewer.QuoteTextColor = c.Text;
+                viewer.RuleColor = c.Text;
+                viewer.TableBorderColor = c.Text;
+                viewer.TableHeaderBackground = Colors.Transparent;
+                viewer.TableStripeColor = Colors.Transparent;
+                viewer.TaskColor = c.Accent;
+                viewer.TaskCheckColor = c.TextSelection;
+            }); ;
     }
 
     private static void ContrastButton(ButtonBase button, ThemeColors c, HighContrastPalette p)
