@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using ZeppelinForms.Core;
+using ZeppelinForms.Dispatchers;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Forms;
@@ -235,6 +236,10 @@ public partial class App
         this.MainForm.Icon ??= Assets.Logo;
 
         IPlatformWindow window = _platform.CreateWindow(this.MainForm);
+
+        // this thread is the application's UI thread, even if another one opened
+        // a window before — a test thread, a splash screen of its own
+        Dispatcher.SetUIThread(this.MainForm.Dispatcher);
 
         // await continuations must come back to the UI thread:
         // ShowDialogAsync and all async code in handlers rely on this

@@ -485,6 +485,51 @@ public sealed class FormLifecycleTests
         await withoutResult;
     }
 
+    [Fact]
+    public void AThreadWhoseWindowsClosedKeepsItsOwnLoop()
+    {
+        // this thread opens a window and closes it: it has no windows left
+        (Form first, _, _) = Create();
+        first.Show();
+        first.Close();
+
+        // meanwhile another thread opens one and keeps it — as the Windows
+        // platform test does, with its window and its message loop
+        using var opened = new ManualResetEventSlim(false);
+        using var release = new ManualResetEventSlim(false);
+
+        var other = new Thread(() =>
+        {
+            Create();
+            opened.Set();
+            release.Wait();
+        })
+        {
+            IsBackground = true,
+        };
+
+        other.Start();
+        opened.Wait(TestContext.Current.CancellationToken);
+
+        try
+        {
+            // a new window here: its work runs in this thread's loop, not in the
+            // other thread's, where nobody would ever run it
+            (Form form, HeadlessPlatform platform, _) = Create();
+
+            Task<int> task = form.Dispatcher.InvokeAsync(() => 7);
+            platform.PumpAll();
+
+            Assert.True(task.IsCompletedSuccessfully);
+            Assert.True(form.Dispatcher.CheckAccess());
+        }
+        finally
+        {
+            release.Set();
+            other.Join();
+        }
+    }
+
     // ===== Button: hover over a styled background =====
 
     private sealed class ProbeButton : Button

@@ -36,10 +36,6 @@ public sealed class Dispatcher
     // 0 — no thread yet: no window was opened anywhere
     private int _threadId;
 
-    // a dispatcher whose thread was left without windows gives way to the next
-    // UI thread, and whoever kept a reference to it is sent there
-    private Dispatcher? _successor;
-
     // a form's dispatcher: the dispatcher of its thread, through its window
     private readonly Dispatcher? _owner;
     private readonly IPlatformWindow? _window;
@@ -56,7 +52,9 @@ public sealed class Dispatcher
     /// and through the thread's other windows after it closes.</summary>
     internal Dispatcher ForWindow(IPlatformWindow window) => new(_owner ?? this, window);
 
-    /// <summary>The dispatcher of the application's UI thread.</summary>
+    /// <summary>The dispatcher of the application's UI thread: the thread App.Run
+    /// was called on, or, without App.Run, the first thread that opened a window.
+    /// Before any window it already exists, and the work queued in it waits for one.</summary>
     public static Dispatcher UIThread
     {
         get
@@ -75,9 +73,6 @@ public sealed class Dispatcher
     {
         if (_owner is not null)
             return _owner.CheckAccess();
-
-        if (Volatile.Read(ref _successor) is { } successor)
-            return successor.CheckAccess();
 
         int threadId = Volatile.Read(ref _threadId);
         return threadId == 0 || threadId == Environment.CurrentManagedThreadId;
@@ -122,10 +117,6 @@ public sealed class Dispatcher
 
         if (_owner is not null)
             return _owner.Invoke(function, via ?? _window);
-
-        // a reference kept from before the application moved to another thread
-        if (Volatile.Read(ref _successor) is { } successor)
-            return successor.Invoke(function, via: null);
 
         if (CheckAccess())
             return function();
@@ -270,58 +261,41 @@ public sealed class Dispatcher
             _windows.Remove(window);
     }
 
+    /// <summary>The thread App.Run was called on is the application's UI thread,
+    /// whichever thread opened a window before it.</summary>
+    internal static void SetUIThread(Dispatcher dispatcher)
+    {
+        lock (s_lock)
+            s_uiThread = dispatcher._owner ?? dispatcher;
+    }
+
+    /// <remarks>
+    /// Every UI thread has a dispatcher of its own, and keeps it as long as it lives.
+    /// A thread whose windows have all closed may open new ones — a dialog after the
+    /// splash screen, the next test on a test thread — and its work must keep going
+    /// to its own loop: it used to be handed to whichever thread opened a window
+    /// next, where nobody ran it.
+    /// </remarks>
     private static Dispatcher BindCurrentThread()
     {
         lock (s_lock)
         {
             int threadId = Environment.CurrentManagedThreadId;
 
-            // the first thread to open a window is the UI thread. Work queued
-            // before it waits in the dispatcher that already exists, so that
-            // dispatcher is bound rather than replaced
-            if (s_uiThread is null || s_uiThread._threadId == 0)
+            // the first thread to open a window takes the dispatcher UIThread handed
+            // out before any window existed: the work queued in it runs there
+            if (s_uiThread is { _threadId: 0 } unbound)
             {
-                s_uiThread ??= new Dispatcher();
-                Volatile.Write(ref s_uiThread._threadId, threadId);
-            }
-            else if (!s_uiThread.HasWindows)
-            {
-                // the old UI thread has no windows left — the application started
-                // again on another thread. Its queue moves along with the title
-                var next = new Dispatcher { _threadId = threadId };
-                s_uiThread.HandOver(next);
-                s_uiThread = next;
+                Volatile.Write(ref unbound._threadId, threadId);
+                t_current = unbound;
             }
             else
             {
-                // a second UI thread next to a living first one: it gets a
-                // dispatcher of its own, and UIThread stays where it is
                 t_current = new Dispatcher { _threadId = threadId };
-                return t_current;
+                s_uiThread ??= t_current;
             }
 
-            t_current = s_uiThread;
-            return s_uiThread;
-        }
-    }
-
-    private bool HasWindows
-    {
-        get
-        {
-            lock (_lock)
-                return _windows.Count > 0;
-        }
-    }
-
-    private void HandOver(Dispatcher next)
-    {
-        lock (_lock)
-        {
-            Volatile.Write(ref _successor, next);
-
-            while (_pending.TryDequeue(out Action? action))
-                next._pending.Enqueue(action);
+            return t_current;
         }
     }
 
@@ -346,20 +320,16 @@ public sealed class Dispatcher
     private bool TryPost(Action action, bool queueIfNoWindow, IPlatformWindow? via)
     {
         IPlatformWindow? window;
-        Dispatcher? successor;
 
         lock (_lock)
         {
-            successor = _successor;
-
             // the window asked for — a form invoking through its own — while it is
             // open; otherwise the oldest one: the main window outlives its dialogs
-            window = successor is not null ? null
-                : via is not null && _windows.Contains(via) ? via
+            window = via is not null && _windows.Contains(via) ? via
                 : _windows.Count > 0 ? _windows[0]
                 : null;
 
-            if (successor is null && window is null)
+            if (window is null)
             {
                 if (!queueIfNoWindow) return false;
 
@@ -368,10 +338,7 @@ public sealed class Dispatcher
             }
         }
 
-        if (successor is not null)
-            return successor.TryPost(action, queueIfNoWindow, via: null);
-
-        window!.Invoke(action);
+        window.Invoke(action);
         return true;
     }
 }
