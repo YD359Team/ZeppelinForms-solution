@@ -337,6 +337,15 @@ public static partial class Themes
                 menu.OpenColor = c.SurfacePressed;
             })
 
+                        .For<TabStrip>((strip, c) =>
+                        {
+                            strip.StripColor = c.Surface;
+                            strip.TabHoverColor = c.SurfaceHover;
+                            strip.SelectedTabColor = c.Background;
+                            strip.DisabledTextColor = c.TextDisabled;
+                            strip.AccentColor = c.Accent;
+                        })
+
             .For<MenuList>((menu, c) =>
             {
                 menu.Background = c.Surface;
@@ -372,6 +381,14 @@ public static partial class Themes
                 bar.ThumbColor = c.Surface;
                 bar.ThumbBorderColor = c.Border;
             })
+
+                        .For<RangeSlider>((slider, c) =>
+                        {
+                            slider.TrackColor = c.SurfaceHover;
+                            slider.FillColor = c.Accent;
+                            slider.ThumbColor = c.Surface;
+                            slider.ThumbBorderColor = c.Border;
+                        })
 
             .For<ToggleSwitch>((toggle, c) =>
             {

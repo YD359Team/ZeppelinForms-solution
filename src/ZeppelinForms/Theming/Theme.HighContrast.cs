@@ -148,6 +148,14 @@ public static partial class Themes
                 bar.ThumbBorderColor = c.Text;
             })
 
+                        .For<RangeSlider>((slider, c) =>
+                        {
+                            slider.TrackColor = c.Text;
+                            slider.FillColor = c.Accent;
+                            slider.ThumbColor = c.Background;
+                            slider.ThumbBorderColor = c.Text;
+                        })
+
             .For<ProgressBar>((bar, c) =>
             {
                 bar.FillColor = c.Accent;
@@ -216,7 +224,17 @@ public static partial class Themes
                 tabs.SelectedHeaderColor = c.Background;
                 tabs.DisabledTextColor = c.TextDisabled;
                 tabs.AccentColor = c.Accent;
-            });
+            })
+
+                                    .For<TabStrip>((strip, c) =>
+                                    {
+                                        strip.StripColor = c.Background;
+                                        strip.TabHoverColor = c.Background;
+                                        strip.SelectedTabColor = c.Background;
+                                        strip.DisabledTextColor = c.TextDisabled;
+                                        strip.AccentColor = c.Accent;
+                                        strip.ButtonHoverColor = c.Accent;
+                                    });
     }
 
     private static void ContrastButton(ButtonBase button, ThemeColors c, HighContrastPalette p)

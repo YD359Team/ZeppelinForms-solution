@@ -57,4 +57,14 @@ public static class ZfText
 
     public static readonly TextKey NothingSelected = new("zf.selection.none", "None selected");
     public static readonly TextKey SelectedCount = new("zf.selection.count", "Selected: {0}");
+
+    // ===== RangeSlider =====
+
+    public static readonly TextKey RangeLower = new("zf.range.lower", "Lower value");
+    public static readonly TextKey RangeUpper = new("zf.range.upper", "Upper value");
+
+    // ===== TabStrip =====
+
+    public static readonly TextKey CloseTab = new("zf.tabs.close", "Close tab");
+    public static readonly TextKey NewTab = new("zf.tabs.new", "New tab");
 }

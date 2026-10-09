@@ -98,6 +98,10 @@ public partial class TextBox : TextInputControl, ITextElement
                 NotifyBoundValueChanged(TextProperty, _document.Text);
 
             TextChanged?.Invoke(this, EventArgs.Empty);
+
+            if (!_writingText)
+                OnTextEdited();
+
             InvalidateVisual();
         };
 
@@ -318,6 +322,21 @@ public partial class TextBox : TextInputControl, ITextElement
     public event EventHandler? TrailingIconClick;
 
     public void SelectAll() => _document.SelectAll();
+
+    /// <summary>The text changed by editing — typing, deleting, pasting, undo — not by
+    /// an assignment to <see cref="Text"/> or a binding. After <see cref="TextChanged"/>.</summary>
+    protected virtual void OnTextEdited() { }
+
+    /// <summary>Select <paramref name="length"/> characters from <paramref name="start"/>,
+    /// the caret at the end of them; a length of 0 just puts the caret there.</summary>
+    public void Select(int start, int length)
+    {
+        int from = Math.Clamp(start, 0, _document.Text.Length);
+        int to = Math.Clamp(start + length, 0, _document.Text.Length);
+
+        _document.SetCaret(from);
+        if (to != from) _document.SetCaret(to, extendSelection: true);
+    }
 
     /// <summary>Check the content now.</summary>
     public bool Validate()

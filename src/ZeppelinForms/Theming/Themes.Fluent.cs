@@ -310,6 +310,14 @@ public static partial class Themes
                 bar.ThumbBorderColor = c.ControlStrokeSecondary;
             })
 
+                        .For<RangeSlider>((slider, c) =>
+                        {
+                            slider.TrackColor = c.ControlStrongStroke;
+                            slider.FillColor = c.Accent;
+                            slider.ThumbColor = c.ControlFill;
+                            slider.ThumbBorderColor = c.ControlStrokeSecondary;
+                        })
+
             // a selected row reads by a tint rather than the full accent: the rows
             // keep the theme's text color, and dark text on the accent is lost
             .For<ListBox>((list, t) =>

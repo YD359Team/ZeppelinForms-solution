@@ -44,6 +44,7 @@ internal static class AccessibilityPeerFactory
 
         // ranges
         TrackBar trackBar => new SliderPeer(trackBar),
+        RangeSlider range => new RangeSliderPeer(range),
         ProgressBar progress => new ProgressBarPeer(progress),
         CircularProgressBar circular => new ProgressBarPeer(circular),
         Loader loader => new LoaderPeer(loader),
@@ -60,6 +61,7 @@ internal static class AccessibilityPeerFactory
         ListBox or DragList => new ListPeer((ItemsControl)element),
         TreeView tree => new TreeViewPeer(tree),
         TabControl tabs => new TabControlPeer(tabs),
+        TabStrip strip => new TabStripPeer(strip),
         DataGridView grid => new DataGridPeer(grid),
         MenuBar menuBar => new MenuBarPeer(menuBar),
         MenuList menu => new MenuListPeer(menu),

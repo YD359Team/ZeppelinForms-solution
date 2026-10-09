@@ -44,5 +44,11 @@ internal sealed class ZfRussianStrings : StringTable
 
         Add(ZfText.NothingSelected, "Не выбрано");
         Add(ZfText.SelectedCount, "Выбрано: {0}");
+
+        Add(ZfText.RangeLower, "Нижнее значение");
+        Add(ZfText.RangeUpper, "Верхнее значение");
+
+        Add(ZfText.CloseTab, "Закрыть вкладку");
+        Add(ZfText.NewTab, "Новая вкладка");
     }
 }

@@ -30,6 +30,21 @@
 - `PageIndicator` shows a page's `Title` as a tooltip over its dot. Tooltips of the
   parts a control draws itself: `UIElement.GetToolTip(point)` and `RefreshToolTip()`
 
+### New controls
+
+- `RangeSlider`: two thumbs, `LowerValue` to `UpperValue`. A thumb pushed into the
+  other pushes it along; `MinimumGap` keeps them apart; a closed range opens toward
+  the drag. Tab goes through both thumbs, and each is a slider of its own for
+  screen readers
+- `TabStrip`: tabs without pages, for browsers and editors — `TabStripItem` with a
+  header, an icon and a close button; `ShowAddButton`, `TabCloseRequested` (can be
+  cancelled), middle click closes, drag to reorder (`TabMoved`), tabs narrow to
+  `MinTabWidth` and then scroll. Ctrl+W closes, Ctrl+Shift+Left/Right move a tab
+- `AutoCompleteBox`: a `TextBox` that suggests from `ItemsSource` (`StartsWith`,
+  `Contains`, `WordStartsWith`) or a `SuggestionProvider`; Up, Down, Enter, Escape
+  and a click; the field keeps the focus. `TextBox.Select(start, length)` and
+  `TextBox.OnTextEdited()` come with it
+
 ### Previewer
 
 - Live previews in Visual Studio 2022 17.10+ and Visual Studio 2026: the
