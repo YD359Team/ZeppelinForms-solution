@@ -128,6 +128,7 @@ public sealed class FormLifecycleTests
     public void ARefusedAcceptLeavesNoResultBehind()
     {
         (Form form, _, HeadlessWindow window) = Create();
+        form.Show();
         bool refuse = true;
         List<bool> acceptedAtClosing = [];
 
@@ -549,12 +550,12 @@ public sealed class FormLifecycleTests
         (Form form, _, _) = Create(button);
         form.Styles.Add(StyleSheet.Parse(".accent { BackgroundColor: #0078D4; TextColor: #FFFFFF; }", "test.zss"));
 
-        Color background = button.Background;
+        Color background = button.StateBackground;
         button.Hover(true);
 
         // the theme's grey hover under white text was unreadable
         Assert.Equal(new Color(255, 0x00, 0x78, 0xD4), background);
-        Assert.Equal(background, button.Background);
+        Assert.Equal(background, button.StateBackground);
     }
 
     [Fact]
@@ -571,7 +572,7 @@ public sealed class FormLifecycleTests
 
         button.Hover(true);
 
-        Assert.Equal(new Color(255, 0x00, 0x5A, 0x9E), button.Background);
+        Assert.Equal(new Color(255, 0x00, 0x5A, 0x9E), button.StateBackground);
     }
 
     [Fact]
@@ -587,7 +588,7 @@ public sealed class FormLifecycleTests
         Create(button);
         button.Hover(true);
 
-        Color hovered = button.Background;
+        Color hovered = button.StateBackground;
 
         // lighter than the black background, and nowhere near the theme's grey
         Assert.True(hovered.R > 0 && hovered.R < 64);
@@ -601,7 +602,7 @@ public sealed class FormLifecycleTests
 
         button.Hover(true);
 
-        Assert.Equal(button.HoverBackgroundColor, button.Background);
+        Assert.Equal(button.HoverBackgroundColor, button.StateBackground);
     }
 
     // ===== Clip of a padded panel =====

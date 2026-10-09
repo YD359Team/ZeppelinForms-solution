@@ -102,6 +102,8 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
         try
         {
+            _selfHandle = GCHandle.Alloc(this);
+
             // the frame, the title bar buttons and the taskbar button come from
             // the form: FormBorderStyle, ControlBox, ShowInTaskbar, CanMinimize,
             // CanMaximize, CanResize (see Win32Window.Chrome)
@@ -111,17 +113,6 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                 exStyle, ClassName, _form.Title ?? string.Empty,
                 style,
                 x, y, width, height, ChromeOwner(), 0,
-                NativeMethods.GetModuleHandle(null),
-                GCHandle.ToIntPtr(_selfHandle));
-
-            if (!_form.CanMinimize) style &= ~NativeConstants.WS_MINIMIZEBOX;
-            if (!_form.CanMaximize) style &= ~NativeConstants.WS_MAXIMIZEBOX;
-            if (!_form.CanResize) style &= ~NativeConstants.WS_THICKFRAME;
-
-            _handle = NativeMethods.CreateWindowEx(
-                0, ClassName, _form.Title ?? string.Empty,
-                style,              // ← instead of WS_OVERLAPPEDWINDOW
-                x, y, width, height, 0, 0,
                 NativeMethods.GetModuleHandle(null),
                 GCHandle.ToIntPtr(_selfHandle));
         }
