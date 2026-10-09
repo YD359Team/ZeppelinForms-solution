@@ -128,21 +128,19 @@ public sealed class FormLifecycleTests
     public void ARefusedAcceptLeavesNoResultBehind()
     {
         (Form form, _, HeadlessWindow window) = Create();
-        form.Show();
-
         bool refuse = true;
-        bool? acceptedAtClosing = null;
+        List<bool> acceptedAtClosing = [];
 
         form.Closing += (_, e) =>
         {
             e.Cancel = refuse;
-            acceptedAtClosing ??= form.Result<string>().IsAccepted;
+            acceptedAtClosing.Add(form.Result<string>().IsAccepted);
         };
 
         form.Accept("value");
 
         // the handler saw what the dialog was closing with, and kept it open
-        Assert.True(acceptedAtClosing == true);
+        Assert.Equal([true], acceptedAtClosing);
         Assert.False(window.IsClosed);
         Assert.False(form.Result<string>().IsAccepted);
 
@@ -150,6 +148,7 @@ public sealed class FormLifecycleTests
         refuse = false;
         form.Close();
 
+        Assert.Equal([true, false], acceptedAtClosing);
         Assert.True(window.IsClosed);
         Assert.False(form.Result<string>().IsAccepted);
     }
@@ -460,11 +459,38 @@ public sealed class FormLifecycleTests
         Assert.Equal(7, await task);
     }
 
+    [Fact]
+    public async Task InvokeAsyncWaitsForTheWholeAsyncWork()
+    {
+        (Form form, HeadlessPlatform platform, _) = Create();
+        var gate = new TaskCompletionSource();
+
+        Task<int> withResult = form.Dispatcher.InvokeAsync(async () =>
+        {
+            await gate.Task;
+            return 5;
+        });
+
+        Task withoutResult = form.Dispatcher.InvokeAsync(async () => await gate.Task);
+
+        platform.PumpAll();
+
+        // the work has started and stopped at its await: not done yet
+        Assert.False(withResult.IsCompleted);
+        Assert.False(withoutResult.IsCompleted);
+
+        gate.SetResult();
+
+        Assert.Equal(5, await withResult);
+        await withoutResult;
+    }
+
     // ===== Button: hover over a styled background =====
 
     private sealed class ProbeButton : Button
     {
-        public Color Background => CurrentBackground;
+        // not Background: UIElement has one of its own
+        public Color StateBackground => CurrentBackground;
 
         public void Hover(bool value) => IsHovered = value;
     }

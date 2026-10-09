@@ -45,6 +45,10 @@ public class ZoomBox : DecoratedWrapControl, IInputElement
 
     protected internal override bool TransformsChild => true;
 
+    /// <summary>Zoomed in, the child is larger than the box: it is cut off inside
+    /// the padding, as scrolled content is, and doesn't spill over the frame.</summary>
+    protected internal override Rectangle ClipBounds => ContentBounds;
+
     protected internal override void ApplyChildTransform(Graphics g) =>
         g.Scale(ZoomFactor, ZoomFactor);
 
