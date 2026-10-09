@@ -73,6 +73,8 @@ internal static class AccessibilityPeerFactory
         SplitView split => new SplitViewPeer(split),
         SplitViewPaneHost pane => new SplitViewPanePeer(pane),
         RefreshContainer refresh => new RefreshContainerPeer(refresh),
+        ImageGallery gallery => new ImageGalleryPeer(gallery),
+        ImageViewer viewer => new ImageViewerPeer(viewer),
         ChartBase chart => new ChartPeer(chart),
         PictureBox or SvgIcon => new ImagePeer(element),
         GridSplitter => new SeparatorPeer(element),

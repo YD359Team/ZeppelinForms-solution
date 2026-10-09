@@ -55,5 +55,11 @@ internal sealed class ZfRussianStrings : StringTable
 
         Add(ZfText.Refreshing, "Обновление");
         Add(ZfText.Refreshed, "Обновлено");
+
+        Add(ZfText.ImageNumber, "Изображение {0}");
+        Add(ZfText.ImageCounter, "{0} из {1}");
+        Add(ZfText.PreviousImage, "Предыдущее изображение");
+        Add(ZfText.NextImage, "Следующее изображение");
+        Add(ZfText.CloseViewer, "Закрыть");
     }
 }

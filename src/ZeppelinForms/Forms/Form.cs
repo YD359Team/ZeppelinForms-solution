@@ -211,7 +211,24 @@ public partial class Form : IDisposable
         }
     }
 
-    public Size ClientSize { get; internal set; }
+    public Size ClientSize
+    {
+        get;
+        internal set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // before the layout the platform runs next: an overlay that covers
+            // the window — an image viewer — takes the new size in the same pass
+            ClientSizeChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>The client area changed its size: the window was resized, maximized,
+    /// or the screen turned.</summary>
+    public event EventHandler? ClientSizeChanged;
 
     public FlowDirection? FlowDirection { get; set; }
 

@@ -251,6 +251,31 @@ public static partial class Themes
                 refresh.IndicatorColor = c.Accent;
                 refresh.IndicatorBackground = c.Background;
                 refresh.IndicatorBorderColor = c.Text;
+            })
+
+
+            // hover is no shade here; the selection is the Highlight pair, the
+            // focus a ring in the text color, the viewer on the window's own color
+            .For<ImageGallery>((gallery, c) =>
+            {
+                gallery.PlaceholderColor = c.Background;
+                gallery.HoverColor = Colors.Transparent;
+                gallery.SelectionColor = c.Accent;
+                gallery.CheckColor = c.TextSelection;
+                gallery.FocusColor = c.Text;
+                gallery.TitleColor = c.Text;
+                gallery.GlyphColor = c.Text;
+                gallery.ViewerBackground = c.Background;
+            })
+
+            .For<ImageViewer>((viewer, c) =>
+            {
+                viewer.ButtonBackground = c.Background;
+                viewer.ButtonHoverBackground = c.Selection;
+                viewer.ButtonForeground = c.Text;
+                viewer.CaptionColor = c.Text;
+                viewer.GlyphColor = c.Text;
+                viewer.BorderColor = c.Text;
             });
     }
 

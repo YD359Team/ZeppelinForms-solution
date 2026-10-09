@@ -33,6 +33,7 @@
   children, when it differs from the order they are drawn in
 - `PanGestureRecognizer.CanAccept`: asked at the break threshold with the travel so
   far; false hands the contact to the next recognizer up the chain
+- `Form.ClientSizeChanged`
 
 ### New controls
 
@@ -61,6 +62,19 @@
   `AllowMousePull`. `RefreshRequested` with deferrals for asynchronous loading, F5,
   `RequestRefresh()`, and `Invoke` for screen readers, which also hear the refresh
   start and end. Pseudo-class `:refreshing`
+ - `ImageGallery`: a scrolling grid of thumbnails drawn rather than built from
+  controls, so thousands of pictures cost only the visible ones. Columns follow the
+  width (`ThumbnailWidth`, `ThumbnailHeight`, `ItemSpacing`), `Stretch` fills or
+  fits, `ShowTitles`. Selection as in `ListBox` (`Single`, `Multiple`, `Extended`),
+  the arrows move through the grid, mirrored under right-to-left. Thumbnails given
+  or loaded as they scroll into view (`GalleryItem.ThumbnailLoader`,
+  `MaxConcurrentLoads`); a failed one is marked and `Reload()` asks again. A double
+  click or Enter raises `ItemActivated` and opens the viewer over the window
+- `ImageViewer`: one picture of a list at a time, fitted whole — previous and next
+  buttons, the arrows, a swipe, `IsLooping`, the title and a counter. Loads each
+  picture when it gets to it (`GalleryItem.ImageLoader`) and its neighbours ahead,
+  showing the thumbnail meanwhile. With `ShowCloseButton` it is a dialog: Escape
+  closes it and Tab stays inside
 
 ### Previewer
 

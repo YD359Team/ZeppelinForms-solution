@@ -166,6 +166,8 @@ public abstract partial class UIElement
     /// <summary>Whether the element has children: a panel with any, a wrapper with content.</summary>
     internal static bool HasChildren(UIElement element) => element switch
     {
+        // a gallery draws its items rather than holding them as children
+        ImageGallery gallery => gallery.Items.Count > 0,
         PanelControl panel => panel.Children.Count > 0,
         WrapControl wrap => wrap.Child is not null,
         _ => false,

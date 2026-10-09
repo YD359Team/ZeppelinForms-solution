@@ -435,6 +435,20 @@ public static partial class Themes
                 refresh.IndicatorBorderColor = c.Border;
             })
 
+
+            // the viewer keeps its own colors: its buttons and caption lie over
+            // a photo on a dark backdrop, whatever the theme
+            .For<ImageGallery>((gallery, c) =>
+            {
+                gallery.PlaceholderColor = c.SurfaceHover;
+                gallery.HoverColor = new Color(c.IsDark ? (byte)40 : (byte)28, c.Text.R, c.Text.G, c.Text.B);
+                gallery.SelectionColor = c.Accent;
+                gallery.CheckColor = c.TextOnAccent;
+                gallery.FocusColor = c.Text;
+                gallery.TitleColor = c.Text;
+                gallery.GlyphColor = c.TextSecondary;
+            })
+
             // the default separator is translucent white, made for an accent
             // button; on the theme's neutral button it disappeared
             .For<SplitButton>((button, c) => button.SeparatorColor = c.Border)

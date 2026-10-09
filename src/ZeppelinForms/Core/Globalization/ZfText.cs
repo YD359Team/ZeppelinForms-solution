@@ -78,4 +78,17 @@ public static class ZfText
 
     public static readonly TextKey Refreshing = new("zf.refresh.refreshing", "Refreshing");
     public static readonly TextKey Refreshed = new("zf.refresh.refreshed", "Updated");
+
+
+    // ===== ImageGallery and ImageViewer =====
+
+    /// <summary>The name of a picture with neither a title nor a description.</summary>
+    public static readonly TextKey ImageNumber = new("zf.gallery.number", "Image {0}");
+
+    /// <summary>The place of the picture shown: "3 / 20".</summary>
+    public static readonly TextKey ImageCounter = new("zf.gallery.counter", "{0} / {1}");
+
+    public static readonly TextKey PreviousImage = new("zf.gallery.previous", "Previous image");
+    public static readonly TextKey NextImage = new("zf.gallery.next", "Next image");
+    public static readonly TextKey CloseViewer = new("zf.gallery.close", "Close");
 }
