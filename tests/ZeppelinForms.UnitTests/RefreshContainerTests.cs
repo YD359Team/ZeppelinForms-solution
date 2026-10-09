@@ -163,16 +163,22 @@ public class RefreshContainerTests
     }
 
     [Fact]
-    public void ADeferralCompletedOffTheUiThreadEndsTheRefreshOnIt()
+    public async Task ADeferralCompletedOffTheUiThreadEndsTheRefreshOnIt()
     {
-        (Form form, RefreshContainer container, _, HeadlessPlatform platform) = Create();
+        (_, RefreshContainer container, _, HeadlessPlatform platform) = Create();
 
         RefreshDeferral? deferral = null;
         container.RefreshRequested += (_, e) => deferral = e.GetDeferral();
 
         container.RequestRefresh();
 
-        Task.Run(() => deferral!.Complete()).Wait();
+        // a thread of its own, not the pool: a pool thread may turn out to be the
+        // very one the test started on, once the test yields it at the await
+        await Task.Factory.StartNew(
+            () => deferral!.Complete(),
+            TestContext.Current.CancellationToken,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
 
         // posted to the UI thread, not run on the pool's
         Assert.True(container.IsRefreshing);

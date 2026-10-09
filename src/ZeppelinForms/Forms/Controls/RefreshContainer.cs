@@ -300,13 +300,20 @@ public partial class RefreshContainer : DecoratedWrapControl
     internal void CompleteDeferral(int generation)
     {
         // a deferral completed off the UI thread — after an await without a context,
-        // in a thread pool callback — finishes on it
+        // in a thread pool callback — finishes on it. The posted call doesn't ask
+        // again: whatever thread runs the form's queue is the UI thread by definition,
+        // and asking again would post it once more, and again, forever
         if (Environment.CurrentManagedThreadId != _uiThread && FindOwner() is { } form)
         {
-            form.Invoke(() => CompleteDeferral(generation));
+            form.Invoke(() => FinishDeferral(generation));
             return;
         }
 
+        FinishDeferral(generation);
+    }
+
+    private void FinishDeferral(int generation)
+    {
         if (generation != _generation || !IsRefreshing) return;
 
         _pendingDeferrals = Math.Max(0, _pendingDeferrals - 1);
