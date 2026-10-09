@@ -60,16 +60,28 @@
 
 	<!-- The host process goes into the extension, published next to it in Designer\.
 	     dotnet publish rather than an MSBuild call: the host is .NET 10, and the
-	     MSBuild of an older Visual Studio may not know that SDK -->
-	<Target Name="PublishDesignerHost" BeforeTargets="PrepareForBuild">
+	     MSBuild of an older Visual Studio may not know that SDK.
+
+	     Not in design-time builds: Visual Studio runs those on load and on edits,
+	     and each would start a publish of its own.
+
+	     The publish builds into its own artifacts folder. Visual Studio builds the
+	     same projects — the Designer, ZeppelinForms, Skia — at the same time when
+	     they are in the open solution; sharing their obj folders, two builds delete
+	     and rewrite each other's files (the sourcelink.json error).
+
+	     The paths have no trailing backslash: inside quotes "dir\" reads as an
+	     escaped quote, and the argument runs on into the next one. -->
+	<Target Name="PublishDesignerHost" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)' != 'true'">
 		<PropertyGroup>
-			<DesignerHostOutput>$(MSBuildProjectDirectory)\obj\Designer\</DesignerHostOutput>
+			<DesignerHostOutput>$(MSBuildProjectDirectory)\obj\Designer</DesignerHostOutput>
+			<DesignerHostArtifacts>$(MSBuildProjectDirectory)\obj\DesignerBuild</DesignerHostArtifacts>
 		</PropertyGroup>
 
-		<Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)\..\ZeppelinForms.Designer\ZeppelinForms.Designer.csproj&quot; -c $(Configuration) -o &quot;$(DesignerHostOutput)&quot; --nologo" />
+		<Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)\..\ZeppelinForms.Designer\ZeppelinForms.Designer.csproj&quot; -c $(Configuration) -o &quot;$(DesignerHostOutput)&quot; --artifacts-path &quot;$(DesignerHostArtifacts)&quot; --nologo" />
 
 		<ItemGroup>
-			<Content Include="$(DesignerHostOutput)**\*" IncludeInVSIX="true" VSIXSubPath="Designer\%(RecursiveDir)" />
+			<Content Include="$(DesignerHostOutput)\**\*" IncludeInVSIX="true" VSIXSubPath="Designer\%(RecursiveDir)" />
 		</ItemGroup>
 	</Target>
 

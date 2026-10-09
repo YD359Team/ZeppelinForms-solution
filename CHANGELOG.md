@@ -2,6 +2,12 @@
 
 ## Future [0.14.0] - Unknown
 
+### Fixes
+
+- `DataGridView`: the scrollbars take the mouse — the thumb drags, a press on the
+  track pages. They were only drawn: a press on the vertical bar selected the row
+  behind it
+
 ### Previewer
 
 - Live previews in Visual Studio 2022 17.10+ and Visual Studio 2026: the

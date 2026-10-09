@@ -22,6 +22,10 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 {
     private const float ScrollBarThickness = 10f;
 
+    /// <summary>A thumb shorter than this is hard to grab: a long table keeps it at
+    /// this length, and the track's free part gets smaller instead.</summary>
+    private const float MinThumbLength = 20f;
+
     private readonly List<float> _widths = [];
 
     private float _scrollX;
@@ -50,6 +54,18 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     /// <summary>The press landed on a column boundary: that was a width drag,
     /// and turning it into a click on the header is not needed.</summary>
     private bool _suppressHeaderClick;
+
+    /// <summary>A scrollbar thumb is held by the mouse.</summary>
+    private bool _draggingVertical;
+    private bool _draggingHorizontal;
+
+    /// <summary>Where in the thumb it was grabbed: the thumb follows the cursor by
+    /// that point rather than jumping its top edge to it.</summary>
+    private float _dragOffset;
+
+    /// <summary>The press landed on a scrollbar: the click it ends in is not a click
+    /// on a row or a header.</summary>
+    private bool _suppressClick;
 
     private int _hoveredRow = -1;
 
@@ -458,6 +474,10 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     /// band lies outside the body too; the caller clips it.</summary>
     internal Rectangle RowBounds(int rowIndex)
     {
+        // asked before the first frame, the bars aren't decided yet: the body
+        // would come out as wide as the whole grid
+        EnsureLayout();
+
         Rectangle body = BodyBounds;
         Point origin = GetAbsolutePosition();
 
@@ -471,6 +491,8 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     {
         get
         {
+            EnsureLayout();
+
             Rectangle body = BodyBounds;
             Point origin = GetAbsolutePosition();
 
@@ -557,12 +579,17 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         EnsureLayout();
 
         Point abs = GetAbsolutePosition();
+        float localX = location.X - abs.X - Padding.Left;
         float localY = location.Y - abs.Y - Padding.Top;
 
         Rectangle body = BodyBounds;
         float bodyTop = HeaderHeight;
 
         if (localY < bodyTop || localY > bodyTop + body.Height) return -1;
+
+        // the vertical bar lies over the right edge of the rows: a press on it is
+        // not a press on the row behind it
+        if (localX < 0 || localX > body.Width) return -1;
 
         int index = (int)((localY - bodyTop + _scrollY + _overscroll.Y) / RowHeight);
 
@@ -642,9 +669,16 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     protected override void OnMouseDown(MouseButtonEventArgs e)
     {
         _suppressHeaderClick = false;
+        _suppressClick = false;
 
-        // only the left button resizes: the right one belongs to the context menu
+        // only the left button resizes and scrolls: the right one belongs to the context menu
         if (e.Button != MouseButton.Left) return;
+
+        if (BeginScrollBarPress(e.Location))
+        {
+            _suppressClick = true;
+            return;
+        }
 
         int edge = ColumnEdgeAt(ToLocal(e.Location));
         if (edge < 0) return;
@@ -661,6 +695,8 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     protected override void OnMouseUp(MouseButtonEventArgs e)
     {
+        if (EndThumbDrag()) return;
+
         if (_resizingColumn < 0) return;
 
         _resizingColumn = -1;
@@ -673,6 +709,10 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     /// so the column gets back the width it had before the press.</summary>
     protected override void OnPointerCanceled(PointerCancelEventArgs e)
     {
+        // there will be no release after a cancel: without a reset the next mouse
+        // move with no button pressed would keep dragging the thumb
+        if (EndThumbDrag()) return;
+
         if (_resizingColumn < 0) return;
 
         if (_resizingColumn < Columns.Count)
@@ -684,6 +724,9 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     protected override void OnClick(MouseClickEventArgs e)
     {
+        // the press paged or dragged a scrollbar
+        if (_suppressClick) return;
+
         Point local = ToLocal(e.Location);
 
         if (IsOverHeader(local))
@@ -711,6 +754,8 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     protected override void OnMouseMove(MouseMoveEventArgs e)
     {
+        if (DragThumb(e.Location)) return;
+
         if (_resizingColumn >= 0)
         {
             // the width is set as fixed: dragging a star or an Auto makes
@@ -749,6 +794,159 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         InvalidateVisual();
     }
 
+    // ===== scrollbar input =====
+
+    /// <summary>The vertical track in the element's own coordinates: along the
+    /// rows, at the right edge.</summary>
+    private Rectangle VerticalTrack
+    {
+        get
+        {
+            Rectangle content = this.ContentBounds;
+            Rectangle body = BodyBounds;
+
+            return new Rectangle(
+                new Point(content.X + content.Width - ScrollBarThickness, body.Y),
+                new Size(ScrollBarThickness, body.Height));
+        }
+    }
+
+    /// <summary>The horizontal track: under the rows, as wide as they are.</summary>
+    private Rectangle HorizontalTrack
+    {
+        get
+        {
+            Rectangle content = this.ContentBounds;
+
+            return new Rectangle(
+                new Point(content.X, content.Y + content.Height - ScrollBarThickness),
+                new Size(BodyBounds.Width, ScrollBarThickness));
+        }
+    }
+
+    /// <summary>The thumb along the vertical track. One computation for drawing and
+    /// for hit testing: otherwise the thumb is drawn in one place and grabbed in another.</summary>
+    private (float Position, float Length) VerticalThumb => Thumb(VerticalTrack.Height, TotalHeight, _scrollY, MaxScrollY);
+
+    private (float Position, float Length) HorizontalThumb => Thumb(HorizontalTrack.Width, TotalWidth, _scrollX, MaxScrollX);
+
+    private static (float Position, float Length) Thumb(float track, float total, float scroll, float maxScroll)
+    {
+        float length = total <= 0 ? track : Math.Min(track, Math.Max(MinThumbLength, track * (track / total)));
+        float position = maxScroll <= 0 ? 0 : (track - length) * (scroll / maxScroll);
+
+        return (position, length);
+    }
+
+    private static bool Contains(Rectangle r, Point p) =>
+        p.X >= r.X && p.X <= r.X + r.Width && p.Y >= r.Y && p.Y <= r.Y + r.Height;
+
+    /// <summary>A press on a scrollbar: the thumb is grabbed, the track around it
+    /// pages. False — the press is not on a bar.</summary>
+    /// <remarks>
+    /// The bars used to be drawn only: a press on the vertical one went to the
+    /// row behind it and selected that row, and the thumb could not be dragged.
+    /// </remarks>
+    private bool BeginScrollBarPress(Point location)
+    {
+        EnsureLayout();
+
+        Point abs = GetAbsolutePosition();
+        var local = new Point(location.X - abs.X, location.Y - abs.Y);
+
+        if (_verticalBar && Contains(VerticalTrack, local))
+        {
+            Rectangle track = VerticalTrack;
+            var (position, length) = VerticalThumb;
+            float offset = local.Y - track.Y;
+
+            if (offset >= position && offset <= position + length)
+            {
+                _draggingVertical = true;
+                _dragOffset = offset - position;
+
+                // without capture the drag breaks off as soon as the cursor leaves the window
+                CaptureMouse();
+            }
+            else
+            {
+                float page = BodyBounds.Height;
+                ScrollTo(_scrollX, _scrollY + (offset < position ? -page : page));
+            }
+
+            return true;
+        }
+
+        if (_horizontalBar && Contains(HorizontalTrack, local))
+        {
+            Rectangle track = HorizontalTrack;
+            var (position, length) = HorizontalThumb;
+            float offset = local.X - track.X;
+
+            if (offset >= position && offset <= position + length)
+            {
+                _draggingHorizontal = true;
+                _dragOffset = offset - position;
+                CaptureMouse();
+            }
+            else
+            {
+                float page = BodyBounds.Width;
+                ScrollTo(_scrollX + (offset < position ? -page : page), _scrollY);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Move the held thumb after the cursor. False — no thumb is held.</summary>
+    private bool DragThumb(Point location)
+    {
+        if (!_draggingVertical && !_draggingHorizontal) return false;
+
+        EnsureLayout();
+
+        Point abs = GetAbsolutePosition();
+
+        if (_draggingVertical)
+        {
+            Rectangle track = VerticalTrack;
+            float free = track.Height - VerticalThumb.Length;
+
+            if (free > 0)
+            {
+                float t = (location.Y - abs.Y - track.Y - _dragOffset) / free;
+                ScrollTo(_scrollX, MaxScrollY * Math.Clamp(t, 0, 1));
+            }
+        }
+        else
+        {
+            Rectangle track = HorizontalTrack;
+            float free = track.Width - HorizontalThumb.Length;
+
+            if (free > 0)
+            {
+                float t = (location.X - abs.X - track.X - _dragOffset) / free;
+                ScrollTo(MaxScrollX * Math.Clamp(t, 0, 1), _scrollY);
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Let the thumb go. False — none was held.</summary>
+    private bool EndThumbDrag()
+    {
+        if (!_draggingVertical && !_draggingHorizontal) return false;
+
+        _draggingVertical = _draggingHorizontal = false;
+        ReleaseMouseCapture();
+
+        return true;
+    }
+
     // ===== drawing =====
 
     protected override void DrawContent(Graphics g)
@@ -761,7 +959,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
         DrawRows(g, body, _visibleFirst, _visibleLast, font);
         DrawHeader(g, content, font);
-        DrawScrollBars(g, content);
+        DrawScrollBars(g);
     }
 
     private void DrawRows(Graphics g, Rectangle body, int first, int last, Font font)
@@ -881,18 +1079,12 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         g.FillPolygon(triangle, HeaderTextColor);
     }
 
-    private void DrawScrollBars(Graphics g, Rectangle content)
+    private void DrawScrollBars(Graphics g)
     {
         if (_verticalBar)
         {
-            Rectangle body = BodyBounds;
-
-            float length = Math.Max(20f, body.Height * (body.Height / TotalHeight));
-            float position = MaxScrollY <= 0 ? 0 : (body.Height - length) * (_scrollY / MaxScrollY);
-
-            var track = new Rectangle(
-                new Point(content.X + content.Width - ScrollBarThickness, body.Y),
-                new Size(ScrollBarThickness, body.Height));
+            Rectangle track = VerticalTrack;
+            var (position, length) = VerticalThumb;
 
             g.FillRoundRectangle(track, new CornerRadius(ScrollBarThickness / 2f), ScrollTrackColor);
             g.FillRoundRectangle(
@@ -904,14 +1096,8 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
         if (!_horizontalBar) return;
 
-        Rectangle bodyH = BodyBounds;
-
-        float lengthH = Math.Max(20f, bodyH.Width * (bodyH.Width / TotalWidth));
-        float positionH = MaxScrollX <= 0 ? 0 : (bodyH.Width - lengthH) * (_scrollX / MaxScrollX);
-
-        var trackH = new Rectangle(
-            new Point(content.X, content.Y + content.Height - ScrollBarThickness),
-            new Size(bodyH.Width, ScrollBarThickness));
+        Rectangle trackH = HorizontalTrack;
+        var (positionH, lengthH) = HorizontalThumb;
 
         g.FillRoundRectangle(trackH, new CornerRadius(ScrollBarThickness / 2f), ScrollTrackColor);
         g.FillRoundRectangle(
