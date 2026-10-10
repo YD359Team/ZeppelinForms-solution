@@ -191,8 +191,11 @@ public class PreviewerTests
         string name = $"zf-preview-test-{Guid.NewGuid():N}";
         var renderer = new FakeRenderer();
 
-        using var serverPipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1);
-        using var clientPipe = new NamedPipeClientStream(".", name, PipeDirection.InOut);
+        // Asynchronous on both ends, as the host and the extension open theirs: the
+        // server reads and writes the pipe from two threads, and on Windows the I/O
+        // of a pipe without it is serialized — a pending read held back the Hello
+        using var serverPipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+        using var clientPipe = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
 
         Task connected = serverPipe.WaitForConnectionAsync(token);
         await clientPipe.ConnectAsync(5000, token);

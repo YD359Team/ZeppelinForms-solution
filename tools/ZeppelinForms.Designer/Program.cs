@@ -39,7 +39,10 @@ public static class Program
         var platform = new HeadlessPlatform(registerServices: false);
         var renderer = new SkiaOffscreenRenderer();
 
-        using var stream = new NamedPipeClientStream(".", pipe, PipeDirection.InOut);
+        // Asynchronous: the server reads on one thread and writes on another. On
+        // Windows the I/O of a pipe opened without it is serialized — a read waiting
+        // for the IDE held back every frame and answer until the IDE sent something
+        using var stream = new NamedPipeClientStream(".", pipe, PipeDirection.InOut, PipeOptions.Asynchronous);
 
         try
         {
