@@ -93,8 +93,15 @@
 
 		<Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)\..\ZeppelinForms.Designer\ZeppelinForms.Designer.csproj&quot; -c $(Configuration) -o &quot;$(DesignerHostOutput)&quot; --artifacts-path &quot;$(DesignerHostArtifacts)&quot; --nologo" />
 
+		<!-- In two steps: inside a target, %(RecursiveDir) in the metadata of an item
+		     being created is empty, and every file landed flat in Designer\. The
+		     native Skia of win-x64, win-x86 and win-arm64 then overwrote each other
+		     as one Designer\libSkiaSharp.dll, and the host loaded whichever won:
+		     BadImageFormatException on the first picture. Qualified by an item
+		     that already exists, RecursiveDir keeps runtimes\<rid>\native\ -->
 		<ItemGroup>
-			<Content Include="$(DesignerHostOutput)\**\*" IncludeInVSIX="true" VSIXSubPath="Designer\%(RecursiveDir)" />
+			<_DesignerHostFile Include="$(DesignerHostOutput)\**\*" />
+			<Content Include="@(_DesignerHostFile)" IncludeInVSIX="true" VSIXSubPath="Designer\%(_DesignerHostFile.RecursiveDir)" />
 		</ItemGroup>
 	</Target>
 

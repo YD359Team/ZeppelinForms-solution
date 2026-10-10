@@ -270,6 +270,8 @@ specific applier extends the base one instead of replacing it.
 A theme never overwrites a value set from user code — see Styled Properties
 above for the full precedence. `ClearValue` gives a property back to the theme.
 
+Also available fluent and high contrast themes!
+
 ### 🎞️ Motion
 
 Transitions belong to the property system, not to individual controls. A rule on
@@ -398,6 +400,14 @@ await runtime.runMain();
 
 `zf.js` ships with `ZeppelinForms.Browser` and has to be copied into the
 application's `wwwroot`. See `examples/ZF Wasm` for a complete project.
+
+### 📺 Previewer
+
+Install previewer extension for VS 2022 and VS 2026.
+
+Press `Ctrl`+`Alt`+`Shift`+`P` for showing previewer window.
+
+See needed `Form` or use `[Previewer]` attribute otherwise.
 
 ### 🧪 Snapshot Tests
 
