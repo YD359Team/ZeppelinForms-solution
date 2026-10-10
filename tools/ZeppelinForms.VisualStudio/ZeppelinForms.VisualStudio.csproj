@@ -1,9 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project>
 
 	<!-- The Visual Studio extension: the previewer's tool window, .zss highlighting
 	     and .zss problems in the Error List. Builds with Visual Studio's MSBuild on
 	     Windows only — open ZeppelinForms.VisualStudio.sln — which is why it is not
 	     in the main solution that CI builds with dotnet on Linux too. -->
+
+	<!-- The SDK is imported explicitly rather than with Sdk="…" on the Project
+	     element: the VS SDK's targets must come after it, and an import written
+	     inside a Project Sdk="…" runs before the SDK's own targets. See the end. -->
+	<Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
 	<PropertyGroup>
 		<TargetFramework>net472</TargetFramework>
@@ -16,9 +21,7 @@
 		<IsPackable>false</IsPackable>
 
 		<!-- VSIX -->
-		<!-- the .vsix itself. Inside Visual Studio the IDE asks for it; a command-line
-		     MSBuild — CI, the release — built the extension without packing it, and
-		     there was no .vsix to attach -->
+		<!-- the .vsix itself, on every build: CI keeps it and the release attaches it -->
 		<CreateVsixContainer>true</CreateVsixContainer>
 		<GeneratePkgDefFile>true</GeneratePkgDefFile>
 		<UseCodebase>true</UseCodebase>
@@ -37,8 +40,8 @@
 		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 	</PropertyGroup>
 
-	<!-- what marks an SDK-style project as an extension to the VS SDK's build:
-	     without it the container targets don't take the project for a VSIX one -->
+	<!-- Visual Studio tells an extension project by this capability: F5 then
+	     deploys it to the experimental instance -->
 	<ItemGroup>
 		<ProjectCapability Include="CreateVsixContainer" />
 	</ItemGroup>
@@ -94,5 +97,16 @@
 			<Content Include="$(DesignerHostOutput)\**\*" IncludeInVSIX="true" VSIXSubPath="Designer\%(RecursiveDir)" />
 		</ItemGroup>
 	</Target>
+
+	<Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+	<!-- The VS SDK's build: the .vsct menus, the .pkgdef, the .vsix container and
+	     the deployment for F5. Microsoft.VSSDK.BuildTools 17.x only says where these
+	     targets are (VSToolsPath) and leaves the import to the project; without it
+	     the extension compiled into a plain library, and no .vsix was ever made -->
+	<!-- VSToolsPath comes from the package, so it is empty until the restore: the
+	     restore evaluates the project before the package is there. After it, a
+	     missing file is an error, not a quiet build without a .vsix -->
+	<Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
 
 </Project>
