@@ -42,6 +42,24 @@ jobs:
       - run: dotnet restore
       - run: dotnet build --no-restore --configuration Release
 
+      # the Visual Studio extension is not in the solution: it builds with Visual
+      # Studio's MSBuild only. Built here so that a change to the framework that
+      # breaks the previewer shows up before a release tag does
+      - uses: microsoft/setup-msbuild@v2
+        if: matrix.os == 'windows-latest'
+
+      - name: Расширение Visual Studio
+        if: matrix.os == 'windows-latest'
+        run: msbuild tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.sln /restore /p:Configuration=Release /p:DeployExtension=false /v:minimal
+
+      - name: Выгрузить расширение
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v6
+        with:
+          name: vsix
+          path: tools/ZeppelinForms.VisualStudio/bin/Release/**/*.vsix
+          if-no-files-found: error
+
       - name: Тесты (Windows)
         if: matrix.os == 'windows-latest'
         run: dotnet test --no-build --configuration Release -- --output Detailed

@@ -24,6 +24,11 @@
 /// size, theme and the rest.
 /// </para>
 /// <para>
+/// The attribute is part of the framework itself, so an application marks its
+/// previews with the ZeppelinForms package alone. The previewer — the IDE extension
+/// and its host process — is never a dependency of the application.
+/// </para>
+/// <para>
 /// The method runs in the previewer's process, not in the application: it should
 /// build the view and nothing else — no network, no files the design machine may
 /// not have. A preview that throws is shown as its exception.

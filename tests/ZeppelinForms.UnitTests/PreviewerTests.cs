@@ -184,17 +184,19 @@ public class PreviewerTests
     // ===== the whole conversation =====
 
     [Fact]
-    public void AnIdeTalksToTheServerOverAPipe()
+    public async Task AnIdeTalksToTheServerOverAPipe()
     {
+        CancellationToken token = TestContext.Current.CancellationToken;
+
         string name = $"zf-preview-test-{Guid.NewGuid():N}";
         var renderer = new FakeRenderer();
 
         using var serverPipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1);
         using var clientPipe = new NamedPipeClientStream(".", name, PipeDirection.InOut);
 
-        Task connected = serverPipe.WaitForConnectionAsync();
-        clientPipe.Connect(5000);
-        connected.Wait(5000);
+        Task connected = serverPipe.WaitForConnectionAsync(token);
+        await clientPipe.ConnectAsync(5000, token);
+        await connected.WaitAsync(TimeSpan.FromSeconds(5), token);
 
         var server = new PreviewServer(new DesignerChannel(serverPipe), renderer.Render, new HeadlessPlatform());
 
@@ -211,38 +213,38 @@ public class PreviewerTests
 
         try
         {
-            CatalogMessage catalog = Next<CatalogMessage>(ide);
+            CatalogMessage catalog = await NextAsync<CatalogMessage>(ide);
             Assert.Null(catalog.Error);
             Assert.Contains(catalog.Previews, p => p.Id == "ZeppelinForms.UnitTests.SamplePreviews.Primary");
 
-            HelloMessage hello = Next<HelloMessage>(ide);
+            HelloMessage hello = await NextAsync<HelloMessage>(ide);
             Assert.Equal(DesignerProtocol.Version, hello.ProtocolVersion);
 
             ide.Send(new OpenMessage("ZeppelinForms.UnitTests.SamplePreviews.Primary", new PreviewSettings { Scale = 1.5f }));
 
-            FrameMessage frame = Next<FrameMessage>(ide);
+            FrameMessage frame = await NextAsync<FrameMessage>(ide);
             Assert.Equal(360, frame.Width);
             Assert.Equal(120, frame.Height);
 
             // hover over the middle of the 240×80 preview, where the button is:
             // it repaints, and a new frame follows
             ide.Send(new PointerMessage(PointerAction.Move, 120, 40));
-            Next<FrameMessage>(ide);
+            await NextAsync<FrameMessage>(ide);
 
             // the user's exception comes back as a message, and the server goes on
             ide.Send(new OpenMessage("ZeppelinForms.UnitTests.SamplePreviews.Throws", new PreviewSettings()));
-            PreviewErrorMessage error = Next<PreviewErrorMessage>(ide);
+            PreviewErrorMessage error = await NextAsync<PreviewErrorMessage>(ide);
             Assert.Contains("the view is broken", error.Message);
 
             ide.Send(new OpenMessage("No.Such.Preview", new PreviewSettings()));
-            Assert.Contains("No.Such.Preview", Next<PreviewErrorMessage>(ide).Message);
+            Assert.Contains("No.Such.Preview", (await NextAsync<PreviewErrorMessage>(ide)).Message);
 
             // a style sheet is checked against the project's controls
             string sheet = Path.Combine(folder, "app.zss");
             File.WriteAllText(sheet, "Button { BackgroundColr: red; }");
 
             ide.Send(new CheckSheetMessage(sheet));
-            SheetDiagnosticsMessage diagnostics = Next<SheetDiagnosticsMessage>(ide);
+            SheetDiagnosticsMessage diagnostics = await NextAsync<SheetDiagnosticsMessage>(ide);
 
             SheetDiagnosticInfo problem = Assert.Single(diagnostics.Items);
             Assert.True(problem.IsError);
@@ -260,9 +262,13 @@ public class PreviewerTests
 
     /// <summary>The next message of a kind, skipping frames and logs that may come
     /// in between — the server sends frames whenever the view repaints.</summary>
-    private static T Next<T>(DesignerChannel channel) where T : DesignerMessage
+    /// <remarks>Awaited with a timeout rather than waited on: a blocking wait in a test
+    /// can deadlock the runner, and the xUnit analyzers refuse it.</remarks>
+    private static async Task<T> NextAsync<T>(DesignerChannel channel) where T : DesignerMessage
     {
-        var reading = Task.Run(() =>
+        CancellationToken token = TestContext.Current.CancellationToken;
+
+        Task<T> reading = Task.Run(() =>
         {
             while (true)
             {
@@ -272,10 +278,16 @@ public class PreviewerTests
                 if (message is PreviewErrorMessage unexpected && typeof(T) != typeof(PreviewErrorMessage))
                     throw new InvalidOperationException(unexpected.Details);
             }
-        });
+        }, token);
 
-        Assert.True(reading.Wait(TimeSpan.FromSeconds(10)), $"No {typeof(T).Name} in time.");
-        return reading.Result;
+        try
+        {
+            return await reading.WaitAsync(TimeSpan.FromSeconds(10), token);
+        }
+        catch (TimeoutException timeout)
+        {
+            throw new TimeoutException($"No {typeof(T).Name} in time.", timeout);
+        }
     }
 
     [Fact]

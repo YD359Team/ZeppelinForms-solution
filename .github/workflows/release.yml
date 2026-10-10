@@ -89,3 +89,42 @@ jobs:
             packages/*.nupkg
             packages/*.snupkg
             src/ZeppelinForms.Browser/zf.js
+  
+  # The Visual Studio extension — the previewer — builds with Visual Studio's MSBuild
+  # only, so on Windows, after the packages: it is attached to the release they made
+  vsix:
+    needs: publish
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # the extension's build publishes the previewer's host, a .NET 10 program
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: microsoft/setup-msbuild@v2
+
+      # the version follows the tag, as the packages' does. A VSIX version has no
+      # prerelease part: v0.14.0-preview.1 gives 0.14.0
+      - name: Версия расширения из тега
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v').Split('-')[0]
+          $manifest = 'tools/ZeppelinForms.VisualStudio/source.extension.vsixmanifest'
+          $text = Get-Content $manifest -Raw
+          $text = $text -replace '(<Identity [^>]*Version=")[^"]*(")', "`${1}$version`${2}"
+          Set-Content $manifest $text -NoNewline
+          Select-String -Path $manifest -Pattern '<Identity '
+
+      # DeployExtension=false: the build would install the extension into an
+      # experimental instance of Visual Studio, which a build machine has no use for
+      - name: Сборка расширения
+        run: msbuild tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.sln /restore /p:Configuration=Release /p:DeployExtension=false /v:minimal
+
+      - name: Расширение в релиз
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: tools/ZeppelinForms.VisualStudio/bin/Release/**/*.vsix

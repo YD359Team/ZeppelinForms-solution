@@ -1,6 +1,6 @@
 # Changes
 
-## Future [0.14.0] - Eye of Sahara
+## [0.14.0] - Eye of Sahara
 
 ![Eye of Sahara](assets/Logo-0.14.0.jpg)
 
@@ -145,10 +145,13 @@
 
 - Live previews in Visual Studio 2022 17.10+ and Visual Studio 2026: the
   "ZeppelinForms Tools" extension (`tools/ZeppelinForms.VisualStudio`), View ›
-  Other Windows › ZeppelinForms Preview
+  Other Windows › ZeppelinForms Preview. The `.vsix` is attached to every release
 - `[Preview]` on a static method returning a `UIElement` or a `Form`, with an
   optional name, group, size, theme, culture, right-to-left layout and text scale.
-  Forms with a constructor without parameters are listed without an attribute
+  Forms with a constructor without parameters are listed without an attribute.
+  `[Preview]` and `[PreviewSetup]` are in the ZeppelinForms package itself
+  (`ZeppelinForms.Design` namespace): an application needs no reference to the
+  previewer
 - `[PreviewSetup]` marks what `Main` would do before showing a form — loading style
   sheets, choosing a theme — since `Main` doesn't run in the previewer
 - The preview is live — hover, click, type, scroll; animations run — and reloads

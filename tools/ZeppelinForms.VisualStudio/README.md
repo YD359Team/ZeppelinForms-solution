@@ -4,8 +4,17 @@ The previewer — live previews of `[Preview]` methods and forms — and `.zss` 
 sheets: highlighting and problems in the Error List. Visual Studio 2022 17.10 and
 later, and Visual Studio 2026.
 
+## Getting it
+
+The `.vsix` is attached to every release on GitHub, and CI keeps the one it built
+as the `vsix` artifact of each run. Install it by opening the file, or with
+Extensions › Manage Extensions in Visual Studio. The previewer runs on the
+machine's .NET: .NET 10 or later must be installed.
+
 ## Using it
 
+The attributes are in the ZeppelinForms package itself, in the `ZeppelinForms.Design`
+namespace: the application references nothing of the previewer.
 **View › Other Windows › ZeppelinForms Preview** (Ctrl+Shift+Alt+P) opens the
 preview of the project whose document is active.
 
@@ -60,6 +69,9 @@ with the extension installed.
 
 The extension is not part of the main solution: it builds with Visual Studio's
 MSBuild only, and CI builds the main solution with `dotnet` on Linux as well.
+
+The attributes are in the ZeppelinForms package itself, in the `ZeppelinForms.Design`
+namespace: the application references nothing of the previewer.
 
 ## The protocol
 

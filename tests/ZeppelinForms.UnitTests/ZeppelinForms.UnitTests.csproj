@@ -10,14 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="PreviewerTests.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="PreviewerTests.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
 
