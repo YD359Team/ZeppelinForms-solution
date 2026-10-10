@@ -50,15 +50,25 @@ jobs:
 
       - name: Расширение Visual Studio
         if: matrix.os == 'windows-latest'
-        run: msbuild tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.sln /restore /p:Configuration=Release /p:DeployExtension=false /v:minimal
+        run: msbuild tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.sln /restore /p:Configuration=Release /p:DeployExtension=false /v:minimal /bl:vsix.binlog
 
       - name: Выгрузить расширение
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v6
         with:
           name: vsix
-          path: tools/ZeppelinForms.VisualStudio/bin/Release/**/*.vsix
+          path: tools/ZeppelinForms.VisualStudio/bin/**/*.vsix
           if-no-files-found: error
+
+      # the build log of the extension, for when there is no .vsix: which targets
+      # ran and which were skipped, and why. Opens in the MSBuild Structured Log Viewer
+      - name: Выгрузить журнал сборки расширения
+        if: failure() && matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v6
+        with:
+          name: vsix-binlog
+          path: vsix.binlog
+          if-no-files-found: ignore
 
       - name: Тесты (Windows)
         if: matrix.os == 'windows-latest'

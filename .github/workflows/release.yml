@@ -121,10 +121,19 @@ jobs:
       # DeployExtension=false: the build would install the extension into an
       # experimental instance of Visual Studio, which a build machine has no use for
       - name: Сборка расширения
-        run: msbuild tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.sln /restore /p:Configuration=Release /p:DeployExtension=false /v:minimal
+        run: msbuild tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.sln /restore /p:Configuration=Release /p:DeployExtension=false /v:minimal /bl:vsix.binlog
 
       - name: Расширение в релиз
         uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{ contains(github.ref_name, '-') }}
-          files: tools/ZeppelinForms.VisualStudio/bin/Release/**/*.vsix
+          files: tools/ZeppelinForms.VisualStudio/bin/**/*.vsix
+          fail_on_unmatched_files: true
+
+      - name: Выгрузить журнал сборки расширения
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: vsix-binlog
+          path: vsix.binlog
+          if-no-files-found: ignore

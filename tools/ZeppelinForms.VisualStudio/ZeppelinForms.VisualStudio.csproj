@@ -16,6 +16,10 @@
 		<IsPackable>false</IsPackable>
 
 		<!-- VSIX -->
+		<!-- the .vsix itself. Inside Visual Studio the IDE asks for it; a command-line
+		     MSBuild — CI, the release — built the extension without packing it, and
+		     there was no .vsix to attach -->
+		<CreateVsixContainer>true</CreateVsixContainer>
 		<GeneratePkgDefFile>true</GeneratePkgDefFile>
 		<UseCodebase>true</UseCodebase>
 		<IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
@@ -32,6 +36,12 @@
 		     built outside CI, and a first build should not fail on a style rule -->
 		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 	</PropertyGroup>
+
+	<!-- what marks an SDK-style project as an extension to the VS SDK's build:
+	     without it the container targets don't take the project for a VSIX one -->
+	<ItemGroup>
+		<ProjectCapability Include="CreateVsixContainer" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.VisualStudio.SDK" ExcludeAssets="runtime" />
