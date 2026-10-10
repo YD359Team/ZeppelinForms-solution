@@ -1,5 +1,14 @@
 # Changes
 
+## [0.15.0] - Lake Baikal
+
+[TODO: paste image]
+
+> Codename "Lake Baikal" is the deepest lake in the world. Because this release develops 
+what is already embedded in the framework, i.e. "goes deep".
+
+### Breaking changes
+
 ## [0.14.1]
 
 ## Fixes
