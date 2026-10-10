@@ -100,13 +100,16 @@
 
 	<Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
-	<!-- The VS SDK's build: the .vsct menus, the .pkgdef, the .vsix container and
-	     the deployment for F5. Microsoft.VSSDK.BuildTools 17.x only says where these
-	     targets are (VSToolsPath) and leaves the import to the project; without it
-	     the extension compiled into a plain library, and no .vsix was ever made -->
-	<!-- VSToolsPath comes from the package, so it is empty until the restore: the
+	<!-- Only under Visual Studio's MSBuild, the .NET Framework one (MSBuildRuntimeType
+	     Full): that is where the VS SDK's targets work. The project is in the main
+	     solution too, and `dotnet build` of it — CI on Windows and Linux — refuses
+	     the VSIX deployment and, on Linux, doesn't find the targets at all. There
+	     the extension compiles as a plain library, which still checks its code;
+	     the .vsix comes from Visual Studio or from msbuild, as CI's own step does.
+
+	     VSToolsPath comes from the package, so it is empty until the restore: the
 	     restore evaluates the project before the package is there. After it, a
 	     missing file is an error, not a quiet build without a .vsix -->
-	<Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
+	<Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != '' and '$(MSBuildRuntimeType)' == 'Full'" />
 
 </Project>
