@@ -15,6 +15,7 @@ machine's .NET: .NET 10 or later must be installed.
 
 The attributes are in the ZeppelinForms package itself, in the `ZeppelinForms.Design`
 namespace: the application references nothing of the previewer.
+
 **View › Other Windows › ZeppelinForms Preview** (Ctrl+Shift+Alt+P) opens the
 preview of the project whose document is active.
 
@@ -68,10 +69,15 @@ extension with `dotnet publish`. F5 starts the experimental instance of Visual S
 with the extension installed.
 
 The extension is not part of the main solution: it builds with Visual Studio's
-MSBuild only, and CI builds the main solution with `dotnet` on Linux as well.
+MSBuild only, and CI builds the main solution with `dotnet` on Linux as well. On
+Windows CI builds it separately, with the same command as by hand:
 
-The attributes are in the ZeppelinForms package itself, in the `ZeppelinForms.Design`
-namespace: the application references nothing of the previewer.
+```
+msbuild tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.sln /restore /p:Configuration=Release /p:DeployExtension=false
+```
+
+The release workflow does the same after the packages, sets the extension's version
+from the tag and attaches the `.vsix` to the release.
 
 ## The protocol
 
