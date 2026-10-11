@@ -370,7 +370,9 @@ public partial class TextBox : TextInputControl, ITextElement
         if (to != from) _document.SetCaret(to, extendSelection: true);
     }
 
-    /// <summary>Check the content now.</summary>
+    /// <summary>Check the content now and show the result, whether or not the user
+    /// has typed anything — a form's submit button calls it on every field, and a
+    /// required field left empty shows its error.</summary>
     public bool Validate()
     {
         if (Validator is null)
@@ -382,7 +384,12 @@ public partial class TextBox : TextInputControl, ITextElement
 
         string? error = Validator(_document.Text);
 
-        SetValidation(error is null ? ValidationState.Success : ValidationState.Error, error);
+        // an accepted empty field is an optional one left alone: nothing to praise
+        ValidationState state = error is not null ? ValidationState.Error
+            : _document.Text.Length > 0 ? ValidationState.Success
+            : ValidationState.None;
+
+        SetValidation(state, error);
 
         // the error message is shown as a tooltip — there is no separate place for it
         ShowErrorToolTip(error);
