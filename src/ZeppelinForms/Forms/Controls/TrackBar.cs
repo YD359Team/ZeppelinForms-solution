@@ -38,7 +38,7 @@ public partial class TrackBar : InteractiveControl
             field = value;
             OnRangeChanged(before);
         }
-    } = 0f;
+    }
 
     public float Maximum
     {
@@ -200,10 +200,10 @@ public partial class TrackBar : InteractiveControl
         Value = Minimum + (Maximum - Minimum) * Math.Clamp(fraction, 0f, 1f);
     }
 
-    protected override void OnMouseDown(MouseButtonEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs e)
     {
         // only the left button drags: the right one belongs to the context menu
-        if (args.Button != MouseButton.Left) return;
+        if (e.Button != MouseButton.Left) return;
 
         _valueBeforeDrag = Value;
         _isDragging = true;
@@ -211,16 +211,16 @@ public partial class TrackBar : InteractiveControl
         // without capture the drag breaks off as soon as the cursor leaves the window
         CaptureMouse();
 
-        SetValueFromPoint(args.Location);
+        SetValueFromPoint(e.Location);
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         if (_isDragging)
-            SetValueFromPoint(args.Location);
+            SetValueFromPoint(e.Location);
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs args)
+    protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         if (!_isDragging) return;
 

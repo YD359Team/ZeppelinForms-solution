@@ -53,7 +53,7 @@ public enum FontWeight
 
 public enum FontStyle { Normal, Italic }
 
-public static class FontEx
+public static class FontExtensions
 {
     public static Font WithSize(this Font font, float fontSize)
     {

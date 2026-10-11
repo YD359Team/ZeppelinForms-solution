@@ -5,9 +5,9 @@ using System.Text;
 
 namespace ZeppelinForms.Core.Collections;
 
-public static class ObservableCollectionEx
+public static class ObservableCollectionExtensions
 {
-    extension<T> (ObservableCollection<T> oc)
+    extension<T>(ObservableCollection<T> oc)
     {
         public void AddRange(IEnumerable<T> items)
         {

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using ZeppelinForms.Forms.Controls.Base;
 
 namespace ZeppelinForms.Forms.Controls.Tools;
@@ -15,6 +16,7 @@ public static class UIElementDebugExtensions
     private static void Walk(UIElement element, int depth, StringBuilder sb)
     {
         sb.AppendLine(
+            CultureInfo.InvariantCulture,
             $"{new string(' ', depth * 2)}{element.GetType().Name} \"{element.Name}\" " +
             $"Pos={element.Position.X:0},{element.Position.Y:0} " +
             $"Size={element.ActualSize.Width:0}x{element.ActualSize.Height:0} " +

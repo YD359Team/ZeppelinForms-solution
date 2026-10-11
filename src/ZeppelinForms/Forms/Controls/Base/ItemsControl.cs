@@ -185,13 +185,13 @@ public class ItemsControl : DecoratedPanel
         return ResolveSize(content, availableSize);
     }
 
-    protected override void ArrangeContentOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size contentSize)
     {
         var content = new Rectangle(
             new Point(Padding.Left, Padding.Top),
             new Size(
-                Math.Max(0, finalSize.Width - Padding.Horizontal),
-                Math.Max(0, finalSize.Height - Padding.Vertical)));
+                Math.Max(0, contentSize.Width - Padding.Horizontal),
+                Math.Max(0, contentSize.Height - Padding.Vertical)));
 
         float y = content.Y;
 

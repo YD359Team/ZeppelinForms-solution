@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Globalization;
 using System.Reflection;
 using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Forms.Controls.Base;
@@ -166,6 +167,8 @@ public sealed class Binding
 
         return underlying.IsEnum
             ? Enum.Parse(underlying, value.ToString()!)
-            : System.Convert.ChangeType(value, underlying);
+            // a value shown to the user and typed by them: their culture, as before,
+            // now said aloud
+            : System.Convert.ChangeType(value, underlying, CultureInfo.CurrentCulture);
     }
 }

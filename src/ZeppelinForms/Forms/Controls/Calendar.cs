@@ -307,7 +307,7 @@ public partial class Calendar : DecoratedControl
 
                 // a day's number stands alone in its cell and its circle: centered by
                 // its ink, as the highlight around it is
-                g.DrawSymbol(date.Day.ToString(), rect, color, font,
+                g.DrawSymbol(date.Day.ToString(CultureInfo.CurrentCulture), rect, color, font,
                     HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
                 // the keyboard's day: an outline, so it shows over a fill of any kind
@@ -387,9 +387,9 @@ public partial class Calendar : DecoratedControl
         return ((row * Columns) + col, 0);
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
-        var (cell, header) = HitFromPoint(args.Location);
+        var (cell, header) = HitFromPoint(e.Location);
 
         if (cell == _hoveredCell && header == _hoveredHeaderButton) return;
 
@@ -398,7 +398,7 @@ public partial class Calendar : DecoratedControl
         InvalidateVisual();
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         if (_hoveredCell < 0 && _hoveredHeaderButton == 0) return;
 

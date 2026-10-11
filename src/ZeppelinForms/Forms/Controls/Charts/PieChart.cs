@@ -177,7 +177,7 @@ public class PieChart : ChartBase
         }
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         Point abs = GetAbsolutePosition();
         Rectangle circle = PieBounds;
@@ -185,8 +185,8 @@ public class PieChart : ChartBase
         float cx = circle.X + circle.Width / 2f;
         float cy = circle.Y + circle.Height / 2f;
 
-        float dx = args.Location.X - abs.X - cx;
-        float dy = args.Location.Y - abs.Y - cy;
+        float dx = e.Location.X - abs.X - cx;
+        float dy = e.Location.Y - abs.Y - cy;
 
         float distance = MathF.Sqrt(dx * dx + dy * dy);
         float radius = circle.Width / 2f;
@@ -215,7 +215,7 @@ public class PieChart : ChartBase
         InvalidateVisual();
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         if (_hoveredSlice < 0) return;
 

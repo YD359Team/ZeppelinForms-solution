@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using ZeppelinForms.Drawing.Helpers;
@@ -47,7 +48,18 @@ internal abstract class ValueExpr
 /// </remarks>
 internal static class StyleValueCompiler
 {
-    public static ValueExpr? Compile(string text, Type target, out string? error)
+    /// <remarks>
+    /// The reflection here is the trimmer's business too: the target is a styled
+    /// property's value type, whose constructors and static members
+    /// <see cref="StyledProperty.ValueType"/> tells the trimmer to keep. A type reached
+    /// otherwise — a constructor's parameter, the value inside a nullable — is written
+    /// as a number, a color, a string, a flag or a theme reference, or, when it is one
+    /// of the framework's own values (<see cref="KnownValueType"/>), as that.
+    /// </remarks>
+    public static ValueExpr? Compile(
+        string text,
+        [DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] Type target,
+        out string? error)
     {
         List<string> tokens = SplitTopLevel(text.Trim(), ' ');
 
@@ -60,7 +72,10 @@ internal static class StyleValueCompiler
         return Compile(tokens, target, out error);
     }
 
-    private static ValueExpr? Compile(List<string> tokens, Type target, out string? error)
+    private static ValueExpr? Compile(
+        List<string> tokens,
+        [DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] Type target,
+        out string? error)
     {
         error = null;
 
@@ -71,8 +86,21 @@ internal static class StyleValueCompiler
         if (nullable && tokens.Count == 1 && tokens[0] is "none" or "null")
             return ValueExpr.Constant(null);
 
-        Type type = underlying ?? target;
+        // the type inside a nullable is not what the trimmer was told to keep: it is
+        // written as a simple value, or as one of the framework's own
+        if (underlying is not null)
+            return KnownValueType(underlying) is { } known
+                ? CompileValue(tokens, known, out error)
+                : CompileSimple(tokens, underlying, out error);
 
+        return CompileValue(tokens, target, out error);
+    }
+
+    private static ValueExpr? CompileValue(
+        List<string> tokens,
+        [DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] Type type,
+        out string? error)
+    {
         if (tokens.Count == 1)
             return CompileSingle(tokens[0], type, out error);
 
@@ -83,6 +111,49 @@ internal static class StyleValueCompiler
         // several tokens: the arguments of a constructor
         return CompileConstructor(tokens, type, out error);
     }
+
+    /// <summary>A value of a type nothing told the trimmer about: one token of a simple
+    /// kind, or flags. Its constructors and static members may be gone, so they are not
+    /// looked for.</summary>
+    private static ValueExpr? CompileSimple(List<string> tokens, Type type, out string? error)
+    {
+        Type? underlying = Nullable.GetUnderlyingType(type);
+
+        if ((underlying is not null || !type.IsValueType) && tokens.Count == 1 && tokens[0] is "none" or "null")
+        {
+            error = null;
+            return ValueExpr.Constant(null);
+        }
+
+        type = underlying ?? type;
+
+        if (tokens.Count == 1)
+        {
+            ValueExpr? simple = CompileSimpleSingle(tokens[0], type, out error, out bool handled);
+            if (handled) return simple;
+        }
+        else if (type.IsEnum && type.IsDefined(typeof(FlagsAttribute), inherit: false))
+        {
+            return CompileFlags(tokens, type, out error);
+        }
+
+        error = $"{type.Name} can't be written in a style sheet here";
+        return null;
+    }
+
+    /// <summary>The framework's own value types, named so that the trimmer keeps what a
+    /// style sheet writes them with — wherever they turn up: inside a nullable, as a
+    /// constructor's parameter.</summary>
+    [return: DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)]
+    private static Type? KnownValueType(Type type) =>
+        type == typeof(Thickness) ? typeof(Thickness) :
+        type == typeof(CornerRadius) ? typeof(CornerRadius) :
+        type == typeof(Size) ? typeof(Size) :
+        type == typeof(Point) ? typeof(Point) :
+        type == typeof(BoxShadow) ? typeof(BoxShadow) :
+        type == typeof(GradientStop) ? typeof(GradientStop) :
+        type == typeof(Drawing.Font) ? typeof(Drawing.Font) :
+        null;
 
     /// <summary>Flags listed one after another, with or without commas, are combined.</summary>
     private static ValueExpr? CompileFlags(List<string> tokens, Type type, out string? error)
@@ -106,9 +177,30 @@ internal static class StyleValueCompiler
         return ValueExpr.Constant(Enum.ToObject(type, combined));
     }
 
-    private static ValueExpr? CompileSingle(string token, Type type, out string? error)
+    private static ValueExpr? CompileSingle(
+        string token,
+        [DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] Type type,
+        out string? error)
+    {
+        ValueExpr? simple = CompileSimpleSingle(token, type, out error, out bool handled);
+        if (handled) return simple;
+
+        // a static member of the type: BoxShadow.Medium, Font.Monospace
+        if (IsIdentifier(token) && FindStatic(type, KebabToPascal(token)) is { } named)
+            return ValueExpr.Constant(named);
+
+        // a one-argument constructor: Thickness(8), CornerRadius(4)
+        return CompileConstructor([token], type, out error);
+    }
+
+    /// <summary>One token of a kind that needs no reflection: a theme reference, a
+    /// color, a string, a boolean, a number, an enum member. <paramref name="handled"/>
+    /// is false for any other type, which is left to its static members and
+    /// constructors.</summary>
+    private static ValueExpr? CompileSimpleSingle(string token, Type type, out string? error, out bool handled)
     {
         error = null;
+        handled = true;
 
         if (token.StartsWith('@'))
             return CompileThemeRef(token, type, out error);
@@ -145,17 +237,16 @@ internal static class StyleValueCompiler
             return null;
         }
 
-        // a static member of the type: BoxShadow.Medium, Font.Monospace
-        if (IsIdentifier(token) && FindStatic(type, KebabToPascal(token)) is { } named)
-            return ValueExpr.Constant(named);
-
-        // a one-argument constructor: Thickness(8), CornerRadius(4)
-        return CompileConstructor([token], type, out error);
+        handled = false;
+        return null;
     }
 
     // ===== constructors =====
 
-    private static ValueExpr? CompileConstructor(List<string> tokens, Type type, out string? error)
+    private static ValueExpr? CompileConstructor(
+        List<string> tokens,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type type,
+        out string? error)
     {
         error = null;
 
@@ -183,7 +274,7 @@ internal static class StyleValueCompiler
                     continue;
                 }
 
-                ValueExpr? argument = Compile([tokens[i]], parameters[i].ParameterType, out string? argumentError);
+                ValueExpr? argument = CompileArgument(tokens[i], parameters[i].ParameterType, out string? argumentError);
 
                 if (argument is null)
                 {
@@ -206,6 +297,13 @@ internal static class StyleValueCompiler
 
         return null;
     }
+
+    /// <summary>A constructor's argument: its type is known to the trimmer only when it
+    /// is one of the framework's values; any other is written as a simple value.</summary>
+    private static ValueExpr? CompileArgument(string token, Type type, out string? error) =>
+        KnownValueType(type) is { } known
+            ? Compile([token], known, out error)
+            : CompileSimple([token], type, out error);
 
     private static bool Fits(ConstructorInfo constructor, int count)
     {
@@ -370,7 +468,7 @@ internal static class StyleValueCompiler
 
     private static readonly ConcurrentDictionary<string, (Func<Theme, object?> Get, Type Type)?> ThemePaths = new();
 
-    private static ValueExpr? CompileThemeRef(string token, Type target, out string? error)
+    private static ThemedExpr? CompileThemeRef(string token, Type target, out string? error)
     {
         error = null;
         string path = token[1..];
@@ -419,6 +517,22 @@ internal static class StyleValueCompiler
             return null;
         });
 
+    /// <summary>The types a theme path walks through, each named here so that the
+    /// trimmer keeps their properties: the theme, its colors, metrics and type ramp,
+    /// and the values in them.</summary>
+    private static readonly Dictionary<Type, PropertyInfo[]> ThemeGraph = new()
+    {
+        [typeof(Theme)] = typeof(Theme).GetProperties(BindingFlags.Public | BindingFlags.Instance),
+        [typeof(ThemeColors)] = typeof(ThemeColors).GetProperties(BindingFlags.Public | BindingFlags.Instance),
+        [typeof(ThemeMetrics)] = typeof(ThemeMetrics).GetProperties(BindingFlags.Public | BindingFlags.Instance),
+        [typeof(TypeRamp)] = typeof(TypeRamp).GetProperties(BindingFlags.Public | BindingFlags.Instance),
+        [typeof(TypeRampStep)] = typeof(TypeRampStep).GetProperties(BindingFlags.Public | BindingFlags.Instance),
+        [typeof(Drawing.Font)] = typeof(Drawing.Font).GetProperties(BindingFlags.Public | BindingFlags.Instance),
+        [typeof(Color)] = typeof(Color).GetProperties(BindingFlags.Public | BindingFlags.Instance),
+        [typeof(CornerRadius)] = typeof(CornerRadius).GetProperties(BindingFlags.Public | BindingFlags.Instance),
+        [typeof(Thickness)] = typeof(Thickness).GetProperties(BindingFlags.Public | BindingFlags.Instance),
+    };
+
     private static (Func<object?, object?> Get, Type Type)? Walk(Type start, string[] segments)
     {
         Type type = start;
@@ -426,9 +540,11 @@ internal static class StyleValueCompiler
 
         foreach (string segment in segments)
         {
-            PropertyInfo? property = type.GetProperty(
-                KebabToPascal(segment),
-                BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+            string name = KebabToPascal(segment);
+
+            PropertyInfo? property = ThemeGraph.TryGetValue(type, out PropertyInfo[]? properties)
+                ? properties.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase))
+                : null;
 
             if (property is null || property.GetIndexParameters().Length > 0) return null;
 
@@ -479,18 +595,31 @@ internal static class StyleValueCompiler
         token.Length > 0 && (char.IsLetter(token[0]) || token[0] == '_') &&
         token.All(c => char.IsLetterOrDigit(c) || c is '_' or '-');
 
-    private static object? FindStatic(Type type, string name, Type? valueType = null)
+    /// <remarks>The members are compared by name rather than looked up with
+    /// <c>BindingFlags.IgnoreCase</c>: a lookup by flags the trimmer can't read makes it
+    /// keep the type's non-public members too.</remarks>
+    private static object? FindStatic(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type,
+        string name,
+        Type? valueType = null)
     {
         valueType ??= type;
 
-        const BindingFlags flags = BindingFlags.Public | BindingFlags.Static | BindingFlags.IgnoreCase;
+        const BindingFlags flags = BindingFlags.Public | BindingFlags.Static;
 
-        if (type.GetProperty(name, flags) is { } property &&
-            valueType.IsAssignableFrom(property.PropertyType) && property.GetIndexParameters().Length == 0)
-            return property.GetValue(null);
+        foreach (PropertyInfo property in type.GetProperties(flags))
+        {
+            if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase) &&
+                valueType.IsAssignableFrom(property.PropertyType) && property.GetIndexParameters().Length == 0)
+                return property.GetValue(null);
+        }
 
-        if (type.GetField(name, flags) is { } field && valueType.IsAssignableFrom(field.FieldType))
-            return field.GetValue(null);
+        foreach (FieldInfo field in type.GetFields(flags))
+        {
+            if (string.Equals(field.Name, name, StringComparison.OrdinalIgnoreCase) &&
+                valueType.IsAssignableFrom(field.FieldType))
+                return field.GetValue(null);
+        }
 
         return null;
     }

@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ZeppelinForms.Forms.Styling;
 
@@ -12,6 +13,8 @@ namespace ZeppelinForms.Forms.Styling;
 /// <c>-</c> and <c>_</c>, not starting with a digit. Every change restyles the
 /// element, and its descendants when some selector names the class above its subject.
 /// </remarks>
+[SuppressMessage("Naming", "CA1710:Identifiers should have correct suffix",
+    Justification = "Named as the property it backs, element.Classes, and as CSS names the classes of an element.")]
 public sealed class StyleClasses : ICollection<string>, IReadOnlyCollection<string>
 {
     private readonly List<string> _items = [];

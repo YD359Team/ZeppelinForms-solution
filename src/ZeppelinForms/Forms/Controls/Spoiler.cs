@@ -119,10 +119,10 @@ public partial class Spoiler : DecoratedWrapControl
         }
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         Point abs = GetAbsolutePosition();
-        bool inHeader = args.Location.Y - abs.Y <= HeaderHeight;
+        bool inHeader = e.Location.Y - abs.Y <= HeaderHeight;
 
         if (inHeader != _headerHovered)
         {
@@ -133,7 +133,7 @@ public partial class Spoiler : DecoratedWrapControl
         }
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         if (!_headerHovered) return;
 

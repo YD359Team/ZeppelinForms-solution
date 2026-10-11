@@ -15,7 +15,36 @@
 
 		<!-- the analyzers ship inside this package: see _ZfAnalyzersInPackage -->
 		<TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_ZfAnalyzersInPackage</TargetsForTfmSpecificContentInPackage>
+
+		<!-- Trimming and native AOT: the trim, AOT and single-file analyzers run on
+		     every build, and with TreatWarningsAsErrors a reflection the trimmer can't
+		     follow fails the build here rather than an application's publish. The
+		     package is also marked trimmable for the applications that use it -->
+		<IsAotCompatible>true</IsAotCompatible>
+
+		<!-- One step stricter than the rest of the solution: the recommended set of
+		     the .NET analyzers. The rules it departs from are in .editorconfig here,
+		     each with its reason -->
+		<AnalysisLevel>latest-recommended</AnalysisLevel>
 	</PropertyGroup>
+
+	<!-- The public API is declared in PublicAPI.Shipped.txt (what 0.14.1 had) and
+	     PublicAPI.Unshipped.txt (what this release adds): a public member added, changed
+	     or removed without the files saying so is a build error (RS0016, RS0017), so a
+	     change of the API is always a visible line in a review. At a release the
+	     Unshipped lines move to Shipped -->
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+		<AdditionalFiles Include="PublicAPI.Shipped.txt" />
+		<AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+	</ItemGroup>
+
+	<!-- What an application gets with the package besides the assemblies: the feature
+	     switch that turns off the styles' assembly scanning where trimming would break
+	     it, see buildTransitive/ZeppelinForms.targets -->
+	<ItemGroup>
+		<None Include="buildTransitive\ZeppelinForms.targets" Pack="true" PackagePath="buildTransitive\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<None Remove="Resources\ZF_13.ico" />

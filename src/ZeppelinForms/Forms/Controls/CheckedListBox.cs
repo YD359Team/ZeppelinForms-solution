@@ -159,7 +159,7 @@ public partial class CheckedListBox : ListBox
         if (wasChecked) _checked.Add(to);
     }
 
-    private Rectangle BoxRect(UIElement container)
+    private static Rectangle BoxRect(UIElement container)
     {
         float y = container.Position.Y + (container.ActualSize.Height - BoxSize) / 2f;
         return new Rectangle(new Point(4f, y), new Size(BoxSize, BoxSize));

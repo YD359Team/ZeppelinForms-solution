@@ -68,10 +68,10 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow
         _form.PerformLayout();
     }
 
-    public void Invalidate(Rectangle? bounds = null)
+    public void Invalidate(Rectangle? rect = null)
     {
         InvalidateCount++;
-        LastInvalidatedRect = bounds;
+        LastInvalidatedRect = rect;
     }
 
     public void Invoke(Action action) => _platform.Post(action);

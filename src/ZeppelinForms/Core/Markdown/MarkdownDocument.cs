@@ -695,7 +695,7 @@ public sealed class MarkdownDocument
         string row = line.Trim();
 
         if (row.StartsWith('|')) row = row[1..];
-        if (row.EndsWith('|') && !row.EndsWith("\\|")) row = row[..^1];
+        if (row.EndsWith('|') && !row.EndsWith("\\|", StringComparison.Ordinal)) row = row[..^1];
 
         var cells = new List<string>();
         var cell = new StringBuilder();

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using ZeppelinForms.Animation;
@@ -99,8 +100,41 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     public bool IsBound(StyledProperty property) => GetBit(_bound, property.Index);
 
     /// <summary>Bind a property to a property of the source.</summary>
-    /// <remarks>The element holds the binding, the binding holds the source and looks
-    /// at the element weakly — so a live model does not keep a closed window alive.</remarks>
+    /// <remarks>
+    /// <para>
+    /// The element holds the binding, the binding holds the source and looks
+    /// at the element weakly — so a live model does not keep a closed window alive.
+    /// </para>
+    /// <para>
+    /// The property is looked for on the source's type as the call sees it,
+    /// <typeparamref name="TSource"/>, which tells the trimmer to keep its properties.
+    /// A source passed as an <see cref="object"/> goes to the other overload, which looks
+    /// at the runtime type and is not safe to trim.
+    /// </para>
+    /// </remarks>
+    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+        Justification = "The two overloads differ by the source's type, not by the optional mode: no argument " +
+                        "list fits both differently, and a typed source picks this one.")]
+    public Binding Bind<T, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TSource>(
+        StyledProperty<T> property,
+        TSource source,
+        string sourcePropertyName,
+        BindingMode mode = BindingMode.OneWay)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        PropertyInfo sourceProperty = typeof(TSource).GetProperty(sourcePropertyName)
+            ?? throw new ArgumentException(
+                $"{typeof(TSource).Name} has no property '{sourcePropertyName}'. A property of a derived " +
+                "type is found when the source is passed as that type.",
+                nameof(sourcePropertyName));
+
+        return BindTo(property, source, sourceProperty, mode);
+    }
+
+    /// <summary>Bind a property to a property of a source known only at run time.</summary>
+    [RequiresUnreferencedCode("The property is looked for on the source's runtime type, whose properties " +
+                              "trimming may remove. Pass the source as its own type to use the trimming-safe overload.")]
     public Binding Bind<T>(
         StyledProperty<T> property,
         object source,
@@ -114,6 +148,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
                 $"{source.GetType().Name} has no property '{sourcePropertyName}'.",
                 nameof(sourcePropertyName));
 
+        return BindTo(property, source, sourceProperty, mode);
+    }
+
+    private Binding BindTo<T>(StyledProperty<T> property, object source, PropertyInfo sourceProperty, BindingMode mode)
+    {
         // binding the same property again replaces the previous binding
         Unbind(property);
 
@@ -2072,7 +2111,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     protected internal virtual bool HitTestSelfFirst(Point localPoint) => false;
 }
 
-public static class UIElementEx
+public static class UIElementExtensions
 {
     /// <summary>Configure the element in place without breaking the expression.</summary>
     public static T With<T>(this T element, Action<T> configure) where T : UIElement

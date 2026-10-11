@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -419,7 +420,7 @@ public partial class MapControl : InteractiveControl
             hash *= 16777619;
         }
 
-        return hash.ToString("X8");
+        return hash.ToString("X8", CultureInfo.InvariantCulture);
     }
 
     // ===== input =====

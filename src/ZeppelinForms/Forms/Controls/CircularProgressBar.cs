@@ -35,7 +35,7 @@ public partial class CircularProgressBar : DecoratedControl
             field = value;
             InvalidateVisual();
         }
-    } = 0f;
+    }
 
     public float Maximum
     {

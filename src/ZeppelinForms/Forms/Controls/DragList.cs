@@ -496,7 +496,7 @@ public partial class DragList : ItemsControl
             DropIndicatorColor);
     }
 
-    private UIElement CreatePreview(UIElement container, object item)
+    private Border CreatePreview(UIElement container, object item)
     {
         return new Border
         {
@@ -511,13 +511,13 @@ public partial class DragList : ItemsControl
             // would intercept the cursor from the lists under it
             IsHitTestVisible = false,
 
-            Child = Snapshot(container) ?? Caption(item),
+            Child = (UIElement?)Snapshot(container) ?? Caption(item),
         };
     }
 
     /// <summary>A snapshot of the row. If no renderer is registered — make do with
     /// a caption, there is no point crashing the drag because of the preview.</summary>
-    private static UIElement? Snapshot(UIElement container)
+    private static PictureBox? Snapshot(UIElement container)
     {
         try
         {
@@ -534,7 +534,7 @@ public partial class DragList : ItemsControl
         }
     }
 
-    private static UIElement Caption(object item) =>
+    private static Label Caption(object item) =>
         new Label
         {
             Text = item.ToString() ?? string.Empty,

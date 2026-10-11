@@ -181,13 +181,13 @@ public partial class CandlestickChart : CartesianChartBase
             HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         Point abs = GetAbsolutePosition();
         Rectangle plot = PlotArea;
 
-        float x = args.Location.X - abs.X;
-        float y = args.Location.Y - abs.Y;
+        float x = e.Location.X - abs.X;
+        float y = e.Location.Y - abs.Y;
 
         int index = -1;
 
@@ -202,7 +202,7 @@ public partial class CandlestickChart : CartesianChartBase
         InvalidateVisual();
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         if (_hovered < 0) return;
 

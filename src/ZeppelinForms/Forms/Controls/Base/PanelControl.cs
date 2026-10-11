@@ -584,13 +584,13 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         () => Viewport.Width,
         x => ScrollTo(x, ScrollY));
 
-    protected override void OnMouseDown(MouseButtonEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs e)
     {
         // only the left button scrolls: the right one belongs to the context menu
-        if (args.Button != MouseButton.Left) return;
+        if (e.Button != MouseButton.Left) return;
 
         Point abs = GetAbsolutePosition();
-        var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
+        var local = new Point(e.Location.X - abs.X, e.Location.Y - abs.Y);
 
         // a press on the track pages at once and keeps paging while held;
         // a press on the thumb grabs it
@@ -599,19 +599,19 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         if (ShowHorizontalBar) HorizontalBarInput.Press(local);
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         if (_verticalBarInput is not { IsActive: true } && _horizontalBarInput is not { IsActive: true }) return;
 
         Point abs = GetAbsolutePosition();
-        var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
+        var local = new Point(e.Location.X - abs.X, e.Location.Y - abs.Y);
 
         if (_verticalBarInput?.Move(local) == true) return;
 
         _horizontalBarInput?.Move(local);
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs location)
+    protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         EndBarPress();
     }

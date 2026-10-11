@@ -28,7 +28,7 @@ public partial class ProgressBar : DecoratedControl
             field = value;
             InvalidateVisual();
         }
-    } = 0f;
+    }
 
     public float Maximum
     {

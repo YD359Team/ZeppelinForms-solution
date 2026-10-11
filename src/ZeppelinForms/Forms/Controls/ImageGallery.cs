@@ -1,8 +1,9 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using ZeppelinForms.Drawing;
+using System.Diagnostics.CodeAnalysis;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
@@ -49,6 +50,9 @@ public sealed class GalleryItemEventArgs(int index, GalleryItem item) : EventArg
 /// <see cref="ThumbnailWidth"/> to <see cref="ThumbnailHeight"/>.
 /// </para>
 /// </remarks>
+[SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable",
+    Justification = "An element is not disposable; the loads' cancellation source is cancelled and disposed when the " +
+                    "element leaves its form, in OnDetached, and replaced for the next time it is shown.")]
 public partial class ImageGallery : DecoratedPanel, IInputElement
 {
     // the lead is moved by the arrows; a range is counted from the anchor
@@ -556,7 +560,7 @@ public partial class ImageGallery : DecoratedPanel, IInputElement
             int generation = _loadGeneration;
             _running++;
 
-            item.Load(full: false, form, _loads.Token, () =>
+            item.Load(full: false, form, token: _loads.Token, finished: () =>
             {
                 // a load of a gallery that has since left the form counts no more
                 if (generation != _loadGeneration) return;

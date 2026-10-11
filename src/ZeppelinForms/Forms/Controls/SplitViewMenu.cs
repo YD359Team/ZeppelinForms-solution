@@ -173,7 +173,7 @@ internal sealed class SplitViewMenu : InteractiveControl
         _ => false,
     };
 
-    private Rectangle RowBackground(Rectangle row) =>
+    private static Rectangle RowBackground(Rectangle row) =>
         new(new Point(row.X + RowInset, row.Y + 2f), new Size(Math.Max(0, row.Width - 2 * RowInset), Math.Max(0, row.Height - 4f)));
 
     private Rectangle IconRect(Rectangle row)

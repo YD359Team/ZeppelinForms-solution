@@ -980,14 +980,14 @@ public partial class TextBox : TextInputControl, ITextElement
         return row.Start + ColumnAt(row, localX);
     }
 
-    protected override void OnMouseDown(MouseButtonEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs e)
     {
         // a press on an icon button is not a press on the text: the caret stays
-        _pressedIcon = args.Button == MouseButton.Left ? ClickableIconAt(args.Location) : IconPart.None;
+        _pressedIcon = e.Button == MouseButton.Left ? ClickableIconAt(e.Location) : IconPart.None;
 
         if (_pressedIcon != IconPart.None) return;
 
-        _document.SetCaret(IndexFromPoint(args.Location));
+        _document.SetCaret(IndexFromPoint(e.Location));
         _isDragging = true;
     }
 
@@ -1003,14 +1003,14 @@ public partial class TextBox : TextInputControl, ITextElement
         Cursor = ClickableIconAt(e.Location) != IconPart.None ? CursorKind.Hand : CursorKind.IBeam;
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs args)
+    protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         _isDragging = false;
 
         IconPart pressed = _pressedIcon;
         _pressedIcon = IconPart.None;
 
-        if (pressed == IconPart.None || ClickableIconAt(args.Location) != pressed) return;
+        if (pressed == IconPart.None || ClickableIconAt(e.Location) != pressed) return;
 
         if (pressed == IconPart.Leading) LeadingIconClick?.Invoke(this, EventArgs.Empty);
         else TrailingIconClick?.Invoke(this, EventArgs.Empty);

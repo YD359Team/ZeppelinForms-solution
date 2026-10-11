@@ -67,7 +67,7 @@ public partial class RangeSlider : InteractiveControl
             field = value;
             OnValuesChanged(before);
         }
-    } = 0f;
+    }
 
     public float Maximum
     {
@@ -310,16 +310,16 @@ public partial class RangeSlider : InteractiveControl
 
     // ===== mouse =====
 
-    protected override void OnMouseDown(MouseButtonEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs e)
     {
         // only the left button drags: the right one belongs to the context menu
-        if (args.Button != MouseButton.Left) return;
+        if (e.Button != MouseButton.Left) return;
 
-        float value = ValueAt(args.Location);
+        float value = ValueAt(e.Location);
 
         _lowerBeforeDrag = LowerValue;
         _upperBeforeDrag = UpperValue;
-        _pressX = IsHorizontal ? args.Location.X : args.Location.Y;
+        _pressX = IsHorizontal ? e.Location.X : e.Location.Y;
 
         float toLower = Math.Abs(value - LowerValue);
         float toUpper = Math.Abs(value - UpperValue);
@@ -340,13 +340,13 @@ public partial class RangeSlider : InteractiveControl
         if (!_undecided) MoveThumb(thumb, value);
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         if (_dragging is not { } thumb) return;
 
         if (_undecided)
         {
-            float along = IsHorizontal ? args.Location.X : args.Location.Y;
+            float along = IsHorizontal ? e.Location.X : e.Location.Y;
             float moved = along - _pressX;
 
             if (Math.Abs(moved) < 1f) return;
@@ -361,7 +361,7 @@ public partial class RangeSlider : InteractiveControl
             _undecided = false;
         }
 
-        MoveThumb(thumb, ValueAt(args.Location));
+        MoveThumb(thumb, ValueAt(e.Location));
     }
 
     private void MoveThumb(RangeThumb thumb, float value)
@@ -371,7 +371,7 @@ public partial class RangeSlider : InteractiveControl
         else UpperValue = value;
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs args)
+    protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         if (_dragging is null) return;
 

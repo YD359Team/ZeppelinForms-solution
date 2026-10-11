@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Forms.Controls.Base;
+﻿using System.Diagnostics.CodeAnalysis;
+using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls.Tools;
@@ -12,7 +13,8 @@ public static class PropertyCatalog
 
     /// <summary>Explicit registration plus everything from the styled property registry.
     /// On a name match the explicit one wins: it defines the order and the editors.</summary>
-    public static PropertyDescriptor[] For(Type type)
+    public static PropertyDescriptor[] For(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type)
     {
         PropertyDescriptor[] declared = Registry.TryGetValue(type, out var props) ? props : [];
 

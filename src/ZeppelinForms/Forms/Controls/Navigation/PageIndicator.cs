@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -167,7 +168,7 @@ public partial class PageIndicator : DecoratedControl
                             g.FillRoundRectangle(rect, new CornerRadius(content.Height / 2f), color);
 
                         // a number in its pill, centered by its ink as the pill is around it
-                        g.DrawSymbol((i + 1).ToString(), rect,
+                        g.DrawSymbol((i + 1).ToString(CultureInfo.CurrentCulture), rect,
                             active ? Colors.White : color, EffectiveFont,
                             HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 

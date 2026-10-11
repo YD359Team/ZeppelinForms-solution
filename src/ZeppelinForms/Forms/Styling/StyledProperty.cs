@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Theming;
 
@@ -26,8 +27,18 @@ public abstract class StyledProperty
     /// types were loaded, so it must never be persisted anywhere.</summary>
     internal int Index { get; }
 
+    /// <summary>What trimming must keep of a value type for a style sheet to write
+    /// its values: the constructors <c>Thickness(8, 4)</c> calls, the static members
+    /// <c>BoxShadow.Medium</c> names, the properties a theme path walks.</summary>
+    internal const DynamicallyAccessedMemberTypes ValueTypeMembers =
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicFields;
+
     public string Name { get; }
     public Type OwnerType { get; }
+
+    [DynamicallyAccessedMembers(ValueTypeMembers)]
     public Type ValueType { get; }
 
     /// <summary>The section in PropertyGrid.</summary>
@@ -41,7 +52,7 @@ public abstract class StyledProperty
     public bool Inherits { get; }
 
     protected StyledProperty(
-        string name, Type ownerType, Type valueType,
+        string name, Type ownerType, [DynamicallyAccessedMembers(ValueTypeMembers)] Type valueType,
         string category, bool affectsLayout, bool inherits)
     {
         Name = name;
@@ -78,7 +89,10 @@ public abstract class StyledProperty
     }
 
     /// <summary>Properties declared by this type and its ancestors.</summary>
-    public static IEnumerable<StyledProperty> For(Type type)
+    /// <remarks>The type's static constructor is run here, so the trimmer is told to
+    /// keep it: that is the code that registers the properties.</remarks>
+    public static IEnumerable<StyledProperty> For(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type)
     {
         // registration happens from static fields, and those are initialized
         // on first access to the type. Without this call PropertyGrid would see
@@ -128,7 +142,7 @@ public abstract class StyledProperty
     public override string ToString() => $"{OwnerType.Name}.{Name}";
 }
 
-public sealed class StyledProperty<T> : StyledProperty
+public sealed class StyledProperty<[DynamicallyAccessedMembers(ValueTypeMembers)] T> : StyledProperty
 {
     private readonly Func<UIElement, T> _get;
     private readonly Action<UIElement, T> _set;
@@ -149,6 +163,9 @@ public sealed class StyledProperty<T> : StyledProperty
     /// <param name="set">Writes to the field directly, bypassing the source check.
     /// ClearValue and restoring the default work through it —
     /// the check would only get in their way.</param>
+    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types",
+        Justification = "The registration of a styled property names its type once, StyledProperty<Color>.Register<Button>, " +
+                        "and the generated code is its caller.")]
     public static StyledProperty<T> Register<TOwner>(
         string name,
         Func<TOwner, T> get,

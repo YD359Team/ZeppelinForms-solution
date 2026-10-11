@@ -28,6 +28,16 @@ what is already embedded in the framework, i.e. "goes deep".
   the font's line, not the ink of "Wg", which the old 1.2 made up for
 - `RichLabel.ContentAlign` and `ContentVerticalAlign` are obsolete: use
   `HorizontalContentAlign` and `VerticalContentAlign`, as on `Label` and `Button`
+- `UIElement.Bind` finds the source's property on the type the call passes, not on the
+  runtime type, so that trimming keeps it. A property declared only on a derived type
+  is found when the source is passed as that type; a source passed as `object` goes to
+  an overload marked `[RequiresUnreferencedCode]`, which looks at the runtime type as
+  before
+- The extension classes are named `...Extensions`: `UIElementExtensions`,
+  `FontExtensions`, `ObservableCollectionExtensions`,
+  `ObservableCollectionUIElementExtensions` (were `...Ex`). Only code that calls them as
+  static methods by the class name changes
+- `GalleryItem.Load` takes its cancellation token last (internal)
 
 ### Fixes
 
@@ -63,6 +73,34 @@ what is already embedded in the framework, i.e. "goes deep".
   `Button`, `CheckBox`, `RadioButton`, `ToggleSwitch` and `TextBox` are styled
   properties: a style sheet sets them, and a change redraws at once. A label's
   alignment set after it was shown was not drawn until something else redrew it
+
+### Analyzers, trimming and native AOT
+
+- The framework is `IsAotCompatible`: the trim, AOT and single-file analyzers run on
+  every build, with no warnings — with `TreatWarningsAsErrors`, a reflection the trimmer
+  can't follow now fails the framework's build rather than an application's publish.
+  The package is marked trimmable
+- Style sheets no longer depend on enumerating assemblies. A generator in the package
+  writes a module initializer into every assembly with controls, listing them for the
+  style system (`StyleTypeRegistry`); trimming keeps them and native AOT finds them.
+  The enumeration stays for assemblies built without the generator, behind the
+  `ZeppelinForms.Styling.ScanAssemblies` feature switch, which the package turns off for
+  trimmed and AOT publishing
+- A style sheet's values are written by the types the styled properties declare
+  (`StyledProperty.ValueType` tells the trimmer to keep their constructors and static
+  members); theme paths walk a fixed graph of the theme's types; the property grid
+  lists an enum's members without creating an array of the enum type
+- The public API is declared: `PublicAPI.Shipped.txt` holds what 0.14.1 had,
+  `PublicAPI.Unshipped.txt` what 0.15 adds and removes. A public member added, changed
+  or removed without a line there is a build error (Microsoft.CodeAnalysis.PublicApiAnalyzers)
+- The framework builds with the recommended set of the .NET analyzers
+  (`AnalysisLevel` `latest-recommended`). Parameters of overrides are named as in the
+  base (`e` for event data), culture-sensitive formatting says its culture (a map
+  tile's URL is formatted invariantly), private helpers that touch no state are
+  static. The rules the framework departs from are in its `.editorconfig`, each with
+  its reason
+- The example gets the ZF analyzers and generators through a project reference, as an
+  application gets them with the package
 
 ### Scroll bars
 

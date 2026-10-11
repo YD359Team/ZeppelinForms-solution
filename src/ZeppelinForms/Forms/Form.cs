@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Core.Text;
@@ -1078,7 +1079,7 @@ public partial class Form : IDisposable
 
     /// <summary>Style a subtree according to the current theme. Called on
     /// attaching to the form and on a theme change.</summary>
-    internal void ApplyTheme(UIElement root)
+    internal static void ApplyTheme(UIElement root)
     {
         Walk(root, App.Theme.Apply);
     }
@@ -1964,6 +1965,8 @@ public partial class Form : IDisposable
 
     /// <summary>The window lost focus: we won't learn about key releases
     /// anymore, so we assume nothing is pressed.</summary>
+    [SuppressMessage("Performance", "CA1822:Mark members as static",
+        Justification = "Each platform calls it on the form of the window that lost the focus.")]
     internal void OnWindowFocusLost() => Keyboard.Reset();
 
 
@@ -2143,5 +2146,8 @@ public partial class Form : IDisposable
 
         _rightPressed = null;
         _middlePressed = null;
+
+        // a derived form with a finalizer of its own needn't run it after this
+        GC.SuppressFinalize(this);
     }
 }

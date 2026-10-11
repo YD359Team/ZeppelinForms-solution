@@ -147,21 +147,21 @@ public partial class ScrollBar : DecoratedControl
         g.FillRectangle(thumb, ThumbColor);
     }
 
-    protected override void OnMouseDown(MouseButtonEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs e)
     {
         // only the left button scrolls: the right one belongs to the context menu
-        if (args.Button != MouseButton.Left) return;
+        if (e.Button != MouseButton.Left) return;
 
         if (!IsScrollable) return;
 
         // a press on the thumb grabs it; one on the track pages at once
         // and keeps paging while held
-        Input.Press(ToLocal(args.Location));
+        Input.Press(ToLocal(e.Location));
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args) => _input?.Move(ToLocal(args.Location));
+    protected override void OnMouseMove(MouseMoveEventArgs e) => _input?.Move(ToLocal(e.Location));
 
-    protected override void OnMouseUp(MouseButtonEventArgs location) => _input?.Release();
+    protected override void OnMouseUp(MouseButtonEventArgs e) => _input?.Release();
 
     // there will be no release after a cancel — reset ourselves
     protected override void OnPointerCanceled(PointerCancelEventArgs e) => _input?.Release();

@@ -1,0 +1,15 @@
+<Project>
+  <!-- Comes with the ZeppelinForms package into every application that references it,
+       directly or through a library.
+
+       Style sheets find the controls they name in registrations the ZeppelinForms
+       generator writes into each assembly. For assemblies built without the generator
+       the framework can also enumerate the loaded assemblies — which trimming breaks
+       and native AOT can't do. A trimmed or AOT publish turns the enumeration off, and
+       the trimmer removes it -->
+  <ItemGroup Condition="'$(PublishTrimmed)' == 'true' or '$(PublishAot)' == 'true'">
+    <RuntimeHostConfigurationOption Include="ZeppelinForms.Styling.ScanAssemblies"
+                                    Value="false"
+                                    Trim="true" />
+  </ItemGroup>
+</Project>

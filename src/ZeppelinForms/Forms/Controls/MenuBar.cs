@@ -105,9 +105,9 @@ public partial class MenuBar : DecoratedControl
         return -1;
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
-        int index = IndexFromPoint(args.Location);
+        int index = IndexFromPoint(e.Location);
         if (index == _hoveredIndex) return;
 
         _hoveredIndex = index;
@@ -121,7 +121,7 @@ public partial class MenuBar : DecoratedControl
         InvalidateVisual();
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         // the keyboard's highlight stays: the pointer only passed by
         if (_hoveredIndex < 0 || _keyboardMode) return;

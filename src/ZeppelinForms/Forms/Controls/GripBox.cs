@@ -223,11 +223,11 @@ public partial class GripBox : DecoratedWrapControl
     protected internal override bool HitTestSelfFirst(Point localPoint) =>
         GripAt(localPoint) != GripKind.None;
 
-    protected override void OnMouseDown(MouseButtonEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs e)
     {
-        if (Child is null || args.Button != MouseButton.Left) return;
+        if (Child is null || e.Button != MouseButton.Left) return;
 
-        Point local = ToLocal(args.Location);
+        Point local = ToLocal(e.Location);
         GripKind grip = GripAt(local);
 
         if (grip == GripKind.None) return;
@@ -246,12 +246,12 @@ public partial class GripBox : DecoratedWrapControl
         // without capture the drag breaks off as soon as the cursor leaves the window
         CaptureMouse();
 
-        args.Handled = true;
+        e.Handled = true;
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
-        Point local = ToLocal(args.Location);
+        Point local = ToLocal(e.Location);
 
         if (_active == GripKind.None)
         {
@@ -267,7 +267,7 @@ public partial class GripBox : DecoratedWrapControl
             Resize(local);
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs args)
+    protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         if (_active == GripKind.None) return;
 
@@ -304,7 +304,7 @@ public partial class GripBox : DecoratedWrapControl
         ChildResized?.Invoke(this, EventArgs.Empty);
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         if (_active != GripKind.None || _hovered == GripKind.None) return;
 

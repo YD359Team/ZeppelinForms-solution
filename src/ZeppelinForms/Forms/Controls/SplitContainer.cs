@@ -195,15 +195,15 @@ public partial class SplitContainer : DecoratedPanel
             && localPoint.Y >= rect.Y && localPoint.Y <= rect.Y + rect.Height;
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         Point abs = GetAbsolutePosition();
 
         if (_dragging)
         {
             float position = IsHorizontal
-                ? args.Location.X - abs.X - ContentBounds.X - _dragOffset
-                : args.Location.Y - abs.Y - ContentBounds.Y - _dragOffset;
+                ? e.Location.X - abs.X - ContentBounds.X - _dragOffset
+                : e.Location.Y - abs.Y - ContentBounds.Y - _dragOffset;
 
             // the setter requests the layout pass
             SplitterPosition = position;
@@ -211,7 +211,7 @@ public partial class SplitContainer : DecoratedPanel
             return;
         }
 
-        var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
+        var local = new Point(e.Location.X - abs.X, e.Location.Y - abs.Y);
         bool hovered = HitTestSelfFirst(local);
 
         if (hovered == _splitterHovered) return;
@@ -224,13 +224,13 @@ public partial class SplitContainer : DecoratedPanel
         InvalidateVisual();
     }
 
-    protected override void OnMouseDown(MouseButtonEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs e)
     {
         // only the left button drags: the right one belongs to the context menu
-        if (args.Button != MouseButton.Left) return;
+        if (e.Button != MouseButton.Left) return;
 
         Point abs = GetAbsolutePosition();
-        var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
+        var local = new Point(e.Location.X - abs.X, e.Location.Y - abs.Y);
 
         if (!HitTestSelfFirst(local)) return;
 
@@ -249,7 +249,7 @@ public partial class SplitContainer : DecoratedPanel
         CaptureMouse();
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs args)
+    protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         if (!_dragging) return;
 

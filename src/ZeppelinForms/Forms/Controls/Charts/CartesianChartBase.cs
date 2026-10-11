@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
@@ -77,7 +78,7 @@ public abstract partial class CartesianChartBase : ChartBase
         }
     }
 
-    protected virtual string FormatValue(float value) => value.ToString("0.##");
+    protected virtual string FormatValue(float value) => value.ToString("0.##", CultureInfo.CurrentCulture);
 
     protected Rectangle PlotArea
     {

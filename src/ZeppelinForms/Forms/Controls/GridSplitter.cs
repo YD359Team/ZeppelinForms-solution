@@ -87,10 +87,10 @@ public partial class GridSplitter : DecoratedControl
     private List<GridLength> Definitions(Grid grid) =>
         IsVertical ? grid.ColumnDefinitions : grid.RowDefinitions;
 
-    protected override void OnMouseDown(MouseButtonEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs e)
     {
         // only the left button drags: the right one belongs to the context menu
-        if (args.Button != MouseButton.Left) return;
+        if (e.Button != MouseButton.Left) return;
 
         Grid? grid = ParentGrid;
         if (grid is null) return;
@@ -102,7 +102,7 @@ public partial class GridSplitter : DecoratedControl
         if (before < 0 || after >= definitions.Count) return;
 
         _dragging = true;
-        _dragStart = IsVertical ? args.Location.X : args.Location.Y;
+        _dragStart = IsVertical ? e.Location.X : e.Location.Y;
 
         // record the starting sizes: computing from the current ones
         // at every step is not allowed — drift would accumulate
@@ -117,7 +117,7 @@ public partial class GridSplitter : DecoratedControl
         CaptureMouse();
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         if (!_dragging) return;
 
@@ -126,7 +126,7 @@ public partial class GridSplitter : DecoratedControl
 
         var (before, after) = Neighbours;
 
-        float delta = (IsVertical ? args.Location.X : args.Location.Y) - _dragStart;
+        float delta = (IsVertical ? e.Location.X : e.Location.Y) - _dragStart;
 
         float newBefore = _beforeStart + delta;
         float newAfter = _afterStart - delta;
@@ -143,7 +143,7 @@ public partial class GridSplitter : DecoratedControl
         grid.Invalidate();
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs args)
+    protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         if (!_dragging) return;
 
