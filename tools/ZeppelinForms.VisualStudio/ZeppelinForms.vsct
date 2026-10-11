@@ -1,30 +1,65 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-  <Extern href="stdidcmd.h" />
-  <Extern href="vsshlids.h" />
+	<Extern href="stdidcmd.h" />
+	<Extern href="vsshlids.h" />
 
-  <Commands package="guidZeppelinFormsPackage">
-    <Buttons>
-      <!-- View > Other Windows > ZeppelinForms Preview -->
-      <Button guid="guidZeppelinFormsCommandSet" id="cmdidShowPreview" priority="0x0100" type="Button">
-        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
-        <Strings>
-          <ButtonText>ZeppelinForms Preview</ButtonText>
-        </Strings>
-      </Button>
-    </Buttons>
-  </Commands>
+	<!-- Every change of this file needs a new version in ProvideMenuResource
+       (ZeppelinFormsPackage): Visual Studio keeps the command table it merged and
+       reads this one again only when that number changes -->
 
-  <KeyBindings>
-    <KeyBinding guid="guidZeppelinFormsCommandSet" id="cmdidShowPreview" editor="guidVSStd97" key1="P" mod1="Control Shift Alt" />
-  </KeyBindings>
+	<Commands package="guidZeppelinFormsPackage">
+		<Groups>
+			<!-- the editor's context menu: the preview of the code under the cursor -->
+			<Group guid="guidZeppelinFormsCommandSet" id="grpEditorContext" priority="0x0600">
+				<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN" />
+			</Group>
 
-  <Symbols>
-    <GuidSymbol name="guidZeppelinFormsPackage" value="{de640047-399c-45dc-8ad4-139c0a2265e5}" />
+			<!-- a project's context menu in Solution Explorer -->
+			<Group guid="guidZeppelinFormsCommandSet" id="grpProjectContext" priority="0x0600">
+				<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_PROJNODE" />
+			</Group>
+		</Groups>
 
-    <GuidSymbol name="guidZeppelinFormsCommandSet" value="{61e83f1d-2200-4895-9866-eff903281f91}">
-      <IDSymbol name="cmdidShowPreview" value="0x0100" />
-    </GuidSymbol>
-  </Symbols>
+		<Buttons>
+			<!-- View > Other Windows > ZeppelinForms Preview -->
+			<Button guid="guidZeppelinFormsCommandSet" id="cmdidShowPreview" priority="0x0100" type="Button">
+				<Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
+				<Strings>
+					<!-- Tools > Options > Keyboard finds it by "ZeppelinForms" -->
+					<ButtonText>ZeppelinForms Preview</ButtonText>
+				</Strings>
+			</Button>
+		</Buttons>
+	</Commands>
+
+	<!-- the same command in the context menus -->
+	<CommandPlacements>
+		<CommandPlacement guid="guidZeppelinFormsCommandSet" id="cmdidShowPreview" priority="0x0100">
+			<Parent guid="guidZeppelinFormsCommandSet" id="grpEditorContext" />
+		</CommandPlacement>
+		<CommandPlacement guid="guidZeppelinFormsCommandSet" id="cmdidShowPreview" priority="0x0100">
+			<Parent guid="guidZeppelinFormsCommandSet" id="grpProjectContext" />
+		</CommandPlacement>
+	</CommandPlacements>
+
+	<!-- Two scopes. The global one alone lost in the code editor whenever the editor's
+       own scope bound the same keys — there the more specific scope wins -->
+	<KeyBindings>
+		<KeyBinding guid="guidZeppelinFormsCommandSet" id="cmdidShowPreview" editor="guidVSStd97" key1="P" mod1="Control Shift Alt" />
+		<KeyBinding guid="guidZeppelinFormsCommandSet" id="cmdidShowPreview" editor="guidTextEditorFactory" key1="P" mod1="Control Shift Alt" />
+	</KeyBindings>
+
+	<Symbols>
+		<GuidSymbol name="guidZeppelinFormsPackage" value="{de640047-399c-45dc-8ad4-139c0a2265e5}" />
+
+		<GuidSymbol name="guidZeppelinFormsCommandSet" value="{61e83f1d-2200-4895-9866-eff903281f91}">
+			<IDSymbol name="cmdidShowPreview" value="0x0100" />
+			<IDSymbol name="grpEditorContext" value="0x1000" />
+			<IDSymbol name="grpProjectContext" value="0x1001" />
+		</GuidSymbol>
+
+		<!-- the "Text Editor" scope of Tools > Options > Keyboard -->
+		<GuidSymbol name="guidTextEditorFactory" value="{8B382828-6202-11d1-8870-0000F87579D2}" />
+	</Symbols>
 </CommandTable>

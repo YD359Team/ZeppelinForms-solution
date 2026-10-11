@@ -80,6 +80,15 @@ jobs:
             --no-symbols \
             --skip-duplicate
 
+      # the same packages for the nuget.org job: it is separate, so that a missing
+      # or broken nuget.org setup doesn't hold back the GitHub release and the extension
+      - name: Пакеты для nuget.org
+        uses: actions/upload-artifact@v6
+        with:
+          name: packages
+          path: packages/*
+          if-no-files-found: error
+
       - name: Релиз на GitHub
         uses: softprops/action-gh-release@v2
         with:
@@ -90,6 +99,43 @@ jobs:
             packages/*.snupkg
             src/ZeppelinForms.Browser/zf.js
   
+  # nuget.org by trusted publishing: no key is stored anywhere. A policy on nuget.org
+  # (Trusted Publishing: owner YD359Team, repository ZeppelinForms-solution, workflow
+  # release.yml) lets NuGet/login trade this job's OIDC token for an API key that lives
+  # an hour; the only secret is NUGET_USER, the nuget.org profile name. The .snupkg
+  # next to each .nupkg goes along: nuget.org keeps symbols, unlike GitHub Packages.
+  # Version 0.13 was uploaded by hand
+  nuget-org:
+    needs: publish
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: packages
+          path: packages
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Вход на nuget.org
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # --skip-duplicate makes a rerun of the job harmless
+      - name: Публикация на nuget.org
+        run: |
+          dotnet nuget push "packages/*.nupkg" \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
+            --skip-duplicate
+
   # The Visual Studio extension — the previewer — builds with Visual Studio's MSBuild
   # only, so on Windows, after the packages: it is attached to the release they made
   vsix:
@@ -109,8 +155,12 @@ jobs:
       # the version follows the tag, as the packages' does. A VSIX version has no
       # prerelease part: v0.14.0-preview.1 gives 0.14.0
       - name: Версия расширения из тега
+        id: vsixversion
         shell: pwsh
         run: |
+          # the host inside the extension gets the full version, as the packages do:
+          # a host of another version can't bind a project built against them
+          "full=$('${{ github.ref_name }}'.TrimStart('v'))" >> $env:GITHUB_OUTPUT
           $version = '${{ github.ref_name }}'.TrimStart('v').Split('-')[0]
           $manifest = 'tools/ZeppelinForms.VisualStudio/source.extension.vsixmanifest'
           $text = Get-Content $manifest -Raw
@@ -121,7 +171,7 @@ jobs:
       # DeployExtension=false: the build would install the extension into an
       # experimental instance of Visual Studio, which a build machine has no use for
       - name: Сборка расширения
-        run: msbuild tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.sln /restore /p:Configuration=Release /p:DeployExtension=false /v:minimal /bl:vsix.binlog
+        run: msbuild tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.sln /restore /p:Configuration=Release /p:DeployExtension=false /p:Version=${{ steps.vsixversion.outputs.full }} /v:minimal /bl:vsix.binlog
 
       - name: Расширение в релиз
         uses: softprops/action-gh-release@v2
@@ -129,6 +179,38 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: tools/ZeppelinForms.VisualStudio/bin/**/*.vsix
           fail_on_unmatched_files: true
+
+      # Visual Studio updates an extension by itself only when it was installed from a
+      # gallery: the Marketplace. A prerelease is not published — the Marketplace has one
+      # version per extension, and everybody would get the preview. While the token is
+      # not set up the step says so and passes: the release still has its .vsix.
+      # VsixPublisher comes with the VSSDK build tools package the build restored;
+      # Visual Studio's own copy is the fallback
+      - name: Публикация в Visual Studio Marketplace
+        if: ${{ !contains(github.ref_name, '-') }}
+        shell: pwsh
+        env:
+          VS_MARKETPLACE_PAT: ${{ secrets.VS_MARKETPLACE_PAT }}
+        run: |
+          if (-not $env:VS_MARKETPLACE_PAT) {
+            Write-Host 'VS_MARKETPLACE_PAT is not set: the extension is not published to the Marketplace'
+            exit 0
+          }
+
+          $tool = Get-ChildItem "$env:USERPROFILE\.nuget\packages\microsoft.vssdk.buildtools" -Recurse -Filter VsixPublisher.exe -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+          if (-not $tool) {
+            $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+            $tool = Get-ChildItem "$vs\VSSDK" -Recurse -Filter VsixPublisher.exe | Select-Object -First 1
+          }
+
+          $vsix = Get-ChildItem tools/ZeppelinForms.VisualStudio/bin -Recurse -Filter *.vsix | Select-Object -First 1
+
+          & $tool.FullName publish `
+            -payload $vsix.FullName `
+            -publishManifest tools/ZeppelinForms.VisualStudio/publishManifest.json `
+            -personalAccessToken $env:VS_MARKETPLACE_PAT
+          exit $LASTEXITCODE
 
       - name: Выгрузить журнал сборки расширения
         if: failure()

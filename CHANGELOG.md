@@ -7,7 +7,34 @@
 > Codename "Lake Baikal" is the deepest lake in the world. Because this release develops 
 what is already embedded in the framework, i.e. "goes deep".
 
-### Breaking changes
+### Previewer
+
+- A project built against a newer patch of ZeppelinForms than the previewer's own
+  shows its previews. The host loaded the project into the default load context,
+  which binds a reference only to an equal or higher version: a project on the 0.14.1
+  package could not bind to the host's 0.14.0, its forms failed to load, and the list
+  said "no previews". The project now has a load context of its own, which hands out
+  the host's framework whatever version the project asks for
+- Types of the project that can't be loaded are named in the preview window with the
+  reason, instead of vanishing from the list
+- The extension's host is built with the release's version, as the packages are
+- Ctrl+Shift+Alt+P works in the code editor too, and the command is in the context
+  menus of the editor and of a project
+- Zoom: the preview is laid out at its own size and the picture is scaled to the
+  window ("Fit", or 25–200%); the host draws the zoom, so the picture stays sharp.
+  "Fill the window" lays the preview out at the window's size, as "Fit the window" did
+- The picture has a frame and a shadow; the toolbar uses Visual Studio's own styles,
+  light and dark; the window opens among the documents
+- A form in a library that uses a third-party package is previewed: a library's
+  packages are not copied next to it, and they are now found in the NuGet folder by
+  its deps.json
+
+### Releases
+
+- The packages go to nuget.org from the release workflow, by trusted publishing —
+  no API key is stored. GitHub Packages keeps getting them too
+- The Visual Studio extension is published to the Visual Studio Marketplace, from which
+  Visual Studio updates it by itself. Prereleases are not published there
 
 ## [0.14.1]
 

@@ -245,6 +245,9 @@ public sealed class PreviewServer
     {
         ArgumentNullException.ThrowIfNull(assembly);
 
+        if (PreviewCatalog.TypeLoadProblems(assembly) is { } problems)
+            warning = Join(warning, problems);
+
         foreach (MethodInfo setup in PreviewCatalog.SetupMethods(assembly))
         {
             try

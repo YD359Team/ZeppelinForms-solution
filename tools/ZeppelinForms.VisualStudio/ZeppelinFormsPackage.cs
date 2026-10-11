@@ -18,16 +18,20 @@ namespace ZeppelinForms.VisualStudio;
 /// </remarks>
 [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 [Guid(ZeppelinFormsPackage.PackageGuidString)]
-[ProvideMenuResource("Menus.ctmenu", 1)]
-// docked as a tab next to the Properties window, where a designer is expected
-[ProvideToolWindow(typeof(PreviewToolWindow), Style = VsDockStyle.Tabbed, Window = ZeppelinFormsPackage.PropertiesWindowGuid)]
+// The version must change with every change of ZeppelinForms.vsct: Visual Studio
+// merges the command table once and reads it again only for a new number. It stayed 1
+// when the key binding was added, and the binding worked only where the cache happened
+// to be rebuilt
+[ProvideMenuResource("Menus.ctmenu", 2)]
+// In the documents' area, as a tab beside the code. It used to be docked next to the
+// Properties window, where a designer is expected — but that pane is narrow, and a form
+// laid out at its width looked nothing like the form in the application. The user's
+// own placement, once made, is kept by Visual Studio
+[ProvideToolWindow(typeof(PreviewToolWindow), Style = VsDockStyle.MDI)]
 [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExistsAndFullyLoaded_string, PackageAutoLoadFlags.BackgroundLoad)]
 public sealed class ZeppelinFormsPackage : AsyncPackage
 {
     public const string PackageGuidString = "de640047-399c-45dc-8ad4-139c0a2265e5";
-
-    /// <summary>EnvDTE.Constants.vsWindowKindProperties.</summary>
-    public const string PropertiesWindowGuid = "eefa5220-e298-11d0-8f78-00a0c9110057";
 
     public static readonly Guid CommandSet = new("61e83f1d-2200-4895-9866-eff903281f91");
 

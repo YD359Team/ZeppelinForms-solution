@@ -103,6 +103,38 @@ public static class PreviewCatalog
         };
     }
 
+    /// <summary>Why some types of the assembly could not be loaded — their previews are
+    /// missing from the list. Null — every type loaded.</summary>
+    /// <remarks>
+    /// Without it a form whose base class could not be bound simply vanished from the
+    /// catalog, and the IDE said "no previews" without a word about why.
+    /// </remarks>
+    public static string? TypeLoadProblems(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+
+        try
+        {
+            assembly.GetTypes();
+            return null;
+        }
+        catch (ReflectionTypeLoadException e)
+        {
+            // one missing reference fails every type that touches it: the same
+            // message many times over, once is enough
+            string[] reasons = [.. e.LoaderExceptions
+                .Where(x => x is not null)
+                .Select(x => x!.Message)
+                .Distinct(StringComparer.Ordinal)
+                .Take(5)];
+
+            int missing = e.Types.Count(t => t is null);
+
+            return $"{missing} types of the project could not be loaded, their previews are missing:" +
+                   Environment.NewLine + string.Join(Environment.NewLine, reasons.Select(r => "  " + r));
+        }
+    }
+
     private static Type[] TypesOf(Assembly assembly)
     {
         try
