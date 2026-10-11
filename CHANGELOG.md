@@ -30,6 +30,35 @@ what is already embedded in the framework, i.e. "goes deep".
   being retyped goes neutral rather than red until you leave it. `ResetValidation()`
   makes a field new again
 
+### SplitView navigation
+
+- `SplitView.Items` and `FooterItems`: entries of `SplitViewItem` — a text, an
+  `IconSource`, the content ready-made or made on first choice by a factory and kept
+  — turn the pane into a menu the split view draws itself, as WinUI's navigation view
+  does, with no `Pane` or `Content` to build by hand:
+
+```csharp
+  var nav = new SplitView { DisplayMode = SplitViewDisplayMode.CompactInline };
+  nav.Items.Add(new SplitViewItem("Processes", listIcon, () => new ProcessesView()));
+  nav.FooterItems.Add(new SplitViewItem("Settings", gearIcon, () => new SettingsView()));
+```
+
+  The first entry is selected as it is added. The menu has a pane button, an optional
+  back button (`IsBackButtonVisible`, `GoBack()`, `CanGoBack`), the pane's title,
+  headers and separators (`SplitViewItem.Header`, `SplitViewItem.Separator`), badges
+  (`Badge`, a dot on the icon while the pane is closed), disabled entries, entries that
+  act without selecting (`SelectsOnInvoke = false`), `SelectedItem`,
+  `SelectionChanged` and `ItemInvoked`. Its icons stand in the compact strip, the
+  texts show as tooltips while the pane is closed; the entries scroll, the footer
+  stays. Up, Down, Home, End, Enter and Space work it; a screen reader reads a list.
+  An overlay pane closes when an entry is chosen. In the Overlay and Inline modes,
+  whose closed pane hides whole, the pane button stands over the content's corner.
+  The colors are styled properties the themes set: `ItemHoverColor`,
+  `SelectedItemColor`, `SelectionIndicatorColor` and the rest
+- A menu and a `Pane` of one's own don't mix: setting one while the other is there
+  throws, with a message saying so
+- The example has a "Navigation" page
+
 ### Previewer
 
 - A project built against a newer patch of ZeppelinForms than the previewer's own

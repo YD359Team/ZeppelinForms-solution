@@ -245,6 +245,17 @@ public static partial class Themes
                 view.PaneBackground = c.Background;
                 view.PaneBorderColor = c.Text;
                 view.ScrimColor = Colors.Transparent;
+                // no tints: the selected entry is told by the accent mark, a hovered
+                // or pressed one by the focus outline the keyboard sees too
+                view.ItemHoverColor = Colors.Transparent;
+                view.ItemPressedColor = Colors.Transparent;
+                view.SelectedItemColor = Colors.Transparent;
+                view.SelectionIndicatorColor = c.Accent;
+                view.HeaderTextColor = c.Text;
+                view.SeparatorColor = c.Text;
+                view.DisabledTextColor = c.TextDisabled;
+                view.BadgeColor = c.Accent;
+                view.BadgeTextColor = c.TextOnAccent;
             })
 
             .For<RefreshContainer>((refresh, c) =>
