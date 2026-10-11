@@ -86,6 +86,10 @@ public partial class MapControl : InteractiveControl
         Cursor = CursorKind.SizeAll;
         SetControlDefault(BorderColorProperty, new Color(255, 190, 190, 190));
         SetControlDefault(BorderWidthProperty, 1f);
+        // a view onto content, see UnitControl: the map fills its space rather than
+        // standing centered at 400×300 in the middle of it
+        SetControlDefault(HorizontalAlignmentProperty, Enums.HorizontalAlignment.Stretch);
+        SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Stretch);
 
         _diskCacheDirectory = Path.Combine(Path.GetTempPath(), "ZeppelinForms", "MapTiles");
         Directory.CreateDirectory(_diskCacheDirectory);

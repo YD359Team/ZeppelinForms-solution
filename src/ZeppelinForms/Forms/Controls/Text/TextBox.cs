@@ -53,6 +53,28 @@ public partial class TextBox : TextInputControl, ITextElement
             ? ApplyTextTransform(text)
             : text;
 
+    /// <summary>The result of the last check the field shows.</summary>
+    /// <remarks>
+    /// <para>
+    /// A field shows a result only once there is something to judge: after the user
+    /// has changed it and left it, or after <see cref="Validate"/> was called — say,
+    /// by a form's submit button. Leaving a field nobody typed into shows nothing;
+    /// it used to validate on any loss of focus, and an empty e-mail field, which
+    /// the validator accepts, lit up green before anything was typed.
+    /// </para>
+    /// <para>
+    /// While a result is shown the field is checked again on every change, by the
+    /// rule "praise at once, blame late": an error goes away the moment the text is
+    /// right, but a correct field being retyped doesn't turn red halfway through an
+    /// address — it goes neutral, and an error shows when the user leaves it.
+    /// </para>
+    /// <para>
+    /// <see cref="ValidationState.Success"/> is shown only for a field with text:
+    /// an empty field the validator accepts — an optional one — has nothing to
+    /// praise, and stays <see cref="ValidationState.None"/>.
+    /// </para>
+    /// </remarks>
+
     public ValidationState ValidationState { get; private set; } = ValidationState.None;
 
     public string? ValidationMessage { get; private set; }
@@ -83,6 +105,11 @@ public partial class TextBox : TextInputControl, ITextElement
     private string? _toolTipBeforeError;
     private bool _showingErrorToolTip;
 
+    /// <summary>The user has changed the text since the field was created or
+    /// <see cref="ResetValidation"/> was called. Leaving a field nobody typed into
+    /// doesn't validate it, see <see cref="OnLostFocus"/>.</summary>
+    private bool _edited;
+
     public TextBox()
     {
         SetControlDefault(BackgroundProperty, Colors.White);
@@ -100,7 +127,12 @@ public partial class TextBox : TextInputControl, ITextElement
             TextChanged?.Invoke(this, EventArgs.Empty);
 
             if (!_writingText)
+            {
+                _edited = true;
                 OnTextEdited();
+            }
+
+            RevalidateWhileShown();
 
             InvalidateVisual();
         };
@@ -381,6 +413,73 @@ public partial class TextBox : TextInputControl, ITextElement
         ToolTip = _toolTipBeforeError;
         _toolTipBeforeError = null;
         _showingErrorToolTip = false;
+    }
+
+    /// <summary>Check the content now and show the result, whether or not the user
+    /// has typed anything — a form's submit button calls it on every field, and a
+    /// required field left empty shows its error.</summary>
+    public bool Validate()
+    {
+        if (Validator is null)
+        {
+            SetValidation(ValidationState.None, null);
+            ShowErrorToolTip(null);
+            return true;
+        }
+
+        string? error = Validator(_document.Text);
+
+        // an accepted empty field is an optional one left alone: nothing to praise
+        ValidationState state = error is not null ? ValidationState.Error
+            : _document.Text.Length > 0 ? ValidationState.Success
+            : ValidationState.None;
+
+        SetValidation(state, error);
+
+        // the error message is shown as a tooltip — there is no separate place for it
+        ShowErrorToolTip(error);
+
+        return error is null;
+    }
+
+    /// <summary>Forget the check: no result is shown, and the field is validated
+    /// again only after the user changes and leaves it, as a new one. For a form
+    /// that is cleared to be filled anew.</summary>
+    public void ResetValidation()
+    {
+        _edited = false;
+
+        SetValidation(ValidationState.None, null);
+        ShowErrorToolTip(null);
+    }
+
+    /// <summary>The text changed while a result is shown: "praise at once, blame
+    /// late". A fixed error clears on the spot; a new error waits for the user to
+    /// leave the field, the field goes neutral meanwhile. Nothing shown — nothing to
+    /// update: the first result comes on leaving the field or from Validate.</summary>
+    private void RevalidateWhileShown()
+    {
+        if (ValidationState == ValidationState.None || Validator is null) return;
+
+        string? error = Validator(_document.Text);
+
+        if (error is null)
+        {
+            Validate();
+            return;
+        }
+
+        // still wrong: the message follows the text; it was right: neutral for now
+        if (ValidationState == ValidationState.Error)
+        {
+            SetValidation(ValidationState.Error, error);
+            ShowErrorToolTip(error);
+        }
+        else
+        {
+            SetValidation(ValidationState.None, null);
+            ShowErrorToolTip(null);
+        }
     }
 
     private void SetValidation(ValidationState state, string? message)
@@ -725,8 +824,11 @@ public partial class TextBox : TextInputControl, ITextElement
         base.OnLostFocus();
 
         // validate when leaving the field, not on every character:
-        // otherwise half of a typed address would turn red
-        Validate();
+        // otherwise half of a typed address would turn red. And only a field the
+        // user has changed, or one already showing a result: passing through an
+        // empty field with Tab is not a reason to judge it
+        if (_edited || ValidationState != ValidationState.None)
+            Validate();
     }
 
     // ===== input =====

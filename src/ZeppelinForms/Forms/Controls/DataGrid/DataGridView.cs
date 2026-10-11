@@ -96,8 +96,12 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         _touch = TouchScroller.Attach(this);
 
         // the table takes the allotted space entirely: the centering inherited
-        // from UnitControl would leave it a narrow strip in the middle of the page
+        // from UnitControl would leave it a narrow strip in the middle of the page.
+        // Both axes — a view onto content, see UnitControl. Only the width used to
+        // be stretched, and in a DockPanel or a SplitView the grid stood as a strip
+        // of ten rows in the middle of the room until Dock.Fill was set
         SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Stretch);
+        SetControlDefault(VerticalAlignmentProperty, VerticalAlignment.Stretch);
     }
 
     /// <remarks>

@@ -142,7 +142,8 @@ public sealed class PseudoClass
     public static readonly PseudoClass Invalid = Register("invalid");
 
     /// <summary>A field whose validator accepted the content. A field without
-    /// a validator, or not checked yet, is neither valid nor invalid.</summary>
+    /// a validator, not checked yet, or empty and accepted — an optional field left
+    /// alone — is neither valid nor invalid.</summary>
     public static readonly PseudoClass Valid = Register("valid");
 
     // ===== computed: answered by the element =====

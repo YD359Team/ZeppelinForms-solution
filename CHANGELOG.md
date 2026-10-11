@@ -7,6 +7,29 @@
 > Codename "Lake Baikal" is the deepest lake in the world. Because this release develops 
 what is already embedded in the framework, i.e. "goes deep".
 
+### Breaking changes
+
+- An explicit `Size` beats stretching. `HorizontalAlignment.Stretch`,
+  `VerticalAlignment.Stretch` and `Dock.Fill` fill only an axis without a size; an
+  element with a `Size` keeps it and is centered in its slot, as in WPF and Avalonia.
+  A progress bar of `Size = 100×10` used to be stretched to the slot's width
+- A data grid, a map and the charts fill their space by default: `Stretch` on both
+  axes. Charts and the map stood centered at their default size; a chart with a
+  `Size` keeps it
+
+### Fixes
+
+- `DataGridView` fills a `DockPanel`'s rest and a `SplitView`'s content without
+  `Dock.Fill`. Its height was centered, as a button's is: the grid stood as a strip of
+  ten rows in the middle of the room
+- `TextBox` validation shows a result only once there is something to judge: after the
+  user has changed the field and left it, or after `Validate()`. Passing through an
+  untouched field validated it, and an empty e-mail field — accepted, being optional —
+  lit up green before anything was typed. An empty accepted field is not praised at
+  all; while a result is shown, a fixed error clears as you type, and a correct field
+  being retyped goes neutral rather than red until you leave it. `ResetValidation()`
+  makes a field new again
+
 ### Previewer
 
 - A project built against a newer patch of ZeppelinForms than the previewer's own

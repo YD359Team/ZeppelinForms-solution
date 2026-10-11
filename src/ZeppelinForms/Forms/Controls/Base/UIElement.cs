@@ -1822,23 +1822,28 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         // Dock.Fill is an explicit demand to take everything, it overrides alignment
         bool fill = Docking == Dock.Fill;
 
-        bool stretchH = fill || HorizontalAlignment == HorizontalAlignment.Stretch;
-        bool stretchV = fill || VerticalAlignment == VerticalAlignment.Stretch;
+        // An explicit size beats stretching: Stretch and Dock.Fill fill only an axis
+        // left to the layout. A progress bar of Size 100×10 in a wider slot used to be
+        // stretched to the slot's width, its size quietly ignored; now it keeps its
+        // size and stands in the middle of the slot, as in WPF and Avalonia
+        bool stretchH = _explicitSize.IsWidthAuto && (fill || HorizontalAlignment == HorizontalAlignment.Stretch);
+        bool stretchV = _explicitSize.IsHeightAuto && (fill || VerticalAlignment == VerticalAlignment.Stretch);
 
         float width = stretchH ? finalRect.Width : Math.Min(DesiredSize.Width, finalRect.Width);
         float height = stretchV ? finalRect.Height : Math.Min(DesiredSize.Height, finalRect.Height);
 
+        // a stretch that the explicit size refused centers the element, as Center does
         float x = stretchH ? finalRect.X : HorizontalAlignment switch
         {
             HorizontalAlignment.Right => finalRect.X + finalRect.Width - width,
-            HorizontalAlignment.Center => finalRect.X + (finalRect.Width - width) / 2f,
+            HorizontalAlignment.Center or HorizontalAlignment.Stretch => finalRect.X + (finalRect.Width - width) / 2f,
             _ => finalRect.X,
         };
 
         float y = stretchV ? finalRect.Y : VerticalAlignment switch
         {
             VerticalAlignment.Bottom => finalRect.Y + finalRect.Height - height,
-            VerticalAlignment.Center => finalRect.Y + (finalRect.Height - height) / 2f,
+            VerticalAlignment.Center or VerticalAlignment.Stretch => finalRect.Y + (finalRect.Height - height) / 2f,
             _ => finalRect.Y,
         };
 
