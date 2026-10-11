@@ -415,33 +415,6 @@ public partial class TextBox : TextInputControl, ITextElement
         _showingErrorToolTip = false;
     }
 
-    /// <summary>Check the content now and show the result, whether or not the user
-    /// has typed anything — a form's submit button calls it on every field, and a
-    /// required field left empty shows its error.</summary>
-    public bool Validate()
-    {
-        if (Validator is null)
-        {
-            SetValidation(ValidationState.None, null);
-            ShowErrorToolTip(null);
-            return true;
-        }
-
-        string? error = Validator(_document.Text);
-
-        // an accepted empty field is an optional one left alone: nothing to praise
-        ValidationState state = error is not null ? ValidationState.Error
-            : _document.Text.Length > 0 ? ValidationState.Success
-            : ValidationState.None;
-
-        SetValidation(state, error);
-
-        // the error message is shown as a tooltip — there is no separate place for it
-        ShowErrorToolTip(error);
-
-        return error is null;
-    }
-
     /// <summary>Forget the check: no result is shown, and the field is validated
     /// again only after the user changes and leaves it, as a new one. For a form
     /// that is cleared to be filled anew.</summary>
