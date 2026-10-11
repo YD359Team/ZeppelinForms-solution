@@ -24,6 +24,6 @@ public sealed class MainActivity : Activity
     {
         base.OnCreate(savedInstanceState);
 
-        AndroidApp.Run(this, () => new ExampleMainForm(), assets: ["Laughing.png"], theme: Themes.FluentLight);
+        AndroidApp.Run(this, () => new ExampleMainForm(), assets: ["Laughing.png", "styles.zss"], theme: Themes.FluentLight);
     }
 }

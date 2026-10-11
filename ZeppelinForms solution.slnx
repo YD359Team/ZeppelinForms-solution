@@ -20,6 +20,7 @@
     <Project Path="bench/ZeppelinForms.Benchmarks/ZeppelinForms.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/examples/">
+    <File Path="examples/Readme.md" />
     <Project Path="examples/ZF Android/ZF Android.csproj">
       <Deploy />
     </Project>
