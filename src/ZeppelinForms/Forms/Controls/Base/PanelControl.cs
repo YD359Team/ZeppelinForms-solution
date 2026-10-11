@@ -20,9 +20,11 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
     private const float MinThumbLength = 24f;
 
     private Size _contentSize;
-    private bool _draggingVertical;
-    private bool _draggingHorizontal;
-    private float _dragOffset;
+
+    /// <summary>The mouse on the bars: made on the first press, since most panels
+    /// never scroll.</summary>
+    private ScrollBarInteraction? _verticalBarInput;
+    private ScrollBarInteraction? _horizontalBarInput;
 
     public ObservableCollection<UIElement> Children { get; } = [];
 
@@ -562,101 +564,70 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
     private static bool Contains(Rectangle r, Point p) =>
         p.X >= r.X && p.X <= r.X + r.Width && p.Y >= r.Y && p.Y <= r.Y + r.Height;
 
+    private ScrollBarInteraction VerticalBarInput => _verticalBarInput ??= new(
+    this,
+    Orientation.Vertical,
+    () => VerticalBarRect,
+    () => VerticalThumb,
+    () => ScrollY,
+    () => MaxScrollY,
+    () => Viewport.Height,
+    y => ScrollTo(ScrollX, y));
+
+    private ScrollBarInteraction HorizontalBarInput => _horizontalBarInput ??= new(
+        this,
+        Orientation.Horizontal,
+        () => HorizontalBarRect,
+        () => HorizontalThumb,
+        () => ScrollX,
+        () => MaxScrollX,
+        () => Viewport.Width,
+        x => ScrollTo(x, ScrollY));
+
     protected override void OnMouseDown(MouseButtonEventArgs args)
     {
+        // only the left button scrolls: the right one belongs to the context menu
+        if (args.Button != MouseButton.Left) return;
+
         Point abs = GetAbsolutePosition();
         var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
 
-        if (ShowVerticalBar && Contains(VerticalBarRect, local))
-        {
-            var (pos, len) = VerticalThumb;
-            float offsetInBar = local.Y - VerticalBarRect.Y;
+        // a press on the track pages at once and keeps paging while held;
+        // a press on the thumb grabs it
+        if (ShowVerticalBar && VerticalBarInput.Press(local)) return;
 
-            if (offsetInBar >= pos && offsetInBar <= pos + len)
-            {
-                _draggingVertical = true;
-                _dragOffset = offsetInBar - pos;
-
-                // without capture the drag breaks off as soon as the cursor
-                // leaves the window: the moves go to another window
-                CaptureMouse();
-            }
-            else
-            {
-                ScrollTo(ScrollX, ScrollY + (offsetInBar < pos ? -Viewport.Height : Viewport.Height));
-            }
-
-            return;
-        }
-
-        if (ShowHorizontalBar && Contains(HorizontalBarRect, local))
-        {
-            var (pos, len) = HorizontalThumb;
-            float offsetInBar = local.X - HorizontalBarRect.X;
-
-            if (offsetInBar >= pos && offsetInBar <= pos + len)
-            {
-                _draggingHorizontal = true;
-                _dragOffset = offsetInBar - pos;
-                CaptureMouse();
-            }
-            else
-            {
-                ScrollTo(ScrollX + (offsetInBar < pos ? -Viewport.Width : Viewport.Width), ScrollY);
-            }
-        }
+        if (ShowHorizontalBar) HorizontalBarInput.Press(local);
     }
 
     protected override void OnMouseMove(MouseMoveEventArgs args)
     {
-        if (!_draggingVertical && !_draggingHorizontal) return;
+        if (_verticalBarInput is not { IsActive: true } && _horizontalBarInput is not { IsActive: true }) return;
 
         Point abs = GetAbsolutePosition();
+        var local = new Point(args.Location.X - abs.X, args.Location.Y - abs.Y);
 
-        if (_draggingVertical)
-        {
-            Rectangle bar = VerticalBarRect;
-            var (_, len) = VerticalThumb;
-            float free = bar.Height - len;
+        if (_verticalBarInput?.Move(local) == true) return;
 
-            if (free > 0)
-            {
-                float t = (args.Location.Y - abs.Y - bar.Y - _dragOffset) / free;
-                ScrollTo(ScrollX, MaxScrollY * Math.Clamp(t, 0, 1));
-            }
-        }
-        else
-        {
-            Rectangle bar = HorizontalBarRect;
-            var (_, len) = HorizontalThumb;
-            float free = bar.Width - len;
-
-            if (free > 0)
-            {
-                float t = (args.Location.X - abs.X - bar.X - _dragOffset) / free;
-                ScrollTo(MaxScrollX * Math.Clamp(t, 0, 1), ScrollY);
-            }
-        }
+        _horizontalBarInput?.Move(local);
     }
 
     protected override void OnMouseUp(MouseButtonEventArgs location)
     {
-        EndThumbDrag();
+        EndBarPress();
     }
 
     protected override void OnPointerCanceled(PointerCancelEventArgs e)
     {
         // there will be no release after a cancel: without a reset the next
-        // mouse move with no button pressed would keep dragging the thumb
-        EndThumbDrag();
+        // mouse move with no button pressed would keep dragging the thumb,
+        // and a held track would page on and on
+        EndBarPress();
     }
 
-    private void EndThumbDrag()
+    private void EndBarPress()
     {
-        if (!_draggingVertical && !_draggingHorizontal) return;
-
-        _draggingVertical = _draggingHorizontal = false;
-        ReleaseMouseCapture();
+        _verticalBarInput?.Release();
+        _horizontalBarInput?.Release();
     }
 
     // ===== touch scrolling =====

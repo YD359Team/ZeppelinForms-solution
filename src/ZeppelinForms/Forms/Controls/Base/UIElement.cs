@@ -1817,10 +1817,16 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// and a comparison with that would miss a real change.</summary>
     private Size _arrangedSize;
 
-    public void Arrange(Rectangle finalRect)
-    {
+    public void Arrange(Rectangle finalRect) =>
         // Dock.Fill is an explicit demand to take everything, it overrides alignment
-        bool fill = Docking == Dock.Fill;
+        Arrange(finalRect, fill: Docking == Dock.Fill);
+
+    /// <summary>Arrange, filling the rectangle whatever the alignment says when
+    /// <paramref name="fill"/> is set: for a panel that gives a child the rest of the
+    /// room by a rule of its own — a dock panel's last child — without writing
+    /// <see cref="Docking"/>, which is the application's.</summary>
+    internal void Arrange(Rectangle finalRect, bool fill)
+    {
 
         // An explicit size beats stretching: Stretch and Dock.Fill fill only an axis
         // left to the layout. A progress bar of Size 100×10 in a wider slot used to be

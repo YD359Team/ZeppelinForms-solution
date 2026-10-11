@@ -1,11 +1,35 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class DockPanel : DecoratedPanel
+/// <summary>
+/// Docks its children to its edges one after another, each to what the ones before
+/// it left; the children docked to no edge share the rest.
+/// </summary>
+public partial class DockPanel : DecoratedPanel
 {
+    /// <summary>The last child takes the rest of the room as <see cref="Dock.Fill"/>
+    /// would, when it is docked to no edge of its own. True by default.</summary>
+    /// <remarks>
+    /// <para>
+    /// Without it the content added last after a tool bar and a status bar got the
+    /// rest of the room as its slot, but kept its own alignment in it: a data grid
+    /// filled it, a text box stood in its middle, and only <c>Dock.Fill</c> written
+    /// by hand made it fill.
+    /// </para>
+    /// <para>
+    /// Unlike WPF's, a side set explicitly is kept: there the last child fills
+    /// whatever its <c>DockPanel.Dock</c> says, and a status bar added after the
+    /// content becomes the content. False — the last child keeps its alignment.
+    /// </para>
+    /// </remarks>
+    [Styled(Category = "Layout", AffectsLayout = true)]
+    public partial bool LastChildFill { get; set; }
+    private static bool LastChildFillDefault => true;
+
     protected override Size MeasureContentOverride(Size availableSize)
     {
         var remaining = new Size(
@@ -108,12 +132,17 @@ public class DockPanel : DecoratedPanel
             };
         }
 
+        // the last child fills the rest even with no Dock.Fill of its own
+        UIElement? last = LastChildFill ? Children.LastOrDefault(c => c.IsVisible) : null;
+
         foreach (var child in fillers)
         {
             var m = child.Margin;
-            child.Arrange(new Rectangle(
-                new Point(rect.X + m.Left, rect.Y + m.Top),
-                new Size(Math.Max(0, rect.Width - m.Horizontal), Math.Max(0, rect.Height - m.Vertical))));
+            child.Arrange(
+                new Rectangle(
+                    new Point(rect.X + m.Left, rect.Y + m.Top),
+                    new Size(Math.Max(0, rect.Width - m.Horizontal), Math.Max(0, rect.Height - m.Vertical))),
+                fill: child.Docking == Dock.Fill || ReferenceEquals(child, last));
         }
     }
 }

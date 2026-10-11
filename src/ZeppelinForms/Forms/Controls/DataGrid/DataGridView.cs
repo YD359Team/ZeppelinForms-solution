@@ -55,13 +55,10 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     /// and turning it into a click on the header is not needed.</summary>
     private bool _suppressHeaderClick;
 
-    /// <summary>A scrollbar thumb is held by the mouse.</summary>
-    private bool _draggingVertical;
-    private bool _draggingHorizontal;
-
-    /// <summary>Where in the thumb it was grabbed: the thumb follows the cursor by
-    /// that point rather than jumping its top edge to it.</summary>
-    private float _dragOffset;
+    /// <summary>The mouse on the scrollbars: the thumb dragged, the track paged and
+    /// held. Made on the first press.</summary>
+    private ScrollBarInteraction? _verticalBarInput;
+    private ScrollBarInteraction? _horizontalBarInput;
 
     /// <summary>The press landed on a scrollbar: the click it ends in is not a click
     /// on a row or a header.</summary>
@@ -842,11 +839,38 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         return (position, length);
     }
 
-    private static bool Contains(Rectangle r, Point p) =>
-        p.X >= r.X && p.X <= r.X + r.Width && p.Y >= r.Y && p.Y <= r.Y + r.Height;
+    /// <summary>A point of the form in the element's own coordinates, the padding
+    /// included: where the tracks are, unlike <see cref="ToLocal"/>, which is inside
+    /// the padding.</summary>
+    private Point ToElement(Point location)
+    {
+        Point abs = GetAbsolutePosition();
+
+        return new Point(location.X - abs.X, location.Y - abs.Y);
+    }
+
+    private ScrollBarInteraction VerticalBarInput => _verticalBarInput ??= new(
+    this,
+    Orientation.Vertical,
+    () => VerticalTrack,
+    () => VerticalThumb,
+    () => _scrollY,
+    () => MaxScrollY,
+    () => BodyBounds.Height,
+    y => ScrollTo(_scrollX, y));
+
+    private ScrollBarInteraction HorizontalBarInput => _horizontalBarInput ??= new(
+        this,
+        Orientation.Horizontal,
+        () => HorizontalTrack,
+        () => HorizontalThumb,
+        () => _scrollX,
+        () => MaxScrollX,
+        () => BodyBounds.Width,
+        x => ScrollTo(x, _scrollY));
 
     /// <summary>A press on a scrollbar: the thumb is grabbed, the track around it
-    /// pages. False — the press is not on a bar.</summary>
+    /// pages, and keeps paging while held. False — the press is not on a bar.</summary>
     /// <remarks>
     /// The bars used to be drawn only: a press on the vertical one went to the
     /// row behind it and selected that row, and the thumb could not be dragged.
@@ -855,100 +879,33 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     {
         EnsureLayout();
 
-        Point abs = GetAbsolutePosition();
-        var local = new Point(location.X - abs.X, location.Y - abs.Y);
+        Point local = ToElement(location);
 
-        if (_verticalBar && Contains(VerticalTrack, local))
-        {
-            Rectangle track = VerticalTrack;
-            var (position, length) = VerticalThumb;
-            float offset = local.Y - track.Y;
+        if (_verticalBar && VerticalBarInput.Press(local)) return true;
 
-            if (offset >= position && offset <= position + length)
-            {
-                _draggingVertical = true;
-                _dragOffset = offset - position;
-
-                // without capture the drag breaks off as soon as the cursor leaves the window
-                CaptureMouse();
-            }
-            else
-            {
-                float page = BodyBounds.Height;
-                ScrollTo(_scrollX, _scrollY + (offset < position ? -page : page));
-            }
-
-            return true;
-        }
-
-        if (_horizontalBar && Contains(HorizontalTrack, local))
-        {
-            Rectangle track = HorizontalTrack;
-            var (position, length) = HorizontalThumb;
-            float offset = local.X - track.X;
-
-            if (offset >= position && offset <= position + length)
-            {
-                _draggingHorizontal = true;
-                _dragOffset = offset - position;
-                CaptureMouse();
-            }
-            else
-            {
-                float page = BodyBounds.Width;
-                ScrollTo(_scrollX + (offset < position ? -page : page), _scrollY);
-            }
-
-            return true;
-        }
-
-        return false;
+        return _horizontalBar && HorizontalBarInput.Press(local);
     }
 
-    /// <summary>Move the held thumb after the cursor. False — no thumb is held.</summary>
+    /// <summary>Move the held thumb after the cursor, or follow it while paging.
+    /// False — no bar holds the press.</summary>
     private bool DragThumb(Point location)
     {
-        if (!_draggingVertical && !_draggingHorizontal) return false;
+        if (_verticalBarInput is not { IsActive: true } && _horizontalBarInput is not { IsActive: true }) return false;
 
         EnsureLayout();
 
-        Point abs = GetAbsolutePosition();
+        Point local = ToElement(location);
 
-        if (_draggingVertical)
-        {
-            Rectangle track = VerticalTrack;
-            float free = track.Height - VerticalThumb.Length;
-
-            if (free > 0)
-            {
-                float t = (location.Y - abs.Y - track.Y - _dragOffset) / free;
-                ScrollTo(_scrollX, MaxScrollY * Math.Clamp(t, 0, 1));
-            }
-        }
-        else
-        {
-            Rectangle track = HorizontalTrack;
-            float free = track.Width - HorizontalThumb.Length;
-
-            if (free > 0)
-            {
-                float t = (location.X - abs.X - track.X - _dragOffset) / free;
-                ScrollTo(MaxScrollX * Math.Clamp(t, 0, 1), _scrollY);
-            }
-        }
-
-        return true;
+        return _verticalBarInput?.Move(local) == true || _horizontalBarInput?.Move(local) == true;
     }
 
-    /// <summary>Let the thumb go. False — none was held.</summary>
+    /// <summary>Let the thumb or the track go. False — no bar held the press.</summary>
     private bool EndThumbDrag()
     {
-        if (!_draggingVertical && !_draggingHorizontal) return false;
+        bool vertical = _verticalBarInput?.Release() == true;
+        bool horizontal = _horizontalBarInput?.Release() == true;
 
-        _draggingVertical = _draggingHorizontal = false;
-        ReleaseMouseCapture();
-
-        return true;
+        return vertical || horizontal;
     }
 
     // ===== drawing =====

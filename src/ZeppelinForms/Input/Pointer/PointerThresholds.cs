@@ -33,6 +33,13 @@ public static class PointerThresholds
     /// <summary>Longer than this is no longer a tap, even if the finger didn't move.</summary>
     public const int TapMaxDurationMs = 300;
 
+    /// <summary>Holding a press that repeats — a scroll bar's track: the first step
+    /// comes with the press, the second after this delay.</summary>
+    public const int RepeatDelayMs = 400;
+
+    /// <summary>A held press repeats this often after <see cref="RepeatDelayMs"/>.</summary>
+    public const int RepeatIntervalMs = 50;
+
     public static float TapSlop(PointerKind kind, DisplayInfo display) =>
         display.MillimetersToLogical(kind == PointerKind.Mouse ? MouseTapSlopMm : TouchTapSlopMm);
 

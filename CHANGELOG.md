@@ -9,6 +9,10 @@ what is already embedded in the framework, i.e. "goes deep".
 
 ### Breaking changes
 
+- `DockPanel.LastChildFill`, true by default: the last child docked to no edge fills
+  the rest of the room, as `Dock.Fill` does. A text box or a button added last used to
+  stand in the middle of the rest at its natural size. `LastChildFill = false` brings
+  that back
 - An explicit `Size` beats stretching. `HorizontalAlignment.Stretch`,
   `VerticalAlignment.Stretch` and `Dock.Fill` fill only an axis without a size; an
   element with a `Size` keeps it and is centered in its slot, as in WPF and Avalonia.
@@ -29,6 +33,23 @@ what is already embedded in the framework, i.e. "goes deep".
   all; while a result is shown, a fixed error clears as you type, and a correct field
   being retyped goes neutral rather than red until you leave it. `ResetValidation()`
   makes a field new again
+
+### Scroll bars
+
+- Holding the mouse on a scroll bar's track keeps paging, as on every desktop: one page
+  with the press, the next after 400 ms, then one every 50 ms
+  (`PointerThresholds.RepeatDelayMs`, `RepeatIntervalMs`). It pages towards the
+  pointer and stops once the thumb is under it, waits while the pointer is off the
+  track, and never turns back. A press paged once before
+- One implementation for all bars: the `ScrollBar` control, the bars of scrolling
+  panels and the data grid's. The three had a copy each
+- A right click on a panel's scroll bar no longer pages: the right button belongs to
+  the context menu, as it already did on the `ScrollBar` control and the data grid
+
+### DockPanel
+
+- `LastChildFill`, see the breaking changes. Unlike WPF's, a side set explicitly is
+  kept: a status bar added after the content stays a bar
 
 ### SplitView navigation
 

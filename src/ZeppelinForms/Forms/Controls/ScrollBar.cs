@@ -12,9 +12,11 @@ public partial class ScrollBar : DecoratedControl
 {
     private const float MinThumbLength = 20f;
 
-    private bool _isDragging;
-    private float _dragOffset;
     private float _value;
+
+    /// <summary>The mouse on the bar: the thumb dragged, the track paged and held.
+    /// Made for the orientation at the first press, and made again when it changes.</summary>
+    private ScrollBarInteraction? _input;
 
     public Orientation Orientation
     {
@@ -24,6 +26,11 @@ public partial class ScrollBar : DecoratedControl
             if (field == value) return;
 
             field = value;
+
+            // the interaction measures along the old axis: a press held now ends
+            _input?.Release();
+            _input = null;
+
             Invalidate();
         }
     } = Orientation.Vertical;
@@ -84,6 +91,16 @@ public partial class ScrollBar : DecoratedControl
 
     public ScrollBar() => Size = new Size(12, 12);
 
+    private ScrollBarInteraction Input => _input ??= new ScrollBarInteraction(
+        this,
+        Orientation,
+        () => LocalBounds,
+        () => (ThumbPosition, ThumbLength),
+        () => Value,
+        () => MaxValue,
+        () => ViewportSize,
+        value => Value = value);
+
     /// <summary>The range changed: the value is brought back into it. Previously it
     /// stayed beyond the new limit when the content shrank, and the thumb was drawn
     /// past the end of the track.</summary>
@@ -137,55 +154,22 @@ public partial class ScrollBar : DecoratedControl
 
         if (!IsScrollable) return;
 
-        Point abs = GetAbsolutePosition();
-        float local = Orientation == Orientation.Vertical
-            ? args.Location.Y - abs.Y
-            : args.Location.X - abs.X;
-
-        float thumbPos = ThumbPosition;
-
-        if (local >= thumbPos && local <= thumbPos + ThumbLength)
-        {
-            _isDragging = true;
-            _dragOffset = local - thumbPos;   // drag by the point where it was grabbed
-
-            // without capture the drag breaks off as soon as the cursor
-            // leaves the window
-            CaptureMouse();
-        }
-        else
-        {
-            // a click on the track — a page up/down
-            Value += local < thumbPos ? -ViewportSize : ViewportSize;
-        }
+        // a press on the thumb grabs it; one on the track pages at once
+        // and keeps paging while held
+        Input.Press(ToLocal(args.Location));
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
-    {
-        if (!_isDragging) return;
+    protected override void OnMouseMove(MouseMoveEventArgs args) => _input?.Move(ToLocal(args.Location));
 
-        Point abs = GetAbsolutePosition();
-        float local = Orientation == Orientation.Vertical
-            ? args.Location.Y - abs.Y
-            : args.Location.X - abs.X;
-
-        float free = TrackLength - ThumbLength;
-        if (free <= 0) return;
-
-        Value = (local - _dragOffset) / free * MaxValue;
-    }
-
-    protected override void OnMouseUp(MouseButtonEventArgs location) => EndDrag();
+    protected override void OnMouseUp(MouseButtonEventArgs location) => _input?.Release();
 
     // there will be no release after a cancel — reset ourselves
-    protected override void OnPointerCanceled(PointerCancelEventArgs e) => EndDrag();
+    protected override void OnPointerCanceled(PointerCancelEventArgs e) => _input?.Release();
 
-    private void EndDrag()
+    private Point ToLocal(Point location)
     {
-        if (!_isDragging) return;
-
-        _isDragging = false;
-        ReleaseMouseCapture();
+        Point abs = GetAbsolutePosition();
+        return new Point(location.X - abs.X, location.Y - abs.Y);
     }
 
     protected override Size MeasureOverride(Size availableSize) =>
