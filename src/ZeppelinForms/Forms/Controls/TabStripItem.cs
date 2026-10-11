@@ -326,7 +326,7 @@ public partial class TabStrip : InteractiveControl
 
     // ===== geometry =====
 
-    private float StripHeight => TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height + PaddingY * 2;
+    private float StripHeight => TextMeasurer.LineHeight(EffectiveFont) + PaddingY * 2;
 
     private float AddButtonWidth => ShowAddButton ? StripHeight : 0f;
 

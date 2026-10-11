@@ -129,7 +129,7 @@ public partial class TabControl : DecoratedPanel, IInputElement
     {
         Size text = string.IsNullOrEmpty(tab.Header)
             ? Size.Empty
-            : TextMeasurer.Current.MeasureText(ApplyTextTransform(tab.Header), EffectiveFont);
+            : TextMeasurer.MeasureLine(ApplyTextTransform(tab.Header), EffectiveFont);
 
         if (IsVertical)
             return Math.Max(text.Height, IconSize) + HeaderPaddingY * 2;
@@ -148,8 +148,7 @@ public partial class TabControl : DecoratedPanel, IInputElement
         {
             if (IsVertical) return VerticalStripWidth;
 
-            Size probe = TextMeasurer.Current.MeasureText("Wg", EffectiveFont);
-            return probe.Height + HeaderPaddingY * 2;
+            return TextMeasurer.LineHeight(EffectiveFont) + HeaderPaddingY * 2;
         }
     }
 

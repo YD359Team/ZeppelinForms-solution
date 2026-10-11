@@ -112,8 +112,17 @@ public partial class CheckBox : InteractiveControl, ITextElement
     public partial float BoxBorderWidth { get; set; }
     private static float BoxBorderWidthDefault => 1.5f;
 
-    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
-    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
+    /// <summary>Where the text stands across its room. A styled property: a style
+    /// sheet sets it, and a change redraws at once.</summary>
+    [Styled(Category = "Text")]
+    public partial HorizontalContentAlignment HorizontalContentAlign { get; set; }
+    private static HorizontalContentAlignment HorizontalContentAlignDefault => HorizontalContentAlignment.Left;
+
+    /// <summary>Where the text stands up and down in its room, when the control is
+    /// taller than its text.</summary>
+    [Styled(Category = "Text")]
+    public partial VerticalContentAlignment VerticalContentAlign { get; set; }
+    private static VerticalContentAlignment VerticalContentAlignDefault => VerticalContentAlignment.Center;
 
     public CheckBox()
     {
@@ -297,7 +306,7 @@ public partial class CheckBox : InteractiveControl, ITextElement
     {
         Size textSize = string.IsNullOrEmpty(Text)
             ? Size.Empty
-            : TextMeasurer.Current.MeasureText(ApplyTextTransform(Text), EffectiveFont);
+            : TextMeasurer.MeasureLine(ApplyTextTransform(Text), EffectiveFont);
 
         float boxSize = BoxSize;
 

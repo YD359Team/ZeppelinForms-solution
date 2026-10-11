@@ -207,7 +207,7 @@ public class TimePicker : InteractiveControl
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = TextMeasurer.Current.MeasureText(FormattedValue, EffectiveFont);
+        Size textSize = TextMeasurer.MeasureLine(FormattedValue, EffectiveFont);
 
         return ResolveSize(
             new Size(

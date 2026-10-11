@@ -68,7 +68,7 @@ public class HintLabel : DecoratedControl
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 
         float textWidth = TextMeasurer.Current.MeasureText(caption, EffectiveFont).Width;
-        float lineHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
+        float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
         float y = content.Y + (content.Height + lineHeight) / 2f;
 
         DrawDashedLine(g, content.X, content.X + textWidth, y,
@@ -126,7 +126,7 @@ public class HintLabel : DecoratedControl
     {
         Size textSize = string.IsNullOrEmpty(Text)
             ? Size.Empty
-            : TextMeasurer.Current.MeasureText(ApplyTextTransform(Text), EffectiveFont);
+            : TextMeasurer.MeasureLine(ApplyTextTransform(Text), EffectiveFont);
 
         return ResolveSize(
             new Size(textSize.Width + Padding.Horizontal, textSize.Height + Padding.Vertical + 2),

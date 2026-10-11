@@ -96,8 +96,17 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
     [Styled(Category = "Track")]
     public partial float TrackBorderWidth { get; set; }
 
-    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
-    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
+    /// <summary>Where the text stands across its room. A styled property: a style
+    /// sheet sets it, and a change redraws at once.</summary>
+    [Styled(Category = "Text")]
+    public partial HorizontalContentAlignment HorizontalContentAlign { get; set; }
+    private static HorizontalContentAlignment HorizontalContentAlignDefault => HorizontalContentAlignment.Left;
+
+    /// <summary>Where the text stands up and down in its room, when the control is
+    /// taller than its text.</summary>
+    [Styled(Category = "Text")]
+    public partial VerticalContentAlignment VerticalContentAlign { get; set; }
+    private static VerticalContentAlignment VerticalContentAlignDefault => VerticalContentAlignment.Center;
 
     public ToggleSwitch()
     {
@@ -213,7 +222,7 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
     {
         Size textSize = string.IsNullOrEmpty(Text)
             ? Size.Empty
-            : TextMeasurer.Current.MeasureText(ApplyTextTransform(Text), EffectiveFont);
+            : TextMeasurer.MeasureLine(ApplyTextTransform(Text), EffectiveFont);
 
         Size track = TrackSize;
 

@@ -128,7 +128,7 @@ public partial class TreeViewItem : DecoratedControl
 
         var content = new Size(
             IndentWidth + GlyphWidth + textWidth + Padding.Horizontal,
-            TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height + Padding.Vertical);
+            TextMeasurer.LineHeight(EffectiveFont) + Padding.Vertical);
 
         return ResolveSize(content, availableSize);
     }

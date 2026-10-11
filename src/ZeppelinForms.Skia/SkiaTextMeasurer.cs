@@ -38,6 +38,14 @@ public sealed class SkiaTextMeasurer : ITextMeasurer
 
     public Task PrepareAsync(Font font) => Task.CompletedTask;
 
+    public FontMetrics MeasureFont(Font font)
+    {
+        SKFontMetrics metrics = SkiaFontCache.Get(font).Metrics;
+
+        // Skia's ascent is negative: up from the baseline
+        return new FontMetrics(-metrics.Ascent, metrics.Descent);
+    }
+
     public Size MeasureRuns(IReadOnlyList<TextRun> runs, Font baseFont)
     {
         float width = 0;

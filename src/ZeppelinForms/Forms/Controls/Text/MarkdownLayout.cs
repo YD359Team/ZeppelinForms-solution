@@ -117,7 +117,7 @@ internal sealed class MarkdownLayouter
     private static float Measure(string text, Font font) => TextMeasurer.Current.MeasureText(text, font).Width;
 
     private float LineHeight(Font font) =>
-        TextMeasurer.Current.MeasureText("Wg", font).Height * Math.Max(1f, _viewer.LineSpacing);
+        TextMeasurer.LineHeight(font) * Math.Max(1f, _viewer.LineSpacing);
 
     // ===== blocks =====
 

@@ -294,7 +294,7 @@ public partial class ImageViewer : InteractiveControl
 
     private float CaptionHeight =>
         ShowCaption && Count > 0
-            ? TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height * 2f + Gap * 2f
+            ? TextMeasurer.LineHeight(EffectiveFont) * 2f + Gap * 2f
             : 0f;
 
     /// <summary>Where the picture is fitted: the content above the caption.</summary>

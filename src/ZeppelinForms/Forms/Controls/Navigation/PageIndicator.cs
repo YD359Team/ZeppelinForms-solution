@@ -166,7 +166,8 @@ public partial class PageIndicator : DecoratedControl
                         if (active)
                             g.FillRoundRectangle(rect, new CornerRadius(content.Height / 2f), color);
 
-                        g.DrawText((i + 1).ToString(), rect,
+                        // a number in its pill, centered by its ink as the pill is around it
+                        g.DrawSymbol((i + 1).ToString(), rect,
                             active ? Colors.White : color, EffectiveFont,
                             HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
@@ -348,7 +349,7 @@ public partial class PageIndicator : DecoratedControl
 
         float itemWidth = ItemWidth;
         float height = Style == PageIndicatorStyle.Numbers
-            ? TextMeasurer.Current.MeasureText("0", EffectiveFont).Height + 8f
+            ? TextMeasurer.LineHeight(EffectiveFont) + 8f
             : ActiveDotSize;
 
         return ResolveSize(

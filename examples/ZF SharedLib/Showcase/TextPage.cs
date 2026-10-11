@@ -48,6 +48,7 @@ internal static class TextPage
         return Demo.Page("Text", "How text is set: styles, fonts, decorations, mixed runs, hints and Markdown.",
             Demo.Section("Type ramp", Ramp(), "TextStyle picks size and weight from the theme's ramp, so the whole application changes together"),
             Demo.Section("Fonts", Fonts()),
+            Demo.Section("Wrapping and trimming", Wrapping(), "TextWrapping breaks the rows at the edge; TextTrimming shortens what doesn't fit with \"…\"; MaxLines caps the rows"),
             Demo.Section("Decorations", Decorations(), "TextDecorations, TextOutline and TextTransform are inherited: set them on a panel for everything in it"),
             Demo.Section("Mixed runs", Runs(), "RichLabel sets a line from runs, each with its own font, color and background"),
             Demo.Section("Hints", Hints(), "Hover the dotted words"),
@@ -73,6 +74,33 @@ internal static class TextPage
         new Label { Text = "Italic", Font = Font.Default.Italic() },
         new Label { Text = "Monospace: 0O 1lI {}[]", Font = Font.Monospace },
         new Label { Text = "Larger, 24 px", Font = Font.Default.WithSize(24) });
+
+    private static UIElement Wrapping()
+    {
+        const string Text = "A zeppelin is a rigid airship: a frame of girders under a fabric skin, with gas cells inside it and engines along its hull.";
+
+        // a box whose width the slider sets: the labels follow it
+        var box = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 10,
+            CrossAxisAlignment = CrossAxisAlignment.Stretch,
+            Size = new(320, float.NaN),
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+
+        box.Children.AddRange([
+            Demo.Labeled("Wrap", new Label { Text = Text, TextWrapping = TextWrapping.Wrap }),
+            Demo.Labeled("Character ellipsis", new Label { Text = Text, TextTrimming = TextTrimming.CharacterEllipsis }),
+            Demo.Labeled("Word ellipsis", new Label { Text = Text, TextTrimming = TextTrimming.WordEllipsis }),
+            Demo.Labeled("Wrap, two rows at most", new Label { Text = Text, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.WordEllipsis, MaxLines = 2 }),
+        ]);
+
+        var width = new TrackBar { Minimum = 120, Maximum = 600, Value = 320, Size = new(220, float.NaN) };
+        width.ValueChanged += (_, _) => box.Size = new(width.Value, float.NaN);
+
+        return Demo.Column(Demo.Labeled("Width of the box", width), box);
+    }
 
     private static UIElement Decorations() => Demo.Row(
         new Label { Text = "Underline", TextDecorations = TextDecorations.Underline },

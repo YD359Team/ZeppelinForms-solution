@@ -216,7 +216,7 @@ public class ColorPicker : InteractiveControl
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size probe = TextMeasurer.Current.MeasureText(AllowAlpha ? "#FFFFFFFF" : "#FFFFFF", EffectiveFont);
+        Size probe = TextMeasurer.MeasureLine(AllowAlpha ? "#FFFFFFFF" : "#FFFFFF", EffectiveFont);
 
         float width = ShowHex
             ? probe.Height + 6 + probe.Width + Padding.Horizontal + 4

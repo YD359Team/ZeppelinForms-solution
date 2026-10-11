@@ -245,7 +245,7 @@ public partial class MaskedTextBox : TextInputControl
     {
         Rectangle content = ContentBounds;
 
-        float lineHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
+        float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
         float y = content.Y + (content.Height - lineHeight) / 2f;
 
         // entered characters and prompts are drawn in different colors, so we go
@@ -280,7 +280,7 @@ public partial class MaskedTextBox : TextInputControl
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = TextMeasurer.Current.MeasureText(DisplayText, EffectiveFont);
+        Size textSize = TextMeasurer.MeasureLine(DisplayText, EffectiveFont);
 
         return ResolveSize(
             new Size(

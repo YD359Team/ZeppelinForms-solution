@@ -303,7 +303,6 @@ public partial class MenuBar : DecoratedControl
         foreach (MenuItem item in Items)
             width += WidthOf(item);
 
-        Size probe = TextMeasurer.Current.MeasureText("Wg", EffectiveFont);
-        return ResolveSize(new Size(width, probe.Height + 10), availableSize);
+        return ResolveSize(new Size(width, TextMeasurer.LineHeight(EffectiveFont) + 10), availableSize);
     }
 }

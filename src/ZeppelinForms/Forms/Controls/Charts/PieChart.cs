@@ -107,7 +107,8 @@ public class PieChart : ChartBase
                 float cx = sliceBounds.X + sliceBounds.Width / 2f + MathF.Cos(mid) * radius;
                 float cy = sliceBounds.Y + sliceBounds.Height / 2f + MathF.Sin(mid) * radius;
 
-                g.DrawText($"{value / total * 100:0}%",
+                // a percentage at a point of the slice: centered on it by its ink
+                g.DrawSymbol($"{value / total * 100:0}%",
                     new Rectangle(new Point(cx - 20, cy - 8), new Size(40, 16)),
                     Colors.White, EffectiveFont,
                     HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
@@ -157,7 +158,7 @@ public class PieChart : ChartBase
     {
         var content = ContentBounds;
         float x = content.X + content.Width - LegendWidth + 6f;
-        float rowHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height + 6f;
+        float rowHeight = TextMeasurer.LineHeight(EffectiveFont) + 6f;
         float y = content.Y + TitleHeight + (content.Height - TitleHeight - rowHeight * Slices.Count) / 2f;
 
         for (int i = 0; i < Slices.Count; i++)

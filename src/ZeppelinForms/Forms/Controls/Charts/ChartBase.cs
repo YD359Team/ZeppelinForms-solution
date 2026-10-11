@@ -39,7 +39,7 @@ public abstract partial class ChartBase : DecoratedControl
 
     protected float TitleHeight => string.IsNullOrEmpty(Title)
         ? 0
-        : TextMeasurer.Current.MeasureText(Title, EffectiveFont).Height + 8f;
+        : TextMeasurer.LineHeight(EffectiveFont) + 8f;
 
     /// <summary>A chart has no natural size — the plot takes whatever room it is
     /// given — so it fills its space, as a view onto content does (see

@@ -370,7 +370,7 @@ public partial class ImageGallery : DecoratedPanel, IInputElement
     private float Spacing => Math.Max(0f, ItemSpacing);
 
     private float CaptionHeight =>
-        ShowTitles ? TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height + 8f : 0f;
+        ShowTitles ? TextMeasurer.LineHeight(EffectiveFont) + 8f : 0f;
 
     private float RowHeight => _cellHeight + CaptionHeight;
 

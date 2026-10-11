@@ -279,8 +279,17 @@ public partial class TextBox : TextInputControl, ITextElement
     public partial Color SelectionColor { get; set; }
     private static Color SelectionColorDefault => new(255, 173, 214, 255);
 
-    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
-    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Top;
+    /// <summary>Where the text stands across its room. A styled property: a style
+    /// sheet sets it, and a change redraws at once.</summary>
+    [Styled(Category = "Text")]
+    public partial HorizontalContentAlignment HorizontalContentAlign { get; set; }
+    private static HorizontalContentAlignment HorizontalContentAlignDefault => HorizontalContentAlignment.Left;
+
+    /// <summary>Where the text stands up and down in its room, when the control is
+    /// taller than its text.</summary>
+    [Styled(Category = "Text")]
+    public partial VerticalContentAlignment VerticalContentAlign { get; set; }
+    private static VerticalContentAlignment VerticalContentAlignDefault => VerticalContentAlignment.Top;
 
     public event EventHandler? TextChanged;
     public event EventHandler? Accepted;
@@ -574,7 +583,7 @@ public partial class TextBox : TextInputControl, ITextElement
 
     // ===== display =====
 
-    private float LineHeight => TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
+    private float LineHeight => TextMeasurer.LineHeight(EffectiveFont);
 
     // the mask is built by visible characters: one emoji — one dot
     private string DisplayText => PasswordChar is char pc && !IsMultiline
@@ -642,61 +651,17 @@ public partial class TextBox : TextInputControl, ITextElement
 
     private static bool IsSpace(char c) => c is ' ' or '\t';
 
-    /// <summary>Break one line of the text into rows no wider than <paramref name="width"/>.</summary>
+    /// <summary>Break one line of the text into rows no wider than <paramref name="width"/>:
+    /// after spaces, which hang at the end of their row, as <see cref="TextWrapper"/> breaks
+    /// the label's lines too.</summary>
     private static void Wrap(string line, int offset, float width, Font font, List<TextRow> rows)
     {
-        ITextMeasurer measurer = TextMeasurer.Current;
-        int start = 0;
+        List<(int Start, int Length)> pieces = TextWrapper.Wrap(line, width, font);
 
-        while (start < line.Length)
+        for (int i = 0; i < pieces.Count; i++)
         {
-            string rest = line[start..];
-
-            if (measurer.MeasureTextWidth(rest, rest.Length, font) <= width)
-            {
-                rows.Add(new TextRow(offset + start, rest, EndsLine: true));
-                return;
-            }
-
-            // the longest piece that fits, by a binary search over the character
-            // boundaries: widths only grow, and measuring every prefix would be quadratic
-            List<int> bounds = [.. TextElements.Boundaries(rest)];
-
-            int fits = 0;
-            int low = 1, high = bounds.Count - 1;
-
-            while (low <= high)
-            {
-                int middle = (low + high) / 2;
-
-                if (measurer.MeasureTextWidth(rest, bounds[middle], font) <= width)
-                {
-                    fits = middle;
-                    low = middle + 1;
-                }
-                else
-                {
-                    high = middle - 1;
-                }
-            }
-
-            // at least one character a row, however narrow the field
-            int end = bounds[Math.Max(1, fits)];
-
-            // break after the last space of the piece, so words stay whole; a word
-            // wider than the row is broken where it overflows
-            if (end < rest.Length && !IsSpace(rest[end]))
-            {
-                int space = rest.LastIndexOfAny([' ', '\t'], end - 1, end);
-
-                if (space >= 0) end = space + 1;
-            }
-
-            // spaces at the break hang at the end of the row, as in every editor
-            while (end < rest.Length && IsSpace(rest[end])) end++;
-
-            rows.Add(new TextRow(offset + start, rest[..end], EndsLine: end >= rest.Length));
-            start += end;
+            var (start, length) = pieces[i];
+            rows.Add(new TextRow(offset + start, line.Substring(start, length), EndsLine: i == pieces.Count - 1));
         }
     }
 

@@ -35,8 +35,9 @@ public partial class LinkLabel : RichLabel
 
     public LinkLabel()
     {
+        // the alignment is left to RichLabel's default, Left: set here it would be
+        // a local value, which no style sheet could move
         Cursor = CursorKind.Hand;
-        ContentAlign = HorizontalContentAlignment.Left;
     }
 
     private void RebuildInlines()

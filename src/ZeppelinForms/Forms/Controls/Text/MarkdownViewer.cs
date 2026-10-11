@@ -537,7 +537,7 @@ public partial class MarkdownViewer : DecoratedPanel, IInputElement
     protected override void OnKeyDown(KeyEventArgs e)
     {
         int links = _layout?.Links.Count ?? 0;
-        float line = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height * LineSpacing;
+        float line = TextMeasurer.LineHeight(EffectiveFont) * LineSpacing;
         float page = Math.Max(line, Viewport.Height - line);
 
         switch (e.Key)

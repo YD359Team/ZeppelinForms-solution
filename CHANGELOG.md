@@ -20,6 +20,14 @@ what is already embedded in the framework, i.e. "goes deep".
 - A data grid, a map and the charts fill their space by default: `Stretch` on both
   axes. Charts and the map stood centered at their default size; a chart with a
   `Size` keeps it
+- Text is laid out by the font's line — its ascent and descent — rather than by the
+  ink of the letters. Controls with a caption are a few pixels taller, as tall as the
+  Fluent sizes assume, and every caption of one font stands on one baseline
+- `Label.VerticalContentAlign` is `Center` by default, as on every other control
+  with a caption; it was `Top`. `Label.LineSpacing` is 1 by default: it now multiplies
+  the font's line, not the ink of "Wg", which the old 1.2 made up for
+- `RichLabel.ContentAlign` and `ContentVerticalAlign` are obsolete: use
+  `HorizontalContentAlign` and `VerticalContentAlign`, as on `Label` and `Button`
 
 ### Fixes
 
@@ -33,6 +41,28 @@ what is already embedded in the framework, i.e. "goes deep".
   all; while a result is shown, a fixed error clears as you type, and a correct field
   being retyped goes neutral rather than red until you leave it. `ResetValidation()`
   makes a field new again
+
+### Text
+
+- `Label.TextWrapping`: `Wrap` breaks the lines into rows at the edge of the room,
+  after spaces; a word wider than the room is broken where it overflows.
+  `Label.TextTrimming` shortens a row that doesn't fit with "…", at a character or at
+  a word. `Label.MaxLines` caps the rows, the last one kept ending with "…". The text
+  box wraps by the same code
+- Captions stand on one baseline: `Graphics.DrawText` places a line by the font's
+  ascent and descent, as `DrawTextLine` and `DrawRuns` already did. It used to center
+  the ink of the letters actually drawn: "OK" and "Apply" in two equal buttons stood
+  at different heights, the descenders of the second pushing it up. Controls are
+  measured by the font's line too (`TextMeasurer.LineHeight`, `MeasureLine`)
+- `Graphics.DrawSymbol` centers a symbol by its ink: the calendar's arrows and day
+  numbers, the percentage in a circular progress bar and on a pie chart's slices, the
+  numbers of a page indicator. Alone in its shape, a symbol must look centered there
+- `FontMetrics` and `ITextMeasurer.MeasureFont`. A measurer written before has a
+  default implementation that estimates them from `MeasureRuns`
+- `HorizontalContentAlign` and `VerticalContentAlign` of `Label`, `RichLabel`,
+  `Button`, `CheckBox`, `RadioButton`, `ToggleSwitch` and `TextBox` are styled
+  properties: a style sheet sets them, and a change redraws at once. A label's
+  alignment set after it was shown was not drawn until something else redrew it
 
 ### Scroll bars
 

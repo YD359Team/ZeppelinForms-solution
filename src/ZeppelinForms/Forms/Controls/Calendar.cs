@@ -227,12 +227,13 @@ public partial class Calendar : DecoratedControl
                 HeaderHoverColor);
         }
 
-        // header: ‹ Month Year ›
-        g.DrawText("‹",
+        // header: ‹ Month Year ›. The arrows are symbols, centered by their ink in
+        // their buttons: on the font's line they would sit high, as punctuation does
+        g.DrawSymbol("‹",
             new Rectangle(new Point(content.X, content.Y), new Size(layout.ArrowWidth, layout.HeaderHeight)),
             TextColor, font, HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
-        g.DrawText("›",
+        g.DrawSymbol("›",
             new Rectangle(
                 new Point(content.X + content.Width - layout.ArrowWidth, content.Y),
                 new Size(layout.ArrowWidth, layout.HeaderHeight)),
@@ -240,7 +241,7 @@ public partial class Calendar : DecoratedControl
 
         // the line height is taken from a reference pair rather than the text itself:
         // otherwise the center wanders because of ascenders and descenders
-        float lineHeight = TextMeasurer.Current.MeasureText("Wg", font).Height;
+        float lineHeight = TextMeasurer.LineHeight(font);
 
         var monthRect = new Rectangle(
             new Point(content.X + layout.ArrowWidth, content.Y + ((layout.HeaderHeight - lineHeight) / 2f)),
@@ -304,7 +305,9 @@ public partial class Calendar : DecoratedControl
                     ? selected ? SelectedTextColor : TextColor
                     : MutedColor;
 
-                g.DrawText(date.Day.ToString(), rect, color, font,
+                // a day's number stands alone in its cell and its circle: centered by
+                // its ink, as the highlight around it is
+                g.DrawSymbol(date.Day.ToString(), rect, color, font,
                     HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
 
                 // the keyboard's day: an outline, so it shows over a fill of any kind

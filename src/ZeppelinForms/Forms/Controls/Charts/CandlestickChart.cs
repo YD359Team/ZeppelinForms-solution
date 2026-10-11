@@ -169,7 +169,7 @@ public partial class CandlestickChart : CartesianChartBase
             $"{candle.Label} O {FormatValue(candle.Open)} H {FormatValue(candle.High)} " +
             $"L {FormatValue(candle.Low)} C {FormatValue(candle.Close)}";
 
-        Size size = TextMeasurer.Current.MeasureText(text, EffectiveFont);
+        Size size = TextMeasurer.MeasureLine(text, EffectiveFont);
 
         var box = new Rectangle(
             new Point(plot.X + 6f, plot.Y + 6f),

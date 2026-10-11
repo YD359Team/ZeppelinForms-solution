@@ -25,8 +25,9 @@ internal static class Demo
             Padding: 16;
         }
 
-        Label.demo-description { TextColor: @TextSecondary; }
-        Label.demo-note { TextColor: @TextSecondary; }
+        /* the longer texts break into rows on a narrow screen */
+        Label.demo-description { TextColor: @TextSecondary; TextWrapping: Wrap; }
+        Label.demo-note { TextColor: @TextSecondary; TextWrapping: Wrap; }
         """;
 
     /// <summary>A page: the title, what it shows, its sections. It scrolls when they
