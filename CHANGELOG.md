@@ -37,11 +37,11 @@ what is already embedded in the framework, i.e. "goes deep".
   — turn the pane into a menu the split view draws itself, as WinUI's navigation view
   does, with no `Pane` or `Content` to build by hand:
 
-```csharp
+  ```csharp
   var nav = new SplitView { DisplayMode = SplitViewDisplayMode.CompactInline };
   nav.Items.Add(new SplitViewItem("Processes", listIcon, () => new ProcessesView()));
   nav.FooterItems.Add(new SplitViewItem("Settings", gearIcon, () => new SettingsView()));
-```
+  ```
 
   The first entry is selected as it is added. The menu has a pane button, an optional
   back button (`IsBackButtonVisible`, `GoBack()`, `CanGoBack`), the pane's title,
@@ -57,7 +57,21 @@ what is already embedded in the framework, i.e. "goes deep".
   `SelectedItemColor`, `SelectionIndicatorColor` and the rest
 - A menu and a `Pane` of one's own don't mix: setting one while the other is there
   throws, with a message saying so
-- The example has a "Navigation" page
+
+### Examples
+
+- The example is rebuilt as a showcase: one `SplitView` whose pane lists every control,
+  the styles and the effects, grouped as Input, Collections, Layout, Text and graphics,
+  Look and feel, and Interaction, with Settings in the footer. Each page is a
+  self-contained file under `ZF SharedLib/Showcase/`, made of the same parts: a title,
+  a line on what it shows, sections with a card and a note on what to try
+- New demos: the type ramp and text decorations, Markdown, the image gallery, the tab
+  strip, pages with an indicator, the menu bar, the property grid as an inspector, a
+  style sheet editor that applies on the spot, every easing curve, property and layout
+  transitions, shadows, the glitch, all six gestures, custom dialogs
+- Settings switch the theme (Fluent and high contrast among them), the accent, the
+  language, the direction, the text size and motion for the whole application
+- On a phone-wide window the pane closes to its icons and opens over the pages
 
 ### Previewer
 
