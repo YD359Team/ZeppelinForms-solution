@@ -403,8 +403,12 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
             case X11.MotionNotify:
                 {
                     var motion = Marshal.PtrToStructure<X11.XMotionEvent>(eventPtr);
+
+                    // the modifiers come in the event's state, as for ButtonPress
                     if (_windows.TryGetValue(motion.window, out X11Window? window))
-                        window.Form.OnPointerMove(new Point(motion.x / window.Scale, motion.y / window.Scale));
+                        window.Form.OnPointerMove(
+                            new Point(motion.x / window.Scale, motion.y / window.Scale),
+                            ToModifiers(motion.state));
                     break;
                 }
 

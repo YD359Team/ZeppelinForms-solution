@@ -528,13 +528,21 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         LostFocus?.Invoke(this, EventArgs.Empty);
     }
 
-    internal void RaiseMouseEnter(Point location, UIElement? from)
+    internal void RaiseMouseEnter(
+    Point location, UIElement? from,
+    KeyModifiers modifiers = KeyModifiers.None,
+    PointerButtons buttons = PointerButtons.None)
     {
         if (IsHovered) return;
 
         IsHovered = true;
 
-        var args = new MouseMoveEventArgs(location) { RelatedElement = from };
+        var args = new MouseMoveEventArgs(location)
+        {
+            RelatedElement = from,
+            Modifiers = modifiers,
+            Buttons = buttons,
+        };
 
         OnMouseEnter(args);
         MouseEnter?.Invoke(this, args);
@@ -542,13 +550,21 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         InvalidateVisual();
     }
 
-    internal void RaiseMouseExit(Point location, UIElement? to)
+    internal void RaiseMouseExit(
+        Point location, UIElement? to,
+        KeyModifiers modifiers = KeyModifiers.None,
+        PointerButtons buttons = PointerButtons.None)
     {
         if (!IsHovered) return;
 
         IsHovered = false;
 
-        var args = new MouseMoveEventArgs(location) { RelatedElement = to };
+        var args = new MouseMoveEventArgs(location)
+        {
+            RelatedElement = to,
+            Modifiers = modifiers,
+            Buttons = buttons,
+        };
 
         OnMouseExit(args);
         MouseExit?.Invoke(this, args);
@@ -556,9 +572,9 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         InvalidateVisual();
     }
 
-    internal void RaiseMouseMove(Point location)
+    internal void RaiseMouseMove(Point location, KeyModifiers modifiers, PointerButtons buttons)
     {
-        var args = new MouseMoveEventArgs(location);
+        var args = new MouseMoveEventArgs(location) { Modifiers = modifiers, Buttons = buttons };
 
         OnMouseMove(args);
         MouseMove?.Invoke(this, args);

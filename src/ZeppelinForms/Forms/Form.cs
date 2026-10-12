@@ -567,7 +567,12 @@ public partial class Form : IDisposable
             // of the interaction anymore, and hover and the cursor don't concern it
             if (contact is { IsCompatCancelled: true }) return;
 
-            var moveArgs = new MouseMoveEventArgs(e.Location);
+            // the held buttons come from the contact, which tracks every press and
+            // release of this pointer; no contact means nothing is held — hover
+            KeyModifiers modifiers = e.Modifiers;
+            PointerButtons buttons = contact?.Buttons ?? PointerButtons.None;
+
+            var moveArgs = new MouseMoveEventArgs(e.Location) { Modifiers = modifiers, Buttons = buttons };
 
             // the preview goes from the root to the target, before the target itself
             // gets the move. It works with a button held down too — that is exactly
@@ -577,7 +582,7 @@ public partial class Form : IDisposable
 
             if (contact?.Target is UIElement held)
             {
-                held.RaiseMouseMove(e.Location);
+                held.RaiseMouseMove(e.Location, modifiers, buttons);
                 return;
             }
 
@@ -591,15 +596,15 @@ public partial class Form : IDisposable
             {
                 // the arguments carry "from" and "to", so that a handler can tell
                 // moving into a descendant from leaving altogether
-                _hoveredElement?.RaiseMouseExit(e.Location, hit);
-                hit?.RaiseMouseEnter(e.Location, _hoveredElement);
+                _hoveredElement?.RaiseMouseExit(e.Location, hit, modifiers, buttons);
+                hit?.RaiseMouseEnter(e.Location, _hoveredElement, modifiers, buttons);
 
                 _hoveredElement = hit;
 
                 ScheduleToolTip(hit);
             }
 
-            hit?.RaiseMouseMove(e.Location);
+            hit?.RaiseMouseMove(e.Location, modifiers, buttons);
 
             CursorKind cursor = hit?.EffectiveCursor ?? CursorKind.Arrow;
 

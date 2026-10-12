@@ -614,7 +614,9 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                         _trackingMouse = true;
                     }
 
-                    _form.OnPointerMove(new Point(x / _scale, y / _scale));
+                    // the modifiers as for a press: wParam's MK_ flags know no Alt,
+                    // GetKeyState knows all three
+                    _form.OnPointerMove(new Point(x / _scale, y / _scale), GetModifiers());
                     return 0;
                 }
 

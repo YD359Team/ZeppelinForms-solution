@@ -11,6 +11,17 @@
   mode, and the content is laid out under it. The band stays while the pane is open,
   so the content doesn't jump; `IsPaneToggleButtonVisible = false` removes it
 
+### Input and frames
+
+- `MouseMoveEventArgs.Modifiers` and `MouseMoveEventArgs.Buttons`: a move says which
+  modifier keys and which buttons are held, as a press does. A drag that changes with
+  Shift no longer reads `Keyboard.Modifiers` and counts presses itself. Windows and
+  Linux now report the modifiers of a move; the browser already did
+- `AnimateFrames(key, step => …)`: a callback on every frame with the time since the
+  previous one, until it returns false or `StopAnimation` removes it. For a scene
+  rendered every frame or a game loop with a fixed step; `AnimateLoop` gives only a
+  phase, and `Form.AddAnimation` is internal
+
 ## [0.15.0] - Lake Baikal
 
 ![Lake Baikal](assets/Logo-0.15.0.jpg)

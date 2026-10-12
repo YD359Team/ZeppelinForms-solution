@@ -342,3 +342,8 @@ static ZeppelinForms.Headless.HeadlessInput.CommitComposition(ZeppelinForms.Form
 static ZeppelinForms.Headless.HeadlessInput.Compose(ZeppelinForms.Forms.Form! form, string! text, int cursor = -1) -> void
 ZeppelinForms.Forms.Markup.ContentAttribute
 ZeppelinForms.Forms.Markup.ContentAttribute.ContentAttribute() -> void
+ZeppelinForms.Animation.AnimationExtensions.extension(ZeppelinForms.Forms.Controls.Base.UIElement!).AnimateFrames(string! key, System.Func<System.TimeSpan, bool>! frame) -> void
+ZeppelinForms.Input.Mouse.MouseMoveEventArgs.Buttons.get -> ZeppelinForms.Input.Pointer.PointerButtons
+ZeppelinForms.Input.Mouse.MouseMoveEventArgs.Buttons.init -> void
+ZeppelinForms.Input.Mouse.MouseMoveEventArgs.Modifiers.get -> ZeppelinForms.Input.Keyboard.KeyModifiers
+ZeppelinForms.Input.Mouse.MouseMoveEventArgs.Modifiers.init -> void
