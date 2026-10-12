@@ -347,3 +347,4 @@ ZeppelinForms.Input.Mouse.MouseMoveEventArgs.Buttons.get -> ZeppelinForms.Input.
 ZeppelinForms.Input.Mouse.MouseMoveEventArgs.Buttons.init -> void
 ZeppelinForms.Input.Mouse.MouseMoveEventArgs.Modifiers.get -> ZeppelinForms.Input.Keyboard.KeyModifiers
 ZeppelinForms.Input.Mouse.MouseMoveEventArgs.Modifiers.init -> void
+static ZeppelinForms.Animation.AnimationExtensions.AnimateFrames(this ZeppelinForms.Forms.Controls.Base.UIElement! element, string! key, System.Func<System.TimeSpan, bool>! frame) -> void
