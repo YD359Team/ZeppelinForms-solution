@@ -369,6 +369,20 @@ public partial class Form : IDisposable
     /// focus moved to a button or nowhere — hide it.</summary>
     private void OnFocusChangedForKeyboard(object? sender, UIElement? focused)
     {
+        // the input method's windows follow the caret of a field; without one they
+        // have nowhere to be. A field reports its caret as it draws; until then the
+        // field's own box stands for it — now, while the press that focused it is
+        // being handled: a browser opens a phone's keyboard only then
+        if (focused is { AcceptsTextInput: true } field)
+        {
+            Point at = field.GetAbsolutePosition();
+            SetTextInputArea(new Rectangle(at, new Size(1, field.ActualSize.Height)));
+        }
+        else
+        {
+            SetTextInputArea(null);
+        }
+
         if (PlatformWindow is not ISoftKeyboard keyboard) return;
 
         if (focused is { AcceptsTextInput: true } input)

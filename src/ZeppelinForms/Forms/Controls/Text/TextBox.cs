@@ -14,7 +14,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
-public partial class TextBox : TextInputControl, ITextElement
+public partial class TextBox : TextInputControl, ITextElement, ITextCompositionTarget
 {
     /// <summary>A hint in an empty field.</summary>
     public string? Watermark
@@ -259,6 +259,9 @@ public partial class TextBox : TextInputControl, ITextElement
     /// and assigning Text directly from here would give infinite recursion.</summary>
     private void WriteText(string? value)
     {
+        // text set from code ends whatever an input method was composing over the old one
+        ClearComposition();
+
         _writingText = true;
 
         try
@@ -611,6 +614,64 @@ public partial class TextBox : TextInputControl, ITextElement
             ? TextElements.Count(_document.Text[..Math.Min(textIndex, _document.Text.Length)])
             : textIndex;
 
+    // ===== input method composition =====
+
+    /// <summary>The text an input method is composing at the caret: shown underlined in
+    /// the field, not in the text until it is committed.</summary>
+    private string _composition = string.Empty;
+
+    /// <summary>Where the input method's cursor stands inside the composition.</summary>
+    private int _compositionCursor;
+
+    private bool IsComposing => _composition.Length > 0;
+
+    bool ITextCompositionTarget.AcceptsComposition => PasswordChar is null && !IsReadOnly && IsEnabled;
+
+    void ITextCompositionTarget.SetComposition(string text, int cursor)
+    {
+        // the composition takes the selection's place, as typing does
+        if (text.Length > 0 && !IsComposing && _document.SelectionLength > 0)
+            _document.DeleteSelection();
+
+        _composition = text;
+        _compositionCursor = cursor;
+
+        // a wrapped field may gain or lose a row
+        if (IsMultiline) Invalidate();
+        else InvalidateVisual();
+    }
+
+    /// <summary>Drop the composition the field shows: a click elsewhere, focus gone,
+    /// text set from code. The input method finishes or cancels on its side.</summary>
+    private void ClearComposition()
+    {
+        if (!IsComposing) return;
+
+        _composition = string.Empty;
+        _compositionCursor = 0;
+
+        if (IsMultiline) Invalidate();
+        else InvalidateVisual();
+    }
+
+    /// <summary>The text with the composition at the caret: what the rows are made of.</summary>
+    private string WithComposition(string text) =>
+        IsComposing && PasswordChar is null
+            ? text.Insert(Math.Min(_document.CaretIndex, text.Length), _composition)
+            : text;
+
+    /// <summary>A position in the shown text — the composition in it — back in the text.</summary>
+    private int WithoutComposition(int shown)
+    {
+        if (!IsComposing) return shown;
+
+        int caret = _document.CaretIndex;
+
+        if (shown <= caret) return shown;
+
+        return Math.Max(caret, shown - _composition.Length);
+    }
+
     // ===== rows =====
 
     /// <summary>A row on screen: a whole line of the text, or a piece of one under
@@ -633,7 +694,7 @@ public partial class TextBox : TextInputControl, ITextElement
     /// drawing, hit testing and the arrow keys all ask, often several times a frame.</summary>
     private IReadOnlyList<TextRow> Rows(float width)
     {
-        string text = IsMultiline ? _document.Text : DisplayText;
+        string text = WithComposition(IsMultiline ? _document.Text : DisplayText);
         bool wrap = WordWrap && IsMultiline && width > 0 && float.IsFinite(width);
         float key = wrap ? width : float.PositiveInfinity;
         Font font = EffectiveFont;
@@ -881,6 +942,8 @@ public partial class TextBox : TextInputControl, ITextElement
     {
         base.OnLostFocus();
 
+        ClearComposition();
+
         // validate when leaving the field, not on every character:
         // otherwise half of a typed address would turn red. And only a field the
         // user has changed, or one already showing a result: passing through an
@@ -918,6 +981,14 @@ public partial class TextBox : TextInputControl, ITextElement
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        // while an input method composes, the keys are its: arrows move inside the
+        // composition, Enter commits it, Escape cancels it — none of them edits the text
+        if (IsComposing)
+        {
+            e.Handled = true;
+            return;
+        }
+
         bool shift = e.Modifiers.HasFlag(KeyModifiers.Shift);
         bool ctrl = e.Modifiers.HasFlag(KeyModifiers.Control);
 
@@ -1091,7 +1162,7 @@ public partial class TextBox : TextInputControl, ITextElement
         TextLineLayout layout = RowLayout(rows, index);
         int column = ColumnAt(row, layout, localX - RowShift(layout, text.Width));
 
-        return IsMultiline ? row.Start + column : FromDisplayIndex(column);
+        return WithoutComposition(IsMultiline ? row.Start + column : FromDisplayIndex(column));
     }
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
@@ -1100,6 +1171,8 @@ public partial class TextBox : TextInputControl, ITextElement
         _pressedIcon = e.Button == MouseButton.Left ? ClickableIconAt(e.Location) : IconPart.None;
 
         if (_pressedIcon != IconPart.None) return;
+
+        ClearComposition();
 
         _document.SetCaret(IndexFromPoint(e.Location));
         _isDragging = true;
@@ -1141,9 +1214,12 @@ public partial class TextBox : TextInputControl, ITextElement
         float lineHeight = LineHeight;
         IReadOnlyList<TextRow> rows = Rows(content.Width);
 
+        // the caret stands inside the composition where the input method's cursor is
+        int shownCaret = _document.CaretIndex + (IsComposing ? _compositionCursor : 0);
+
         var (caretRow, caretColumn) = IsMultiline
-            ? RowOf(rows, _document.CaretIndex)
-            : (0, ToDisplayIndex(_document.CaretIndex));
+            ? RowOf(rows, shownCaret)
+            : (0, IsComposing ? shownCaret : ToDisplayIndex(_document.CaretIndex));
 
         TextLineLayout caretLayout = RowLayout(rows, caretRow);
         float caretX = RowShift(caretLayout, content.Width) + caretLayout.CaretX(caretColumn);
@@ -1188,6 +1264,9 @@ public partial class TextBox : TextInputControl, ITextElement
 
             if (showWhitespace)
                 DrawWhitespace(g, row, layout, x, y, lineHeight);
+
+            if (IsComposing)
+                DrawCompositionUnderline(g, layout, row.Start, x, y, lineHeight);
         }
 
         // a hint instead of the text while the field is empty and not focused
@@ -1199,16 +1278,40 @@ public partial class TextBox : TextInputControl, ITextElement
                 RowAlignment, VerticalContentAlignment.Center);
         }
 
+        var caret = new Rectangle(
+            new Point(content.X + caretX - _scrollOffset, blockTop + caretY - _verticalOffset),
+            new Size(CaretWidth, lineHeight));
+
         if (IsFocused && CaretVisible)
+            g.FillRectangle(caret, CaretColor);
+
+        // the input method's candidate list opens at the caret
+        if (IsFocused)
         {
-            g.FillRectangle(
-                new Rectangle(
-                    new Point(content.X + caretX - _scrollOffset, blockTop + caretY - _verticalOffset),
-                    new Size(CaretWidth, lineHeight)),
-                CaretColor);
+            Point absolute = GetAbsolutePosition();
+            FindOwner()?.ReportTextInputArea(this, caret.Offset(absolute.X, absolute.Y));
         }
 
         g.Restore();
+    }
+
+    /// <summary>The composition's line under its part of a row, as input methods mark the
+    /// text that isn't committed yet.</summary>
+    private void DrawCompositionUnderline(Graphics g, TextLineLayout layout, int rowStart, float x, float y, float lineHeight)
+    {
+        int start = _document.CaretIndex;
+        int end = start + _composition.Length;
+
+        int from = Math.Max(start, rowStart) - rowStart;
+        int to = Math.Min(end, rowStart + layout.Text.Length) - rowStart;
+
+        if (to <= from) return;
+
+        float thickness = Math.Max(1f, EffectiveFont.Size / 14f);
+        float underline = y + lineHeight - thickness - 1f;
+
+        foreach ((float left, float right) in layout.SelectionBounds(from, to))
+            g.FillRectangle(new Rectangle(new Point(x + left, underline), new Size(right - left, thickness)), TextColor);
     }
 
     /// <summary>Dots for spaces, arrows for tabs, ¶ where a line of the text ends.</summary>

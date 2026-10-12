@@ -21,6 +21,15 @@ internal static class NativeConstants
     public const int IDC_NO = 32648;
     public const int IDC_HAND = 32649;
     public const int CFS_POINT = 0x0002;
+    public const int CFS_EXCLUDE = 0x0080;
+    public const uint WM_IME_STARTCOMPOSITION = 0x010D;
+    public const uint WM_IME_ENDCOMPOSITION = 0x010E;
+    public const uint WM_IME_COMPOSITION = 0x010F;
+    public const uint WM_IME_SETCONTEXT = 0x0281;
+    public const uint GCS_COMPSTR = 0x0008;
+    public const uint GCS_CURSORPOS = 0x0080;
+    public const uint GCS_RESULTSTR = 0x0800;
+    public const long ISC_SHOWUICOMPOSITIONWINDOW = 0x80000000L;
     public const uint WM_TIMER = 0x0113;
     public const nuint AnimationTimerId = 1;
     public const uint WM_RBUTTONDOWN = 0x0204;

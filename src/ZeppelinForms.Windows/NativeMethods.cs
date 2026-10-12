@@ -407,6 +407,20 @@ internal static class NativeMethods
     [DllImport("imm32.dll")] public static extern nint ImmGetContext(nint hWnd);
     [DllImport("imm32.dll")] public static extern bool ImmReleaseContext(nint hWnd, nint hIMC);
     [DllImport("imm32.dll")] public static extern bool ImmSetCompositionWindow(nint hIMC, ref COMPOSITIONFORM form);
+    [DllImport("imm32.dll")] public static extern bool ImmSetCandidateWindow(nint hIMC, ref CANDIDATEFORM form);
+
+    /// <summary>A composition string into a buffer of bytes, or its size in bytes with
+    /// no buffer. For GCS_CURSORPOS the cursor's position, in characters.</summary>
+    [DllImport("imm32.dll")] public static extern int ImmGetCompositionStringW(nint hIMC, uint dwIndex, byte[]? lpBuf, uint dwBufLen);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CANDIDATEFORM
+    {
+        public int dwIndex;
+        public int dwStyle;
+        public POINT ptCurrentPos;
+        public RECT rcArea;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct COMPOSITIONFORM

@@ -103,6 +103,14 @@ internal static partial class Interop
     [JSImport("writeClipboard", ModuleName)]
     internal static partial void WriteClipboard(string text);
 
+    /// <summary>The focused field's caret, in the canvas's logical units: the hidden text
+    /// area that takes input methods and the on-screen keyboard goes there.</summary>
+    [JSImport("setTextInputArea", ModuleName)]
+    internal static partial void SetTextInputArea(double x, double y, double width, double height);
+
+    [JSImport("clearTextInputArea", ModuleName)]
+    internal static partial void ClearTextInputArea();
+
     /// <summary>The contents of the picked files: JSON of the form [{name, data}],
     /// data in base64. Written into /uploads, where an ordinary File reads them.</summary>
     [JSExport]
@@ -174,6 +182,20 @@ internal static partial class Interop
     [JSExport]
     internal static void OnKeyUp(string code, int modifiers) =>
         Platform?.InputTarget()?.HandleKeyUp(code, modifiers);
+
+    /// <summary>The input method's composition so far, from the hidden text area.</summary>
+    [JSExport]
+    internal static void OnCompositionUpdate(string text, int cursor) =>
+        Platform?.InputTarget()?.HandleCompositionUpdate(text, cursor);
+
+    [JSExport]
+    internal static void OnCompositionCommit(string text) =>
+        Platform?.InputTarget()?.HandleCompositionCommit(text);
+
+    /// <summary>Text typed on a phone's keyboard: it comes without a key to read.</summary>
+    [JSExport]
+    internal static void OnTextInput(string text) =>
+        Platform?.InputTarget()?.HandleTextInput(text);
 
     [JSExport]
     internal static void OnFocusLost() => Platform?.InputTarget()?.HandleFocusLost();

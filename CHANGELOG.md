@@ -147,6 +147,23 @@ what is already embedded in the framework, i.e. "goes deep".
 - `TextBox` honours `HorizontalContentAlign`, read from the start of the text: a
   right-to-left field starts at its right edge. A single line that fits no longer keeps
   a scroll offset left from when it was longer
+- Input methods — Chinese, Japanese, Korean input, a phone's keyboard composing a word:
+  the text being composed is shown in the field, underlined at the caret, and enters
+  the text when it is committed; it takes the selection's place, and the keys are the
+  input method's while it composes. The field tells the window where its caret is
+  (`ITextInputMethodWindow`), and the candidate list opens under it
+  - Windows: WM_IME_COMPOSITION is read by the window, the system's composition window
+    is off. It used to draw the composition in a window of its own, near the top-left
+    corner — the caret was never reported
+  - Android: the keyboard's word in progress is a composition. It used to be typed,
+    erased and typed again with every letter
+  - Browser: a hidden text area stands at the focused field's caret and holds the
+    page's focus — input methods compose into it, and a phone shows its keyboard. A
+    canvas alone took neither: there was no way to type Chinese, nor anything at all on
+    a phone
+  - Linux: the input context is over the spot — ibus and fcitx draw the composition
+    at the caret rather than where they chose
+- `HeadlessInput.Compose` and `CommitComposition` for tests
 
 ### Analyzers, trimming and native AOT
 

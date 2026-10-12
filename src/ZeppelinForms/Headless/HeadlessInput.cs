@@ -91,4 +91,25 @@ public static class HeadlessInput
         foreach (char c in text)
             form.OnTextInput(c);
     }
+
+    /// <summary>An input method composing: the text so far, not committed. Empty — the
+    /// composition was cancelled.</summary>
+    /// <param name="form">The form.</param>
+    /// <param name="text">The text being composed.</param>
+    /// <param name="cursor">The input method's cursor in it; the end by default.</param>
+    public static void Compose(Form form, string text, int cursor = -1)
+    {
+        ArgumentNullException.ThrowIfNull(form);
+        ArgumentNullException.ThrowIfNull(text);
+
+        form.OnCompositionUpdate(text, cursor < 0 ? text.Length : cursor);
+    }
+
+    /// <summary>An input method committing its composition.</summary>
+    public static void CommitComposition(Form form, string text)
+    {
+        ArgumentNullException.ThrowIfNull(form);
+
+        form.OnCompositionCommit(text);
+    }
 }

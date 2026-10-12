@@ -13,7 +13,7 @@ namespace ZeppelinForms.Browser;
 /// doesn't implement IDesktopWindow: a browser has no title bar, transparency or
 /// window state, and Form skips those calls by itself when it sees null.
 /// </summary>
-internal sealed class BrowserWindow : IPlatformWindow
+internal sealed class BrowserWindow : IPlatformWindow, ITextInputMethodWindow
 {
     private readonly BrowserPlatform _platform;
     private readonly Form _form;
@@ -202,6 +202,30 @@ internal sealed class BrowserWindow : IPlatformWindow
         _form.OnKeyUp(BrowserKeyMap.FromCode(code), (KeyModifiers)modifiers);
 
     internal void HandleFocusLost() => _form.OnWindowFocusLost();
+
+    internal void HandleCompositionUpdate(string text, int cursor) => _form.OnCompositionUpdate(text, cursor);
+
+    internal void HandleCompositionCommit(string text) => _form.OnCompositionCommit(text);
+
+    /// <summary>A phone's keyboard typed: character by character, as keys type, the
+    /// halves of a pair included — the text controls assemble it.</summary>
+    internal void HandleTextInput(string text)
+    {
+        foreach (char c in text)
+            _form.OnTextInput(c);
+    }
+
+    /// <summary>The hidden text area follows the focused field's caret; with no field
+    /// focused the canvas takes the keys back.</summary>
+    public void SetTextInputArea(Rectangle? caret)
+    {
+        if (_closed) return;
+
+        if (caret is { } area)
+            Interop.SetTextInputArea(area.X + Origin.X, area.Y + Origin.Y, area.Width, area.Height);
+        else
+            Interop.ClearTextInputArea();
+    }
 
     private static MouseButton ToButton(int button) => button switch
     {

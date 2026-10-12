@@ -334,3 +334,9 @@ static ZeppelinForms.Drawing.TextLineRun.operator !=(ZeppelinForms.Drawing.TextL
 static ZeppelinForms.Drawing.TextLineRun.operator ==(ZeppelinForms.Drawing.TextLineRun left, ZeppelinForms.Drawing.TextLineRun right) -> bool
 ~override ZeppelinForms.Drawing.TextLineRun.Equals(object obj) -> bool
 ~override ZeppelinForms.Drawing.TextLineRun.ToString() -> string
+ZeppelinForms.Headless.HeadlessWindow.SetTextInputArea(ZeppelinForms.Drawing.Primitives.Rectangle? caret) -> void
+ZeppelinForms.Headless.HeadlessWindow.TextInputArea.get -> ZeppelinForms.Drawing.Primitives.Rectangle?
+ZeppelinForms.ITextInputMethodWindow
+ZeppelinForms.ITextInputMethodWindow.SetTextInputArea(ZeppelinForms.Drawing.Primitives.Rectangle? caret) -> void
+static ZeppelinForms.Headless.HeadlessInput.CommitComposition(ZeppelinForms.Forms.Form! form, string! text) -> void
+static ZeppelinForms.Headless.HeadlessInput.Compose(ZeppelinForms.Forms.Form! form, string! text, int cursor = -1) -> void

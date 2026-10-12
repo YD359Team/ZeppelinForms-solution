@@ -4,7 +4,7 @@ using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Headless;
 
-public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow
+public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow
 {
     private readonly HeadlessPlatform _platform;
     private readonly Form _form;
@@ -61,6 +61,12 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow
     }
 
     public void SetTitle(string? title) => Title = title;
+
+    /// <summary>Where the input method's windows would open: the focused field's caret,
+    /// or null with no field focused. Checked in tests.</summary>
+    public Rectangle? TextInputArea { get; private set; }
+
+    public void SetTextInputArea(Rectangle? caret) => TextInputArea = caret;
 
     public void SetBounds(Rectangle bounds)
     {
