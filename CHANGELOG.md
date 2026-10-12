@@ -82,6 +82,27 @@ what is already embedded in the framework, i.e. "goes deep".
   a panel gets or loses the element: hidden, it is drawn on top until its exit ends;
   shown again, it enters. Hiding and showing was instant whatever the rules
 
+### Hot Reload
+
+- Visual Studio's Hot Reload and `dotnet watch` reach the open forms: the framework
+  registers a `MetadataUpdateHandler`, and after every applied edit, on the UI thread,
+  each form calls `Form.OnHotReload`, then every element's `UIElement.OnHotReload`,
+  then restyles, measures everything anew and redraws. An edited `Draw`,
+  `MeasureOverride` or theme rule shows at once; before, the method was replaced but
+  nothing redrew until something else asked
+- Pages made by factories are made again when the factory's assembly changed: the
+  chosen entry of a `SplitView` and the shown page of a `PageControl` at once, the
+  others when they are chosen next. An edit in another assembly — a model — keeps them
+- `HotReloadEventArgs` tells what changed: `Changed(Type)` counts an edit inside a
+  lambda or an async method as an edit of the type it was written in,
+  `Changed(Delegate)` asks about the assembly of a factory. `HotReload.Applied` is raised
+  once the forms have caught up, `HotReload.IsSupported` says whether edits can come at all
+- A failing hook — code in the middle of being edited — is reported to `Trace` and
+  doesn't stop the others or close the application
+- A control class added by an edit can be named by a style sheet at once
+- The showcase builds its menu again after an edit of `ExampleMainForm`, keeping the
+  page chosen
+
 ### Text
 
 - `Label.TextWrapping`: `Wrap` breaks the lines into rows at the edge of the room,

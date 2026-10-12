@@ -267,6 +267,23 @@ public partial class SplitView
         SelectionChanged?.Invoke(this, new SplitViewSelectionChangedEventArgs(old, item));
     }
 
+    /// <summary>Hot Reload: the pages made by factories whose assembly changed are made
+    /// again — the selected one now, the others when they are chosen next.</summary>
+    private protected override void HotReloadCore(HotReloadEventArgs e)
+    {
+        base.HotReloadCore(e);
+
+        foreach (SplitViewItem item in Items.Concat(FooterItems))
+        {
+            if (item.MadeContent is null || item.ContentFactory is not { } factory || !e.Changed(factory)) continue;
+
+            item.MadeContent = null;
+
+            if (ReferenceEquals(item, _selectedItem) && item.ResolveContent() is { } content)
+                Content = content;
+        }
+    }
+
     /// <summary>The user chose an entry in the menu: the click or the key.</summary>
     internal void Invoke(SplitViewItem item)
     {

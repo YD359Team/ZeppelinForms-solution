@@ -286,3 +286,14 @@ ZeppelinForms.Forms.Controls.ZoomBox.WheelZoomModifiers.get -> ZeppelinForms.Inp
 ZeppelinForms.Forms.Controls.ZoomBox.WheelZoomModifiers.set -> void
 ZeppelinForms.Forms.Controls.ZoomBox.Zoom(float factor, ZeppelinForms.Drawing.Primitives.Point anchor) -> void
 ZeppelinForms.Forms.Controls.ZoomBox.ZoomChanged -> System.EventHandler?
+ZeppelinForms.Forms.HotReload
+static ZeppelinForms.Forms.HotReload.IsSupported.get -> bool
+static ZeppelinForms.Forms.HotReload.Applied -> System.EventHandler<ZeppelinForms.Forms.HotReloadEventArgs!>?
+ZeppelinForms.Forms.HotReloadEventArgs
+ZeppelinForms.Forms.HotReloadEventArgs.AreTypesKnown.get -> bool
+ZeppelinForms.Forms.HotReloadEventArgs.Changed(System.Delegate! code) -> bool
+ZeppelinForms.Forms.HotReloadEventArgs.Changed(System.Reflection.Assembly! assembly) -> bool
+ZeppelinForms.Forms.HotReloadEventArgs.Changed(System.Type! type) -> bool
+ZeppelinForms.Forms.HotReloadEventArgs.UpdatedTypes.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
+virtual ZeppelinForms.Forms.Form.OnHotReload(ZeppelinForms.Forms.HotReloadEventArgs! e) -> void
+virtual ZeppelinForms.Forms.Controls.Base.UIElement.OnHotReload(ZeppelinForms.Forms.HotReloadEventArgs! e) -> void

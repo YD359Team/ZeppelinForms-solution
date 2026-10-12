@@ -120,6 +120,29 @@ internal static class StyleTypes
             Initialize(scanned);
     }
 
+    /// <summary>Hot Reload added types: a control among them was written after its
+    /// assembly's module initializer ran, and a sheet may name it at once.</summary>
+    public static void NoteUpdated(Type[] types)
+    {
+        List<Type>? added = null;
+
+        lock (Sync)
+        {
+            foreach (Type type in types)
+            {
+                if (type.IsGenericTypeDefinition || !typeof(UIElement).IsAssignableFrom(type)) continue;
+                if (s_known.Contains(type)) continue;
+
+                Add(type);
+                (added ??= []).Add(type);
+            }
+        }
+
+        // outside the lock, as Scan does: a type initializer registers under locks of its own
+        if (added is not null)
+            Initialize(added);
+    }
+
     private static void Add(Type type)
     {
         if (!s_known.Add(type)) return;

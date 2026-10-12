@@ -409,6 +409,34 @@ Press `Ctrl`+`Alt`+`Shift`+`P` for showing previewer window.
 
 See needed `Form` or use `[Previewer]` attribute otherwise.
 
+### 🔥 Hot Reload
+
+Visual Studio's Hot Reload and `dotnet watch` work with code-first forms. After every
+applied edit the open forms restyle, measure and redraw everything, so an edited `Draw`,
+`MeasureOverride` or theme rule shows at once, and pages made by factories — the entries
+of a `SplitView`, the pages of a `PageControl` — are made again when their assembly
+changed. A form built in its constructor builds itself again in `OnHotReload`:
+
+```csharp
+public class MainForm : Form
+{
+    public MainForm()
+    {
+        Title = "Orders";
+        Content = CreateContent();
+    }
+
+    private UIElement CreateContent() => new StackPanel { /* ... */ };
+
+    protected override void OnHotReload(HotReloadEventArgs e) =>
+        Content = CreateContent();
+}
+```
+
+`UIElement.OnHotReload` does the same for a control that builds its children itself, and
+`HotReload.Applied` is raised once the forms have caught up. Style sheets loaded from
+files follow their saves on their own.
+
 ### 🧪 Snapshot Tests
 
 Reference snapshots are stored in:

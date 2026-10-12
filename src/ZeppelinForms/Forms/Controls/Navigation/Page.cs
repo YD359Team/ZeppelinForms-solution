@@ -41,6 +41,20 @@ public class Page : DecoratedWrapControl
         Child = _factory();
     }
 
+    /// <summary>Hot Reload: content made by a factory whose assembly changed is made
+    /// again — at once on the page shown, on first show for the others.</summary>
+    private protected override void HotReloadCore(HotReloadEventArgs e)
+    {
+        base.HotReloadCore(e);
+
+        if (!_built || _factory is null || !e.Changed(_factory)) return;
+
+        _built = false;
+        Child = null;
+
+        if (IsVisible) EnsureBuilt();
+    }
+
     internal void RaiseAppearing()
     {
         EnsureBuilt();

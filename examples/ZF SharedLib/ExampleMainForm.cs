@@ -27,7 +27,7 @@ public partial class ExampleMainForm : Form
     /// <summary>Narrower than this, the menu lies over the pages rather than beside them.</summary>
     private const float NarrowWidth = 720f;
 
-    private readonly SplitView _showcase;
+    private SplitView _showcase;
 
     public ExampleMainForm()
     {
@@ -98,6 +98,25 @@ public partial class ExampleMainForm : Form
         view.FooterItems.Add(new SplitViewItem("Settings", Icons.Gear, () => SettingsPage.Create(this)));
 
         return view;
+    }
+
+    /// <summary>Hot Reload. The pages need nothing here: they come from the menu's
+    /// factories, and the split view makes the chosen one again after any edit of this
+    /// assembly. An edit of this file builds the menu itself again — a new entry shows
+    /// at once — keeping the page that was chosen.</summary>
+    protected override void OnHotReload(HotReloadEventArgs e)
+    {
+        if (!e.Changed(typeof(ExampleMainForm))) return;
+
+        string? chosen = _showcase.SelectedItem?.Text;
+
+        _showcase = CreateShowcase();
+
+        if (_showcase.Items.Concat(_showcase.FooterItems).FirstOrDefault(i => i.Text == chosen) is { } item)
+            _showcase.SelectedItem = item;
+
+        Content = _showcase;
+        FitToWidth();
     }
 
     /// <summary>A phone gets a menu over the pages, closed until it is wanted; a desktop
