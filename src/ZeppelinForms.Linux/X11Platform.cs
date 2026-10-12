@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using ZeppelinForms.Core;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
@@ -19,7 +20,7 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         Display = X11.XOpenDisplay(0);
 
         if (Display == 0)
-            throw new InvalidOperationException(
+            throw new ZfPlatformException(
                 "Could not connect to the X server. Check the DISPLAY variable.");
 
         _inputMethod = OpenInputMethod(Display);

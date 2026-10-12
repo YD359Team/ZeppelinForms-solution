@@ -326,15 +326,17 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
 
     internal void HandleFrame(double timestampMs)
     {
-        // a copy: a tick may open or close a window
+        // a copy: a tick may open or close a window. Each window on its own:
+        // the next frame is already ordered inside ShouldTick, before the tick,
+        // so a failed tick doesn't stop the frames
         foreach (BrowserWindow window in _windows.ToArray())
-            window.HandleFrame(timestampMs);
+            App.RunGuarded(() => window.HandleFrame(timestampMs));
 
         // an animation tick marks the canvas stale — it is checked after it
         if (!_paintPending) return;
 
         _paintPending = false;
-        Paint();
+        App.RunGuarded(Paint);
     }
 
     internal void Enqueue(Action action)
@@ -349,8 +351,10 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
         // this draining the queue might never end
         int pending = _invokeQueue.Count;
 
+        // each action on its own: one that threw used to leave the rest of the queue
+        // until the next microtask, which nothing would schedule
         for (int i = 0; i < pending; i++)
-            _invokeQueue.Dequeue()();
+            App.RunGuarded(_invokeQueue.Dequeue());
     }
 
     // ==== input ====

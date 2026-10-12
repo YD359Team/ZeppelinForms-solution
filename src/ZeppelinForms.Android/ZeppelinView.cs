@@ -8,6 +8,13 @@ using ZeppelinForms.Input.Keyboard;
 namespace ZeppelinForms.Android;
 
 /// <summary>The application's surface and the only receiver of touches.</summary>
+/// <remarks>
+/// Every callback from the system is one step of the UI loop and goes through
+/// App.RunGuarded: what escapes it is offered to App.UnhandledException.
+/// A callback that answers "the event was mine" answers true for a handled
+/// exception — half of the event was taken already, and the system acting on it
+/// again would be worse than the rest of it not happening.
+/// </remarks>
 public sealed class ZeppelinView : SKCanvasView
 {
     private readonly AndroidPlatform _platform;
@@ -49,45 +56,49 @@ public sealed class ZeppelinView : SKCanvasView
     public override WindowInsets? OnApplyWindowInsets(WindowInsets? insets)
     {
         if (insets is not null)
-        {
-            // from API 30 there is a typed query; below it — deprecated properties,
-            // but on 24..29 there are no others, and cutouts already exist there
-            if (OperatingSystem.IsAndroidVersionAtLeast(30))
-            {
-                global::Android.Graphics.Insets bars = insets.GetInsets(
-                    WindowInsets.Type.SystemBars() | WindowInsets.Type.DisplayCutout());
-
-                _platform.HandleInsets(bars.Left, bars.Top, bars.Right, bars.Bottom);
-
-                // the keyboard is a separate inset, not part of the system bars:
-                // the form must shrink under it rather than just move away from
-                // the edge, and its height changes independently of cutouts
-                global::Android.Graphics.Insets ime = insets.GetInsets(WindowInsets.Type.Ime());
-
-                _platform.HandleKeyboardInset(ime.Bottom);
-            }
-            else
-            {
-                // before API 30 there is no separate IME query at all: with
-                // adjustResize the system subtracts the keyboard from the system
-                // insets itself, and they arrive already accounting for it
-                _platform.HandleInsets(
-                    insets.SystemWindowInsetLeft,
-                    insets.SystemWindowInsetTop,
-                    insets.SystemWindowInsetRight,
-                    insets.SystemWindowInsetBottom);
-
-                _platform.HandleKeyboardInset(0);
-            }
-        }
+            App.RunGuarded(() => ApplyInsets(insets));
 
         return base.OnApplyWindowInsets(insets);
     }
 
-    public override bool OnGenericMotionEvent(MotionEvent? e)
+    private void ApplyInsets(WindowInsets insets)
     {
-        if (e is null) return false;
+        // from API 30 there is a typed query; below it — deprecated properties,
+        // but on 24..29 there are no others, and cutouts already exist there
+        if (OperatingSystem.IsAndroidVersionAtLeast(30))
+        {
+            global::Android.Graphics.Insets bars = insets.GetInsets(
+                WindowInsets.Type.SystemBars() | WindowInsets.Type.DisplayCutout());
 
+            _platform.HandleInsets(bars.Left, bars.Top, bars.Right, bars.Bottom);
+
+            // the keyboard is a separate inset, not part of the system bars:
+            // the form must shrink under it rather than just move away from
+            // the edge, and its height changes independently of cutouts
+            global::Android.Graphics.Insets ime = insets.GetInsets(WindowInsets.Type.Ime());
+
+            _platform.HandleKeyboardInset(ime.Bottom);
+        }
+        else
+        {
+            // before API 30 there is no separate IME query at all: with
+            // adjustResize the system subtracts the keyboard from the system
+            // insets itself, and they arrive already accounting for it
+            _platform.HandleInsets(
+                insets.SystemWindowInsetLeft,
+                insets.SystemWindowInsetTop,
+                insets.SystemWindowInsetRight,
+                insets.SystemWindowInsetBottom);
+
+            _platform.HandleKeyboardInset(0);
+        }
+    }
+
+    public override bool OnGenericMotionEvent(MotionEvent? e) =>
+        e is not null && App.RunGuarded(() => HandleGenericMotion(e), whenHandled: true);
+
+    private bool HandleGenericMotion(MotionEvent e)
+    {
         AndroidWindow? target = _platform.InputTarget();
         if (target is null) return false;
 
@@ -131,25 +142,24 @@ public sealed class ZeppelinView : SKCanvasView
     {
         base.OnConfigurationChanged(newConfig);
 
-        _platform.HandleConfigurationChanged(newConfig);
+        App.RunGuarded(() => _platform.HandleConfigurationChanged(newConfig));
     }
 
     protected override void OnSizeChanged(int w, int h, int oldw, int oldh)
     {
         base.OnSizeChanged(w, h, oldw, oldh);
 
-        _platform.HandleResize(w, h);
+        App.RunGuarded(() => _platform.HandleResize(w, h));
     }
 
-    protected override void OnPaintSurface(SKPaintSurfaceEventArgs e)
-    {
-        _platform.Render(e.Surface);
-    }
+    protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) =>
+        App.RunGuarded(() => _platform.Render(e.Surface));
 
-    public override bool OnTouchEvent(MotionEvent? e)
-    {
-        if (e is null) return false;
+    public override bool OnTouchEvent(MotionEvent? e) =>
+        e is not null && App.RunGuarded(() => HandleTouch(e), whenHandled: true);
 
+    private bool HandleTouch(MotionEvent e)
+    {
         AndroidWindow? target = _platform.InputTarget();
         if (target is null) return false;
 
@@ -194,12 +204,19 @@ public sealed class ZeppelinView : SKCanvasView
         if (e is null) return false;
 
         // "back" is not a key but a system gesture: we ask the application and,
-        // if it didn't take it, let the system close the activity
+        // if it didn't take it, let the system close the activity. The base call
+        // stays outside the guard: it is the system's own handling, not ours
         if (keyCode == Keycode.Back)
         {
-            return _platform.RaiseBackRequested() || base.OnKeyDown(keyCode, e);
+            bool taken = App.RunGuarded(() => _platform.RaiseBackRequested(), whenHandled: true);
+            return taken || base.OnKeyDown(keyCode, e);
         }
 
+        return App.RunGuarded(() => HandleKeyDown(keyCode, e), whenHandled: true);
+    }
+
+    private bool HandleKeyDown(Keycode keyCode, KeyEvent e)
+    {
         AndroidWindow? target = _platform.InputTarget();
         if (target is null) return false;
 
@@ -229,6 +246,11 @@ public sealed class ZeppelinView : SKCanvasView
     {
         if (e is null || keyCode == Keycode.Back) return base.OnKeyUp(keyCode, e);
 
+        return App.RunGuarded(() => HandleKeyUp(keyCode, e), whenHandled: true);
+    }
+
+    private bool HandleKeyUp(Keycode keyCode, KeyEvent e)
+    {
         AndroidWindow? target = _platform.InputTarget();
         if (target is null) return false;
 

@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using ZeppelinForms.Core;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls.Tools;
@@ -924,7 +925,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             // RPC_E_CHANGED_MODE: the thread is in MTA. Most often this is a forgotten
             // [STAThread] on Main — and without it dragging is impossible
             if (ole == unchecked((int)0x80010106))
-                throw new InvalidOperationException(
+                throw new ZfSetupException(
                     "Drag and drop from the system requires an STA thread. " +
                     "Put [STAThread] on the Main method.");
 
@@ -936,8 +937,8 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             {
                 Ole32.OleUninitialize();
 
-                throw new InvalidOperationException(
-                    $"RegisterDragDrop returned 0x{result:X8}.");
+                throw new ZfPlatformException(
+                    $"RegisterDragDrop returned 0x{result:X8}.", result);
             }
 
             // the reference is held in a field: RegisterDragDrop doesn't keep

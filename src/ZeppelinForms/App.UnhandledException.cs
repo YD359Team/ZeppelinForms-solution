@@ -72,4 +72,22 @@ public partial class App
             if (!OfferUnhandledException(exception)) throw;
         }
     }
+
+    /// <summary>Run one step that answers the system — "the event was mine" from an
+    /// Android callback, say. A handled exception gives <paramref name="whenHandled"/>:
+    /// usually true, since half of the event was taken already and handing it on to
+    /// the system now would act on it twice.</summary>
+    internal static T RunGuarded<T>(Func<T> step, T whenHandled)
+    {
+        try
+        {
+            return step();
+        }
+        catch (Exception exception) when (HasUnhandledExceptionHandler)
+        {
+            if (!OfferUnhandledException(exception)) throw;
+
+            return whenHandled;
+        }
+    }
 }

@@ -66,6 +66,17 @@ ZeppelinForms.Core.Collections.ObservableCollectionExtensions.extension<T>(Syste
 ZeppelinForms.Core.Collections.ObservableCollectionUIElementExtensions
 ZeppelinForms.Core.Collections.ObservableCollectionUIElementExtensions.extension(System.Collections.ObjectModel.ObservableCollection<ZeppelinForms.Forms.Controls.Base.UIElement!>!)
 ZeppelinForms.Core.Collections.ObservableCollectionUIElementExtensions.extension(System.Collections.ObjectModel.ObservableCollection<ZeppelinForms.Forms.Controls.Base.UIElement!>!).Add(ZeppelinForms.Forms.Controls.Base.UIElement! item, int row, int column) -> void
+ZeppelinForms.Core.ZfException.ZfException(string? message, System.Exception? innerException) -> void
+ZeppelinForms.Core.ZfPlatformException
+ZeppelinForms.Core.ZfPlatformException.NativeErrorCode.get -> int
+ZeppelinForms.Core.ZfPlatformException.ZfPlatformException() -> void
+ZeppelinForms.Core.ZfPlatformException.ZfPlatformException(string? message) -> void
+ZeppelinForms.Core.ZfPlatformException.ZfPlatformException(string? message, int nativeErrorCode) -> void
+ZeppelinForms.Core.ZfPlatformException.ZfPlatformException(string? message, System.Exception? innerException) -> void
+ZeppelinForms.Core.ZfSetupException
+ZeppelinForms.Core.ZfSetupException.ZfSetupException() -> void
+ZeppelinForms.Core.ZfSetupException.ZfSetupException(string? message) -> void
+ZeppelinForms.Core.ZfSetupException.ZfSetupException(string? message, System.Exception? innerException) -> void
 ZeppelinForms.Drawing.FontExtensions
 ZeppelinForms.Drawing.FontMetrics
 ZeppelinForms.Drawing.FontMetrics.Ascent.get -> float
