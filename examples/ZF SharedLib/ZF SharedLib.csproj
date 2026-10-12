@@ -16,4 +16,9 @@
     <ProjectReference Include="..\..\src\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- markup for the generator, as the package's build targets add it -->
+    <AdditionalFiles Include="**\*.zfml" />
+  </ItemGroup>
+
 </Project>

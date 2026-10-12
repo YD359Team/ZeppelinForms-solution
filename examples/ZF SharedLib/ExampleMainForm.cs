@@ -89,6 +89,7 @@ public partial class ExampleMainForm : Form
         view.Items.Add(new SplitViewItem("Styles", Icons.Brush, StylesPage.Create));
         view.Items.Add(new SplitViewItem("Effects", Icons.Sparkle, EffectsPage.Create));
         view.Items.Add(new SplitViewItem("Animation", Icons.Motion, AnimationPage.Create));
+        view.Items.Add(new SplitViewItem("Markup", Icons.Text, MarkupPage.Create));
 
         view.Items.Add(SplitViewItem.Header("Interaction"));
         view.Items.Add(new SplitViewItem("Dialogs and overlays", Icons.Window, () => OverlaysPage.Create(this)));

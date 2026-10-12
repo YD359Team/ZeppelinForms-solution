@@ -82,6 +82,30 @@ what is already embedded in the framework, i.e. "goes deep".
   a panel gets or loses the element: hidden, it is drawn on top until its exit ends;
   shown again, it enters. Hiding and showing was instant whatever the rules
 
+### Markup
+
+- `.zfml` markup, compiled by a generator in the package: `x:Class` names the class,
+  and the build adds a part of it with a field for every `x:Name` and an
+  `InitializeComponent()` of plain C# — no reflection, so trimming and native AOT keep
+  everything. Code-first stays the main way; markup is an option
+- Elements of the default namespace are the framework's types, `using:Namespace` the
+  application's; attributes are properties and events, `Owner.Property` reads as the
+  element's own; values follow the style sheets' rule — a constructor's arguments, a
+  static member, an enum member, a color — with commas allowed: `Size="800,600"`
+- Children go to the first property that takes their type: one marked `[Content]`
+  (`ZeppelinForms.Forms.Markup.ContentAttribute`), then Children, Items, Nodes, Content,
+  Child. `<Type.Property>` names a property; `<x:String>` is a text item
+- `{Bind Name.Property}` and `{Bind Name.Property, Mode=TwoWay}` bind to a named element;
+  `{x:Null}`. Theme references are left to style sheets, which follow the theme
+- Errors at their line of the markup: ZF2001–ZF2010. The generated code carries `#line`
+  directives, so the compiler's own errors — a handler of the wrong signature — point
+  at the markup too
+- A class whose code declares no constructor gets one; an edit of the markup is applied
+  by Hot Reload, which builds it again
+- The package adds every `*.zfml` of a project for the generator; Visual Studio opens
+  them in the XML editor
+- The showcase's "Markup" page: a card written in `SignUpCard.zfml`
+
 ### Hot Reload
 
 - Visual Studio's Hot Reload and `dotnet watch` reach the open forms: the framework

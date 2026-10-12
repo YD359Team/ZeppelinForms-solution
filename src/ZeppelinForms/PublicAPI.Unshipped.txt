@@ -340,3 +340,5 @@ ZeppelinForms.ITextInputMethodWindow
 ZeppelinForms.ITextInputMethodWindow.SetTextInputArea(ZeppelinForms.Drawing.Primitives.Rectangle? caret) -> void
 static ZeppelinForms.Headless.HeadlessInput.CommitComposition(ZeppelinForms.Forms.Form! form, string! text) -> void
 static ZeppelinForms.Headless.HeadlessInput.Compose(ZeppelinForms.Forms.Form! form, string! text, int cursor = -1) -> void
+ZeppelinForms.Forms.Markup.ContentAttribute
+ZeppelinForms.Forms.Markup.ContentAttribute.ContentAttribute() -> void

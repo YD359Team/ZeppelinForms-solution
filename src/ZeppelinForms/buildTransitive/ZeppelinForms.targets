@@ -12,4 +12,10 @@
                                     Value="false"
                                     Trim="true" />
   </ItemGroup>
+
+  <!-- Markup: every *.zfml of the project goes to the generator, which compiles it into
+       the C# of its class (x:Class) -->
+  <ItemGroup>
+    <AdditionalFiles Include="**\*.zfml" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+  </ItemGroup>
 </Project>
