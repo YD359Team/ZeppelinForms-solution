@@ -71,9 +71,18 @@ internal sealed partial class Win32Window
         return (style, exStyle);
     }
 
-    /// <summary>The owner that keeps the window out of the taskbar, or none.</summary>
-    private nint ChromeOwner() =>
-        _form.ShowInTaskbar || _form.IsToolWindow ? 0 : TaskbarlessOwner();
+    /// <summary>The owner of the window: the form's owner, so that the window stays
+    /// above it, minimizes with it and is destroyed with it; otherwise the hidden one
+    /// that keeps the window out of the taskbar, or none.</summary>
+    /// <remarks>An owned window has no taskbar button of its own unless it asks for
+    /// one: ShowInTaskbar gives it WS_EX_APPWINDOW, as WinForms does.</remarks>
+    private nint ChromeOwner()
+    {
+        if (_form.Owner?.PlatformWindow is Win32Window { _handle: not 0 } owner)
+            return owner._handle;
+
+        return _form.ShowInTaskbar || _form.IsToolWindow ? 0 : TaskbarlessOwner();
+    }
 
     /// <summary>A hidden window that is never shown and lives as long as the process:
     /// the windows it owns have no taskbar button.</summary>

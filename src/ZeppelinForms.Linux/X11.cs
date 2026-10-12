@@ -32,6 +32,8 @@ internal static class X11
 
     [DllImport(Lib)] public static extern int XDeleteProperty(nint display, nuint window, nuint property);
 
+    [DllImport(Lib)] public static extern int XSetTransientForHint(nint display, nuint window, nuint propWindow);
+
     // grab modes and special values
     public const int GrabModeSync = 0;
     public const int GrabModeAsync = 1;

@@ -46,6 +46,17 @@
 - A frame broken off by an exception no longer leaves the canvas's state behind on a
   GL surface, where every following frame was drawn with its scale and clip
 
+### Owned forms
+
+- `Form.Show(owner)`: a form shown as a window owned by another — a tool palette,
+  a floating panel — without blocking. The window is created on the owner's platform;
+  a second window used to need `platform.CreateWindow` by hand. `Owner` and
+  `OwnedForms` tell who owns whom; closing the owner closes what it owns
+- Dialogs belong to the form they block. On Windows a dialog was a window of its own
+  and could fall behind its owner; now it stays above it and minimizes with it. On
+  Linux an owned window is transient for its owner and a dialog is typed as one, so
+  the window manager keeps it above and centers it
+
 ## [0.15.0] - Lake Baikal
 
 ![Lake Baikal](assets/Logo-0.15.0.jpg)

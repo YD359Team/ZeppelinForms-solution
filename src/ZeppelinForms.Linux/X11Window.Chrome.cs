@@ -4,7 +4,7 @@ using ZeppelinForms.Forms.Enums;
 namespace ZeppelinForms.Linux;
 
 /// <summary>The frame of the window from the form's properties: FormBorderStyle,
-/// ControlBox, ShowInTaskbar, CanMinimize, CanMaximize, CanResize.</summary>
+/// ControlBox, ShowInTaskbar, CanMinimize, CanMaximize, CanResize, and the owner</summary>
 /// <remarks>
 /// <para>
 /// X has no frame of its own: the window manager draws it, and the application
@@ -55,6 +55,7 @@ internal sealed partial class X11Window
         SetMotifHints();
         SetSizeLimits();
         SetWindowType();
+        SetTransientFor();
         SetSkipTaskbar(mapped);
     }
 
@@ -120,12 +121,31 @@ internal sealed partial class X11Window
 
     private void SetWindowType()
     {
+        // a tool window asked for by its frame stays a utility one; a dialog says
+        // it is one, so the manager centers it over its owner and keeps it above
+        string name = _form.IsToolWindow ? "_NET_WM_WINDOW_TYPE_UTILITY"
+            : _form.IsDialog ? "_NET_WM_WINDOW_TYPE_DIALOG"
+            : "_NET_WM_WINDOW_TYPE_NORMAL";
+
         nuint property = X11.XInternAtom(_display, "_NET_WM_WINDOW_TYPE", false);
-        nuint type = X11.XInternAtom(_display,
-            _form.IsToolWindow ? "_NET_WM_WINDOW_TYPE_UTILITY" : "_NET_WM_WINDOW_TYPE_NORMAL",
-            false);
+        nuint type = X11.XInternAtom(_display, name, false);
 
         ChangeLongs(property, X11.XA_ATOM, [(long)type]);
+    }
+
+    /// <summary>An owned window is transient for its owner: the manager keeps it
+    /// above the owner and minimizes it with it. Without an owner the hint goes —
+    /// a form shown again on its own must not stay tied to the old one.</summary>
+    private void SetTransientFor()
+    {
+        if (_form.Owner?.PlatformWindow is X11Window { Handle: not 0 } owner)
+        {
+            X11.XSetTransientForHint(_display, _window, owner.Handle);
+            return;
+        }
+
+        nuint property = X11.XInternAtom(_display, "WM_TRANSIENT_FOR", false);
+        X11.XDeleteProperty(_display, _window, property);
     }
 
     private void SetSkipTaskbar(bool mapped)

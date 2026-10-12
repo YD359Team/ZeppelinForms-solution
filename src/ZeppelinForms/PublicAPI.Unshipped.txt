@@ -178,6 +178,9 @@ ZeppelinForms.Forms.Enums.TextTrimming.WordEllipsis = 2 -> ZeppelinForms.Forms.E
 ZeppelinForms.Forms.Enums.TextWrapping
 ZeppelinForms.Forms.Enums.TextWrapping.NoWrap = 0 -> ZeppelinForms.Forms.Enums.TextWrapping
 ZeppelinForms.Forms.Enums.TextWrapping.Wrap = 1 -> ZeppelinForms.Forms.Enums.TextWrapping
+ZeppelinForms.Forms.Form.OwnedForms.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Form!>!
+ZeppelinForms.Forms.Form.Owner.get -> ZeppelinForms.Forms.Form?
+ZeppelinForms.Forms.Form.Show(ZeppelinForms.Forms.Form! owner) -> void
 ZeppelinForms.Forms.Styling.StyleTypeRegistry
 ZeppelinForms.Headless.HeadlessTextMeasurer.MeasureFont(ZeppelinForms.Drawing.Font! font) -> ZeppelinForms.Drawing.FontMetrics
 ZeppelinForms.Headless.HeadlessWindow.Invalidate(ZeppelinForms.Drawing.Primitives.Rectangle? rect = null) -> void

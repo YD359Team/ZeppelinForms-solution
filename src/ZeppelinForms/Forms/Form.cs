@@ -1604,6 +1604,11 @@ public partial class Form : IDisposable
 
         s_openForms.Remove(this);
 
+        // the forms this one owns close with it, and this one leaves its owner,
+        // see Form.Owner
+        CloseOwnedForms();
+        SetOwner(null);
+
         // App.ThemeChanged is static: while the form stays subscribed, the event
         // holds it together with its whole tree. A closed form nobody disposes —
         // every MessageBox, every InputBox — was never collected. The subscription
@@ -1690,6 +1695,11 @@ public partial class Form : IDisposable
         // completion is awaited both synchronously and asynchronously: the source
         // is one — the window closing, wherever it came from
         _dialogClosed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // before the window: Win32 makes the dialog owned at creation, X11 marks it
+        // transient for the owner and a dialog before mapping. Without an owner the
+        // dialog was a window of its own and could fall behind the one it blocked
+        SetOwner(owner);
 
         platform.CreateWindow(this);
 
