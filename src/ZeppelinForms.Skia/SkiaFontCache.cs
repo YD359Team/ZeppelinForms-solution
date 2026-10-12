@@ -1,6 +1,7 @@
 ﻿using SkiaSharp;
 using System.Globalization;
 using System.Text;
+using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing;
 
 namespace ZeppelinForms.Skia;
@@ -46,7 +47,7 @@ internal static class SkiaFontCache
 
     [ThreadStatic] private static GenerationalCache<Font, SKFont>? _fonts;
     [ThreadStatic] private static GenerationalCache<(SKTypeface, float), SKFont>? _sizedFonts;
-    [ThreadStatic] private static GenerationalCache<(string Text, Font Font), CachedLine>? _lines;
+    [ThreadStatic] private static GenerationalCache<(string Text, Font Font, bool RightToLeft), CachedLine>? _lines;
 
     /// <summary>The font selection version seen by this thread.</summary>
     [ThreadStatic] private static int _localVersion;
@@ -89,14 +90,16 @@ internal static class SkiaFontCache
     /// more than a few hundred distinct lines on screen at once, and everything beyond
     /// that is input into a field, which goes stale by itself.
     /// </summary>
-    private static GenerationalCache<(string Text, Font Font), CachedLine> Lines
+    /// <remarks>The direction of the paragraph is in the key: the same text is ordered
+    /// differently in a right-to-left element.</remarks>
+    private static GenerationalCache<(string Text, Font Font, bool RightToLeft), CachedLine> Lines
     {
         get
         {
             SyncVersion();
 
             // blobs are native objects, eviction must release them
-            return _lines ??= new GenerationalCache<(string Text, Font Font), CachedLine>(
+            return _lines ??= new GenerationalCache<(string Text, Font Font, bool RightToLeft), CachedLine>(
                 4096, disposeEvicted: true);
         }
     }
@@ -127,6 +130,9 @@ internal static class SkiaFontCache
         // so they are destroyed here, although not on eviction
         _fonts?.Clear(disposeValues: true);
         _sizedFonts?.Clear(disposeValues: true);
+
+        // HarfBuzz fonts are made from typefaces of the old selection
+        SkiaShaper.Clear();
     }
 
     public static SKFont Get(Font font)
@@ -204,26 +210,37 @@ internal static class SkiaFontCache
     /// both layout and drawing ask about the same line many times per frame,
     /// and splitting costs a pass over all characters.
     /// </summary>
-    public static CachedLine GetLine(string text, Font font)
+    public static CachedLine GetLine(string text, Font font) => GetLine(text, font, rightToLeft: false);
+
+    /// <summary>A line in a paragraph of the given direction: its pieces in visual order.</summary>
+    public static CachedLine GetLine(string text, Font font, bool rightToLeft)
     {
         if (string.IsNullOrEmpty(text))
             return CachedLine.Empty;
 
-        GenerationalCache<(string Text, Font Font), CachedLine> lines = Lines;
+        GenerationalCache<(string Text, Font Font, bool RightToLeft), CachedLine> lines = Lines;
 
-        var key = (text, font);
+        var key = (text, font, rightToLeft);
 
         if (lines.TryGet(key, out CachedLine? cached))
             return cached!;
 
-        CachedLine line = BuildLine(text, font);
+        CachedLine line = BuildLine(text, font, rightToLeft);
+
         lines.Add(key, line);
 
         return line;
     }
 
-    private static CachedLine BuildLine(string text, Font font)
+    /// <summary>Whether the line needs the bidirectional algorithm or the shaper. Without
+    /// either it is parsed as it always was — a glyph per character, left to right.</summary>
+    private static bool NeedsLayout(string text) => ComplexScripts.NeedsShaping(text);
+
+    private static CachedLine BuildLine(string text, Font font, bool rightToLeft)
     {
+        if (rightToLeft || NeedsLayout(text))
+            return BuildOrderedLine(text, font, rightToLeft);
+
         SKFont primary = Get(font);
 
         // The fast path: the whole line is covered by the primary font. One call per
@@ -275,6 +292,76 @@ internal static class SkiaFontCache
         };
     }
 
+    /// <summary>
+    /// A line that needs ordering or shaping: resolved by the Unicode Bidirectional
+    /// Algorithm into runs of one direction, each split by font and shaped by HarfBuzz.
+    /// The pieces go into the line in visual order, left to right.
+    /// </summary>
+    /// <remarks>
+    /// A right-to-left run is always shaped, even of characters that need no shaping —
+    /// punctuation at the end of a right-to-left paragraph: the shaper orders its glyphs
+    /// and mirrors brackets. A left-to-right run is shaped when the line has anything
+    /// complex: its letters may join the marks around them.
+    /// </remarks>
+    private static CachedLine BuildOrderedLine(string text, Font font, bool rightToLeft)
+    {
+        SKFont primary = Get(font);
+
+        bool complex = ComplexScripts.NeedsShaping(text);
+
+        BidiParagraph paragraph = BidiParagraph.Analyze(
+            text, rightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight);
+
+        var runs = new List<FontRun>();
+        float width = 0;
+        float height = 0;
+
+        foreach (BidiRun bidi in paragraph.LineRuns(0, text.Length))
+        {
+            FontRun[] pieces = primary.ContainsGlyphs(text.AsSpan(bidi.Start, bidi.Length))
+                ? [new FontRun(bidi.Start, bidi.Length, primary, 0)]
+                : BuildMixedRuns(text, bidi.Start, bidi.Start + bidi.Length, font);
+
+            // the pieces of a right-to-left run stand right to left as well
+            if (bidi.IsRightToLeft)
+                Array.Reverse(pieces);
+
+            foreach (FontRun piece in pieces)
+            {
+                ReadOnlySpan<char> span = text.AsSpan(piece.Start, piece.Length);
+
+                // the ink height as the plain path measures it: the baselines stand on it
+                float advance = piece.Font.MeasureText(span, out SKRect pieceBounds);
+                height = Math.Max(height, pieceBounds.Height);
+
+                ShapedRun? shaped = complex || bidi.IsRightToLeft
+                    ? SkiaShaper.Shape(text, piece.Start, piece.Length, piece.Font, bidi.IsRightToLeft)
+                    : null;
+
+                float pieceWidth = shaped?.Width ?? advance;
+
+                runs.Add(new FontRun(piece.Start, piece.Length, piece.Font, pieceWidth)
+                {
+                    IsRightToLeft = bidi.IsRightToLeft,
+                    Shaped = shaped,
+                });
+
+                width += pieceWidth;
+            }
+        }
+
+        primary.MeasureText(text.AsSpan(), out SKRect bounds);
+
+        return new CachedLine
+        {
+            Text = text,
+            Runs = [.. runs],
+            Width = width,
+            Height = height,
+            Bounds = bounds,
+        };
+    }
+
     /// <summary>The slow path: the line has characters outside the primary font,
     /// so the selection goes by grapheme clusters.</summary>
     /// <remarks>
@@ -288,19 +375,22 @@ internal static class SkiaFontCache
     /// into the run whole: a joined sequence can't be torn apart in principle, even
     /// if its parts formally exist in different fonts.
     /// </remarks>
-    private static FontRun[] BuildMixedRuns(string text, Font font)
+    private static FontRun[] BuildMixedRuns(string text, Font font) => BuildMixedRuns(text, 0, text.Length, font);
+
+    /// <summary>The same over a part of the line, from start up to end.</summary>
+    private static FontRun[] BuildMixedRuns(string text, int from, int end, Font font)
     {
         float size = font.Size;
 
         var segments = new List<FontRun>();
 
-        int start = 0;
-        int position = 0;
+        int start = from;
+        int position = from;
         SKTypeface? currentTypeface = null;
 
-        while (position < text.Length)
+        while (position < end)
         {
-            int clusterLength = StringInfo.GetNextTextElementLength(text.AsSpan(position));
+            int clusterLength = StringInfo.GetNextTextElementLength(text.AsSpan(position, end - position));
 
             // protection from zero: otherwise the loop wouldn't advance and would hang
             if (clusterLength <= 0)
@@ -324,8 +414,8 @@ internal static class SkiaFontCache
             position += clusterLength;
         }
 
-        if (currentTypeface is not null && start < text.Length)
-            segments.Add(new FontRun(start, text.Length - start, GetSized(currentTypeface, size), 0));
+        if (currentTypeface is not null && start < end)
+            segments.Add(new FontRun(start, end - start, GetSized(currentTypeface, size), 0));
 
         return [.. segments];
     }
@@ -348,16 +438,27 @@ internal static class SkiaFontCache
 
         float width = 0;
 
+        // the pieces are in visual order: those of the prefix may be anywhere among them
         foreach (FontRun run in line.Runs)
         {
             if (run.Start >= length)
-                break;
+                continue;
 
             int available = Math.Min(run.Length, length - run.Start);
 
-            width += available == run.Length
-                ? run.Width
-                : run.Font.MeasureText(text.AsSpan(run.Start, available));
+            if (available == run.Length)
+            {
+                width += run.Width;
+            }
+            else if (run.Shaped is { } shaped)
+            {
+                for (int k = 0; k < available; k++)
+                    width += shaped.CharacterRights[k] - shaped.CharacterLefts[k];
+            }
+            else
+            {
+                width += run.Font.MeasureText(text.AsSpan(run.Start, available));
+            }
         }
 
         return width;

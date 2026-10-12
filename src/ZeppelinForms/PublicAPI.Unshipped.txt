@@ -297,3 +297,40 @@ ZeppelinForms.Forms.HotReloadEventArgs.Changed(System.Type! type) -> bool
 ZeppelinForms.Forms.HotReloadEventArgs.UpdatedTypes.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
 virtual ZeppelinForms.Forms.Form.OnHotReload(ZeppelinForms.Forms.HotReloadEventArgs! e) -> void
 virtual ZeppelinForms.Forms.Controls.Base.UIElement.OnHotReload(ZeppelinForms.Forms.HotReloadEventArgs! e) -> void
+ZeppelinForms.Drawing.Graphics.TextDirection.get -> ZeppelinForms.Core.Text.FlowDirection
+ZeppelinForms.Drawing.Graphics.TextDirection.set -> void
+ZeppelinForms.Drawing.ITextMeasurer.LayOutLine(string! text, ZeppelinForms.Drawing.Font! font, ZeppelinForms.Core.Text.FlowDirection direction) -> ZeppelinForms.Drawing.TextLineLayout!
+static ZeppelinForms.Drawing.TextMeasurer.LayOutLine(string! text, ZeppelinForms.Drawing.Font! font, ZeppelinForms.Core.Text.FlowDirection direction = ZeppelinForms.Core.Text.FlowDirection.LeftToRight) -> ZeppelinForms.Drawing.TextLineLayout!
+ZeppelinForms.Drawing.TextLineLayout
+ZeppelinForms.Drawing.TextLineLayout.TextLineLayout(string! text, bool isRightToLeft, System.Collections.Generic.IReadOnlyList<ZeppelinForms.Drawing.TextLineRun>! runs, float[]! characterLefts, float[]! characterRights) -> void
+static ZeppelinForms.Drawing.TextLineLayout.Empty(bool isRightToLeft = false) -> ZeppelinForms.Drawing.TextLineLayout!
+ZeppelinForms.Drawing.TextLineLayout.Text.get -> string!
+ZeppelinForms.Drawing.TextLineLayout.IsRightToLeft.get -> bool
+ZeppelinForms.Drawing.TextLineLayout.Runs.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Drawing.TextLineRun>!
+ZeppelinForms.Drawing.TextLineLayout.Width.get -> float
+ZeppelinForms.Drawing.TextLineLayout.IsCharacterRightToLeft(int index) -> bool
+ZeppelinForms.Drawing.TextLineLayout.GetCharacterBounds(int index) -> (float Left, float Right)
+ZeppelinForms.Drawing.TextLineLayout.CaretX(int index) -> float
+ZeppelinForms.Drawing.TextLineLayout.IndexAt(float x) -> int
+ZeppelinForms.Drawing.TextLineLayout.SelectionBounds(int start, int end) -> System.Collections.Generic.IReadOnlyList<(float Left, float Right)>!
+ZeppelinForms.Drawing.TextLineLayout.MoveVisually(int index, bool right) -> int?
+ZeppelinForms.Drawing.TextLineRun
+ZeppelinForms.Drawing.TextLineRun.Deconstruct(out int Start, out int Length, out bool IsRightToLeft, out float X, out float Width) -> void
+ZeppelinForms.Drawing.TextLineRun.Equals(ZeppelinForms.Drawing.TextLineRun other) -> bool
+ZeppelinForms.Drawing.TextLineRun.IsRightToLeft.get -> bool
+ZeppelinForms.Drawing.TextLineRun.IsRightToLeft.init -> void
+ZeppelinForms.Drawing.TextLineRun.Length.get -> int
+ZeppelinForms.Drawing.TextLineRun.Length.init -> void
+ZeppelinForms.Drawing.TextLineRun.Start.get -> int
+ZeppelinForms.Drawing.TextLineRun.Start.init -> void
+ZeppelinForms.Drawing.TextLineRun.TextLineRun() -> void
+ZeppelinForms.Drawing.TextLineRun.TextLineRun(int Start, int Length, bool IsRightToLeft, float X, float Width) -> void
+ZeppelinForms.Drawing.TextLineRun.Width.get -> float
+ZeppelinForms.Drawing.TextLineRun.Width.init -> void
+ZeppelinForms.Drawing.TextLineRun.X.get -> float
+ZeppelinForms.Drawing.TextLineRun.X.init -> void
+override ZeppelinForms.Drawing.TextLineRun.GetHashCode() -> int
+static ZeppelinForms.Drawing.TextLineRun.operator !=(ZeppelinForms.Drawing.TextLineRun left, ZeppelinForms.Drawing.TextLineRun right) -> bool
+static ZeppelinForms.Drawing.TextLineRun.operator ==(ZeppelinForms.Drawing.TextLineRun left, ZeppelinForms.Drawing.TextLineRun right) -> bool
+~override ZeppelinForms.Drawing.TextLineRun.Equals(object obj) -> bool
+~override ZeppelinForms.Drawing.TextLineRun.ToString() -> string

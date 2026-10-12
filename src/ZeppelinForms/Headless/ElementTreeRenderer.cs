@@ -1,4 +1,5 @@
 ﻿using ZeppelinForms.Animation;
+using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Effects;
 using ZeppelinForms.Drawing.Primitives;
@@ -118,6 +119,10 @@ public static class ElementTreeRenderer
         TextEffects outerText = g.TextEffects;
         g.TextEffects = element.CurrentTextEffects;
 
+        // and the direction its text is ordered in
+        FlowDirection outerDirection = g.TextDirection;
+        g.TextDirection = element.EffectiveFlowDirection;
+
         switch (element)
         {
             case UnitControl unit:
@@ -178,6 +183,7 @@ public static class ElementTreeRenderer
         }
 
         g.TextEffects = outerText;
+        g.TextDirection = outerDirection;
 
         if (effects is { IsEmpty: false })
             effects.End(g, element.LocalBounds);

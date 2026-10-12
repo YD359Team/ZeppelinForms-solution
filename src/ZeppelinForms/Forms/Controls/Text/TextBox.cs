@@ -590,6 +590,21 @@ public partial class TextBox : TextInputControl, ITextElement
         ? new string(pc, _document.Length)
         : _document.Text;
 
+    /// <summary>Index in the displayed line → index in the text: the mask has a dot per
+    /// visible character, which may be several chars of the text.</summary>
+    private int FromDisplayIndex(int displayIndex)
+    {
+        if (PasswordChar is null || IsMultiline) return displayIndex;
+
+        string text = _document.Text;
+        int index = 0;
+
+        for (int i = 0; i < displayIndex && index < text.Length; i++)
+            index = TextElements.Next(text, index);
+
+        return index;
+    }
+
     /// <summary>Index in the text → index in the displayed line. They differ under the password mask.</summary>
     private int ToDisplayIndex(int textIndex) =>
         PasswordChar is not null && !IsMultiline
@@ -609,6 +624,10 @@ public partial class TextBox : TextInputControl, ITextElement
     private string? _rowsText;
     private float _rowsWidth;
     private Font? _rowsFont;
+    private FlowDirection _rowsDirection;
+
+    /// <summary>The rows laid out as they are drawn, made on first request.</summary>
+    private TextLineLayout?[]? _rowLayouts;
 
     /// <summary>The rows at a width. Kept until the text, the width or the font changes:
     /// drawing, hit testing and the arrow keys all ask, often several times a frame.</summary>
@@ -619,7 +638,10 @@ public partial class TextBox : TextInputControl, ITextElement
         float key = wrap ? width : float.PositiveInfinity;
         Font font = EffectiveFont;
 
-        if (_rows is not null && _rowsWidth == key && Equals(_rowsFont, font) && string.Equals(_rowsText, text, StringComparison.Ordinal))
+        FlowDirection direction = EffectiveFlowDirection;
+
+        if (_rows is not null && _rowsWidth == key && Equals(_rowsFont, font) && _rowsDirection == direction &&
+            string.Equals(_rowsText, text, StringComparison.Ordinal))
             return _rows;
 
         var rows = new List<TextRow>();
@@ -645,8 +667,51 @@ public partial class TextBox : TextInputControl, ITextElement
         _rowsText = text;
         _rowsWidth = key;
         _rowsFont = font;
+        _rowsDirection = direction;
+        _rowLayouts = null;
 
         return rows;
+    }
+
+    /// <summary>A row as it stands on the screen: the runs of its directions and the box
+    /// of every character. Carets, selections, clicks and the arrow keys go by it — in a
+    /// row that mixes Latin and Hebrew a column doesn't map to an x by adding widths.</summary>
+    private TextLineLayout RowLayout(IReadOnlyList<TextRow> rows, int index)
+    {
+        if (!ReferenceEquals(rows, _rows))
+            return TextMeasurer.LayOutLine(rows[index].Text, EffectiveFont, EffectiveFlowDirection);
+
+        _rowLayouts ??= new TextLineLayout?[rows.Count];
+
+        return _rowLayouts[index] ??= TextMeasurer.LayOutLine(rows[index].Text, EffectiveFont, EffectiveFlowDirection);
+    }
+
+    /// <summary>The alignment the rows take: <see cref="HorizontalContentAlign"/> read from
+    /// the start of the text — in a right-to-left field Left is the right edge, where
+    /// typing begins.</summary>
+    private HorizontalContentAlignment RowAlignment => !IsRightToLeft
+        ? HorizontalContentAlign
+        : HorizontalContentAlign switch
+        {
+            HorizontalContentAlignment.Left => HorizontalContentAlignment.Right,
+            HorizontalContentAlignment.Right => HorizontalContentAlignment.Left,
+            var other => other,
+        };
+
+    /// <summary>Where a row's left edge stands in the text area, before scrolling. A row
+    /// wider than the area starts at its left edge and scrolls.</summary>
+    private float RowShift(TextLineLayout layout, float width)
+    {
+        float free = width - layout.Width;
+
+        if (free <= 0) return 0;
+
+        return RowAlignment switch
+        {
+            HorizontalContentAlignment.Right => free,
+            HorizontalContentAlignment.Center => free / 2f,
+            _ => 0,
+        };
     }
 
     private static bool IsSpace(char c) => c is ' ' or '\t';
@@ -682,21 +747,15 @@ public partial class TextBox : TextInputControl, ITextElement
     }
 
     /// <summary>The column of a row nearest to <paramref name="x"/>, from the row's left edge.</summary>
-    private int ColumnAt(TextRow row, float x)
+    /// <remarks>By the row's layout: the nearer edge of the character under the x,
+    /// in whichever direction it runs. It used to be the first column whose prefix
+    /// reached the x, which in a right-to-left run is the wrong end.</remarks>
+    private static int ColumnAt(TextRow row, TextLineLayout layout, float x)
     {
         string text = row.Text;
-        int column = text.Length;
 
-        // boundaries of characters are walked rather than chars —
-        // otherwise the caret would land in the middle of a surrogate pair
-        foreach (int boundary in TextElements.Boundaries(text))
-        {
-            if (TextMeasurer.Current.MeasureTextWidth(text, boundary, EffectiveFont) >= x)
-            {
-                column = boundary;
-                break;
-            }
-        }
+        // between visible characters only: never inside a surrogate pair
+        int column = layout.IndexAt(x);
 
         // past the end of a soft-wrapped row the index would be the next row's start,
         // and the caret would jump down there: it stays before the row's last character
@@ -722,9 +781,13 @@ public partial class TextBox : TextInputControl, ITextElement
 
         if (target < 0 || target >= rows.Count) return;
 
-        _desiredX ??= TextMeasurer.Current.MeasureTextWidth(rows[row].Text, column, EffectiveFont);
+        float width = TextBounds.Width;
+        TextLineLayout from = RowLayout(rows, row);
+        TextLineLayout to = RowLayout(rows, target);
 
-        SetCaretByRows(rows[target].Start + ColumnAt(rows[target], _desiredX.Value), extend);
+        _desiredX ??= RowShift(from, width) + from.CaretX(column);
+
+        SetCaretByRows(rows[target].Start + ColumnAt(rows[target], to, _desiredX.Value - RowShift(to, width)), extend);
     }
 
     /// <summary>Home and End under word wrap: the ends of the row on screen. The end
@@ -746,6 +809,56 @@ public partial class TextBox : TextInputControl, ITextElement
             column = TextElements.Previous(row.Text, column);
 
         _document.SetCaret(row.Start + column, extend);
+    }
+
+    /// <summary>Left and Right: across the screen. In a row of one direction that is along
+    /// the text — forwards for Right in left-to-right text, backwards in right-to-left; in a
+    /// row that mixes directions the caret goes to the next position on the screen, across
+    /// the runs as they are drawn. Past the row's end it goes on along the text.</summary>
+    private void MoveAcross(bool right, bool extend)
+    {
+        IReadOnlyList<TextRow> rows = Rows(TextBounds.Width);
+
+        if (PasswordChar is null || IsMultiline)
+        {
+            var (row, column) = RowOf(rows, _document.CaretIndex);
+            TextLineLayout layout = RowLayout(rows, row);
+
+            bool mixed = false;
+
+            foreach (TextLineRun run in layout.Runs)
+                mixed |= run.IsRightToLeft != layout.IsRightToLeft;
+
+            if (mixed)
+            {
+                if (layout.MoveVisually(column, right) is { } target)
+                {
+                    _document.SetCaret(rows[row].Start + target, extend);
+                    return;
+                }
+
+                // at the row's visual end: on to the next row in the paragraph's direction,
+                // or nowhere — going on along the text would turn back into the row
+                bool forward = right != layout.IsRightToLeft;
+                int next = row + (forward ? 1 : -1);
+
+                if (next >= 0 && next < rows.Count)
+                {
+                    TextRow to = rows[next];
+
+                    _document.SetCaret(forward
+                        ? to.Start
+                        : to.Start + (to.EndsLine ? to.Text.Length : TextElements.Previous(to.Text, to.Text.Length)),
+                        extend);
+                }
+
+                return;
+            }
+        }
+
+        // along the text, in the direction the paragraph runs
+        if (right != IsRightToLeft) _document.MoveRight(extend);
+        else _document.MoveLeft(extend);
     }
 
     private void SetCaretByRows(int index, bool extend)
@@ -846,11 +959,11 @@ public partial class TextBox : TextInputControl, ITextElement
                 break;
 
             case Key.Left:
-                _document.MoveLeft(shift);
+                MoveAcross(right: false, shift);
                 break;
 
             case Key.Right:
-                _document.MoveRight(shift);
+                MoveAcross(right: true, shift);
                 break;
 
             case Key.Up when IsMultiline && WordWrap:
@@ -973,11 +1086,12 @@ public partial class TextBox : TextInputControl, ITextElement
 
         IReadOnlyList<TextRow> rows = Rows(text.Width);
 
-        if (!IsMultiline) return ColumnAt(rows[0], localX);
+        int index = IsMultiline ? Math.Clamp((int)(localY / LineHeight), 0, rows.Count - 1) : 0;
+        TextRow row = rows[index];
+        TextLineLayout layout = RowLayout(rows, index);
+        int column = ColumnAt(row, layout, localX - RowShift(layout, text.Width));
 
-        TextRow row = rows[Math.Clamp((int)(localY / LineHeight), 0, rows.Count - 1)];
-
-        return row.Start + ColumnAt(row, localX);
+        return IsMultiline ? row.Start + column : FromDisplayIndex(column);
     }
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
@@ -1031,10 +1145,11 @@ public partial class TextBox : TextInputControl, ITextElement
             ? RowOf(rows, _document.CaretIndex)
             : (0, ToDisplayIndex(_document.CaretIndex));
 
-        float caretX = TextMeasurer.Current.MeasureTextWidth(rows[caretRow].Text, caretColumn, EffectiveFont);
+        TextLineLayout caretLayout = RowLayout(rows, caretRow);
+        float caretX = RowShift(caretLayout, content.Width) + caretLayout.CaretX(caretColumn);
         float caretY = caretRow * lineHeight;
 
-        UpdateScroll(content, caretX, caretY, lineHeight, rows.Count);
+        UpdateScroll(content, caretX, caretY, lineHeight, rows.Count, caretLayout.Width);
 
         g.Save();
         g.ClipRect(content);
@@ -1054,21 +1169,25 @@ public partial class TextBox : TextInputControl, ITextElement
             // drawn whole on every frame, the clip only hiding it
             if (y + lineHeight < content.Y || y > content.Y + content.Height) continue;
 
+            TextLineLayout layout = RowLayout(rows, i);
+            float x = content.X + RowShift(layout, content.Width) - _scrollOffset;
+
             if (_document.SelectionLength > 0)
-                DrawSelection(g, row.Text, row.Start, selectionStart, selectionEnd, content.X, y, lineHeight);
+                DrawSelection(g, layout, row.Start, selectionStart, selectionEnd, x, y, lineHeight);
 
             if (row.Text.Length > 0)
             {
                 // on the font's line, not the glyphs' ink: the text no longer
-                // jumps up and down as letters with and without descenders are typed
+                // jumps up and down as letters with and without descenders are typed.
+                // The backend orders it in the element's direction, as the layout did
                 g.DrawTextLine(row.Text,
-                    new Rectangle(new Point(content.X - _scrollOffset, y), new Size(float.MaxValue, lineHeight)),
+                    new Rectangle(new Point(x, y), new Size(float.MaxValue, lineHeight)),
                     TextColor, EffectiveFont,
                     HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
             }
 
             if (showWhitespace)
-                DrawWhitespace(g, row, content.X - _scrollOffset, y, lineHeight);
+                DrawWhitespace(g, row, layout, x, y, lineHeight);
         }
 
         // a hint instead of the text while the field is empty and not focused
@@ -1077,7 +1196,7 @@ public partial class TextBox : TextInputControl, ITextElement
             g.DrawTextLine(Watermark,
                 new Rectangle(new Point(content.X, blockTop), new Size(content.Width, lineHeight)),
                 WatermarkColor, EffectiveFont,
-                HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
+                RowAlignment, VerticalContentAlignment.Center);
         }
 
         if (IsFocused && CaretVisible)
@@ -1093,9 +1212,8 @@ public partial class TextBox : TextInputControl, ITextElement
     }
 
     /// <summary>Dots for spaces, arrows for tabs, ¶ where a line of the text ends.</summary>
-    private void DrawWhitespace(Graphics g, TextRow row, float x, float y, float lineHeight)
+    private void DrawWhitespace(Graphics g, TextRow row, TextLineLayout layout, float x, float y, float lineHeight)
     {
-        ITextMeasurer measurer = TextMeasurer.Current;
         Font font = EffectiveFont;
         Color color = WhitespaceColor;
         string text = row.Text;
@@ -1107,8 +1225,9 @@ public partial class TextBox : TextInputControl, ITextElement
 
             if (!IsSpace(c)) continue;
 
-            float left = x + measurer.MeasureTextWidth(text, i, font);
-            float right = x + measurer.MeasureTextWidth(text, i + 1, font);
+            (float boxLeft, float boxRight) = layout.GetCharacterBounds(i);
+            float left = x + boxLeft;
+            float right = x + boxRight;
 
             if (c == ' ')
             {
@@ -1141,10 +1260,13 @@ public partial class TextBox : TextInputControl, ITextElement
         // the last line: there is no line break there
         if (IsMultiline && row.EndsLine && row.Start + text.Length < _document.Text.Length)
         {
-            float end = x + measurer.MeasureTextWidth(text, text.Length, font);
+            // where the caret at the line's end stands: the right end of a left-to-right
+            // line, the left end of a right-to-left one
+            float end = x + layout.CaretX(text.Length);
+            float mark = TextMeasurer.MeasureLine("¶", font).Width;
 
             g.DrawTextLine("¶",
-                new Rectangle(new Point(end + 1f, y), new Size(float.MaxValue, lineHeight)),
+                new Rectangle(new Point(layout.IsRightToLeft ? end - 1f - mark : end + 1f, y), new Size(float.MaxValue, lineHeight)),
                 color, font,
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
         }
@@ -1158,29 +1280,33 @@ public partial class TextBox : TextInputControl, ITextElement
             _ => 0f,
         };
 
+    /// <summary>The selection's part on a row: one span in text of one direction,
+    /// several where it crosses runs of both.</summary>
     private void DrawSelection(
-        Graphics g, string lineText, int lineStartIndex,
+        Graphics g, TextLineLayout layout, int lineStartIndex,
         int selectionStart, int selectionEnd, float x, float y, float lineHeight)
     {
-        int lineEndIndex = lineStartIndex + lineText.Length;
+        int lineEndIndex = lineStartIndex + layout.Text.Length;
 
         int from = Math.Max(selectionStart, lineStartIndex) - lineStartIndex;
         int to = Math.Min(selectionEnd, lineEndIndex) - lineStartIndex;
 
         if (to <= from) return;
 
-        float x1 = TextMeasurer.Current.MeasureTextWidth(lineText, from, EffectiveFont);
-        float x2 = TextMeasurer.Current.MeasureTextWidth(lineText, to, EffectiveFont);
-
-        g.FillRectangle(
-            new Rectangle(new Point(x + x1 - _scrollOffset, y), new Size(x2 - x1, lineHeight)),
-            SelectionColor);
+        foreach ((float left, float right) in layout.SelectionBounds(from, to))
+        {
+            g.FillRectangle(
+                new Rectangle(new Point(x + left, y), new Size(right - left, lineHeight)),
+                SelectionColor);
+        }
     }
 
-    private void UpdateScroll(Rectangle content, float caretX, float caretY, float lineHeight, int lineCount)
+    private void UpdateScroll(Rectangle content, float caretX, float caretY, float lineHeight, int lineCount, float rowWidth)
     {
-        // wrapped rows fit the width: nothing to scroll sideways to
-        if (IsMultiline && WordWrap) _scrollOffset = 0;
+        // wrapped rows fit the width: nothing to scroll sideways to. Nor in a single
+        // line that fits — it stands where its alignment puts it, and an offset left
+        // from when it was longer used to keep its start hidden
+        if ((IsMultiline && WordWrap) || (!IsMultiline && rowWidth <= content.Width)) _scrollOffset = 0;
         else if (caretX - _scrollOffset > content.Width) _scrollOffset = caretX - content.Width;
         else if (caretX - _scrollOffset < 0) _scrollOffset = caretX;
 

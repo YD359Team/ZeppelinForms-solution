@@ -46,6 +46,24 @@ internal static class TextInputPage
 
         var multiline = Demo.Column(notes, Demo.Row(wrap, whitespace));
 
+        // ===== directions =====
+
+        // Hebrew and Arabic run right to left inside a left-to-right field; the arrows
+        // cross them as they are drawn. A right-to-left field starts at its right edge
+        var mixed = new TextBox { Text = "Shalom is שלום, salaam is سلام", Size = new(260, float.NaN) };
+        var rightToLeft = new TextBox
+        {
+            Text = "שלום עולם (hello world) 2026",
+            FlowDirection = ZeppelinForms.Core.Text.FlowDirection.RightToLeft,
+            Size = new(260, float.NaN),
+        };
+        var arabic = new Label { Text = "مرحبا بالعالم — joined letters, right to left" };
+
+        var directions = Demo.Row(
+            Demo.Labeled("Mixed text", mixed),
+            Demo.Labeled("Right-to-left field", rightToLeft),
+            Demo.Labeled("Shaped Arabic", arabic));
+
         // ===== masks and numbers =====
 
         var phone = new MaskedTextBox { Mask = MaskDefinition.RussianPhone, Size = new(200, float.NaN) };
@@ -112,6 +130,7 @@ internal static class TextInputPage
         return Demo.Page("Text input", "Fields for text, numbers and masked values, with suggestions, validation and binding.",
             Demo.Section("Fields", fields),
             Demo.Section("Multi-line", multiline),
+            Demo.Section("Directions", directions, "Bidirectional text and shaping: Left and Right move across the screen, a click takes the nearer edge of a letter"),
             Demo.Section("Masks and numbers", masks, "A mask takes only what fits it; NumericUpDown steps with the arrows, the wheel and the keys"),
             Demo.Section("Suggestions", Demo.Column(country, picked)),
             Demo.Section("Validation", validation, "Green only for a field with text that passed; red on leaving a wrong one; an error clears as you fix it"),

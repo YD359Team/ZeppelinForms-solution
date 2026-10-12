@@ -9,6 +9,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="SkiaSharp"/>
+		<PackageReference Include="SkiaSharp.HarfBuzz"/>
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\ZeppelinForms\ZeppelinForms.csproj" />

@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Core.Text;
+using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Drawing;
 
@@ -15,6 +16,10 @@ public static class TextMeasurer
     /// field as for a filled one.</summary>
     public static Size MeasureLine(string? text, Font font) =>
         new(string.IsNullOrEmpty(text) ? 0f : Current.MeasureText(text, font).Width, LineHeight(font));
+
+    /// <summary>A line laid out as it is drawn, see <see cref="ITextMeasurer.LayOutLine"/>.</summary>
+    public static TextLineLayout LayOutLine(string text, Font font, FlowDirection direction = FlowDirection.LeftToRight) =>
+        Current.LayOutLine(text, font, direction);
 
     private sealed class NotRegisteredTextMeasurer : ITextMeasurer
     {

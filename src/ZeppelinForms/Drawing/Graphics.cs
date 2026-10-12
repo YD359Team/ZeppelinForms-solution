@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
@@ -14,6 +15,12 @@ public abstract class Graphics
     /// text properties and puts the outer ones back after it, so a control draws
     /// its captions as usual and they come out decorated.</summary>
     public TextEffects TextEffects { get; set; }
+
+    /// <summary>The direction of the paragraphs of the text drawn now: the element's
+    /// flow direction, set by the tree renderer as it sets <see cref="TextEffects"/>.
+    /// A backend that orders text by the Unicode Bidirectional Algorithm takes it as
+    /// the paragraph level; Hebrew and Arabic run right to left in either.</summary>
+    public FlowDirection TextDirection { get; set; }
 
     public abstract void DrawImage(
         Rectangle rect, Image image,

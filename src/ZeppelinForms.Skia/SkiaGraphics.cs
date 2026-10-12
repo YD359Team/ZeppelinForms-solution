@@ -373,11 +373,14 @@ public sealed class SkiaGraphics : Graphics
 
     public override void Rotate(float degrees) => _canvas.RotateDegrees(degrees);
 
+    /// <summary>The text drawn now is in a right-to-left paragraph: its line is ordered so.</summary>
+    private bool IsRightToLeft => TextDirection == ZeppelinForms.Core.Text.FlowDirection.RightToLeft;
+
     public override void DrawText(string text, Point position, Color color, Font font)
     {
         if (string.IsNullOrEmpty(text)) return;
 
-        CachedLine line = SkiaFontCache.GetLine(text, font);
+        CachedLine line = SkiaFontCache.GetLine(text, font, IsRightToLeft);
 
         // the outline goes under the glyphs: the fill then covers its inner half
         DrawOutline(line, position.X, position.Y);
@@ -408,7 +411,7 @@ public sealed class SkiaGraphics : Graphics
 
         // the width is computed from the same pieces as the drawing, otherwise
         // the alignment drifts on lines with emoji
-        CachedLine line = SkiaFontCache.GetLine(text, font);
+        CachedLine line = SkiaFontCache.GetLine(text, font, IsRightToLeft);
         SKFontMetrics metrics = SkiaFontCache.Get(font).Metrics;
 
         // the line box of the font, not the ink of these letters: every text of the
@@ -427,7 +430,7 @@ public sealed class SkiaGraphics : Graphics
     {
         if (string.IsNullOrEmpty(text)) return;
 
-        CachedLine line = SkiaFontCache.GetLine(text, font);
+        CachedLine line = SkiaFontCache.GetLine(text, font, IsRightToLeft);
         SKRect bounds = line.Bounds;
 
         float baselineY = vAlign switch
@@ -559,7 +562,7 @@ public sealed class SkiaGraphics : Graphics
         {
             Font font = run.Font ?? baseFont;
 
-            totalWidth += SkiaFontCache.GetLine(run.Text, font).Width;
+            totalWidth += SkiaFontCache.GetLine(run.Text, font, IsRightToLeft).Width;
 
             SKFontMetrics metrics = SkiaFontCache.Get(font).Metrics;
             maxAscent = Math.Max(maxAscent, -metrics.Ascent);
@@ -591,7 +594,7 @@ public sealed class SkiaGraphics : Graphics
             Font font = run.Font ?? baseFont;
             Color color = run.Color ?? baseColor;
 
-            CachedLine line = SkiaFontCache.GetLine(run.Text, font);
+            CachedLine line = SkiaFontCache.GetLine(run.Text, font, IsRightToLeft);
 
             float runStart = x;
             float runWidth = line.Width;

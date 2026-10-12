@@ -124,6 +124,29 @@ what is already embedded in the framework, i.e. "goes deep".
   `Button`, `CheckBox`, `RadioButton`, `ToggleSwitch` and `TextBox` are styled
   properties: a style sheet sets them, and a change redraws at once. A label's
   alignment set after it was shown was not drawn until something else redrew it
+- Bidirectional text: the Unicode Bidirectional Algorithm (UAX #9) orders every line —
+  Hebrew and Arabic run right to left inside left-to-right text, numbers and brackets
+  take their sides, explicit embeddings, overrides and isolates are honoured. The
+  paragraph's direction is the element's `FlowDirection`, passed to the backend as
+  `Graphics.TextDirection`. Hebrew used to be drawn backwards. The character classes
+  are generated from the Unicode Character Database (`tools/Unicode`)
+- Shaping with HarfBuzz (`SkiaSharp.HarfBuzz`): Arabic letters join, the vowel signs of
+  Devanagari and the other scripts of India and South-East Asia stand in their places,
+  combining marks sit on their letters, emoji sequences compose into one picture.
+  Latin, Greek, Cyrillic and CJK keep the path they had — a glyph per character — so
+  their widths and every snapshot stay as they were
+- `TextLineLayout`, from `ITextMeasurer.LayOutLine`: a line as it stands on the screen,
+  its runs in visual order and the box of every character, for carets, selections and
+  clicks. A measurer written before has a default implementation that resolves the
+  directions itself and measures by prefixes
+- `TextBox` places the caret, the selection and a click by the row's layout: in mixed
+  text the caret stands at the right end of a Hebrew word before its first letter, a
+  selection across directions is drawn in pieces, a click takes the nearer edge of the
+  letter under it. Left and Right move across the screen in a mixed row; in a
+  right-to-left field Right goes back along the text
+- `TextBox` honours `HorizontalContentAlign`, read from the start of the text: a
+  right-to-left field starts at its right edge. A single line that fits no longer keeps
+  a scroll offset left from when it was longer
 
 ### Analyzers, trimming and native AOT
 
