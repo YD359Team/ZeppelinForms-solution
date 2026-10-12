@@ -2,6 +2,16 @@
 
 ## [0.16.0]
 
+### Braking changes
+
+- Failures of the platform and of a missing setup throw the framework's own
+  exceptions, derived from `ZfException`, instead of `InvalidOperationException`:
+  `ZfPlatformException` where the platform or a native library refused (no X server,
+  no OpenGL context, no offscreen surface, `RegisterDragDrop` failing — with its
+  `NativeErrorCode`), `ZfSetupException` where the application isn't set up (no text
+  measurer, image decoder or element renderer registered, drag and drop on an MTA
+  thread). Wrong arguments and wrong state still throw the standard exceptions
+
 ### Fixes
 
 - `SplitView` with `Items` in the Overlay and Inline modes: the pane button stood
@@ -29,8 +39,7 @@
   animation step, deferred work, layout or painting comes here first. `Handled = true`
   keeps the application running and skips the rest of the failed step; without a
   handler, or with `Handled` left false, the exception ends the application as before,
-  with its original stack. Windows and Linux in this release's first part; the browser
-  and Android follow
+  with its original stack. Every platform: Windows, Linux, the browser and Android
 - An animation that throws is removed, so a handled failure isn't repeated every frame
 - One deferred job that throws no longer drops the others due in the same tick: a
   caret or a tooltip due together with it used to stop for good
