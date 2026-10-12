@@ -435,8 +435,10 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
 
     internal void DrainInvokeQueue()
     {
+        // each action on its own: one that threw used to leave the rest of the
+        // queue until the next wake-up message, which may never come
         while (_invokeQueue.TryDequeue(out Action? action))
-            action();
+            App.RunGuarded(action);
     }
 
     // the dirty area comes in logical coordinates, while XPutImage

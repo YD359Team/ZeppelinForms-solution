@@ -348,3 +348,19 @@ ZeppelinForms.Input.Mouse.MouseMoveEventArgs.Buttons.init -> void
 ZeppelinForms.Input.Mouse.MouseMoveEventArgs.Modifiers.get -> ZeppelinForms.Input.Keyboard.KeyModifiers
 ZeppelinForms.Input.Mouse.MouseMoveEventArgs.Modifiers.init -> void
 static ZeppelinForms.Animation.AnimationExtensions.AnimateFrames(this ZeppelinForms.Forms.Controls.Base.UIElement! element, string! key, System.Func<System.TimeSpan, bool>! frame) -> void
+ZeppelinForms.DispatcherUnhandledExceptionEventArgs
+ZeppelinForms.DispatcherUnhandledExceptionEventArgs.Deconstruct(out System.Exception! Exception) -> void
+ZeppelinForms.DispatcherUnhandledExceptionEventArgs.DispatcherUnhandledExceptionEventArgs(System.Exception! Exception) -> void
+ZeppelinForms.DispatcherUnhandledExceptionEventArgs.Equals(ZeppelinForms.DispatcherUnhandledExceptionEventArgs? other) -> bool
+ZeppelinForms.DispatcherUnhandledExceptionEventArgs.Exception.get -> System.Exception!
+ZeppelinForms.DispatcherUnhandledExceptionEventArgs.Exception.init -> void
+ZeppelinForms.DispatcherUnhandledExceptionEventArgs.Handled.get -> bool
+ZeppelinForms.DispatcherUnhandledExceptionEventArgs.Handled.set -> void
+override ZeppelinForms.DispatcherUnhandledExceptionEventArgs.<Clone>$() -> ZeppelinForms.DispatcherUnhandledExceptionEventArgs!
+override ZeppelinForms.DispatcherUnhandledExceptionEventArgs.Equals(object? obj) -> bool
+override ZeppelinForms.DispatcherUnhandledExceptionEventArgs.GetHashCode() -> int
+override ZeppelinForms.DispatcherUnhandledExceptionEventArgs.ToString() -> string!
+override sealed ZeppelinForms.DispatcherUnhandledExceptionEventArgs.Equals(ZeppelinForms.Core.ZfEventArgs? other) -> bool
+static ZeppelinForms.DispatcherUnhandledExceptionEventArgs.operator !=(ZeppelinForms.DispatcherUnhandledExceptionEventArgs? left, ZeppelinForms.DispatcherUnhandledExceptionEventArgs? right) -> bool
+static ZeppelinForms.DispatcherUnhandledExceptionEventArgs.operator ==(ZeppelinForms.DispatcherUnhandledExceptionEventArgs? left, ZeppelinForms.DispatcherUnhandledExceptionEventArgs? right) -> bool
+static ZeppelinForms.App.UnhandledException -> System.EventHandler<ZeppelinForms.DispatcherUnhandledExceptionEventArgs!>?

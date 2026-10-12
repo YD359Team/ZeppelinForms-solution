@@ -178,7 +178,22 @@ internal sealed class FrameClock(Form form) : IDisposable
             if (animation.Target is UIElement hidden && !hidden.IsEffectivelyVisible)
                 continue;
 
-            bool alive = animation.Advance(elapsed);
+            bool alive;
+
+            try
+            {
+                alive = animation.Advance(elapsed);
+            }
+            catch (Exception exception) when (App.HasUnhandledExceptionHandler)
+            {
+                // the failed animation goes: it would fail again on every frame and
+                // call the handler sixty times a second, while its neighbours run on
+                _animations.Remove(animation);
+
+                if (!App.OfferUnhandledException(exception)) throw;
+
+                continue;
+            }
 
             // redraw the target whether or not the animation survives
             // to the next frame: its last frame must be shown too
@@ -318,8 +333,12 @@ internal sealed class FrameClock(Form form) : IDisposable
 
         try
         {
+            // each job on its own: one that threw used to take the rest of the batch
+            // with it — the finally below cleared them unrun, and a caret or a tooltip
+            // due in the same tick never came back
             foreach (Wake wake in _due)
-                wake.Action?.Invoke();
+                if (wake.Action is { } action)
+                    App.RunGuarded(action);
         }
         finally
         {

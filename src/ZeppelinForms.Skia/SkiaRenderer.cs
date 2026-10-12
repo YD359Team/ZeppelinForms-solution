@@ -29,65 +29,75 @@ public static class SkiaRenderer
         // is no point for every backend to know about the deferral
         form.EnsureLayout();
 
-        canvas.Save();
-        canvas.Scale(scale, scale);
-        canvas.Translate(origin.X, origin.Y);
+        // back to this count in finally rather than a Restore at the end: a GL
+        // surface keeps its canvas between frames, and a frame broken off by an
+        // exception left its Save behind — every next frame drew with that frame's
+        // scale and clip
+        int saveCount = canvas.Save();
 
-        if (clip is { } dirty)
-            canvas.ClipRect(new SKRect(dirty.X, dirty.Y, dirty.X + dirty.Width, dirty.Y + dirty.Height));
-
-        var formRect = new SKRect(0, 0, form.ClientSize.Width, form.ClientSize.Height);
-
-        if (clearBackground)
+        try
         {
-            canvas.Clear(SKColors.White);   // Clear respects the clip
-        }
-        else
-        {
-            // the form doesn't draw beyond its area and must not show through:
-            // the canvas belongs to someone else, clearing it is not allowed,
-            // so we paint exactly what we occupy
-            canvas.ClipRect(formRect);
+            canvas.Scale(scale, scale);
+            canvas.Translate(origin.X, origin.Y);
 
-            using var background = new SKPaint { Color = SKColors.White };
-            canvas.DrawRect(formRect, background);
-        }
+            if (clip is { } dirty)
+                canvas.ClipRect(new SKRect(dirty.X, dirty.Y, dirty.X + dirty.Width, dirty.Y + dirty.Height));
 
-        var (rippleActive, rippleOrigin, rippleRadius, rippleColor) = form.ThemeRipple;
+            var formRect = new SKRect(0, 0, form.ClientSize.Width, form.ClientSize.Height);
 
-        if (rippleActive)
-        {
-            // the old background stays outside the circle, the new one inside;
-            // the content is drawn on top already with the new theme
-            canvas.Save();
-
-            using var pathBuilder = new SKPathBuilder();
-            pathBuilder.AddCircle(rippleOrigin.X, rippleOrigin.Y, rippleRadius);
-
-            using SKPath path = pathBuilder.Detach();
-            canvas.ClipPath(path, antialias: true);
-
-            using var paint = new SKPaint
+            if (clearBackground)
             {
-                Color = new SKColor(rippleColor.R, rippleColor.G, rippleColor.B, rippleColor.A),
-            };
+                canvas.Clear(SKColors.White);   // Clear respects the clip
+            }
+            else
+            {
+                // the form doesn't draw beyond its area and must not show through:
+                // the canvas belongs to someone else, clearing it is not allowed,
+                // so we paint exactly what we occupy
+                canvas.ClipRect(formRect);
 
-            canvas.DrawRect(new SKRect(0, 0, form.ClientSize.Width, form.ClientSize.Height), paint);
-            canvas.Restore();
+                using var background = new SKPaint { Color = SKColors.White };
+                canvas.DrawRect(formRect, background);
+            }
+
+            var (rippleActive, rippleOrigin, rippleRadius, rippleColor) = form.ThemeRipple;
+
+            if (rippleActive)
+            {
+                // the old background stays outside the circle, the new one inside;
+                // the content is drawn on top already with the new theme
+                canvas.Save();
+
+                using var pathBuilder = new SKPathBuilder();
+                pathBuilder.AddCircle(rippleOrigin.X, rippleOrigin.Y, rippleRadius);
+
+                using SKPath path = pathBuilder.Detach();
+                canvas.ClipPath(path, antialias: true);
+
+                using var paint = new SKPaint
+                {
+                    Color = new SKColor(rippleColor.R, rippleColor.G, rippleColor.B, rippleColor.A),
+                };
+
+                canvas.DrawRect(new SKRect(0, 0, form.ClientSize.Width, form.ClientSize.Height), paint);
+                canvas.Restore();
+            }
+
+            var g = new SkiaGraphics(canvas);
+
+            if (form.Content is not null)
+                ElementTreeRenderer.Draw(form.Content, g, clip);
+
+            foreach (var overlay in form.Overlays)
+                ElementTreeRenderer.Draw(overlay, g, clip);
+
+            if (form.IsInspectorEnabled)
+                DrawInspector(form, g);
         }
-
-        var g = new SkiaGraphics(canvas);
-
-        if (form.Content is not null)
-            ElementTreeRenderer.Draw(form.Content, g, clip);
-
-        foreach (var overlay in form.Overlays)
-            ElementTreeRenderer.Draw(overlay, g, clip);
-
-        if (form.IsInspectorEnabled)
-            DrawInspector(form, g);
-
-        canvas.Restore();
+        finally
+        {
+            canvas.RestoreToCount(saveCount);
+        }
     }
 
     private static void DrawInspector(Form form, Graphics g)

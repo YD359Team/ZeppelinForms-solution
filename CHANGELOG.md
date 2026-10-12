@@ -22,6 +22,21 @@
   rendered every frame or a game loop with a fixed step; `AnimateLoop` gives only a
   phase, and `Form.AddAnimation` is internal
 
+### Unhandled exceptions
+
+- `App.UnhandledException`: an exception that escapes an event handler, an action
+  queued to the dispatcher, an await continuation or an `async void` method, an
+  animation step, deferred work, layout or painting comes here first. `Handled = true`
+  keeps the application running and skips the rest of the failed step; without a
+  handler, or with `Handled` left false, the exception ends the application as before,
+  with its original stack. Windows and Linux in this release's first part; the browser
+  and Android follow
+- An animation that throws is removed, so a handled failure isn't repeated every frame
+- One deferred job that throws no longer drops the others due in the same tick: a
+  caret or a tooltip due together with it used to stop for good
+- A frame broken off by an exception no longer leaves the canvas's state behind on a
+  GL surface, where every following frame was drawn with its scale and clip
+
 ## [0.15.0] - Lake Baikal
 
 ![Lake Baikal](assets/Logo-0.15.0.jpg)

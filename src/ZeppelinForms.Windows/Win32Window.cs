@@ -667,8 +667,10 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
             case NativeConstants.WM_INVOKE:
                 {
+                    // each action on its own: one that threw used to leave the rest
+                    // of the queue waiting for the next WM_INVOKE, which may never come
                     while (_invokeQueue.TryDequeue(out var action))
-                        action();
+                        App.RunGuarded(action);
                     return 0;
                 }
 
@@ -770,7 +772,21 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
         if (window is not null)
         {
-            return window.ProcessMessage(hWnd, message, wParam, lParam);
+            // one message is one step of the loop: an exception that escapes it goes
+            // to App.UnhandledException. Without a handler the filter is false and the
+            // exception flies on as it always has
+            try
+            {
+                return window.ProcessMessage(hWnd, message, wParam, lParam);
+            }
+            catch (Exception exception) when (App.HasUnhandledExceptionHandler)
+            {
+                if (!App.OfferUnhandledException(exception)) throw;
+
+                // handled: the message is dropped rather than passed on half done.
+                // WM_NCCREATE is the exception — a zero there cancels the window
+                return message == NativeConstants.WM_NCCREATE ? 1 : 0;
+            }
         }
 
         return NativeMethods.DefWindowProc(hWnd, message, wParam, lParam);

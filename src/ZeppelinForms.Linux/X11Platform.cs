@@ -204,7 +204,17 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                 if (_inputMethod != 0 && X11.XFilterEvent(buffer, 0))
                     continue;
 
-                Dispatch(buffer);
+                // one event is one step of the loop: what escapes it goes to
+                // App.UnhandledException. Inline rather than RunGuarded: this is the
+                // hottest path of the loop, and a lambda per event is not needed here
+                try
+                {
+                    Dispatch(buffer);
+                }
+                catch (Exception exception) when (App.HasUnhandledExceptionHandler)
+                {
+                    if (!App.OfferUnhandledException(exception)) throw;
+                }
             }
             finally
             {
@@ -213,15 +223,16 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         }
 
         // the session bus: the portal's signals, handled on this thread
-        PollAppearance();
+        App.RunGuarded(PollAppearance);
 
         DispatchTick();
 
         // one frame per pump for every window that asked for one: after the input
         // and the tick, so that everything they changed goes into the same frame.
-        // A copy — painting a window must not trip over a window closing
+        // A copy — painting a window must not trip over a window closing.
+        // Each window on its own: a failed frame of one doesn't cost the others theirs
         foreach (X11Window window in _windows.Values.ToList())
-            window.PaintIfRequested();
+            App.RunGuarded(window.PaintIfRequested);
     }
 
     private void WaitForEventOrTimeout()
@@ -270,9 +281,9 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         _lastTickTicks = now;
 
         // Tick may stop animations and remove the window from the set —
-        // so we go over a copy
+        // so we go over a copy. Each window on its own, as with painting
         foreach (X11Window window in _tickingWindows.ToList())
-            window.RaiseTick();
+            App.RunGuarded(window.RaiseTick);
     }
 
     public void Exit()
