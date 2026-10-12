@@ -1,8 +1,9 @@
-﻿using ZeppelinForms.Animation;
+﻿using System.Diagnostics.CodeAnalysis;
+using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Globalization;
-using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
@@ -28,6 +29,9 @@ namespace ZeppelinForms.Forms.Controls;
 /// Escape asks to close, Tab stays inside.
 /// </para>
 /// </remarks>
+[SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable",
+    Justification = "An element is not disposable; the loads' cancellation source is cancelled and disposed when the " +
+                    "element leaves its form, in OnDetached, and replaced for the next time it is shown.")]
 public partial class ImageViewer : InteractiveControl
 {
     private const string SpinAnimation = "viewer-spin";
@@ -237,7 +241,7 @@ public partial class ImageViewer : InteractiveControl
             GalleryItem item = _items![index];
 
             if (item.NeedsImage)
-                item.Load(full: true, form, _loads.Token, static () => { });
+                item.Load(full: true, form, static () => { }, _loads.Token);
         }
     }
 
@@ -294,7 +298,7 @@ public partial class ImageViewer : InteractiveControl
 
     private float CaptionHeight =>
         ShowCaption && Count > 0
-            ? TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height * 2f + Gap * 2f
+            ? TextMeasurer.LineHeight(EffectiveFont) * 2f + Gap * 2f
             : 0f;
 
     /// <summary>Where the picture is fitted: the content above the caption.</summary>

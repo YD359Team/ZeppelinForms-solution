@@ -73,6 +73,14 @@ public static class ZfText
 
     /// <summary>The name of a split view's pane without a title of its own.</summary>
     public static readonly TextKey Pane = new("zf.splitview.pane", "Pane");
+    /// <summary>The tooltip and the name of the menu's button that opens the pane.</summary>
+    public static readonly TextKey OpenNavigation = new("zf.splitview.open", "Open navigation");
+
+    /// <summary>The tooltip and the name of the menu's button that closes the pane.</summary>
+    public static readonly TextKey CloseNavigation = new("zf.splitview.close", "Close navigation");
+
+    /// <summary>The back button of a split view's menu.</summary>
+    public static readonly TextKey Back = new("zf.splitview.back", "Back");
 
     // ===== RefreshContainer =====
 

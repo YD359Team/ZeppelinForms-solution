@@ -87,7 +87,7 @@ internal sealed class FileDialogForm : Form
     private FileFilter CurrentFilter =>
         _filter.SelectedItem as FileFilter ?? new FileFilter(Localization.Get(ZfText.AllFiles));
 
-    private UIElement BuildLayout()
+    private DockPanel BuildLayout()
     {
         _accept.Localize(_mode == FileDialogMode.Save ? ZfText.Save : ZfText.Select);
         _accept.Click += (_, _) => Activate();
@@ -189,7 +189,7 @@ internal sealed class FileDialogForm : Form
     /// <summary>Enumeration that cuts off whatever is inaccessible: system folders
     /// like "System Volume Information" throw on the very first access,
     /// and the dialog must not crash because of them.</summary>
-    private IEnumerable<string> Enumerate(Func<string, IEnumerable<string>> source)
+    private List<string> Enumerate(Func<string, IEnumerable<string>> source)
     {
         List<string> items;
 

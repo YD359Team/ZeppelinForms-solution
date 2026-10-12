@@ -39,7 +39,17 @@ public abstract partial class ChartBase : DecoratedControl
 
     protected float TitleHeight => string.IsNullOrEmpty(Title)
         ? 0
-        : TextMeasurer.Current.MeasureText(Title, EffectiveFont).Height + 8f;
+        : TextMeasurer.LineHeight(EffectiveFont) + 8f;
+
+    /// <summary>A chart has no natural size — the plot takes whatever room it is
+    /// given — so it fills its space, as a view onto content does (see
+    /// <see cref="UnitControl"/>). It used to stand centered at 280×180 in a Grid
+    /// cell of any size. A chart with an explicit Size keeps it.</summary>
+    protected ChartBase()
+    {
+        SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Stretch);
+        SetControlDefault(VerticalAlignmentProperty, VerticalAlignment.Stretch);
+    }
 
     protected void DrawTitle(Graphics g)
     {

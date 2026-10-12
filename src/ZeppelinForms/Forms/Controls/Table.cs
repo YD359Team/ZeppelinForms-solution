@@ -106,7 +106,7 @@ public partial class Table : DecoratedPanel
 
     protected override Size MeasureContentOverride(Size availableSize)
     {
-        float lineHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
+        float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
 
         _computedRowHeight = RowHeight > 0 ? RowHeight : lineHeight + CellPadding.Vertical;
         _headerHeight = ShowHeader ? _computedRowHeight : 0;

@@ -100,7 +100,7 @@ internal sealed class MessageBoxForm : Form
         return button;
     }
 
-    private static UIElement CreateIcon(MessageBoxIcon icon)
+    private static SvgIcon CreateIcon(MessageBoxIcon icon)
     {
         (string path, Color color) = icon switch
         {

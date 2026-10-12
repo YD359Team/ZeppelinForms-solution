@@ -633,6 +633,20 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                     return 0;
                 }
 
+            // input methods: the composition is drawn by the field, see Win32Window.Ime
+            case NativeConstants.WM_IME_SETCONTEXT:
+                return OnImeSetContext(hWnd, message, wParam, lParam);
+
+            case NativeConstants.WM_IME_STARTCOMPOSITION:
+                return 0;
+
+            case NativeConstants.WM_IME_COMPOSITION:
+                return OnImeComposition(hWnd, lParam);
+
+            case NativeConstants.WM_IME_ENDCOMPOSITION:
+                _form.OnCompositionUpdate(string.Empty, 0);
+                return 0;
+
             case NativeConstants.WM_CHAR:
                 {
                     char c = (char)wParam;

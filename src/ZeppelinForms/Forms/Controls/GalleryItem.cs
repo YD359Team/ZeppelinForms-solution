@@ -148,7 +148,7 @@ public class GalleryItem
     /// <summary>Run a loader: the thumbnail's, or the picture's when
     /// <paramref name="full"/>. Started on the UI thread; the result, and
     /// <paramref name="finished"/>, come back on it.</summary>
-    internal async void Load(bool full, Form? form, CancellationToken token, Action finished)
+    internal async void Load(bool full, Form? form, Action finished, CancellationToken token)
     {
         Func<CancellationToken, Task<Image?>>? loader = full ? ImageLoader : ThumbnailLoader;
 

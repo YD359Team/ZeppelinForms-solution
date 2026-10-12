@@ -216,10 +216,8 @@ public partial class ComboBox : InteractiveControl
         if (!string.IsNullOrEmpty(PlaceholderText))
             widest = Math.Max(widest, TextMeasurer.Current.MeasureText(PlaceholderText, EffectiveFont).Width);
 
-        Size probe = TextMeasurer.Current.MeasureText("Wg", EffectiveFont);
-
         return ResolveSize(
-            new Size(widest + ArrowWidth + Padding.Horizontal + 8, probe.Height + Padding.Vertical + 6),
+            new Size(widest + ArrowWidth + Padding.Horizontal + 8, TextMeasurer.LineHeight(EffectiveFont) + Padding.Vertical + 6),
             availableSize);
     }
 }

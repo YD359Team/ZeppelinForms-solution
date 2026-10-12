@@ -1,3 +1,10 @@
 ﻿; .zss highlighting: Visual Studio's TextMate support reads the grammar from here
 [$RootKey$\TextMate\Repositories]
 "ZeppelinForms"="$PackageFolder$\Grammars"
+
+; .zfml markup opens in the XML editor, with the XML language service
+[$RootKey$\Editors\{FA3CD31E-987B-443A-9B81-186104E8DAC1}\Extensions]
+"zfml"=dword:00000028
+
+[$RootKey$\Languages\File Extensions\.zfml]
+@="{f6819a78-a205-47b5-be1c-675b3c7f0b8e}"

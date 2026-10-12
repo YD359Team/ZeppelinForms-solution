@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
@@ -58,7 +60,7 @@ public partial class PropertyGrid : DecoratedPanel
             return;
         }
 
-        foreach (PropertyDescriptor property in PropertyCatalog.For(_target.GetType()))
+        foreach (PropertyDescriptor property in RowsOf(_target))
         {
             Children.Add(new Label
             {
@@ -73,6 +75,12 @@ public partial class PropertyGrid : DecoratedPanel
 
         Invalidate();
     }
+
+    /// <summary>The rows of an object: what <see cref="PropertyCatalog"/> knows of its type.</summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2072",
+        Justification = "The type of a live object is kept, and so is its static constructor whenever it " +
+                        "registers styled properties: the generated accessors read the fields it initializes.")]
+    private static PropertyDescriptor[] RowsOf(object target) => PropertyCatalog.For(target.GetType());
 
     /// <summary>The property's name, and where its value came from when it is not
     /// a default: "BackgroundColor · style" says at a glance which step of the
@@ -127,7 +135,7 @@ public partial class PropertyGrid : DecoratedPanel
                 initial = i;
             else if (current is not null)
             {
-                try { initial = Convert.ToDecimal(current); }
+                try { initial = Convert.ToDecimal(current, CultureInfo.InvariantCulture); }
                 catch (OverflowException) { initial = 0m; }
             }
 
@@ -149,8 +157,10 @@ public partial class PropertyGrid : DecoratedPanel
         {
             var combo = new ComboBox();
 
-            foreach (object value in Enum.GetValues(property.Type))
-                combo.Items.Add(value);
+            // the members as boxed enum values, made from their numbers: an array of
+            // the enum type itself may need code that native AOT didn't generate
+            foreach (object number in Enum.GetValuesAsUnderlyingType(property.Type))
+                combo.Items.Add(Enum.ToObject(property.Type, number));
 
             combo.SelectedItem = current;
             combo.SelectionChanged += (_, _) =>
@@ -173,7 +183,7 @@ public partial class PropertyGrid : DecoratedPanel
         return ReadOnlyLabel(current);
     }
 
-    private Label ReadOnlyLabel(object? value) => new()
+    private static Label ReadOnlyLabel(object? value) => new()
     {
         Text = value?.ToString() ?? "—",
         TextColor = new Color(255, 130, 130, 130),
@@ -248,13 +258,13 @@ public partial class PropertyGrid : DecoratedPanel
             availableSize);
     }
 
-    protected override void ArrangeContentOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size contentSize)
     {
         var content = new Rectangle(
             new Point(Padding.Left, Padding.Top),
             new Size(
-                Math.Max(0, finalSize.Width - Padding.Horizontal),
-                Math.Max(0, finalSize.Height - Padding.Vertical)));
+                Math.Max(0, contentSize.Width - Padding.Horizontal),
+                Math.Max(0, contentSize.Height - Padding.Vertical)));
 
         float labelWidth = content.Width * LabelRatio;
 

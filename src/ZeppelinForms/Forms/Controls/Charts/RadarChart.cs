@@ -198,7 +198,7 @@ public partial class RadarChart : ChartBase
 
     private void DrawLabels(Graphics g, Point center, float radius, int axes)
     {
-        float lineHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
+        float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
 
         for (int i = 0; i < axes; i++)
         {
@@ -222,7 +222,7 @@ public partial class RadarChart : ChartBase
         Rectangle content = ContentBounds;
 
         float x = content.X + content.Width - LegendWidth + 6f;
-        float rowHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height + 6f;
+        float rowHeight = TextMeasurer.LineHeight(EffectiveFont) + 6f;
         float y = content.Y + TitleHeight + (content.Height - TitleHeight - rowHeight * Series.Count) / 2f;
 
         for (int i = 0; i < Series.Count; i++)

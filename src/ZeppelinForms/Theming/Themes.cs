@@ -426,6 +426,17 @@ public static partial class Themes
                 view.PaneBackground = c.Surface;
                 view.PaneBorderColor = c.Border;
                 view.ScrimColor = c.IsDark ? new Color(77, 0, 0, 0) : new Color(51, 0, 0, 0);
+                // the menu: entries tinted as the surface's buttons are, the selected
+                // one marked with the accent
+                view.ItemHoverColor = c.SurfaceHover;
+                view.ItemPressedColor = c.SurfacePressed;
+                view.SelectedItemColor = c.SurfaceHover;
+                view.SelectionIndicatorColor = c.Accent;
+                view.HeaderTextColor = c.TextSecondary;
+                view.SeparatorColor = c.Border;
+                view.DisabledTextColor = c.TextDisabled;
+                view.BadgeColor = c.Accent;
+                view.BadgeTextColor = c.TextOnAccent;
             })
 
             .For<RefreshContainer>((refresh, c) =>

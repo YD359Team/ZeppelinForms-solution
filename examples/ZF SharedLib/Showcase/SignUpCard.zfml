@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A card written in markup: the generator compiles it into SignUpCard's
+     InitializeComponent, with a field for every x:Name. The behaviour is in
+     SignUpCard.cs; the look comes from the theme and the showcase's sheet -->
+<StackPanel x:Class="ZF_SharedLib.Showcase.SignUpCard"
+            xmlns="https://zeppelinforms.dev/markup"
+            xmlns:x="https://zeppelinforms.dev/markup/x"
+            Orientation="Vertical" Spacing="10" CrossAxisAlignment="Start">
+
+  <Label Text="Create an account" TextStyle="Subtitle"/>
+
+  <StackPanel Orientation="Vertical" Spacing="4">
+    <Label Text="Name" TextStyle="Caption"/>
+    <TextBox x:Name="NameBox" Watermark="Your name" Size="260,NaN"/>
+  </StackPanel>
+
+  <StackPanel Orientation="Vertical" Spacing="4">
+    <Label Text="E-mail" TextStyle="Caption"/>
+    <TextBox x:Name="EmailBox" Watermark="you@example.com" Size="260,NaN"/>
+  </StackPanel>
+
+  <CheckBox x:Name="Terms" Text="I accept the terms"/>
+
+  <!-- a binding to a named element: the greeting follows the name as it is typed -->
+  <StackPanel Orientation="Horizontal" Spacing="6">
+    <Label Text="Hello," Classes="demo-note"/>
+    <Label x:Name="Greeting" Text="{Bind NameBox.Text}"/>
+  </StackPanel>
+
+  <StackPanel Orientation="Horizontal" Spacing="8">
+    <PrimaryButton x:Name="Submit" Text="Sign up" Click="OnSubmit"/>
+    <Button Text="Clear" Click="OnClear"/>
+  </StackPanel>
+
+  <Label x:Name="Result" Classes="demo-note"/>
+</StackPanel>

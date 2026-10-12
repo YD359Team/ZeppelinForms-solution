@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Core.Text;
@@ -368,6 +369,20 @@ public partial class Form : IDisposable
     /// focus moved to a button or nowhere — hide it.</summary>
     private void OnFocusChangedForKeyboard(object? sender, UIElement? focused)
     {
+        // the input method's windows follow the caret of a field; without one they
+        // have nowhere to be. A field reports its caret as it draws; until then the
+        // field's own box stands for it — now, while the press that focused it is
+        // being handled: a browser opens a phone's keyboard only then
+        if (focused is { AcceptsTextInput: true } field)
+        {
+            Point at = field.GetAbsolutePosition();
+            SetTextInputArea(new Rectangle(at, new Size(1, field.ActualSize.Height)));
+        }
+        else
+        {
+            SetTextInputArea(null);
+        }
+
         if (PlatformWindow is not ISoftKeyboard keyboard) return;
 
         if (focused is { AcceptsTextInput: true } input)
@@ -1078,7 +1093,7 @@ public partial class Form : IDisposable
 
     /// <summary>Style a subtree according to the current theme. Called on
     /// attaching to the form and on a theme change.</summary>
-    internal void ApplyTheme(UIElement root)
+    internal static void ApplyTheme(UIElement root)
     {
         Walk(root, App.Theme.Apply);
     }
@@ -1964,6 +1979,8 @@ public partial class Form : IDisposable
 
     /// <summary>The window lost focus: we won't learn about key releases
     /// anymore, so we assume nothing is pressed.</summary>
+    [SuppressMessage("Performance", "CA1822:Mark members as static",
+        Justification = "Each platform calls it on the form of the window that lost the focus.")]
     internal void OnWindowFocusLost() => Keyboard.Reset();
 
 
@@ -2143,5 +2160,8 @@ public partial class Form : IDisposable
 
         _rightPressed = null;
         _middlePressed = null;
+
+        // a derived form with a finalizer of its own needn't run it after this
+        GC.SuppressFinalize(this);
     }
 }

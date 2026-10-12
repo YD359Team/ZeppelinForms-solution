@@ -9,6 +9,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ZeppelinForms\ZeppelinForms.csproj" />
+
+    <!-- what the package brings with it: the ZF diagnostics and the generated list of
+         this assembly's controls for the style sheets. A project reference doesn't
+         carry analyzers on its own -->
+    <ProjectReference Include="..\..\src\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- markup for the generator, as the package's build targets add it -->
+    <AdditionalFiles Include="**\*.zfml" />
   </ItemGroup>
 
 </Project>

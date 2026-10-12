@@ -1,0 +1,9 @@
+# Code style of the whole repository. The framework's analyzer departures live in
+# src/ZeppelinForms/.editorconfig.
+root = true
+
+[*.cs]
+
+# Every file declares its namespace with a semicolon. The IDE's own default is the
+# block form, and it kept offering to convert the files to it
+csharp_style_namespace_declarations = file_scoped:suggestion

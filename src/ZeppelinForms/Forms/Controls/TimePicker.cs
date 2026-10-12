@@ -135,7 +135,7 @@ public class TimePicker : InteractiveControl
         };
 
         for (int h = 0; h < 24; h++)
-            hours.Items.Add(h.ToString("00"));
+            hours.Items.Add(h.ToString("00", CultureInfo.InvariantCulture));
 
         hours.SelectedIndex = Value.Hour;
 
@@ -150,14 +150,14 @@ public class TimePicker : InteractiveControl
         int step = Math.Max(1, MinuteStep);
 
         for (int m = 0; m < 60; m += step)
-            minutes.Items.Add(m.ToString("00"));
+            minutes.Items.Add(m.ToString("00", CultureInfo.InvariantCulture));
 
         minutes.SelectedIndex = Math.Min(Value.Minute / step, minutes.Items.Count - 1);
 
         void Apply()
         {
             if (hours.SelectedItem is string h && minutes.SelectedItem is string m)
-                SetValue(new TimeOnly(int.Parse(h), int.Parse(m)));
+                SetValue(new TimeOnly(int.Parse(h, CultureInfo.InvariantCulture), int.Parse(m, CultureInfo.InvariantCulture)));
         }
 
         hours.SelectionChanged += (_, _) => Apply();
@@ -207,7 +207,7 @@ public class TimePicker : InteractiveControl
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = TextMeasurer.Current.MeasureText(FormattedValue, EffectiveFont);
+        Size textSize = TextMeasurer.MeasureLine(FormattedValue, EffectiveFont);
 
         return ResolveSize(
             new Size(

@@ -14,7 +14,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
-public partial class TextBox : TextInputControl, ITextElement
+public partial class TextBox : TextInputControl, ITextElement, ITextCompositionTarget
 {
     /// <summary>A hint in an empty field.</summary>
     public string? Watermark
@@ -53,6 +53,28 @@ public partial class TextBox : TextInputControl, ITextElement
             ? ApplyTextTransform(text)
             : text;
 
+    /// <summary>The result of the last check the field shows.</summary>
+    /// <remarks>
+    /// <para>
+    /// A field shows a result only once there is something to judge: after the user
+    /// has changed it and left it, or after <see cref="Validate"/> was called — say,
+    /// by a form's submit button. Leaving a field nobody typed into shows nothing;
+    /// it used to validate on any loss of focus, and an empty e-mail field, which
+    /// the validator accepts, lit up green before anything was typed.
+    /// </para>
+    /// <para>
+    /// While a result is shown the field is checked again on every change, by the
+    /// rule "praise at once, blame late": an error goes away the moment the text is
+    /// right, but a correct field being retyped doesn't turn red halfway through an
+    /// address — it goes neutral, and an error shows when the user leaves it.
+    /// </para>
+    /// <para>
+    /// <see cref="ValidationState.Success"/> is shown only for a field with text:
+    /// an empty field the validator accepts — an optional one — has nothing to
+    /// praise, and stays <see cref="ValidationState.None"/>.
+    /// </para>
+    /// </remarks>
+
     public ValidationState ValidationState { get; private set; } = ValidationState.None;
 
     public string? ValidationMessage { get; private set; }
@@ -83,6 +105,11 @@ public partial class TextBox : TextInputControl, ITextElement
     private string? _toolTipBeforeError;
     private bool _showingErrorToolTip;
 
+    /// <summary>The user has changed the text since the field was created or
+    /// <see cref="ResetValidation"/> was called. Leaving a field nobody typed into
+    /// doesn't validate it, see <see cref="OnLostFocus"/>.</summary>
+    private bool _edited;
+
     public TextBox()
     {
         SetControlDefault(BackgroundProperty, Colors.White);
@@ -100,7 +127,12 @@ public partial class TextBox : TextInputControl, ITextElement
             TextChanged?.Invoke(this, EventArgs.Empty);
 
             if (!_writingText)
+            {
+                _edited = true;
                 OnTextEdited();
+            }
+
+            RevalidateWhileShown();
 
             InvalidateVisual();
         };
@@ -227,6 +259,9 @@ public partial class TextBox : TextInputControl, ITextElement
     /// and assigning Text directly from here would give infinite recursion.</summary>
     private void WriteText(string? value)
     {
+        // text set from code ends whatever an input method was composing over the old one
+        ClearComposition();
+
         _writingText = true;
 
         try
@@ -247,8 +282,17 @@ public partial class TextBox : TextInputControl, ITextElement
     public partial Color SelectionColor { get; set; }
     private static Color SelectionColorDefault => new(255, 173, 214, 255);
 
-    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Left;
-    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Top;
+    /// <summary>Where the text stands across its room. A styled property: a style
+    /// sheet sets it, and a change redraws at once.</summary>
+    [Styled(Category = "Text")]
+    public partial HorizontalContentAlignment HorizontalContentAlign { get; set; }
+    private static HorizontalContentAlignment HorizontalContentAlignDefault => HorizontalContentAlignment.Left;
+
+    /// <summary>Where the text stands up and down in its room, when the control is
+    /// taller than its text.</summary>
+    [Styled(Category = "Text")]
+    public partial VerticalContentAlignment VerticalContentAlign { get; set; }
+    private static VerticalContentAlignment VerticalContentAlignDefault => VerticalContentAlignment.Top;
 
     public event EventHandler? TextChanged;
     public event EventHandler? Accepted;
@@ -338,7 +382,9 @@ public partial class TextBox : TextInputControl, ITextElement
         if (to != from) _document.SetCaret(to, extendSelection: true);
     }
 
-    /// <summary>Check the content now.</summary>
+    /// <summary>Check the content now and show the result, whether or not the user
+    /// has typed anything — a form's submit button calls it on every field, and a
+    /// required field left empty shows its error.</summary>
     public bool Validate()
     {
         if (Validator is null)
@@ -350,7 +396,12 @@ public partial class TextBox : TextInputControl, ITextElement
 
         string? error = Validator(_document.Text);
 
-        SetValidation(error is null ? ValidationState.Success : ValidationState.Error, error);
+        // an accepted empty field is an optional one left alone: nothing to praise
+        ValidationState state = error is not null ? ValidationState.Error
+            : _document.Text.Length > 0 ? ValidationState.Success
+            : ValidationState.None;
+
+        SetValidation(state, error);
 
         // the error message is shown as a tooltip — there is no separate place for it
         ShowErrorToolTip(error);
@@ -381,6 +432,46 @@ public partial class TextBox : TextInputControl, ITextElement
         ToolTip = _toolTipBeforeError;
         _toolTipBeforeError = null;
         _showingErrorToolTip = false;
+    }
+
+    /// <summary>Forget the check: no result is shown, and the field is validated
+    /// again only after the user changes and leaves it, as a new one. For a form
+    /// that is cleared to be filled anew.</summary>
+    public void ResetValidation()
+    {
+        _edited = false;
+
+        SetValidation(ValidationState.None, null);
+        ShowErrorToolTip(null);
+    }
+
+    /// <summary>The text changed while a result is shown: "praise at once, blame
+    /// late". A fixed error clears on the spot; a new error waits for the user to
+    /// leave the field, the field goes neutral meanwhile. Nothing shown — nothing to
+    /// update: the first result comes on leaving the field or from Validate.</summary>
+    private void RevalidateWhileShown()
+    {
+        if (ValidationState == ValidationState.None || Validator is null) return;
+
+        string? error = Validator(_document.Text);
+
+        if (error is null)
+        {
+            Validate();
+            return;
+        }
+
+        // still wrong: the message follows the text; it was right: neutral for now
+        if (ValidationState == ValidationState.Error)
+        {
+            SetValidation(ValidationState.Error, error);
+            ShowErrorToolTip(error);
+        }
+        else
+        {
+            SetValidation(ValidationState.None, null);
+            ShowErrorToolTip(null);
+        }
     }
 
     private void SetValidation(ValidationState state, string? message)
@@ -495,18 +586,91 @@ public partial class TextBox : TextInputControl, ITextElement
 
     // ===== display =====
 
-    private float LineHeight => TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
+    private float LineHeight => TextMeasurer.LineHeight(EffectiveFont);
 
     // the mask is built by visible characters: one emoji — one dot
     private string DisplayText => PasswordChar is char pc && !IsMultiline
         ? new string(pc, _document.Length)
         : _document.Text;
 
+    /// <summary>Index in the displayed line → index in the text: the mask has a dot per
+    /// visible character, which may be several chars of the text.</summary>
+    private int FromDisplayIndex(int displayIndex)
+    {
+        if (PasswordChar is null || IsMultiline) return displayIndex;
+
+        string text = _document.Text;
+        int index = 0;
+
+        for (int i = 0; i < displayIndex && index < text.Length; i++)
+            index = TextElements.Next(text, index);
+
+        return index;
+    }
+
     /// <summary>Index in the text → index in the displayed line. They differ under the password mask.</summary>
     private int ToDisplayIndex(int textIndex) =>
         PasswordChar is not null && !IsMultiline
             ? TextElements.Count(_document.Text[..Math.Min(textIndex, _document.Text.Length)])
             : textIndex;
+
+    // ===== input method composition =====
+
+    /// <summary>The text an input method is composing at the caret: shown underlined in
+    /// the field, not in the text until it is committed.</summary>
+    private string _composition = string.Empty;
+
+    /// <summary>Where the input method's cursor stands inside the composition.</summary>
+    private int _compositionCursor;
+
+    private bool IsComposing => _composition.Length > 0;
+
+    bool ITextCompositionTarget.AcceptsComposition => PasswordChar is null && !IsReadOnly && IsEnabled;
+
+    void ITextCompositionTarget.SetComposition(string text, int cursor)
+    {
+        // the composition takes the selection's place, as typing does
+        if (text.Length > 0 && !IsComposing && _document.SelectionLength > 0)
+            _document.DeleteSelection();
+
+        _composition = text;
+        _compositionCursor = cursor;
+
+        // a wrapped field may gain or lose a row
+        if (IsMultiline) Invalidate();
+        else InvalidateVisual();
+    }
+
+    /// <summary>Drop the composition the field shows: a click elsewhere, focus gone,
+    /// text set from code. The input method finishes or cancels on its side.</summary>
+    private void ClearComposition()
+    {
+        if (!IsComposing) return;
+
+        _composition = string.Empty;
+        _compositionCursor = 0;
+
+        if (IsMultiline) Invalidate();
+        else InvalidateVisual();
+    }
+
+    /// <summary>The text with the composition at the caret: what the rows are made of.</summary>
+    private string WithComposition(string text) =>
+        IsComposing && PasswordChar is null
+            ? text.Insert(Math.Min(_document.CaretIndex, text.Length), _composition)
+            : text;
+
+    /// <summary>A position in the shown text — the composition in it — back in the text.</summary>
+    private int WithoutComposition(int shown)
+    {
+        if (!IsComposing) return shown;
+
+        int caret = _document.CaretIndex;
+
+        if (shown <= caret) return shown;
+
+        return Math.Max(caret, shown - _composition.Length);
+    }
 
     // ===== rows =====
 
@@ -521,17 +685,24 @@ public partial class TextBox : TextInputControl, ITextElement
     private string? _rowsText;
     private float _rowsWidth;
     private Font? _rowsFont;
+    private FlowDirection _rowsDirection;
+
+    /// <summary>The rows laid out as they are drawn, made on first request.</summary>
+    private TextLineLayout?[]? _rowLayouts;
 
     /// <summary>The rows at a width. Kept until the text, the width or the font changes:
     /// drawing, hit testing and the arrow keys all ask, often several times a frame.</summary>
     private IReadOnlyList<TextRow> Rows(float width)
     {
-        string text = IsMultiline ? _document.Text : DisplayText;
+        string text = WithComposition(IsMultiline ? _document.Text : DisplayText);
         bool wrap = WordWrap && IsMultiline && width > 0 && float.IsFinite(width);
         float key = wrap ? width : float.PositiveInfinity;
         Font font = EffectiveFont;
 
-        if (_rows is not null && _rowsWidth == key && Equals(_rowsFont, font) && string.Equals(_rowsText, text, StringComparison.Ordinal))
+        FlowDirection direction = EffectiveFlowDirection;
+
+        if (_rows is not null && _rowsWidth == key && Equals(_rowsFont, font) && _rowsDirection == direction &&
+            string.Equals(_rowsText, text, StringComparison.Ordinal))
             return _rows;
 
         var rows = new List<TextRow>();
@@ -557,67 +728,66 @@ public partial class TextBox : TextInputControl, ITextElement
         _rowsText = text;
         _rowsWidth = key;
         _rowsFont = font;
+        _rowsDirection = direction;
+        _rowLayouts = null;
 
         return rows;
     }
 
+    /// <summary>A row as it stands on the screen: the runs of its directions and the box
+    /// of every character. Carets, selections, clicks and the arrow keys go by it — in a
+    /// row that mixes Latin and Hebrew a column doesn't map to an x by adding widths.</summary>
+    private TextLineLayout RowLayout(IReadOnlyList<TextRow> rows, int index)
+    {
+        if (!ReferenceEquals(rows, _rows))
+            return TextMeasurer.LayOutLine(rows[index].Text, EffectiveFont, EffectiveFlowDirection);
+
+        _rowLayouts ??= new TextLineLayout?[rows.Count];
+
+        return _rowLayouts[index] ??= TextMeasurer.LayOutLine(rows[index].Text, EffectiveFont, EffectiveFlowDirection);
+    }
+
+    /// <summary>The alignment the rows take: <see cref="HorizontalContentAlign"/> read from
+    /// the start of the text — in a right-to-left field Left is the right edge, where
+    /// typing begins.</summary>
+    private HorizontalContentAlignment RowAlignment => !IsRightToLeft
+        ? HorizontalContentAlign
+        : HorizontalContentAlign switch
+        {
+            HorizontalContentAlignment.Left => HorizontalContentAlignment.Right,
+            HorizontalContentAlignment.Right => HorizontalContentAlignment.Left,
+            var other => other,
+        };
+
+    /// <summary>Where a row's left edge stands in the text area, before scrolling. A row
+    /// wider than the area starts at its left edge and scrolls.</summary>
+    private float RowShift(TextLineLayout layout, float width)
+    {
+        float free = width - layout.Width;
+
+        if (free <= 0) return 0;
+
+        return RowAlignment switch
+        {
+            HorizontalContentAlignment.Right => free,
+            HorizontalContentAlignment.Center => free / 2f,
+            _ => 0,
+        };
+    }
+
     private static bool IsSpace(char c) => c is ' ' or '\t';
 
-    /// <summary>Break one line of the text into rows no wider than <paramref name="width"/>.</summary>
+    /// <summary>Break one line of the text into rows no wider than <paramref name="width"/>:
+    /// after spaces, which hang at the end of their row, as <see cref="TextWrapper"/> breaks
+    /// the label's lines too.</summary>
     private static void Wrap(string line, int offset, float width, Font font, List<TextRow> rows)
     {
-        ITextMeasurer measurer = TextMeasurer.Current;
-        int start = 0;
+        List<(int Start, int Length)> pieces = TextWrapper.Wrap(line, width, font);
 
-        while (start < line.Length)
+        for (int i = 0; i < pieces.Count; i++)
         {
-            string rest = line[start..];
-
-            if (measurer.MeasureTextWidth(rest, rest.Length, font) <= width)
-            {
-                rows.Add(new TextRow(offset + start, rest, EndsLine: true));
-                return;
-            }
-
-            // the longest piece that fits, by a binary search over the character
-            // boundaries: widths only grow, and measuring every prefix would be quadratic
-            List<int> bounds = [.. TextElements.Boundaries(rest)];
-
-            int fits = 0;
-            int low = 1, high = bounds.Count - 1;
-
-            while (low <= high)
-            {
-                int middle = (low + high) / 2;
-
-                if (measurer.MeasureTextWidth(rest, bounds[middle], font) <= width)
-                {
-                    fits = middle;
-                    low = middle + 1;
-                }
-                else
-                {
-                    high = middle - 1;
-                }
-            }
-
-            // at least one character a row, however narrow the field
-            int end = bounds[Math.Max(1, fits)];
-
-            // break after the last space of the piece, so words stay whole; a word
-            // wider than the row is broken where it overflows
-            if (end < rest.Length && !IsSpace(rest[end]))
-            {
-                int space = rest.LastIndexOfAny([' ', '\t'], end - 1, end);
-
-                if (space >= 0) end = space + 1;
-            }
-
-            // spaces at the break hang at the end of the row, as in every editor
-            while (end < rest.Length && IsSpace(rest[end])) end++;
-
-            rows.Add(new TextRow(offset + start, rest[..end], EndsLine: end >= rest.Length));
-            start += end;
+            var (start, length) = pieces[i];
+            rows.Add(new TextRow(offset + start, line.Substring(start, length), EndsLine: i == pieces.Count - 1));
         }
     }
 
@@ -638,21 +808,15 @@ public partial class TextBox : TextInputControl, ITextElement
     }
 
     /// <summary>The column of a row nearest to <paramref name="x"/>, from the row's left edge.</summary>
-    private int ColumnAt(TextRow row, float x)
+    /// <remarks>By the row's layout: the nearer edge of the character under the x,
+    /// in whichever direction it runs. It used to be the first column whose prefix
+    /// reached the x, which in a right-to-left run is the wrong end.</remarks>
+    private static int ColumnAt(TextRow row, TextLineLayout layout, float x)
     {
         string text = row.Text;
-        int column = text.Length;
 
-        // boundaries of characters are walked rather than chars —
-        // otherwise the caret would land in the middle of a surrogate pair
-        foreach (int boundary in TextElements.Boundaries(text))
-        {
-            if (TextMeasurer.Current.MeasureTextWidth(text, boundary, EffectiveFont) >= x)
-            {
-                column = boundary;
-                break;
-            }
-        }
+        // between visible characters only: never inside a surrogate pair
+        int column = layout.IndexAt(x);
 
         // past the end of a soft-wrapped row the index would be the next row's start,
         // and the caret would jump down there: it stays before the row's last character
@@ -678,9 +842,13 @@ public partial class TextBox : TextInputControl, ITextElement
 
         if (target < 0 || target >= rows.Count) return;
 
-        _desiredX ??= TextMeasurer.Current.MeasureTextWidth(rows[row].Text, column, EffectiveFont);
+        float width = TextBounds.Width;
+        TextLineLayout from = RowLayout(rows, row);
+        TextLineLayout to = RowLayout(rows, target);
 
-        SetCaretByRows(rows[target].Start + ColumnAt(rows[target], _desiredX.Value), extend);
+        _desiredX ??= RowShift(from, width) + from.CaretX(column);
+
+        SetCaretByRows(rows[target].Start + ColumnAt(rows[target], to, _desiredX.Value - RowShift(to, width)), extend);
     }
 
     /// <summary>Home and End under word wrap: the ends of the row on screen. The end
@@ -704,6 +872,56 @@ public partial class TextBox : TextInputControl, ITextElement
         _document.SetCaret(row.Start + column, extend);
     }
 
+    /// <summary>Left and Right: across the screen. In a row of one direction that is along
+    /// the text — forwards for Right in left-to-right text, backwards in right-to-left; in a
+    /// row that mixes directions the caret goes to the next position on the screen, across
+    /// the runs as they are drawn. Past the row's end it goes on along the text.</summary>
+    private void MoveAcross(bool right, bool extend)
+    {
+        IReadOnlyList<TextRow> rows = Rows(TextBounds.Width);
+
+        if (PasswordChar is null || IsMultiline)
+        {
+            var (row, column) = RowOf(rows, _document.CaretIndex);
+            TextLineLayout layout = RowLayout(rows, row);
+
+            bool mixed = false;
+
+            foreach (TextLineRun run in layout.Runs)
+                mixed |= run.IsRightToLeft != layout.IsRightToLeft;
+
+            if (mixed)
+            {
+                if (layout.MoveVisually(column, right) is { } target)
+                {
+                    _document.SetCaret(rows[row].Start + target, extend);
+                    return;
+                }
+
+                // at the row's visual end: on to the next row in the paragraph's direction,
+                // or nowhere — going on along the text would turn back into the row
+                bool forward = right != layout.IsRightToLeft;
+                int next = row + (forward ? 1 : -1);
+
+                if (next >= 0 && next < rows.Count)
+                {
+                    TextRow to = rows[next];
+
+                    _document.SetCaret(forward
+                        ? to.Start
+                        : to.Start + (to.EndsLine ? to.Text.Length : TextElements.Previous(to.Text, to.Text.Length)),
+                        extend);
+                }
+
+                return;
+            }
+        }
+
+        // along the text, in the direction the paragraph runs
+        if (right != IsRightToLeft) _document.MoveRight(extend);
+        else _document.MoveLeft(extend);
+    }
+
     private void SetCaretByRows(int index, bool extend)
     {
         _movingByRows = true;
@@ -724,9 +942,14 @@ public partial class TextBox : TextInputControl, ITextElement
     {
         base.OnLostFocus();
 
+        ClearComposition();
+
         // validate when leaving the field, not on every character:
-        // otherwise half of a typed address would turn red
-        Validate();
+        // otherwise half of a typed address would turn red. And only a field the
+        // user has changed, or one already showing a result: passing through an
+        // empty field with Tab is not a reason to judge it
+        if (_edited || ValidationState != ValidationState.None)
+            Validate();
     }
 
     // ===== input =====
@@ -758,6 +981,14 @@ public partial class TextBox : TextInputControl, ITextElement
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        // while an input method composes, the keys are its: arrows move inside the
+        // composition, Enter commits it, Escape cancels it — none of them edits the text
+        if (IsComposing)
+        {
+            e.Handled = true;
+            return;
+        }
+
         bool shift = e.Modifiers.HasFlag(KeyModifiers.Shift);
         bool ctrl = e.Modifiers.HasFlag(KeyModifiers.Control);
 
@@ -799,11 +1030,11 @@ public partial class TextBox : TextInputControl, ITextElement
                 break;
 
             case Key.Left:
-                _document.MoveLeft(shift);
+                MoveAcross(right: false, shift);
                 break;
 
             case Key.Right:
-                _document.MoveRight(shift);
+                MoveAcross(right: true, shift);
                 break;
 
             case Key.Up when IsMultiline && WordWrap:
@@ -926,21 +1157,24 @@ public partial class TextBox : TextInputControl, ITextElement
 
         IReadOnlyList<TextRow> rows = Rows(text.Width);
 
-        if (!IsMultiline) return ColumnAt(rows[0], localX);
+        int index = IsMultiline ? Math.Clamp((int)(localY / LineHeight), 0, rows.Count - 1) : 0;
+        TextRow row = rows[index];
+        TextLineLayout layout = RowLayout(rows, index);
+        int column = ColumnAt(row, layout, localX - RowShift(layout, text.Width));
 
-        TextRow row = rows[Math.Clamp((int)(localY / LineHeight), 0, rows.Count - 1)];
-
-        return row.Start + ColumnAt(row, localX);
+        return WithoutComposition(IsMultiline ? row.Start + column : FromDisplayIndex(column));
     }
 
-    protected override void OnMouseDown(MouseButtonEventArgs args)
+    protected override void OnMouseDown(MouseButtonEventArgs e)
     {
         // a press on an icon button is not a press on the text: the caret stays
-        _pressedIcon = args.Button == MouseButton.Left ? ClickableIconAt(args.Location) : IconPart.None;
+        _pressedIcon = e.Button == MouseButton.Left ? ClickableIconAt(e.Location) : IconPart.None;
 
         if (_pressedIcon != IconPart.None) return;
 
-        _document.SetCaret(IndexFromPoint(args.Location));
+        ClearComposition();
+
+        _document.SetCaret(IndexFromPoint(e.Location));
         _isDragging = true;
     }
 
@@ -956,14 +1190,14 @@ public partial class TextBox : TextInputControl, ITextElement
         Cursor = ClickableIconAt(e.Location) != IconPart.None ? CursorKind.Hand : CursorKind.IBeam;
     }
 
-    protected override void OnMouseUp(MouseButtonEventArgs args)
+    protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         _isDragging = false;
 
         IconPart pressed = _pressedIcon;
         _pressedIcon = IconPart.None;
 
-        if (pressed == IconPart.None || ClickableIconAt(args.Location) != pressed) return;
+        if (pressed == IconPart.None || ClickableIconAt(e.Location) != pressed) return;
 
         if (pressed == IconPart.Leading) LeadingIconClick?.Invoke(this, EventArgs.Empty);
         else TrailingIconClick?.Invoke(this, EventArgs.Empty);
@@ -980,14 +1214,18 @@ public partial class TextBox : TextInputControl, ITextElement
         float lineHeight = LineHeight;
         IReadOnlyList<TextRow> rows = Rows(content.Width);
 
-        var (caretRow, caretColumn) = IsMultiline
-            ? RowOf(rows, _document.CaretIndex)
-            : (0, ToDisplayIndex(_document.CaretIndex));
+        // the caret stands inside the composition where the input method's cursor is
+        int shownCaret = _document.CaretIndex + (IsComposing ? _compositionCursor : 0);
 
-        float caretX = TextMeasurer.Current.MeasureTextWidth(rows[caretRow].Text, caretColumn, EffectiveFont);
+        var (caretRow, caretColumn) = IsMultiline
+            ? RowOf(rows, shownCaret)
+            : (0, IsComposing ? shownCaret : ToDisplayIndex(_document.CaretIndex));
+
+        TextLineLayout caretLayout = RowLayout(rows, caretRow);
+        float caretX = RowShift(caretLayout, content.Width) + caretLayout.CaretX(caretColumn);
         float caretY = caretRow * lineHeight;
 
-        UpdateScroll(content, caretX, caretY, lineHeight, rows.Count);
+        UpdateScroll(content, caretX, caretY, lineHeight, rows.Count, caretLayout.Width);
 
         g.Save();
         g.ClipRect(content);
@@ -1007,21 +1245,28 @@ public partial class TextBox : TextInputControl, ITextElement
             // drawn whole on every frame, the clip only hiding it
             if (y + lineHeight < content.Y || y > content.Y + content.Height) continue;
 
+            TextLineLayout layout = RowLayout(rows, i);
+            float x = content.X + RowShift(layout, content.Width) - _scrollOffset;
+
             if (_document.SelectionLength > 0)
-                DrawSelection(g, row.Text, row.Start, selectionStart, selectionEnd, content.X, y, lineHeight);
+                DrawSelection(g, layout, row.Start, selectionStart, selectionEnd, x, y, lineHeight);
 
             if (row.Text.Length > 0)
             {
                 // on the font's line, not the glyphs' ink: the text no longer
-                // jumps up and down as letters with and without descenders are typed
+                // jumps up and down as letters with and without descenders are typed.
+                // The backend orders it in the element's direction, as the layout did
                 g.DrawTextLine(row.Text,
-                    new Rectangle(new Point(content.X - _scrollOffset, y), new Size(float.MaxValue, lineHeight)),
+                    new Rectangle(new Point(x, y), new Size(float.MaxValue, lineHeight)),
                     TextColor, EffectiveFont,
                     HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
             }
 
             if (showWhitespace)
-                DrawWhitespace(g, row, content.X - _scrollOffset, y, lineHeight);
+                DrawWhitespace(g, row, layout, x, y, lineHeight);
+
+            if (IsComposing)
+                DrawCompositionUnderline(g, layout, row.Start, x, y, lineHeight);
         }
 
         // a hint instead of the text while the field is empty and not focused
@@ -1030,25 +1275,48 @@ public partial class TextBox : TextInputControl, ITextElement
             g.DrawTextLine(Watermark,
                 new Rectangle(new Point(content.X, blockTop), new Size(content.Width, lineHeight)),
                 WatermarkColor, EffectiveFont,
-                HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
+                RowAlignment, VerticalContentAlignment.Center);
         }
 
+        var caret = new Rectangle(
+            new Point(content.X + caretX - _scrollOffset, blockTop + caretY - _verticalOffset),
+            new Size(CaretWidth, lineHeight));
+
         if (IsFocused && CaretVisible)
+            g.FillRectangle(caret, CaretColor);
+
+        // the input method's candidate list opens at the caret
+        if (IsFocused)
         {
-            g.FillRectangle(
-                new Rectangle(
-                    new Point(content.X + caretX - _scrollOffset, blockTop + caretY - _verticalOffset),
-                    new Size(CaretWidth, lineHeight)),
-                CaretColor);
+            Point absolute = GetAbsolutePosition();
+            FindOwner()?.ReportTextInputArea(this, caret.Offset(absolute.X, absolute.Y));
         }
 
         g.Restore();
     }
 
-    /// <summary>Dots for spaces, arrows for tabs, ¶ where a line of the text ends.</summary>
-    private void DrawWhitespace(Graphics g, TextRow row, float x, float y, float lineHeight)
+    /// <summary>The composition's line under its part of a row, as input methods mark the
+    /// text that isn't committed yet.</summary>
+    private void DrawCompositionUnderline(Graphics g, TextLineLayout layout, int rowStart, float x, float y, float lineHeight)
     {
-        ITextMeasurer measurer = TextMeasurer.Current;
+        int start = _document.CaretIndex;
+        int end = start + _composition.Length;
+
+        int from = Math.Max(start, rowStart) - rowStart;
+        int to = Math.Min(end, rowStart + layout.Text.Length) - rowStart;
+
+        if (to <= from) return;
+
+        float thickness = Math.Max(1f, EffectiveFont.Size / 14f);
+        float underline = y + lineHeight - thickness - 1f;
+
+        foreach ((float left, float right) in layout.SelectionBounds(from, to))
+            g.FillRectangle(new Rectangle(new Point(x + left, underline), new Size(right - left, thickness)), TextColor);
+    }
+
+    /// <summary>Dots for spaces, arrows for tabs, ¶ where a line of the text ends.</summary>
+    private void DrawWhitespace(Graphics g, TextRow row, TextLineLayout layout, float x, float y, float lineHeight)
+    {
         Font font = EffectiveFont;
         Color color = WhitespaceColor;
         string text = row.Text;
@@ -1060,8 +1328,9 @@ public partial class TextBox : TextInputControl, ITextElement
 
             if (!IsSpace(c)) continue;
 
-            float left = x + measurer.MeasureTextWidth(text, i, font);
-            float right = x + measurer.MeasureTextWidth(text, i + 1, font);
+            (float boxLeft, float boxRight) = layout.GetCharacterBounds(i);
+            float left = x + boxLeft;
+            float right = x + boxRight;
 
             if (c == ' ')
             {
@@ -1094,10 +1363,13 @@ public partial class TextBox : TextInputControl, ITextElement
         // the last line: there is no line break there
         if (IsMultiline && row.EndsLine && row.Start + text.Length < _document.Text.Length)
         {
-            float end = x + measurer.MeasureTextWidth(text, text.Length, font);
+            // where the caret at the line's end stands: the right end of a left-to-right
+            // line, the left end of a right-to-left one
+            float end = x + layout.CaretX(text.Length);
+            float mark = TextMeasurer.MeasureLine("¶", font).Width;
 
             g.DrawTextLine("¶",
-                new Rectangle(new Point(end + 1f, y), new Size(float.MaxValue, lineHeight)),
+                new Rectangle(new Point(layout.IsRightToLeft ? end - 1f - mark : end + 1f, y), new Size(float.MaxValue, lineHeight)),
                 color, font,
                 HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
         }
@@ -1111,29 +1383,33 @@ public partial class TextBox : TextInputControl, ITextElement
             _ => 0f,
         };
 
+    /// <summary>The selection's part on a row: one span in text of one direction,
+    /// several where it crosses runs of both.</summary>
     private void DrawSelection(
-        Graphics g, string lineText, int lineStartIndex,
+        Graphics g, TextLineLayout layout, int lineStartIndex,
         int selectionStart, int selectionEnd, float x, float y, float lineHeight)
     {
-        int lineEndIndex = lineStartIndex + lineText.Length;
+        int lineEndIndex = lineStartIndex + layout.Text.Length;
 
         int from = Math.Max(selectionStart, lineStartIndex) - lineStartIndex;
         int to = Math.Min(selectionEnd, lineEndIndex) - lineStartIndex;
 
         if (to <= from) return;
 
-        float x1 = TextMeasurer.Current.MeasureTextWidth(lineText, from, EffectiveFont);
-        float x2 = TextMeasurer.Current.MeasureTextWidth(lineText, to, EffectiveFont);
-
-        g.FillRectangle(
-            new Rectangle(new Point(x + x1 - _scrollOffset, y), new Size(x2 - x1, lineHeight)),
-            SelectionColor);
+        foreach ((float left, float right) in layout.SelectionBounds(from, to))
+        {
+            g.FillRectangle(
+                new Rectangle(new Point(x + left, y), new Size(right - left, lineHeight)),
+                SelectionColor);
+        }
     }
 
-    private void UpdateScroll(Rectangle content, float caretX, float caretY, float lineHeight, int lineCount)
+    private void UpdateScroll(Rectangle content, float caretX, float caretY, float lineHeight, int lineCount, float rowWidth)
     {
-        // wrapped rows fit the width: nothing to scroll sideways to
-        if (IsMultiline && WordWrap) _scrollOffset = 0;
+        // wrapped rows fit the width: nothing to scroll sideways to. Nor in a single
+        // line that fits — it stands where its alignment puts it, and an offset left
+        // from when it was longer used to keep its start hidden
+        if ((IsMultiline && WordWrap) || (!IsMultiline && rowWidth <= content.Width)) _scrollOffset = 0;
         else if (caretX - _scrollOffset > content.Width) _scrollOffset = caretX - content.Width;
         else if (caretX - _scrollOffset < 0) _scrollOffset = caretX;
 

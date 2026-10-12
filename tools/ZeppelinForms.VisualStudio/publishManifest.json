@@ -1,0 +1,13 @@
+﻿{
+  "$schema": "http://json.schemastore.org/vsix-publish",
+  "categories": [ "coding" ],
+  "identity": {
+    "internalName": "ZeppelinFormsTools"
+  },
+  "overview": "README.md",
+  "priceCategory": "free",
+  "publisher": "YD359Team",
+  "private": false,
+  "qna": true,
+  "repo": "https://github.com/YD359Team/ZeppelinForms-solution"
+}

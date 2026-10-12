@@ -373,11 +373,14 @@ public sealed class SkiaGraphics : Graphics
 
     public override void Rotate(float degrees) => _canvas.RotateDegrees(degrees);
 
+    /// <summary>The text drawn now is in a right-to-left paragraph: its line is ordered so.</summary>
+    private bool IsRightToLeft => TextDirection == ZeppelinForms.Core.Text.FlowDirection.RightToLeft;
+
     public override void DrawText(string text, Point position, Color color, Font font)
     {
         if (string.IsNullOrEmpty(text)) return;
 
-        CachedLine line = SkiaFontCache.GetLine(text, font);
+        CachedLine line = SkiaFontCache.GetLine(text, font, IsRightToLeft);
 
         // the outline goes under the glyphs: the fill then covers its inner half
         DrawOutline(line, position.X, position.Y);
@@ -408,23 +411,51 @@ public sealed class SkiaGraphics : Graphics
 
         // the width is computed from the same pieces as the drawing, otherwise
         // the alignment drifts on lines with emoji
-        CachedLine line = SkiaFontCache.GetLine(text, font);
+        CachedLine line = SkiaFontCache.GetLine(text, font, IsRightToLeft);
+        SKFontMetrics metrics = SkiaFontCache.Get(font).Metrics;
 
-        float textWidth = line.Width;
+        // the line box of the font, not the ink of these letters: every text of the
+        // font in an equal rectangle stands on one baseline. The ascent is negative
+        var box = new FontMetrics(-metrics.Ascent, metrics.Descent);
+
+        DrawPlacedLine(line, rect, color, font, hAlign, box.Baseline(rect.Y, rect.Height, vAlign));
+    }
+
+    /// <summary>Centered by its ink: an arrow, a number in a circle — alone in its
+    /// shape, it must look centered there, whatever the font's line says.</summary>
+    public override void DrawSymbol(
+        string text, Rectangle rect, Color color, Font font,
+        HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
+        VerticalContentAlignment vAlign = VerticalContentAlignment.Center)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+
+        CachedLine line = SkiaFontCache.GetLine(text, font, IsRightToLeft);
         SKRect bounds = line.Bounds;
-
-        float x = hAlign switch
-        {
-            HorizontalContentAlignment.Left => rect.X,
-            HorizontalContentAlignment.Right => rect.X + rect.Width - textWidth,
-            _ => rect.X + (rect.Width - textWidth) / 2f,
-        };
 
         float baselineY = vAlign switch
         {
             VerticalContentAlignment.Top => rect.Y - bounds.Top,
             VerticalContentAlignment.Bottom => rect.Y + rect.Height - bounds.Bottom,
             _ => rect.Y + rect.Height / 2f - bounds.MidY,
+        };
+
+        DrawPlacedLine(line, rect, color, font, hAlign, baselineY);
+    }
+
+    /// <summary>A line on a baseline already chosen, aligned across in the rectangle
+    /// and cut off at it when it doesn't fit.</summary>
+    private void DrawPlacedLine(
+        CachedLine line, Rectangle rect, Color color, Font font,
+        HorizontalContentAlignment hAlign, float baselineY)
+    {
+        float textWidth = line.Width;
+
+        float x = hAlign switch
+        {
+            HorizontalContentAlignment.Left => rect.X,
+            HorizontalContentAlignment.Right => rect.X + rect.Width - textWidth,
+            _ => rect.X + (rect.Width - textWidth) / 2f,
         };
 
         // the rectangle sets not only the alignment but also the bounds:
@@ -531,7 +562,7 @@ public sealed class SkiaGraphics : Graphics
         {
             Font font = run.Font ?? baseFont;
 
-            totalWidth += SkiaFontCache.GetLine(run.Text, font).Width;
+            totalWidth += SkiaFontCache.GetLine(run.Text, font, IsRightToLeft).Width;
 
             SKFontMetrics metrics = SkiaFontCache.Get(font).Metrics;
             maxAscent = Math.Max(maxAscent, -metrics.Ascent);
@@ -563,7 +594,7 @@ public sealed class SkiaGraphics : Graphics
             Font font = run.Font ?? baseFont;
             Color color = run.Color ?? baseColor;
 
-            CachedLine line = SkiaFontCache.GetLine(run.Text, font);
+            CachedLine line = SkiaFontCache.GetLine(run.Text, font, IsRightToLeft);
 
             float runStart = x;
             float runWidth = line.Width;

@@ -326,7 +326,7 @@ public partial class TabStrip : InteractiveControl
 
     // ===== geometry =====
 
-    private float StripHeight => TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height + PaddingY * 2;
+    private float StripHeight => TextMeasurer.LineHeight(EffectiveFont) + PaddingY * 2;
 
     private float AddButtonWidth => ShowAddButton ? StripHeight : 0f;
 
@@ -431,7 +431,7 @@ public partial class TabStrip : InteractiveControl
         return new Rectangle(new Point(x, area.Y), new Size(index < _widths.Count ? _widths[index] : 0, area.Height));
     }
 
-    private Rectangle CloseRect(Rectangle tab) =>
+    private static Rectangle CloseRect(Rectangle tab) =>
         new(new Point(tab.X + tab.Width - PaddingX / 2f - CloseSize, tab.Y + (tab.Height - CloseSize) / 2f), new Size(CloseSize, CloseSize));
 
     /// <summary>The + button: right after the last tab, or at the strip's end once

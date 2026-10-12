@@ -84,14 +84,18 @@
 	     and rewrite each other's files (the sourcelink.json error).
 
 	     The paths have no trailing backslash: inside quotes "dir\" reads as an
-	     escaped quote, and the argument runs on into the next one. -->
+	     escaped quote, and the argument runs on into the next one. 
+		 The version goes along: dotnet publish is a separate build, and without it
+	     the host's ZeppelinForms took the version of Directory.Build.props while the
+	     packages of the same release took the tag's. A host of 0.14.0 could not bind a
+	     project built against the 0.14.1 package, and the previewer showed nothing. -->
 	<Target Name="PublishDesignerHost" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)' != 'true'">
 		<PropertyGroup>
 			<DesignerHostOutput>$(MSBuildProjectDirectory)\obj\Designer</DesignerHostOutput>
 			<DesignerHostArtifacts>$(MSBuildProjectDirectory)\obj\DesignerBuild</DesignerHostArtifacts>
 		</PropertyGroup>
 
-		<Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)\..\ZeppelinForms.Designer\ZeppelinForms.Designer.csproj&quot; -c $(Configuration) -o &quot;$(DesignerHostOutput)&quot; --artifacts-path &quot;$(DesignerHostArtifacts)&quot; --nologo" />
+		<Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)\..\ZeppelinForms.Designer\ZeppelinForms.Designer.csproj&quot; -c $(Configuration) -o &quot;$(DesignerHostOutput)&quot; --artifacts-path &quot;$(DesignerHostArtifacts)&quot; -p:Version=$(Version) --nologo" />
 
 		<!-- In two steps: inside a target, %(RecursiveDir) in the metadata of an item
 		     being created is empty, and every file landed flat in Designer\. The

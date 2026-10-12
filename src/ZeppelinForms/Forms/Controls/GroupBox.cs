@@ -80,7 +80,7 @@ public partial class GroupBox : DecoratedWrapControl
 
             // height by a reference pair rather than by the text itself: otherwise
             // the border jumps when the header changes, because of ascenders and descenders
-            return TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height;
+            return TextMeasurer.LineHeight(EffectiveFont);
         }
     }
 

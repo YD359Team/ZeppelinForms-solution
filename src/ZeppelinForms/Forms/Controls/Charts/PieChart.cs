@@ -107,7 +107,8 @@ public class PieChart : ChartBase
                 float cx = sliceBounds.X + sliceBounds.Width / 2f + MathF.Cos(mid) * radius;
                 float cy = sliceBounds.Y + sliceBounds.Height / 2f + MathF.Sin(mid) * radius;
 
-                g.DrawText($"{value / total * 100:0}%",
+                // a percentage at a point of the slice: centered on it by its ink
+                g.DrawSymbol($"{value / total * 100:0}%",
                     new Rectangle(new Point(cx - 20, cy - 8), new Size(40, 16)),
                     Colors.White, EffectiveFont,
                     HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
@@ -157,7 +158,7 @@ public class PieChart : ChartBase
     {
         var content = ContentBounds;
         float x = content.X + content.Width - LegendWidth + 6f;
-        float rowHeight = TextMeasurer.Current.MeasureText("Wg", EffectiveFont).Height + 6f;
+        float rowHeight = TextMeasurer.LineHeight(EffectiveFont) + 6f;
         float y = content.Y + TitleHeight + (content.Height - TitleHeight - rowHeight * Slices.Count) / 2f;
 
         for (int i = 0; i < Slices.Count; i++)
@@ -176,7 +177,7 @@ public class PieChart : ChartBase
         }
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         Point abs = GetAbsolutePosition();
         Rectangle circle = PieBounds;
@@ -184,8 +185,8 @@ public class PieChart : ChartBase
         float cx = circle.X + circle.Width / 2f;
         float cy = circle.Y + circle.Height / 2f;
 
-        float dx = args.Location.X - abs.X - cx;
-        float dy = args.Location.Y - abs.Y - cy;
+        float dx = e.Location.X - abs.X - cx;
+        float dy = e.Location.Y - abs.Y - cy;
 
         float distance = MathF.Sqrt(dx * dx + dy * dy);
         float radius = circle.Width / 2f;
@@ -214,7 +215,7 @@ public class PieChart : ChartBase
         InvalidateVisual();
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         if (_hoveredSlice < 0) return;
 

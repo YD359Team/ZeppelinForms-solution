@@ -429,6 +429,7 @@ internal static class X11
 
     public const int LC_ALL = 6;
 
+    public const nint XIMPreeditPosition = 0x0004;
     public const nint XIMPreeditNothing = 0x0008;
     public const nint XIMStatusNothing = 0x0400;
 
@@ -455,6 +456,36 @@ internal static class X11
         string clientWindowName, nuint clientWindow,
         string focusWindowName, nuint focusWindow,
         nint terminator);
+
+    /// <summary>The same, over the spot: the composition's attributes — where it is
+    /// drawn and in which fonts — go as a nested list.</summary>
+    [DllImport(Lib, EntryPoint = "XCreateIC")]
+    public static extern nint XCreateIC(
+        nint inputMethod,
+        string inputStyleName, nint inputStyle,
+        string clientWindowName, nuint clientWindow,
+        string focusWindowName, nuint focusWindow,
+        string preeditAttributesName, nint preeditAttributes,
+        nint terminator);
+
+    // XVaCreateNestedList and XSetICValues are variadic too, bound the same way
+    [DllImport(Lib, EntryPoint = "XVaCreateNestedList")]
+    public static extern nint XVaCreateNestedList(int unused, string name1, nint value1, string name2, nint value2, nint terminator);
+
+    [DllImport(Lib, EntryPoint = "XVaCreateNestedList")]
+    public static extern nint XVaCreateNestedList(int unused, string name1, nint value1, nint terminator);
+
+    /// <summary>Null on success, otherwise the name of the value that wasn't taken.</summary>
+    [DllImport(Lib)]
+    public static extern nint XSetICValues(nint inputContext, string name, nint value, nint terminator);
+
+    /// <summary>The fonts an input method draws an over-the-spot composition in.</summary>
+    [DllImport(Lib)]
+    public static extern nint XCreateFontSet(
+        nint display, string baseFontNameList,
+        out nint missingCharsetList, out int missingCharsetCount, out nint defaultString);
+
+    [DllImport(Lib)] public static extern void XFreeStringList(nint list);
 
     [DllImport(Lib)] public static extern void XDestroyIC(nint inputContext);
 

@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
@@ -32,7 +33,7 @@ public abstract partial class CartesianChartBase : ChartBase
     /// the axis was divided by zero, and its labels and lines went to NaN.</summary>
     private int Divisions => Math.Max(1, GridLineCount);
 
-    protected float LabelHeight => TextMeasurer.Current.MeasureText("0", EffectiveFont).Height;
+    protected float LabelHeight => TextMeasurer.LineHeight(EffectiveFont);
 
     protected abstract (float Min, float Max) DataRange { get; }
 
@@ -77,7 +78,7 @@ public abstract partial class CartesianChartBase : ChartBase
         }
     }
 
-    protected virtual string FormatValue(float value) => value.ToString("0.##");
+    protected virtual string FormatValue(float value) => value.ToString("0.##", CultureInfo.CurrentCulture);
 
     protected Rectangle PlotArea
     {

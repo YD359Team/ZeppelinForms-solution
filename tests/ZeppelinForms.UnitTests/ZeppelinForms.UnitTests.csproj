@@ -11,6 +11,9 @@
 
   <ItemGroup>
     <PackageReference Include="xunit.v3" />
+
+    <!-- the generators are tested by running them on a compilation of their own -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,6 +21,7 @@
     <ProjectReference Include="..\..\src\ZeppelinForms.Windows\ZeppelinForms.Windows.csproj" />
     <ProjectReference Include="..\..\src\ZeppelinForms\ZeppelinForms.csproj" />
     <ProjectReference Include="..\..\tools\ZeppelinForms.Design\ZeppelinForms.Design.csproj" />
+    <ProjectReference Include="..\..\src\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" />
   </ItemGroup>
 
 </Project>

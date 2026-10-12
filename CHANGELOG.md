@@ -1,5 +1,316 @@
 # Changes
 
+## [0.15.0] - Lake Baikal
+
+![Lake Baikal](assets/Logo-0.15.0.jpg)
+
+> Codename "Lake Baikal" is the deepest lake in the world. Because this release develops 
+what is already embedded in the framework, i.e. "goes deep".
+
+### Breaking changes
+
+- `DockPanel.LastChildFill`, true by default: the last child docked to no edge fills
+  the rest of the room, as `Dock.Fill` does. A text box or a button added last used to
+  stand in the middle of the rest at its natural size. `LastChildFill = false` brings
+  that back
+- An explicit `Size` beats stretching. `HorizontalAlignment.Stretch`,
+  `VerticalAlignment.Stretch` and `Dock.Fill` fill only an axis without a size; an
+  element with a `Size` keeps it and is centered in its slot, as in WPF and Avalonia.
+  A progress bar of `Size = 100×10` used to be stretched to the slot's width
+- A data grid, a map and the charts fill their space by default: `Stretch` on both
+  axes. Charts and the map stood centered at their default size; a chart with a
+  `Size` keeps it
+- Text is laid out by the font's line — its ascent and descent — rather than by the
+  ink of the letters. Controls with a caption are a few pixels taller, as tall as the
+  Fluent sizes assume, and every caption of one font stands on one baseline
+- `Label.VerticalContentAlign` is `Center` by default, as on every other control
+  with a caption; it was `Top`. `Label.LineSpacing` is 1 by default: it now multiplies
+  the font's line, not the ink of "Wg", which the old 1.2 made up for
+- `RichLabel.ContentAlign` and `ContentVerticalAlign` are obsolete: use
+  `HorizontalContentAlign` and `VerticalContentAlign`, as on `Label` and `Button`
+- `UIElement.Bind` finds the source's property on the type the call passes, not on the
+  runtime type, so that trimming keeps it. A property declared only on a derived type
+  is found when the source is passed as that type; a source passed as `object` goes to
+  an overload marked `[RequiresUnreferencedCode]`, which looks at the runtime type as
+  before
+- The extension classes are named `...Extensions`: `UIElementExtensions`,
+  `FontExtensions`, `ObservableCollectionExtensions`,
+  `ObservableCollectionUIElementExtensions` (were `...Ex`). Only code that calls them as
+  static methods by the class name changes
+- `GalleryItem.Load` takes its cancellation token last (internal)
+
+### Fixes
+
+- `DataGridView` fills a `DockPanel`'s rest and a `SplitView`'s content without
+  `Dock.Fill`. Its height was centered, as a button's is: the grid stood as a strip of
+  ten rows in the middle of the room
+- `TextBox` validation shows a result only once there is something to judge: after the
+  user has changed the field and left it, or after `Validate()`. Passing through an
+  untouched field validated it, and an empty e-mail field — accepted, being optional —
+  lit up green before anything was typed. An empty accepted field is not praised at
+  all; while a result is shown, a fixed error clears as you type, and a correct field
+  being retyped goes neutral rather than red until you leave it. `ResetValidation()`
+  makes a field new again
+- An element shown again is laid out again. Hidden, it is skipped by its panel's
+  measure and kept a stale "measure me" mark, and the mark stopped the walk up to the
+  panel when it was shown: the panel stayed measured without it, and the element
+  didn't come back until something else laid the page out — scrolling, for one
+- `WrapPanel.Spacing` lies between the first and the second element of a line too.
+  The arrange added it after each element rather than before it, so the first two
+  touched — a toggle switch's caption ran into the next switch — while the measure
+  counted the gap
+- A control inside a `ZoomBox` redraws the whole box when it changes: its place on
+  screen doesn't add up from offsets under the zoom, and a hovered button repainted
+  where it would have been unzoomed
+
+### ZoomBox
+
+- Zooms around a point: the wheel around the cursor, a pinch between the fingers,
+  `Zoom(factor)` around the middle of the box, `Zoom(factor, anchor)` around any point.
+  It used to scale around the box's top-left corner, and a child in the middle slid out
+  of view as it grew
+- The zoomed child stays in sight: larger than the box, it covers it with no empty
+  strip at an edge; smaller, it stays inside. Dragged with the mouse or a finger, it
+  shows the rest (`PanOffset`); `ResetZoom()` puts it back
+- `WheelZoomModifiers`: the keys to hold for the wheel to zoom. With `Control` the
+  plain wheel goes on scrolling the page over the box. None by default, as before
+- `ZoomChanged`, for the wheel, a pinch and a call alike
+
+### Visibility transitions
+
+- `EnterTransition` and `ExitTransition` play when `IsVisible` changes, as they do when
+  a panel gets or loses the element: hidden, it is drawn on top until its exit ends;
+  shown again, it enters. Hiding and showing was instant whatever the rules
+
+### Markup
+
+- `.zfml` markup, compiled by a generator in the package: `x:Class` names the class,
+  and the build adds a part of it with a field for every `x:Name` and an
+  `InitializeComponent()` of plain C# — no reflection, so trimming and native AOT keep
+  everything. Code-first stays the main way; markup is an option
+- Elements of the default namespace are the framework's types, `using:Namespace` the
+  application's; attributes are properties and events, `Owner.Property` reads as the
+  element's own; values follow the style sheets' rule — a constructor's arguments, a
+  static member, an enum member, a color — with commas allowed: `Size="800,600"`
+- Children go to the first property that takes their type: one marked `[Content]`
+  (`ZeppelinForms.Forms.Markup.ContentAttribute`), then Children, Items, Nodes, Content,
+  Child. `<Type.Property>` names a property; `<x:String>` is a text item
+- `{Bind Name.Property}` and `{Bind Name.Property, Mode=TwoWay}` bind to a named element;
+  `{x:Null}`. Theme references are left to style sheets, which follow the theme
+- Errors at their line of the markup: ZF2001–ZF2010. The generated code carries `#line`
+  directives, so the compiler's own errors — a handler of the wrong signature — point
+  at the markup too
+- A class whose code declares no constructor gets one; an edit of the markup is applied
+  by Hot Reload, which builds it again
+- The package adds every `*.zfml` of a project for the generator; Visual Studio opens
+  them in the XML editor
+- The showcase's "Markup" page: a card written in `SignUpCard.zfml`
+
+### Hot Reload
+
+- Visual Studio's Hot Reload and `dotnet watch` reach the open forms: the framework
+  registers a `MetadataUpdateHandler`, and after every applied edit, on the UI thread,
+  each form calls `Form.OnHotReload`, then every element's `UIElement.OnHotReload`,
+  then restyles, measures everything anew and redraws. An edited `Draw`,
+  `MeasureOverride` or theme rule shows at once; before, the method was replaced but
+  nothing redrew until something else asked
+- Pages made by factories are made again when the factory's assembly changed: the
+  chosen entry of a `SplitView` and the shown page of a `PageControl` at once, the
+  others when they are chosen next. An edit in another assembly — a model — keeps them
+- `HotReloadEventArgs` tells what changed: `Changed(Type)` counts an edit inside a
+  lambda or an async method as an edit of the type it was written in,
+  `Changed(Delegate)` asks about the assembly of a factory. `HotReload.Applied` is raised
+  once the forms have caught up, `HotReload.IsSupported` says whether edits can come at all
+- A failing hook — code in the middle of being edited — is reported to `Trace` and
+  doesn't stop the others or close the application
+- A control class added by an edit can be named by a style sheet at once
+- The showcase builds its menu again after an edit of `ExampleMainForm`, keeping the
+  page chosen
+
+### Text
+
+- `Label.TextWrapping`: `Wrap` breaks the lines into rows at the edge of the room,
+  after spaces; a word wider than the room is broken where it overflows.
+  `Label.TextTrimming` shortens a row that doesn't fit with "…", at a character or at
+  a word. `Label.MaxLines` caps the rows, the last one kept ending with "…". The text
+  box wraps by the same code
+- Captions stand on one baseline: `Graphics.DrawText` places a line by the font's
+  ascent and descent, as `DrawTextLine` and `DrawRuns` already did. It used to center
+  the ink of the letters actually drawn: "OK" and "Apply" in two equal buttons stood
+  at different heights, the descenders of the second pushing it up. Controls are
+  measured by the font's line too (`TextMeasurer.LineHeight`, `MeasureLine`)
+- `Graphics.DrawSymbol` centers a symbol by its ink: the calendar's arrows and day
+  numbers, the percentage in a circular progress bar and on a pie chart's slices, the
+  numbers of a page indicator. Alone in its shape, a symbol must look centered there
+- `FontMetrics` and `ITextMeasurer.MeasureFont`. A measurer written before has a
+  default implementation that estimates them from `MeasureRuns`
+- `HorizontalContentAlign` and `VerticalContentAlign` of `Label`, `RichLabel`,
+  `Button`, `CheckBox`, `RadioButton`, `ToggleSwitch` and `TextBox` are styled
+  properties: a style sheet sets them, and a change redraws at once. A label's
+  alignment set after it was shown was not drawn until something else redrew it
+- Bidirectional text: the Unicode Bidirectional Algorithm (UAX #9) orders every line —
+  Hebrew and Arabic run right to left inside left-to-right text, numbers and brackets
+  take their sides, explicit embeddings, overrides and isolates are honoured. The
+  paragraph's direction is the element's `FlowDirection`, passed to the backend as
+  `Graphics.TextDirection`. Hebrew used to be drawn backwards. The character classes
+  are generated from the Unicode Character Database (`tools/Unicode`)
+- Shaping with HarfBuzz (`SkiaSharp.HarfBuzz`): Arabic letters join, the vowel signs of
+  Devanagari and the other scripts of India and South-East Asia stand in their places,
+  combining marks sit on their letters, emoji sequences compose into one picture.
+  Latin, Greek, Cyrillic and CJK keep the path they had — a glyph per character — so
+  their widths and every snapshot stay as they were
+- `TextLineLayout`, from `ITextMeasurer.LayOutLine`: a line as it stands on the screen,
+  its runs in visual order and the box of every character, for carets, selections and
+  clicks. A measurer written before has a default implementation that resolves the
+  directions itself and measures by prefixes
+- `TextBox` places the caret, the selection and a click by the row's layout: in mixed
+  text the caret stands at the right end of a Hebrew word before its first letter, a
+  selection across directions is drawn in pieces, a click takes the nearer edge of the
+  letter under it. Left and Right move across the screen in a mixed row; in a
+  right-to-left field Right goes back along the text
+- `TextBox` honours `HorizontalContentAlign`, read from the start of the text: a
+  right-to-left field starts at its right edge. A single line that fits no longer keeps
+  a scroll offset left from when it was longer
+- Input methods — Chinese, Japanese, Korean input, a phone's keyboard composing a word:
+  the text being composed is shown in the field, underlined at the caret, and enters
+  the text when it is committed; it takes the selection's place, and the keys are the
+  input method's while it composes. The field tells the window where its caret is
+  (`ITextInputMethodWindow`), and the candidate list opens under it
+  - Windows: WM_IME_COMPOSITION is read by the window, the system's composition window
+    is off. It used to draw the composition in a window of its own, near the top-left
+    corner — the caret was never reported
+  - Android: the keyboard's word in progress is a composition. It used to be typed,
+    erased and typed again with every letter
+  - Browser: a hidden text area stands at the focused field's caret and holds the
+    page's focus — input methods compose into it, and a phone shows its keyboard. A
+    canvas alone took neither: there was no way to type Chinese, nor anything at all on
+    a phone
+  - Linux: the input context is over the spot — ibus and fcitx draw the composition
+    at the caret rather than where they chose
+- `HeadlessInput.Compose` and `CommitComposition` for tests
+- Without HarfBuzz's native library — an application published without the
+  HarfBuzzSharp.NativeAssets package of its platform — complex text is drawn unshaped,
+  as before 0.15, with a warning to `Trace`, rather than failing at the first Hebrew word
+
+### Analyzers, trimming and native AOT
+
+- The framework is `IsAotCompatible`: the trim, AOT and single-file analyzers run on
+  every build, with no warnings — with `TreatWarningsAsErrors`, a reflection the trimmer
+  can't follow now fails the framework's build rather than an application's publish.
+  The package is marked trimmable
+- Style sheets no longer depend on enumerating assemblies. A generator in the package
+  writes a module initializer into every assembly with controls, listing them for the
+  style system (`StyleTypeRegistry`); trimming keeps them and native AOT finds them.
+  The enumeration stays for assemblies built without the generator, behind the
+  `ZeppelinForms.Styling.ScanAssemblies` feature switch, which the package turns off for
+  trimmed and AOT publishing
+- A style sheet's values are written by the types the styled properties declare
+  (`StyledProperty.ValueType` tells the trimmer to keep their constructors and static
+  members); theme paths walk a fixed graph of the theme's types; the property grid
+  lists an enum's members without creating an array of the enum type
+- The public API is declared: `PublicAPI.Shipped.txt` holds what 0.14.1 had,
+  `PublicAPI.Unshipped.txt` what 0.15 adds and removes. A public member added, changed
+  or removed without a line there is a build error (Microsoft.CodeAnalysis.PublicApiAnalyzers)
+- The framework builds with the recommended set of the .NET analyzers
+  (`AnalysisLevel` `latest-recommended`). Parameters of overrides are named as in the
+  base (`e` for event data), culture-sensitive formatting says its culture (a map
+  tile's URL is formatted invariantly), private helpers that touch no state are
+  static. The rules the framework departs from are in its `.editorconfig`, each with
+  its reason
+- The example gets the ZF analyzers and generators through a project reference, as an
+  application gets them with the package
+- A root `.editorconfig` asks for file-scoped namespaces, as every file has: the IDE's
+  own default is the block form, and it kept offering to convert them
+
+### Scroll bars
+
+- Holding the mouse on a scroll bar's track keeps paging, as on every desktop: one page
+  with the press, the next after 400 ms, then one every 50 ms
+  (`PointerThresholds.RepeatDelayMs`, `RepeatIntervalMs`). It pages towards the
+  pointer and stops once the thumb is under it, waits while the pointer is off the
+  track, and never turns back. A press paged once before
+- One implementation for all bars: the `ScrollBar` control, the bars of scrolling
+  panels and the data grid's. The three had a copy each
+- A right click on a panel's scroll bar no longer pages: the right button belongs to
+  the context menu, as it already did on the `ScrollBar` control and the data grid
+
+### DockPanel
+
+- `LastChildFill`, see the breaking changes. Unlike WPF's, a side set explicitly is
+  kept: a status bar added after the content stays a bar
+
+### SplitView navigation
+
+- `SplitView.Items` and `FooterItems`: entries of `SplitViewItem` — a text, an
+  `IconSource`, the content ready-made or made on first choice by a factory and kept
+  — turn the pane into a menu the split view draws itself, as WinUI's navigation view
+  does, with no `Pane` or `Content` to build by hand:
+
+  ```csharp
+  var nav = new SplitView { DisplayMode = SplitViewDisplayMode.CompactInline };
+  nav.Items.Add(new SplitViewItem("Processes", listIcon, () => new ProcessesView()));
+  nav.FooterItems.Add(new SplitViewItem("Settings", gearIcon, () => new SettingsView()));
+  ```
+
+  The first entry is selected as it is added. The menu has a pane button, an optional
+  back button (`IsBackButtonVisible`, `GoBack()`, `CanGoBack`), the pane's title,
+  headers and separators (`SplitViewItem.Header`, `SplitViewItem.Separator`), badges
+  (`Badge`, a dot on the icon while the pane is closed), disabled entries, entries that
+  act without selecting (`SelectsOnInvoke = false`), `SelectedItem`,
+  `SelectionChanged` and `ItemInvoked`. Its icons stand in the compact strip, the
+  texts show as tooltips while the pane is closed; the entries scroll, the footer
+  stays. Up, Down, Home, End, Enter and Space work it; a screen reader reads a list.
+  An overlay pane closes when an entry is chosen. In the Overlay and Inline modes,
+  whose closed pane hides whole, the pane button stands over the content's corner.
+  The colors are styled properties the themes set: `ItemHoverColor`,
+  `SelectedItemColor`, `SelectionIndicatorColor` and the rest
+- A menu and a `Pane` of one's own don't mix: setting one while the other is there
+  throws, with a message saying so
+
+### Examples
+
+- The example is rebuilt as a showcase: one `SplitView` whose pane lists every control,
+  the styles and the effects, grouped as Input, Collections, Layout, Text and graphics,
+  Look and feel, and Interaction, with Settings in the footer. Each page is a
+  self-contained file under `ZF SharedLib/Showcase/`, made of the same parts: a title,
+  a line on what it shows, sections with a card and a note on what to try
+- New demos: the type ramp and text decorations, Markdown, the image gallery, the tab
+  strip, pages with an indicator, the menu bar, the property grid as an inspector, a
+  style sheet editor that applies on the spot, every easing curve, property and layout
+  transitions, shadows, the glitch, all six gestures, custom dialogs
+- Settings switch the theme (Fluent and high contrast among them), the accent, the
+  language, the direction, the text size and motion for the whole application
+- On a phone-wide window the pane closes to its icons and opens over the pages
+
+### Previewer
+
+- A project built against a newer patch of ZeppelinForms than the previewer's own
+  shows its previews. The host loaded the project into the default load context,
+  which binds a reference only to an equal or higher version: a project on the 0.14.1
+  package could not bind to the host's 0.14.0, its forms failed to load, and the list
+  said "no previews". The project now has a load context of its own, which hands out
+  the host's framework whatever version the project asks for
+- Types of the project that can't be loaded are named in the preview window with the
+  reason, instead of vanishing from the list
+- The extension's host is built with the release's version, as the packages are
+- Ctrl+Shift+Alt+P works in the code editor too, and the command is in the context
+  menus of the editor and of a project
+- Zoom: the preview is laid out at its own size and the picture is scaled to the
+  window ("Fit", or 25–200%); the host draws the zoom, so the picture stays sharp.
+  "Fill the window" lays the preview out at the window's size, as "Fit the window" did
+- The picture has a frame and a shadow; the toolbar uses Visual Studio's own styles,
+  light and dark; the window opens among the documents
+- A form in a library that uses a third-party package is previewed: a library's
+  packages are not copied next to it, and they are now found in the NuGet folder by
+  its deps.json
+
+### Releases
+
+- The packages go to nuget.org from the release workflow, by trusted publishing —
+  no API key is stored. GitHub Packages keeps getting them too
+- The Visual Studio extension is published to the Visual Studio Marketplace, from which
+  Visual Studio updates it by itself. Prereleases are not published there
+
 ## [0.14.1]
 
 ## Fixes

@@ -48,6 +48,14 @@ public sealed class HeadlessTextMeasurer : ITextMeasurer
 
     public Task PrepareAsync(Font font) => Task.CompletedTask;
 
+    /// <summary>The line split as a typical font splits it: four fifths above the
+    /// baseline, one below. The sum is the line height MeasureText gives.</summary>
+    public FontMetrics MeasureFont(Font font)
+    {
+        float height = font.Size * LineHeightRatio;
+        return new FontMetrics(height * 0.8f, height * 0.2f);
+    }
+
     public Size MeasureRuns(IReadOnlyList<TextRun> runs, Font baseFont)
     {
         float width = 0;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
@@ -15,6 +16,12 @@ public abstract class Graphics
     /// its captions as usual and they come out decorated.</summary>
     public TextEffects TextEffects { get; set; }
 
+    /// <summary>The direction of the paragraphs of the text drawn now: the element's
+    /// flow direction, set by the tree renderer as it sets <see cref="TextEffects"/>.
+    /// A backend that orders text by the Unicode Bidirectional Algorithm takes it as
+    /// the paragraph level; Hebrew and Arabic run right to left in either.</summary>
+    public FlowDirection TextDirection { get; set; }
+
     public abstract void DrawImage(
         Rectangle rect, Image image,
         ImageFlip flip = ImageFlip.None,
@@ -25,22 +32,48 @@ public abstract class Graphics
 
     public abstract void DrawText(string text, Point position, Color color, Font font);
 
+    /// <summary>A line of text in a rectangle, placed by the font's measures: its line
+    /// box — the ascent over the descent — goes to the top, the middle or the bottom,
+    /// so every text of one font in one rectangle stands on one baseline.</summary>
+    /// <remarks>
+    /// Until 0.15 the glyphs actually drawn were centered, their ink: "OK" and "Apply"
+    /// in two equal buttons stood on different baselines, the descenders of the second
+    /// pushing its letters up. What doesn't fit across is cut off at the rectangle.
+    /// </remarks>
     public abstract void DrawText(
         string text, Rectangle rect, Color color, Font font,
         HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
         VerticalContentAlignment vAlign = VerticalContentAlignment.Center);
 
+    /// <summary>A symbol — an arrow, a day's number in its circle, a percentage in its
+    /// ring — centered by its own ink rather than by the font's line: it stands alone
+    /// in its shape, with no neighbour to share a baseline with, and must look centered
+    /// in it.</summary>
+    /// <remarks>A backend without glyph bounds places it as text.</remarks>
+    public virtual void DrawSymbol(
+        string text, Rectangle rect, Color color, Font font,
+        HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
+        VerticalContentAlignment vAlign = VerticalContentAlignment.Center) =>
+        DrawText(text, rect, color, font, hAlign, vAlign);
+
 
     /// <summary>A line of text placed by the font's metrics rather than by the ink
     /// of its glyphs: where the text is edited or changes, it stays on one baseline.</summary>
     /// <remarks>
+    /// <para>
     /// <see cref="DrawText(string, Rectangle, Color, Font, HorizontalContentAlignment, VerticalContentAlignment)"/>
-    /// centers the glyphs actually drawn, which suits a caption that never changes.
+    /// used to center the glyphs actually drawn, which suits a caption that never changes.
     /// In a field that is typed into it moved the line at every letter: "a" sits
     /// lower than "Ag", and the text jumped as it was typed. Here the line's place
     /// comes from the font alone — the ascent and descent every text of it shares,
     /// as <see cref="DrawRuns"/> lays its runs out. What doesn't fit across is cut
     /// off at the rectangle, as DrawText cuts it.
+    /// </para>
+    /// <para>
+    /// Since 0.15 DrawText places by the font too, and the two put a line on the same
+    /// baseline; this one stays for the clipping across only, which keeps the
+    /// descenders of a line taller than its rectangle.
+    /// </para>
     /// </remarks>
     public virtual void DrawTextLine(
         string text, Rectangle rect, Color color, Font font,

@@ -43,12 +43,65 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
     {
         if (_inputMethod == 0) return 0;
 
+        // over the spot: the input method draws the composition itself, at the spot
+        // the window names — the caret of the focused field, see X11Window.SetTextInputArea.
+        // An input method that can't is asked for nothing, as before
+        nint overTheSpot = CreateOverTheSpotContext(window);
+        if (overTheSpot != 0) return overTheSpot;
+
         return X11.XCreateIC(
             _inputMethod,
             "inputStyle", X11.XIMPreeditNothing | X11.XIMStatusNothing,
             "clientWindow", window,
             "focusWindow", window,
             0);
+    }
+
+    /// <summary>The font set over-the-spot compositions are drawn in; 0 — none could be made.</summary>
+    private nint _imeFontSet = -1;
+
+    private nint CreateOverTheSpotContext(nuint window)
+    {
+        if (_imeFontSet == -1)
+        {
+            // any font of any charset: the input method only needs something to draw with
+            _imeFontSet = X11.XCreateFontSet(
+                Display, "-*-*-medium-r-normal--*-*-*-*-*-*-*-*,*", out nint missing, out _, out _);
+
+            if (missing != 0) X11.XFreeStringList(missing);
+        }
+
+        if (_imeFontSet == 0) return 0;
+
+        // the spot itself is set when a field reports its caret
+        nint spot = Marshal.AllocHGlobal(4);
+
+        try
+        {
+            Marshal.WriteInt32(spot, 0);
+
+            nint attributes = X11.XVaCreateNestedList(0, "spotLocation", spot, "fontSet", _imeFontSet, 0);
+            if (attributes == 0) return 0;
+
+            try
+            {
+                return X11.XCreateIC(
+                    _inputMethod,
+                    "inputStyle", X11.XIMPreeditPosition | X11.XIMStatusNothing,
+                    "clientWindow", window,
+                    "focusWindow", window,
+                    "preeditAttributes", attributes,
+                    0);
+            }
+            finally
+            {
+                X11.XFree(attributes);
+            }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(spot);
+        }
     }
 
     private static nint OpenInputMethod(nint display)

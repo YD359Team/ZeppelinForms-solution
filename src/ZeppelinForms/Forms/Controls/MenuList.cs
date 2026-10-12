@@ -45,7 +45,7 @@ public partial class MenuList : DecoratedControl
         SetControlDefault(PaddingProperty, new(2, 4));
     }
 
-    private float HeightOf(MenuItem item) => item.IsSeparator ? SeparatorHeight : ItemHeight;
+    private static float HeightOf(MenuItem item) => item.IsSeparator ? SeparatorHeight : ItemHeight;
 
     // the background, border and corner radius are drawn by the base — only the menu items here
     protected override void DrawContent(Graphics g)
@@ -121,9 +121,9 @@ public partial class MenuList : DecoratedControl
         return -1;
     }
 
-    protected override void OnMouseMove(MouseMoveEventArgs args)
+    protected override void OnMouseMove(MouseMoveEventArgs e)
     {
-        int index = IndexFromPoint(args.Location);
+        int index = IndexFromPoint(e.Location);
         if (index == _hoveredIndex) return;
 
         _hoveredIndex = index;
@@ -132,7 +132,7 @@ public partial class MenuList : DecoratedControl
         InvalidateVisual();
     }
 
-    protected override void OnMouseExit(MouseMoveEventArgs args)
+    protected override void OnMouseExit(MouseMoveEventArgs e)
     {
         if (_hoveredIndex < 0) return;
 

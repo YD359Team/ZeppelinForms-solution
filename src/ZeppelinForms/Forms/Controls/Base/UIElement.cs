@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using ZeppelinForms.Animation;
@@ -99,8 +100,41 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     public bool IsBound(StyledProperty property) => GetBit(_bound, property.Index);
 
     /// <summary>Bind a property to a property of the source.</summary>
-    /// <remarks>The element holds the binding, the binding holds the source and looks
-    /// at the element weakly — so a live model does not keep a closed window alive.</remarks>
+    /// <remarks>
+    /// <para>
+    /// The element holds the binding, the binding holds the source and looks
+    /// at the element weakly — so a live model does not keep a closed window alive.
+    /// </para>
+    /// <para>
+    /// The property is looked for on the source's type as the call sees it,
+    /// <typeparamref name="TSource"/>, which tells the trimmer to keep its properties.
+    /// A source passed as an <see cref="object"/> goes to the other overload, which looks
+    /// at the runtime type and is not safe to trim.
+    /// </para>
+    /// </remarks>
+    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+        Justification = "The two overloads differ by the source's type, not by the optional mode: no argument " +
+                        "list fits both differently, and a typed source picks this one.")]
+    public Binding Bind<T, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TSource>(
+        StyledProperty<T> property,
+        TSource source,
+        string sourcePropertyName,
+        BindingMode mode = BindingMode.OneWay)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        PropertyInfo sourceProperty = typeof(TSource).GetProperty(sourcePropertyName)
+            ?? throw new ArgumentException(
+                $"{typeof(TSource).Name} has no property '{sourcePropertyName}'. A property of a derived " +
+                "type is found when the source is passed as that type.",
+                nameof(sourcePropertyName));
+
+        return BindTo(property, source, sourceProperty, mode);
+    }
+
+    /// <summary>Bind a property to a property of a source known only at run time.</summary>
+    [RequiresUnreferencedCode("The property is looked for on the source's runtime type, whose properties " +
+                              "trimming may remove. Pass the source as its own type to use the trimming-safe overload.")]
     public Binding Bind<T>(
         StyledProperty<T> property,
         object source,
@@ -114,6 +148,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
                 $"{source.GetType().Name} has no property '{sourcePropertyName}'.",
                 nameof(sourcePropertyName));
 
+        return BindTo(property, source, sourceProperty, mode);
+    }
+
+    private Binding BindTo<T>(StyledProperty<T> property, object source, PropertyInfo sourceProperty, BindingMode mode)
+    {
         // binding the same property again replaces the previous binding
         Unbind(property);
 
@@ -1298,6 +1337,19 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     {
         get
         {
+            // under a content transform — a ZoomBox scales and moves its child — the
+            // place on screen doesn't add up from offsets: the whole box is redrawn,
+            // the outermost one if they are nested. A hovered button inside a zoomed
+            // box used to repaint the rectangle it would have had unzoomed
+            UIElement? transformed = null;
+
+            for (UIElement? current = Parent; current is not null; current = current.Parent)
+                if (current is WrapControl { TransformsChild: true })
+                    transformed = current;
+
+            if (transformed is not null)
+                return transformed.DirtyBounds;
+
             Point absolute = GetAbsolutePosition();
 
             return LocalDirtyBounds.Offset(absolute.X, absolute.Y);
@@ -1605,12 +1657,12 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     private bool _skipEnterTransition;
     private bool _skipExitTransition;
 
-    /// <summary>How the element appears on an already shown screen.
-    /// null — instantly, as before.</summary>
+    /// <summary>How the element appears on an already shown screen: added to a
+    /// panel, or shown again with IsVisible. null — instantly, as before.</summary>
     public VisibilityTransition? EnterTransition { get; set; }
 
-    /// <summary>How the element disappears when it is removed from a panel.
-    /// null — instantly, as before.</summary>
+    /// <summary>How the element disappears when it is removed from a panel or
+    /// hidden with IsVisible. null — instantly, as before.</summary>
     public VisibilityTransition? ExitTransition { get; set; }
 
     internal VisibilityTransition? EffectiveEnterTransition =>
@@ -1643,6 +1695,46 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// <summary>Whether the element qualifies as exiting: only what was
     /// already on screen can disappear.</summary>
     internal bool CanAnimateExit => TransitionsActive && _hasBeenArranged && IsVisible;
+
+    /// <summary>Shown again on a screen already seen: the next arrange plays the
+    /// enter transition, as the first arrange of an added element does.</summary>
+    private bool _enterOnNextArrange;
+
+    /// <summary>The visibility OnVisibilityChanged saw last.</summary>
+    private bool _lastVisible = true;
+
+    /// <summary>IsVisible changed: the element appears and disappears the way an
+    /// added and a removed one do.</summary>
+    /// <remarks>
+    /// Before 0.15 EnterTransition and ExitTransition played only when a panel got
+    /// or lost the element; hiding and showing it was instant, whatever its rules.
+    /// </remarks>
+    private void OnVisibilityChanged()
+    {
+        // a binding writes its value without comparing: the same value again is no change
+        if (IsVisible == _lastVisible) return;
+
+        _lastVisible = IsVisible;
+
+        var panel = Parent as PanelControl;
+
+        if (IsVisible)
+        {
+            // back before its disappearance has ended: it must not be drawn twice
+            panel?.CancelExit(this);
+
+            // only what has been on screen appears: an element hidden before the
+            // form was first laid out simply turns up with it
+            _enterOnNextArrange = _hasBeenArranged;
+        }
+        else
+        {
+            _enterOnNextArrange = false;
+
+            if (panel is not null && TransitionsActive && _hasBeenArranged)
+                panel.BeginHide(this);
+        }
+    }
 
     private void StartEnterTransition()
     {
@@ -1784,6 +1876,11 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// </remarks>
     private void InvalidateLayoutFor(StyledProperty property)
     {
+        // every way of setting a value comes here — the element's own, a style, a
+        // theme, a binding — and visibility is a layout property
+        if (ReferenceEquals(property, IsVisibleProperty))
+            OnVisibilityChanged();
+
         if (property.Inherits ||
             ReferenceEquals(property, FontProperty) ||
             ReferenceEquals(property, FlowDirectionProperty))
@@ -1817,28 +1914,39 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// and a comparison with that would miss a real change.</summary>
     private Size _arrangedSize;
 
-    public void Arrange(Rectangle finalRect)
-    {
+    public void Arrange(Rectangle finalRect) =>
         // Dock.Fill is an explicit demand to take everything, it overrides alignment
-        bool fill = Docking == Dock.Fill;
+        Arrange(finalRect, fill: Docking == Dock.Fill);
 
-        bool stretchH = fill || HorizontalAlignment == HorizontalAlignment.Stretch;
-        bool stretchV = fill || VerticalAlignment == VerticalAlignment.Stretch;
+    /// <summary>Arrange, filling the rectangle whatever the alignment says when
+    /// <paramref name="fill"/> is set: for a panel that gives a child the rest of the
+    /// room by a rule of its own — a dock panel's last child — without writing
+    /// <see cref="Docking"/>, which is the application's.</summary>
+    internal void Arrange(Rectangle finalRect, bool fill)
+    {
+
+        // An explicit size beats stretching: Stretch and Dock.Fill fill only an axis
+        // left to the layout. A progress bar of Size 100×10 in a wider slot used to be
+        // stretched to the slot's width, its size quietly ignored; now it keeps its
+        // size and stands in the middle of the slot, as in WPF and Avalonia
+        bool stretchH = _explicitSize.IsWidthAuto && (fill || HorizontalAlignment == HorizontalAlignment.Stretch);
+        bool stretchV = _explicitSize.IsHeightAuto && (fill || VerticalAlignment == VerticalAlignment.Stretch);
 
         float width = stretchH ? finalRect.Width : Math.Min(DesiredSize.Width, finalRect.Width);
         float height = stretchV ? finalRect.Height : Math.Min(DesiredSize.Height, finalRect.Height);
 
+        // a stretch that the explicit size refused centers the element, as Center does
         float x = stretchH ? finalRect.X : HorizontalAlignment switch
         {
             HorizontalAlignment.Right => finalRect.X + finalRect.Width - width,
-            HorizontalAlignment.Center => finalRect.X + (finalRect.Width - width) / 2f,
+            HorizontalAlignment.Center or HorizontalAlignment.Stretch => finalRect.X + (finalRect.Width - width) / 2f,
             _ => finalRect.X,
         };
 
         float y = stretchV ? finalRect.Y : VerticalAlignment switch
         {
             VerticalAlignment.Bottom => finalRect.Y + finalRect.Height - height,
-            VerticalAlignment.Center => finalRect.Y + (finalRect.Height - height) / 2f,
+            VerticalAlignment.Center or VerticalAlignment.Stretch => finalRect.Y + (finalRect.Height - height) / 2f,
             _ => finalRect.Y,
         };
 
@@ -1848,7 +1956,9 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         // the element was added to a screen that has already been seen.
         // A first arrange together with the parent is just the form opening,
         // there is no point animating it
-        bool appearing = !_hasBeenArranged && Parent is { _hasBeenArranged: true };
+        bool appearing = (!_hasBeenArranged && Parent is { _hasBeenArranged: true }) || _enterOnNextArrange;
+
+        _enterOnNextArrange = false;
 
         // compare with the place from the previous layout, not with Position:
         // a scrolling panel adjusts its children's Position after Arrange,
@@ -1965,10 +2075,20 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// <remarks>
     /// The walk up stops at the first element that is already marked: if an
     /// element is invalid, so are all its ancestors — they were marked together with it.
+    /// <para>
+    /// Not quite for the element itself, though: a hidden element is skipped by its
+    /// panel's measure, so its mark stays while the panel's is cleared. The walk
+    /// used to stop right at it, and an element shown again left its panel measured
+    /// without it — the card of the show-and-hide demo didn't come back until
+    /// something else laid the page out. The element's own mark no longer stops
+    /// the walk; an ancestor's still does.
+    /// </para>
     /// </remarks>
     internal void InvalidateMeasure()
     {
-        for (UIElement? current = this; current is not null; current = current.Parent)
+        _measureValid = false;
+
+        for (UIElement? current = Parent; current is not null; current = current.Parent)
         {
             if (!current._measureValid) break;
 
@@ -2061,7 +2181,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     protected internal virtual bool HitTestSelfFirst(Point localPoint) => false;
 }
 
-public static class UIElementEx
+public static class UIElementExtensions
 {
     /// <summary>Configure the element in place without breaking the expression.</summary>
     public static T With<T>(this T element, Action<T> configure) where T : UIElement

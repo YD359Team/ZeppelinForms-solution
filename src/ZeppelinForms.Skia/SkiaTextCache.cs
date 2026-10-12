@@ -17,6 +17,14 @@ internal readonly struct FontRun(int start, int length, SKFont font, float width
     /// <summary>The piece's advance width. Computed once during parsing,
     /// so that drawing doesn't measure the same thing again.</summary>
     public float Width { get; } = width;
+
+    /// <summary>Whether the piece runs right to left. The pieces of a line are kept in
+    /// visual order, left to right: drawing just goes along them.</summary>
+    public bool IsRightToLeft { get; init; }
+
+    /// <summary>The glyphs HarfBuzz gave the piece, or null for a piece drawn a glyph per
+    /// character — Latin, Cyrillic, CJK, as always.</summary>
+    public ShapedRun? Shaped { get; init; }
 }
 
 /// <summary>A line split into pieces and its extents for a given font.</summary>
@@ -94,8 +102,9 @@ internal sealed class CachedLine : IDisposable
 
         FontRun run = Runs[index];
 
-        SKTextBlob? blob = SKTextBlob.Create(
-            Text.AsSpan(run.Start, run.Length), run.Font);
+        SKTextBlob? blob = run.Shaped is { } shaped
+            ? BuildShapedBlob(run.Font, shaped)
+            : SKTextBlob.Create(Text.AsSpan(run.Start, run.Length), run.Font);
 
         _blobs[index] = blob;
         _probed[index] = true;
@@ -103,6 +112,24 @@ internal sealed class CachedLine : IDisposable
         return blob;
     }
 
+
+    /// <summary>A blob of glyphs placed where the shaper put them.</summary>
+    private static SKTextBlob? BuildShapedBlob(SKFont font, ShapedRun shaped)
+    {
+        if (shaped.Glyphs.Length == 0) return null;
+
+        using var builder = new SKTextBlobBuilder();
+
+        SKPositionedRunBuffer buffer = builder.AllocatePositionedRun(font, shaped.Glyphs.Length);
+        buffer.SetGlyphs(shaped.Glyphs);
+        buffer.SetPositions(shaped.Positions);
+
+        return builder.Build();
+    }
+
+    /// <summary>The line laid out for carets and selections, made on first request.
+    /// Its boxes come from the same pieces the drawing goes along.</summary>
+    public ZeppelinForms.Drawing.TextLineLayout? Layout { get; set; }
 
     private bool _disposed;
 

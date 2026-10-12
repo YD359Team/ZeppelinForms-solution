@@ -377,17 +377,15 @@ export function init(canvasId) {
         zf().OnContextMenu(localX(e), localY(e));
     });
 
-    canvas.addEventListener("keydown", e => {
-        // Tab takes focus off the page, F keys and Backspace also
-        // have browser behavior — all of it is ours
-        if (e.key !== "F5" && e.key !== "F12") {
-            e.preventDefault();
-        }
-        zf().OnKeyDown(e.code, e.key, modifiers(e), e.repeat);
-    });
+    canvas.addEventListener("keydown", forwardKeyDown);
 
     canvas.addEventListener("keyup", e => zf().OnKeyUp(e.code, modifiers(e)));
-    canvas.addEventListener("blur", () => zf().OnFocusLost());
+
+    // focus passing to the hidden text area of a text field is not the page losing it
+    canvas.addEventListener("blur", e => {
+        if (imeInput && e.relatedTarget === imeInput) return;
+        zf().OnFocusLost();
+    });
 
     document.addEventListener("visibilitychange", () =>
         zf().OnVisibilityChange(document.visibilityState === "visible"));
@@ -411,6 +409,140 @@ export function init(canvasId) {
     window.addEventListener("resize", () => resize());
 
     resize();
+}
+
+// Tab takes focus off the page, F keys and Backspace also have browser
+// behavior — all of it is ours
+function forwardKeyDown(e) {
+    if (e.key !== "F5" && e.key !== "F12") {
+        e.preventDefault();
+    }
+    zf().OnKeyDown(e.code, e.key, modifiers(e), e.repeat);
+}
+
+// ===== text input: input methods and on-screen keyboards =====
+//
+// A canvas takes keys but not text the way the system composes it: an input method
+// (Chinese, Japanese, Korean) has nowhere to put its composition, and a phone shows
+// no keyboard for it at all. While a text field of a form has the focus, a hidden
+// text area stands at its caret and holds the page's focus: ordinary keys go on as
+// keydown, the input method's composition comes as composition events, and a phone's
+// keyboard types through beforeinput. The area itself always stays empty.
+
+let imeInput = null;
+let composing = false;
+
+function ensureImeInput() {
+    if (imeInput) return imeInput;
+
+    imeInput = document.createElement("textarea");
+    imeInput.setAttribute("autocomplete", "off");
+    imeInput.setAttribute("autocorrect", "off");
+    imeInput.setAttribute("autocapitalize", "off");
+    imeInput.setAttribute("spellcheck", "false");
+    imeInput.setAttribute("aria-hidden", "true");
+    imeInput.tabIndex = -1;
+
+    // invisible but focusable and placed: the candidate list opens at it. 16px keeps
+    // mobile Safari from zooming the page in on focus
+    Object.assign(imeInput.style, {
+        position: "fixed", left: "0px", top: "0px", width: "1px", height: "1px",
+        padding: "0", margin: "0", border: "0", outline: "none", resize: "none",
+        overflow: "hidden", opacity: "0", color: "transparent", background: "transparent",
+        caretColor: "transparent", fontSize: "16px", whiteSpace: "pre",
+    });
+
+    document.body.appendChild(imeInput);
+
+    imeInput.addEventListener("keydown", e => {
+        // the input method is composing: the key is its own (229 is "Process")
+        if (e.isComposing || e.keyCode === 229) return;
+        forwardKeyDown(e);
+    });
+
+    imeInput.addEventListener("keyup", e => {
+        if (e.isComposing || e.keyCode === 229) return;
+        zf().OnKeyUp(e.code, modifiers(e));
+    });
+
+    imeInput.addEventListener("compositionstart", () => { composing = true; });
+
+    imeInput.addEventListener("compositionupdate", e => {
+        const text = e.data ?? "";
+        zf().OnCompositionUpdate(text, text.length);
+    });
+
+    imeInput.addEventListener("compositionend", e => {
+        composing = false;
+        zf().OnCompositionCommit(e.data ?? "");
+        imeInput.value = "";
+    });
+
+    // a phone's keyboard: no keydown worth reading, the text comes here
+    imeInput.addEventListener("beforeinput", e => {
+        if (e.isComposing || composing ||
+            e.inputType === "insertCompositionText" || e.inputType === "insertFromComposition") {
+            return;
+        }
+
+        e.preventDefault();
+
+        switch (e.inputType) {
+            case "insertText":
+            case "insertReplacementText":
+                if (e.data) zf().OnTextInput(e.data);
+                break;
+            case "insertLineBreak":
+            case "insertParagraph":
+                pressKey("Enter");
+                break;
+            case "deleteContentBackward":
+                pressKey("Backspace");
+                break;
+            case "deleteContentForward":
+                pressKey("Delete");
+                break;
+        }
+    });
+
+    imeInput.addEventListener("input", () => {
+        if (!composing) imeInput.value = "";
+    });
+
+    imeInput.addEventListener("blur", e => {
+        if (e.relatedTarget === canvas) return;
+        zf().OnFocusLost();
+    });
+
+    return imeInput;
+}
+
+function pressKey(code) {
+    zf().OnKeyDown(code, code, 0, false);
+    zf().OnKeyUp(code, 0);
+}
+
+// The focused field's caret, in the canvas's logical units: the hidden area goes there
+// and takes the focus — called while the press that focused the field is handled, so
+// a phone shows its keyboard
+export function setTextInputArea(x, y, width, height) {
+    const input = ensureImeInput();
+    const rect = canvas.getBoundingClientRect();
+
+    input.style.left = `${rect.left + x}px`;
+    input.style.top = `${rect.top + y}px`;
+    input.style.height = `${Math.max(1, height)}px`;
+
+    if (document.activeElement !== input) {
+        input.focus({ preventScroll: true });
+    }
+}
+
+// No field has the focus: the canvas takes the keys back
+export function clearTextInputArea() {
+    if (imeInput && document.activeElement === imeInput) {
+        canvas.focus({ preventScroll: true });
+    }
 }
 
 function resize() {

@@ -3,7 +3,7 @@ using ZeppelinForms.Forms.Controls.Base;
 
 namespace ZeppelinForms.Core.Collections;
 
-public static class ObservableCollectionUIElementEx
+public static class ObservableCollectionUIElementExtensions
 {
     extension(ObservableCollection<UIElement> oc)
     {

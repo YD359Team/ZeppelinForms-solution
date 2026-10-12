@@ -6,10 +6,11 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class Button : ButtonBase, ITextElement
+public partial class Button : ButtonBase, ITextElement
 {
     public string? Text
     {
@@ -25,8 +26,17 @@ public class Button : ButtonBase, ITextElement
         }
     }
 
-    public HorizontalContentAlignment HorizontalContentAlign { get; set; } = HorizontalContentAlignment.Center;
-    public VerticalContentAlignment VerticalContentAlign { get; set; } = VerticalContentAlignment.Center;
+    /// <summary>Where the text stands across its room. A styled property: a style
+    /// sheet sets it, and a change redraws at once.</summary>
+    [Styled(Category = "Text")]
+    public partial HorizontalContentAlignment HorizontalContentAlign { get; set; }
+    private static HorizontalContentAlignment HorizontalContentAlignDefault => HorizontalContentAlignment.Center;
+
+    /// <summary>Where the text stands up and down in its room, when the control is
+    /// taller than its text.</summary>
+    [Styled(Category = "Text")]
+    public partial VerticalContentAlignment VerticalContentAlign { get; set; }
+    private static VerticalContentAlignment VerticalContentAlignDefault => VerticalContentAlignment.Center;
 
     /// <summary>An icon beside the text: SVG path data in the text's color, or a picture.
     /// Where it stands — <see cref="IconPlacement"/>.</summary>
@@ -112,7 +122,7 @@ public class Button : ButtonBase, ITextElement
             return;
         }
 
-        Size textSize = text is null ? Size.Empty : TextMeasurer.Current.MeasureText(text, EffectiveFont);
+        Size textSize = text is null ? Size.Empty : TextMeasurer.MeasureLine(text, EffectiveFont);
         float gap = text is null ? 0f : IconGap;
 
         if (IconIsVertical)
@@ -184,7 +194,7 @@ public class Button : ButtonBase, ITextElement
     {
         Size textSize = string.IsNullOrEmpty(Text)
             ? Size.Empty
-            : TextMeasurer.Current.MeasureText(ApplyTextTransform(Text), EffectiveFont);
+            : TextMeasurer.MeasureLine(ApplyTextTransform(Text), EffectiveFont);
 
         float width = textSize.Width;
         float height = textSize.Height;

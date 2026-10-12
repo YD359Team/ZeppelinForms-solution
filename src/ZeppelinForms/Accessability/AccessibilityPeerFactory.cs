@@ -26,14 +26,6 @@ internal static class AccessibilityPeerFactory
 {
     public static AccessibilityPeer? Create(UIElement element) => element switch
     {
-        // buttons
-        ToggleButton toggle => new ToggleButtonPeer(toggle),
-        SplitButton split => new SplitButtonPeer(split),
-        ButtonBase button => new ButtonPeer(button),
-        CheckBox box => new CheckBoxPeer(box),
-        RadioButton radio => new RadioButtonPeer(radio),
-        ToggleSwitch toggleSwitch => new ToggleSwitchPeer(toggleSwitch),
-
         // text
         LinkLabel link => new LinkPeer(link),
         HintLabel hint => new HintLabelPeer(hint),
@@ -73,12 +65,22 @@ internal static class AccessibilityPeerFactory
         Spoiler spoiler => new SpoilerPeer(spoiler),
         SplitView split => new SplitViewPeer(split),
         SplitViewPaneHost pane => new SplitViewPanePeer(pane),
+        SplitViewMenu menu => new SplitViewMenuPeer(menu),
+        SplitViewPaneButton button => new SplitViewPaneButtonPeer(button),
         RefreshContainer refresh => new RefreshContainerPeer(refresh),
         ImageGallery gallery => new ImageGalleryPeer(gallery),
         ImageViewer viewer => new ImageViewerPeer(viewer),
         ChartBase chart => new ChartPeer(chart),
         PictureBox or SvgIcon => new ImagePeer(element),
         GridSplitter => new SeparatorPeer(element),
+
+        // buttons
+        ToggleButton toggle => new ToggleButtonPeer(toggle),
+        SplitButton split => new SplitButtonPeer(split),
+        ButtonBase button => new ButtonPeer(button),
+        CheckBox box => new CheckBoxPeer(box),
+        RadioButton radio => new RadioButtonPeer(radio),
+        ToggleSwitch toggleSwitch => new ToggleSwitchPeer(toggleSwitch),
 
         // a shape is decoration: drawn, never read
         Shape => null,

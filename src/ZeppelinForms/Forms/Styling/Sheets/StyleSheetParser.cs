@@ -299,10 +299,14 @@ internal sealed partial class StyleSheetParser(string baseDirectory)
             var compiled = new Dictionary<Type, ValueExpr>();
             string? firstError = null;
 
-            foreach (Type valueType in candidates.Select(p => p.ValueType).Distinct())
+            // each value type once; read from the property itself, whose ValueType
+            // tells the trimmer what the compiler needs of the type
+            foreach (StyledProperty candidate in candidates)
             {
-                if (StyleValueCompiler.Compile(value, valueType, out string? error) is { } expr)
-                    compiled[valueType] = expr;
+                if (compiled.ContainsKey(candidate.ValueType)) continue;
+
+                if (StyleValueCompiler.Compile(value, candidate.ValueType, out string? error) is { } expr)
+                    compiled[candidate.ValueType] = expr;
                 else
                     firstError ??= error;
             }

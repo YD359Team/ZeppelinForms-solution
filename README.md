@@ -409,6 +409,72 @@ Press `Ctrl`+`Alt`+`Shift`+`P` for showing previewer window.
 
 See needed `Form` or use `[Previewer]` attribute otherwise.
 
+### 📝 Markup
+
+Code-first is the main way, and markup is an option for the parts that read better as a
+tree. A `.zfml` file names its class with `x:Class`; at build time the generator turns it
+into C# — a field for every `x:Name` and an `InitializeComponent()` of plain `new`,
+assignments, `+=` and `Add`. No reflection, so trimming and native AOT keep it all.
+
+```xml
+<StackPanel x:Class="MyApp.SignUpCard"
+            xmlns="https://zeppelinforms.dev/markup"
+            xmlns:x="https://zeppelinforms.dev/markup/x"
+            xmlns:my="using:MyApp.Controls"
+            Orientation="Vertical" Spacing="10">
+  <TextBox x:Name="NameBox" Watermark="Your name" Size="260,NaN"/>
+  <Label Text="{Bind NameBox.Text}"/>
+  <PrimaryButton Text="Sign up" Classes="wide" Click="OnSubmit"/>
+  <my:Gauge Level="0.5"/>
+</StackPanel>
+```
+
+```csharp
+public partial class SignUpCard
+{
+    private void OnSubmit(object? sender, MouseClickEventArgs e) { /* NameBox.Text … */ }
+}
+```
+
+- Values are written as in style sheets: `Padding="14 6"` is `new Thickness(14, 6)`,
+  `Size="260,NaN"`, `Background="#0d6efd"`, enum members, static members by name
+- Children go to the first property that takes them — one marked `[Content]`, then
+  `Children`, `Items`, `Nodes`, `Content`, `Child`; `<Border.Child>` names one
+- `{Bind Name.Property}` binds a styled property to a named element, `Mode=TwoWay`
+  both ways; `{x:Null}` is null; `<x:String>` is a text item of a list
+- An unknown type, property, event or value is a ZF2xxx error at its line of the
+  markup, and so is a handler of the wrong signature
+- A class whose code declares no constructor gets one that calls
+  `InitializeComponent`; Hot Reload builds the markup again after an edit
+
+### 🔥 Hot Reload
+
+Visual Studio's Hot Reload and `dotnet watch` work with code-first forms. After every
+applied edit the open forms restyle, measure and redraw everything, so an edited `Draw`,
+`MeasureOverride` or theme rule shows at once, and pages made by factories — the entries
+of a `SplitView`, the pages of a `PageControl` — are made again when their assembly
+changed. A form built in its constructor builds itself again in `OnHotReload`:
+
+```csharp
+public class MainForm : Form
+{
+    public MainForm()
+    {
+        Title = "Orders";
+        Content = CreateContent();
+    }
+
+    private UIElement CreateContent() => new StackPanel { /* ... */ };
+
+    protected override void OnHotReload(HotReloadEventArgs e) =>
+        Content = CreateContent();
+}
+```
+
+`UIElement.OnHotReload` does the same for a control that builds its children itself, and
+`HotReload.Applied` is raised once the forms have caught up. Style sheets loaded from
+files follow their saves on their own.
+
 ### 🧪 Snapshot Tests
 
 Reference snapshots are stored in:

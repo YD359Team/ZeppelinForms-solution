@@ -24,12 +24,12 @@ public sealed class ZfSynchronizationContext : SynchronizationContext
     /// <summary>One context per UI thread, there is nothing to copy.</summary>
     public override SynchronizationContext CreateCopy() => this;
 
-    public override void Post(SendOrPostCallback callback, object? state) =>
-        _dispatcher.BeginInvoke(() => callback(state));
+    public override void Post(SendOrPostCallback d, object? state) =>
+        _dispatcher.BeginInvoke(() => d(state));
 
     // already on the UI thread the dispatcher runs the callback at once: there is
     // no point going through the queue, and waiting for it is a straight road to
     // a deadlock. From another thread it waits, and rethrows what the callback threw
-    public override void Send(SendOrPostCallback callback, object? state) =>
-        _dispatcher.Invoke(() => callback(state));
+    public override void Send(SendOrPostCallback d, object? state) =>
+        _dispatcher.Invoke(() => d(state));
 }

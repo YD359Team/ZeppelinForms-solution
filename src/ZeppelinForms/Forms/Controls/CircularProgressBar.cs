@@ -35,7 +35,7 @@ public partial class CircularProgressBar : DecoratedControl
             field = value;
             InvalidateVisual();
         }
-    } = 0f;
+    }
 
     public float Maximum
     {
@@ -181,11 +181,12 @@ public partial class CircularProgressBar : DecoratedControl
                 new Size(diameter, LineHeight))
             : content;
 
-        g.DrawText($"{fraction * 100:0}%", textArea, TextColor, EffectiveFont,
+        // the percentage is centered in the ring by its ink, not by the font's line
+        g.DrawSymbol($"{fraction * 100:0}%", textArea, TextColor, EffectiveFont,
             HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
     }
 
-    private float LineHeight => TextMeasurer.Current.MeasureText("0%", EffectiveFont).Height;
+    private float LineHeight => TextMeasurer.LineHeight(EffectiveFont);
 
     protected override Size MeasureOverride(Size availableSize)
     {

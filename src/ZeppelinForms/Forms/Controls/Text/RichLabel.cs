@@ -2,16 +2,39 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls.Text;
 
 /// <summary>A line of text assembled from runs with different formatting.</summary>
-public class RichLabel : DecoratedControl
+public partial class RichLabel : DecoratedControl
 {
     public List<TextRun> Inlines { get; init; } = [];
 
-    public HorizontalContentAlignment ContentAlign { get; set; } = HorizontalContentAlignment.Left;
-    public VerticalContentAlignment ContentVerticalAlign { get; set; } = VerticalContentAlignment.Center;
+    /// <summary>Where the line stands across its room. Named and styled as on every
+    /// other control with a caption.</summary>
+    [Styled(Category = "Text")]
+    public partial HorizontalContentAlignment HorizontalContentAlign { get; set; }
+    private static HorizontalContentAlignment HorizontalContentAlignDefault => HorizontalContentAlignment.Left;
+
+    /// <summary>Where the line stands up and down, when the label is taller than it.</summary>
+    [Styled(Category = "Text")]
+    public partial VerticalContentAlignment VerticalContentAlign { get; set; }
+    private static VerticalContentAlignment VerticalContentAlignDefault => VerticalContentAlignment.Center;
+
+    [Obsolete("Use HorizontalContentAlign, as on Label and Button.")]
+    public HorizontalContentAlignment ContentAlign
+    {
+        get => HorizontalContentAlign;
+        set => HorizontalContentAlign = value;
+    }
+
+    [Obsolete("Use VerticalContentAlign, as on Label and Button.")]
+    public VerticalContentAlignment ContentVerticalAlign
+    {
+        get => VerticalContentAlign;
+        set => VerticalContentAlign = value;
+    }
 
     public void SetText(params TextRun[] runs)
     {
@@ -41,7 +64,7 @@ public class RichLabel : DecoratedControl
     {
         if (Inlines.Count == 0) return;
 
-        g.DrawRuns(DisplayRuns, ContentBounds, EffectiveFont, TextColor, ContentAlign, ContentVerticalAlign);
+        g.DrawRuns(DisplayRuns, ContentBounds, EffectiveFont, TextColor, HorizontalContentAlign, VerticalContentAlign);
     }
 
     protected override Size MeasureOverride(Size availableSize)

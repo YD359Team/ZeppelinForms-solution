@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -86,6 +87,10 @@ public partial class MapControl : InteractiveControl
         Cursor = CursorKind.SizeAll;
         SetControlDefault(BorderColorProperty, new Color(255, 190, 190, 190));
         SetControlDefault(BorderWidthProperty, 1f);
+        // a view onto content, see UnitControl: the map fills its space rather than
+        // standing centered at 400×300 in the middle of it
+        SetControlDefault(HorizontalAlignmentProperty, Enums.HorizontalAlignment.Stretch);
+        SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Stretch);
 
         _diskCacheDirectory = Path.Combine(Path.GetTempPath(), "ZeppelinForms", "MapTiles");
         Directory.CreateDirectory(_diskCacheDirectory);
@@ -293,7 +298,7 @@ public partial class MapControl : InteractiveControl
 
             if (!hovered || string.IsNullOrEmpty(marker.Label)) continue;
 
-            Size labelSize = TextMeasurer.Current.MeasureText(marker.Label, EffectiveFont);
+            Size labelSize = TextMeasurer.MeasureLine(marker.Label, EffectiveFont);
 
             var labelRect = new Rectangle(
                 new Point(screen.X - labelSize.Width / 2 - 6, screen.Y - size - labelSize.Height - 8),
@@ -309,7 +314,7 @@ public partial class MapControl : InteractiveControl
     private void DrawCoordinates(Graphics g, Rectangle content)
     {
         string text = $"{_centerLatitude:F5}, {_centerLongitude:F5}  z{_zoom}";
-        Size size = TextMeasurer.Current.MeasureText(text, EffectiveFont);
+        Size size = TextMeasurer.MeasureLine(text, EffectiveFont);
 
         var rect = new Rectangle(
             new Point(content.X + 6, content.Y + 6),
@@ -324,7 +329,7 @@ public partial class MapControl : InteractiveControl
     private void DrawAttribution(Graphics g, Rectangle content)
     {
         // the ODbL license requires naming the data source
-        Size size = TextMeasurer.Current.MeasureText(Source.Attribution, EffectiveFont);
+        Size size = TextMeasurer.MeasureLine(Source.Attribution, EffectiveFont);
 
         var rect = new Rectangle(
             new Point(content.X + content.Width - size.Width - 12, content.Y + content.Height - size.Height - 8),
@@ -415,7 +420,7 @@ public partial class MapControl : InteractiveControl
             hash *= 16777619;
         }
 
-        return hash.ToString("X8");
+        return hash.ToString("X8", CultureInfo.InvariantCulture);
     }
 
     // ===== input =====

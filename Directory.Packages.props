@@ -12,11 +12,27 @@
 	  <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.152.0" />
 	  <PackageVersion Include="SkiaSharp.NativeAssets.WebAssembly" Version="4.152.0" />
 	  <PackageVersion Include="SkiaSharp.Views" Version="4.152.0" />
+	  <PackageVersion Include="SkiaSharp.HarfBuzz" Version="4.152.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- HarfBuzz shapes complex text since 0.15. The native modules must be the version
+         of HarfBuzzSharp that SkiaSharp.HarfBuzz above depends on: set it to that one -->
+    <HarfBuzzSharpVersion>14.2.1.200</HarfBuzzSharpVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="HarfBuzzSharp.NativeAssets.Win32" Version="$(HarfBuzzSharpVersion)" />
+    <PackageVersion Include="HarfBuzzSharp.NativeAssets.Linux" Version="$(HarfBuzzSharpVersion)" />
+    <PackageVersion Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="$(HarfBuzzSharpVersion)" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.6.0" />
+    <!-- must understand C# 14 extension blocks: the framework declares extension
+         members in them, and an older analyzer names those members differently -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
   </ItemGroup>
 
   <ItemGroup>

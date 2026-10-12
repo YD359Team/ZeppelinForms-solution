@@ -9,9 +9,17 @@ namespace ZeppelinForms.Android;
 
 /// <summary>A bridge between the IME and the form.</summary>
 /// <remarks>
+/// <para>
 /// fullEditor: false means we don't keep an editable buffer on the Android side —
 /// the text lives in the form's TextDocument. Simple IME presses then come as key
 /// events, and suggestions, autocorrection and emoji — through CommitText.
+/// </para>
+/// <para>
+/// Since 0.15 the word being composed goes to the form as a composition: a text field
+/// shows it underlined at the caret, and it enters the text when the keyboard commits
+/// it. A focused element that doesn't show compositions gets it the old way — typed,
+/// and erased and typed again with each new version.
+/// </para>
 /// </remarks>
 internal sealed class ZeppelinInputConnection(View view, Form form)
     : BaseInputConnection(view, fullEditor: false)
@@ -21,10 +29,22 @@ internal sealed class ZeppelinInputConnection(View view, Form form)
     /// before the next version goes in.</summary>
     private int _composing;
 
+    /// <summary>The composition the form shows, for FinishComposingText to commit.</summary>
+    private string _composingText = string.Empty;
+
     /// <summary>The final text: it replaces whatever is still being composed.</summary>
     public override bool CommitText(ICharSequence? text, int newCursorPosition)
     {
-        ReplaceComposing(text?.ToString() ?? string.Empty);
+        string value = text?.ToString() ?? string.Empty;
+
+        if (form.FocusedAcceptsComposition)
+        {
+            _composingText = string.Empty;
+            form.OnCompositionCommit(value);
+            return true;
+        }
+
+        ReplaceComposing(value);
         _composing = 0;
 
         return true;
@@ -37,10 +57,22 @@ internal sealed class ZeppelinInputConnection(View view, Form form)
     /// was inserted on top of the last and "hel" came out as "hhehel". There is still
     /// no underlined "being composed" state in TextDocument, and faking it here is
     /// not our business; but the text itself must be right.
+    /// <para>
+    /// Since 0.15 the state exists — in the field, not in TextDocument: a field that
+    /// shows compositions gets the word as one and underlines it. The typing path
+    /// remains for the elements that don't.
+    /// </para>
     /// </remarks>
     public override bool SetComposingText(ICharSequence? text, int newCursorPosition)
     {
         string value = text?.ToString() ?? string.Empty;
+
+        if (form.FocusedAcceptsComposition)
+        {
+            _composingText = value;
+            form.OnCompositionUpdate(value, value.Length);
+            return true;
+        }
 
         ReplaceComposing(value);
         _composing = new StringInfo(value).LengthInTextElements;
@@ -48,9 +80,14 @@ internal sealed class ZeppelinInputConnection(View view, Form form)
         return true;
     }
 
-    /// <summary>The composed text stays as it is — it simply stops being replaceable.</summary>
+    /// <summary>The composed text stays as it is — it simply stops being replaceable.
+    /// Shown as a composition, it is committed into the text now.</summary>
     public override bool FinishComposingText()
     {
+        if (_composingText.Length > 0 && form.FocusedAcceptsComposition)
+            form.OnCompositionCommit(_composingText);
+
+        _composingText = string.Empty;
         _composing = 0;
 
         return true;

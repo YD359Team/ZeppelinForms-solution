@@ -2,9 +2,9 @@
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.VisualStudio.PlatformUI;
@@ -28,6 +28,16 @@ namespace ZeppelinForms.VisualStudio;
 /// thread is asked to show it once; frames that came in between are dropped, which is
 /// what a screen does with frames it had no time for.
 /// </para>
+/// <para>
+/// Size and zoom are two things. The size is what the preview is laid out at — its
+/// own, a device's, or the window's. The zoom only changes how big the picture is: the
+/// host draws the same layout with more or fewer pixels (the settings' scale is the
+/// window's DPI times the zoom), so a smaller picture stays sharp and is never
+/// stretched. "Fit" picks the zoom that shows the whole preview, never above 100%.
+/// It used to be the other way round: the preview was laid out at the window's size,
+/// and a form of 1024×768 squeezed into a pane 350 pixels wide looked nothing like
+/// the form in the application.
+/// </para>
 /// </remarks>
 internal sealed class PreviewControl : UserControl
 {
@@ -36,38 +46,69 @@ internal sealed class PreviewControl : UserControl
 
     private static readonly string[] Cultures = ["", "en-US", "ru-RU", "de-DE", "ja-JP", "ar-SA", "he-IL"];
 
+    /// <summary>Width −1: the window's size; 0: the preview's own.</summary>
     private static readonly (string Name, double Width, double Height)[] Sizes =
     [
-        ("Fit the window", -1, -1),
-        ("The preview's own", 0, 0),
+        ("The preview's own size", 0, 0),
+        ("Fill the window", -1, -1),
         ("Phone 360 × 640", 360, 640),
         ("Tablet 768 × 1024", 768, 1024),
         ("Desktop 1280 × 800", 1280, 800),
     ];
 
+    /// <summary>0 — fit the window.</summary>
+    private static readonly double[] Zooms = [0, 0.25, 0.5, 0.75, 1, 1.5, 2];
+
     private static readonly float[] TextScales = [1f, 1.25f, 1.5f, 2f];
+
+    /// <summary>The empty space around the picture, room for its shadow.</summary>
+    private const double SurfaceMargin = 24;
 
     private readonly ComboBox _list = new() { MinWidth = 220, Margin = new Thickness(0, 0, 6, 0) };
     private readonly ComboBox _theme = new() { MinWidth = 120, Margin = new Thickness(0, 0, 6, 0) };
-    private readonly ComboBox _size = new() { MinWidth = 140, Margin = new Thickness(0, 0, 6, 0) };
+    private readonly ComboBox _size = new() { MinWidth = 150, Margin = new Thickness(0, 0, 6, 0) };
+    private readonly ComboBox _zoom = new() { MinWidth = 90, Margin = new Thickness(0, 0, 6, 0) };
     private readonly ComboBox _culture = new() { MinWidth = 80, Margin = new Thickness(0, 0, 6, 0), IsEditable = true };
     private readonly ComboBox _textScale = new() { MinWidth = 64, Margin = new Thickness(0, 0, 6, 0) };
-    private readonly ToggleButton _rtl = new() { Content = "RTL", Padding = new Thickness(6, 0, 6, 0), Margin = new Thickness(0, 0, 6, 0) };
-    private readonly Button _reload = new() { Content = "Reload", Padding = new Thickness(6, 0, 6, 0) };
+    private readonly CheckBox _rtl = new() { Content = "RTL", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
+    private readonly Button _reload = new() { Content = "Reload", Padding = new Thickness(8, 1, 8, 1) };
+
+    /// <summary>The zoom actually shown, next to the list. Not in the list's own text:
+    /// a combo box doesn't redraw its selection box when the selected item's content
+    /// changes, and "Fit (64%)" would have stayed "Fit" until another item was chosen.</summary>
+    private readonly TextBlock _zoomInfo = new() { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0), MinWidth = 36 };
 
     private readonly ScrollViewer _scroll = new()
     {
         HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
         VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+        Focusable = false,
+    };
+
+    /// <summary>The picture and its frame, centered in the window.</summary>
+    private readonly Grid _stage = new()
+    {
+        HorizontalAlignment = HorizontalAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center,
+        Margin = new Thickness(SurfaceMargin),
+    };
+
+    /// <summary>A shadow under the picture, so that the preview's own background
+    /// doesn't melt into the window's. A sibling rather than an effect on the picture:
+    /// an effect renders its element again through a bitmap.</summary>
+    private readonly System.Windows.Shapes.Rectangle _shadow = new()
+    {
+        Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 3, Direction = 270, Opacity = 0.35 },
+        Visibility = Visibility.Collapsed,
     };
 
     private readonly Border _surface = new()
     {
         Focusable = true,
         Background = Brushes.Transparent,
-        HorizontalAlignment = HorizontalAlignment.Center,
-        VerticalAlignment = VerticalAlignment.Center,
-        Margin = new Thickness(12),
+        BorderThickness = new Thickness(1),
+        BorderBrush = new SolidColorBrush(Color.FromArgb(0x40, 0x80, 0x80, 0x80)),
+        FocusVisualStyle = null,
     };
 
     private readonly Image _image = new() { Stretch = Stretch.None, SnapsToDevicePixels = true };
@@ -99,6 +140,22 @@ internal sealed class PreviewControl : UserControl
     private FrameMessage? _pendingFrame;
     private int _frameScheduled;
 
+    /// <summary>The zoom asked of the host with the last settings.</summary>
+    private double _requestedZoom = 1;
+
+    /// <summary>The zoom of the picture on screen: pointer positions are divided by it.</summary>
+    private double _shownZoom = 1;
+
+    /// <summary>The size the preview is laid out at, in its own pixels, from the last
+    /// frame; null — no frame of this preview yet.</summary>
+    private Size? _logicalSize;
+
+    /// <summary>The size the last fitting zoom was computed for: a frame of nearly the
+    /// same size doesn't ask again. A frame's size is rounded up to whole device pixels,
+    /// so the size read back from it differs a little with every zoom, and two zooms
+    /// on either side of a step could ask for each other forever.</summary>
+    private Size? _zoomBasis;
+
     public PreviewControl()
     {
         foreach (string theme in Themes) _theme.Items.Add(theme.Length == 0 ? "Preview's theme" : theme);
@@ -106,18 +163,31 @@ internal sealed class PreviewControl : UserControl
         foreach (var size in Sizes) _size.Items.Add(size.Name);
         foreach (float scale in TextScales) _textScale.Items.Add($"{scale:P0}");
 
+        _zoom.Items.Add("Fit");
+        foreach (double zoom in Zooms.Skip(1)) _zoom.Items.Add($"{zoom:P0}");
+
         _theme.SelectedIndex = 0;
         _culture.SelectedIndex = 0;
         _size.SelectedIndex = 0;
+        _zoom.SelectedIndex = 0;
         _textScale.SelectedIndex = 0;
+
+        _theme.ToolTip = "Theme";
+        _size.ToolTip = "The size the preview is laid out at";
+        _zoom.ToolTip = "Zoom: the picture only, the layout stays";
+        _culture.ToolTip = "Culture";
+        _textScale.ToolTip = "Text scale";
+        _rtl.ToolTip = "Right-to-left layout";
 
         var toolbar = new WrapPanel { Margin = new Thickness(6) };
 
-        foreach (UIElement item in new UIElement[] { _list, _theme, _size, _culture, _textScale, _rtl, _reload })
+        foreach (UIElement item in new UIElement[] { _list, _size, _zoom, _zoomInfo, _theme, _culture, _textScale, _rtl, _reload })
             toolbar.Children.Add(item);
 
         _surface.Child = _image;
-        _scroll.Content = _surface;
+        _stage.Children.Add(_shadow);
+        _stage.Children.Add(_surface);
+        _scroll.Content = _stage;
 
         var center = new Grid();
         center.Children.Add(_scroll);
@@ -132,16 +202,33 @@ internal sealed class PreviewControl : UserControl
 
         Content = root;
 
+        // whole pixels: a picture centered on half a pixel is resampled, and blurred
+        UseLayoutRounding = true;
+        RenderOptions.SetBitmapScalingMode(_image, BitmapScalingMode.NearestNeighbor);
+
         // the colors of the Visual Studio theme, light or dark
         SetResourceReference(BackgroundProperty, EnvironmentColors.ToolWindowBackgroundBrushKey);
         SetResourceReference(ForegroundProperty, EnvironmentColors.ToolWindowTextBrushKey);
         _status.SetResourceReference(TextBlock.ForegroundProperty, EnvironmentColors.ToolWindowTextBrushKey);
+        _zoomInfo.SetResourceReference(TextBlock.ForegroundProperty, EnvironmentColors.ToolWindowTextBrushKey);
         _error.SetResourceReference(BackgroundProperty, EnvironmentColors.ToolWindowBackgroundBrushKey);
         _error.SetResourceReference(ForegroundProperty, EnvironmentColors.ToolWindowTextBrushKey);
 
+        // under a preview with a translucent background the window shows, not black
+        _shadow.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, EnvironmentColors.ToolWindowBackgroundBrushKey);
+
+        // and its controls: WPF's own looked like a dialog of another program,
+        // light on the dark theme
+        foreach (ComboBox box in new[] { _list, _theme, _size, _zoom, _culture, _textScale })
+            box.SetResourceReference(StyleProperty, VsResourceKeys.ComboBoxStyleKey);
+
+        _rtl.SetResourceReference(StyleProperty, VsResourceKeys.CheckBoxStyleKey);
+        _reload.SetResourceReference(StyleProperty, VsResourceKeys.ButtonStyleKey);
+
         _list.SelectionChanged += (_, _) => OnPreviewChosen();
         _theme.SelectionChanged += (_, _) => SendSettings();
-        _size.SelectionChanged += (_, _) => SendSettings();
+        _size.SelectionChanged += (_, _) => OnSizeChosen();
+        _zoom.SelectionChanged += (_, _) => SendSettings();
         _textScale.SelectionChanged += (_, _) => SendSettings();
         _culture.SelectionChanged += (_, _) => SendSettings();
         _culture.LostKeyboardFocus += (_, _) => SendSettings();
@@ -150,7 +237,8 @@ internal sealed class PreviewControl : UserControl
 
         _scroll.SizeChanged += (_, _) =>
         {
-            if (IsFitMode)
+            // the window decides the layout when it is filled, the zoom when it is fitted
+            if (IsFillMode || IsFitZoom)
             {
                 _resize.Stop();
                 _resize.Start();
@@ -310,11 +398,15 @@ internal sealed class PreviewControl : UserControl
             return;
         }
 
-        SetStatus(catalog.Warning ?? $"{_previews.Count} previews in {Path.GetFileName(_designer?.AssemblyPath ?? string.Empty)}.");
+        SetStatus(catalog.Warning is { } warning
+            ? FirstLine(warning)
+            : $"{_previews.Count} previews in {Path.GetFileName(_designer?.AssemblyPath ?? string.Empty)}.");
 
         if (_previews.Count == 0)
         {
+            // the warning says why when it knows: types that could not be loaded
             ShowError("No previews in this project.",
+                catalog.Warning ??
                 "Mark a static method returning a UIElement with [Preview], or add a form with a constructor without parameters.");
             return;
         }
@@ -326,6 +418,12 @@ internal sealed class PreviewControl : UserControl
             id = PreviewsOf(document).FirstOrDefault()?.Id;
 
         Select(id ?? _previews[0].Id);
+    }
+
+    private static string FirstLine(string text)
+    {
+        int end = text.IndexOfAny(['\r', '\n']);
+        return end < 0 ? text : text.Substring(0, end);
     }
 
     private void Select(string id)
@@ -348,6 +446,10 @@ internal sealed class PreviewControl : UserControl
         ThreadHelper.ThrowIfNotOnUIThread();
 
         if (_updatingList || _list.SelectedItem is not ComboBoxItem { Tag: string id }) return;
+
+        // another preview, another size: the zoom that fitted the last one is a guess
+        // until the first frame says the new size
+        if (id != _selectedId) _logicalSize = null;
 
         _selectedId = id;
         _error.Visibility = Visibility.Collapsed;
@@ -398,13 +500,34 @@ internal sealed class PreviewControl : UserControl
 
     // ===== settings =====
 
-    private bool IsFitMode => _size.SelectedIndex == 0;
+    private bool IsFillMode => Sizes[Math.Max(0, _size.SelectedIndex)].Width < 0;
+
+    private bool IsFitZoom => !IsFillMode && _zoom.SelectedIndex <= 0;
+
+    private double Dpi => VisualTreeHelper.GetDpi(this).DpiScaleX;
+
+    /// <summary>The room the picture has, in the window's pixels.</summary>
+    private Size Room => new(
+        Math.Max(1, _scroll.ActualWidth - 2 * SurfaceMargin),
+        Math.Max(1, _scroll.ActualHeight - 2 * SurfaceMargin));
+
+    private void OnSizeChosen()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        // a filled window is shown as it is: zooming it would only leave empty room
+        _zoom.IsEnabled = !IsFillMode;
+
+        // the fitting zoom of the previous size says nothing about this one
+        _logicalSize = null;
+
+        SendSettings();
+    }
 
     private PreviewSettings CurrentSettings()
     {
         var settings = new PreviewSettings
         {
-            Scale = (float)VisualTreeHelper.GetDpi(this).DpiScaleX,
             Theme = _theme.SelectedIndex > 0 ? Themes[_theme.SelectedIndex] : null,
             RightToLeft = _rtl.IsChecked == true,
             TextScale = _textScale.SelectedIndex > 0 ? TextScales[_textScale.SelectedIndex] : 0f,
@@ -418,17 +541,59 @@ internal sealed class PreviewControl : UserControl
         if (width < 0)
         {
             // the visible area, less the margin around the picture
-            settings.Width = (float)Math.Max(1, _scroll.ActualWidth - 24);
-            settings.Height = (float)Math.Max(1, _scroll.ActualHeight - 24);
+            Size room = Room;
+            settings.Width = (float)room.Width;
+            settings.Height = (float)room.Height;
         }
         else
         {
+            // 0 — the preview's own: the host keeps the size the form or the
+            // attribute asks for
             settings.Width = (float)width;
             settings.Height = (float)height;
+
+            // a device's size is known before the first frame; the preview's own
+            // only from a frame of it
+            if (width > 0) _logicalSize = new Size(width, height);
         }
+
+        _zoomBasis = _logicalSize;
+        _requestedZoom = ZoomFor(_logicalSize);
+
+        // device pixels per pixel of the preview: the host draws the zoom, not WPF
+        settings.Scale = (float)(Dpi * _requestedZoom);
+
+        UpdateZoomInfo();
 
         return settings;
     }
+
+    /// <summary>The zoom for a preview of this size: the chosen one, or the one that
+    /// shows it whole — never larger than life. Unknown size: the last zoom stays.</summary>
+    private double ZoomFor(Size? logical)
+    {
+        if (IsFillMode) return 1;
+
+        if (!IsFitZoom) return Zooms[_zoom.SelectedIndex];
+
+        if (logical is not { Width: > 0, Height: > 0 } size) return _requestedZoom;
+
+        // a window not laid out yet has no room to speak of: fitting into it would
+        // pick the smallest zoom, and the first picture would be a stamp
+        if (_scroll.ActualWidth <= 2 * SurfaceMargin || _scroll.ActualHeight <= 2 * SurfaceMargin)
+            return _requestedZoom;
+
+        Size room = Room;
+        double fit = Math.Min(1, Math.Min(room.Width / size.Width, room.Height / size.Height));
+
+        // an odd zoom like 0.6373 draws fractional pixels at every edge; a step of
+        // 1/64 is invisible and keeps the picture's size stable while resizing
+        return Math.Max(0.1, Math.Floor(fit * 64) / 64);
+    }
+
+    /// <summary>Only a fitted zoom is worth spelling out: a chosen one is in the list.</summary>
+    private void UpdateZoomInfo() =>
+        _zoomInfo.Text = IsFitZoom ? $"{_requestedZoom:P0}" : string.Empty;
 
     private void SendSettings()
     {
@@ -449,12 +614,27 @@ internal sealed class PreviewControl : UserControl
 
         if (Interlocked.Exchange(ref _pendingFrame, null) is not { } frame) return;
 
-        double dpi = 96.0 * frame.Scale;
+        double dpi = Dpi;
+        double zoom = frame.Scale / dpi;
+
+        // the preview's own size, whatever zoom it came with
+        _logicalSize = new Size(frame.Width / frame.Scale, frame.Height / frame.Scale);
+
+        // the first frame of a preview tells its size: if the fitting zoom is another,
+        // this frame is not shown — the next one, of the right size, follows at once
+        if (IsFitZoom && !NearlySame(_zoomBasis, _logicalSize) && Math.Abs(ZoomFor(_logicalSize) - _requestedZoom) > 0.001)
+        {
+            SendSettings();
+            return;
+        }
+
+        // the bitmap is in the window's DPI, not the frame's: the zoom is in its pixels
+        double bitmapDpi = 96.0 * dpi;
 
         if (_bitmap is null || _bitmap.PixelWidth != frame.Width || _bitmap.PixelHeight != frame.Height ||
-            Math.Abs(_bitmap.DpiX - dpi) > 0.01)
+            Math.Abs(_bitmap.DpiX - bitmapDpi) > 0.01)
         {
-            _bitmap = new WriteableBitmap(frame.Width, frame.Height, dpi, dpi, PixelFormats.Pbgra32, null);
+            _bitmap = new WriteableBitmap(frame.Width, frame.Height, bitmapDpi, bitmapDpi, PixelFormats.Pbgra32, null);
             _image.Source = _bitmap;
         }
 
@@ -466,8 +646,13 @@ internal sealed class PreviewControl : UserControl
 
         _bitmap.WritePixels(new Int32Rect(0, 0, frame.Width, frame.Height), pixels, frame.Width * 4, 0);
 
+        _shownZoom = zoom;
+        _shadow.Visibility = Visibility.Visible;
         _error.Visibility = Visibility.Collapsed;
     }
+
+    private static bool NearlySame(Size? a, Size? b) =>
+        a is { } x && b is { } y && Math.Abs(x.Width - y.Width) < 2 && Math.Abs(x.Height - y.Height) < 2;
 
     private void ShowError(string message, string details)
     {
@@ -505,7 +690,7 @@ internal sealed class PreviewControl : UserControl
 
         _image.MouseWheel += (_, e) =>
         {
-            Point at = e.GetPosition(_image);
+            Point at = InPreview(e);
             _designer?.Send(new PointerMessage(PointerAction.Wheel, (float)at.X, (float)at.Y)
             {
                 WheelDelta = e.Delta,
@@ -527,11 +712,20 @@ internal sealed class PreviewControl : UserControl
         };
     }
 
+    /// <summary>The mouse in the preview's own pixels: the picture on screen is zoomed.</summary>
+    private Point InPreview(MouseEventArgs e)
+    {
+        Point at = e.GetPosition(_image);
+        double zoom = _shownZoom > 0 ? _shownZoom : 1;
+
+        return new Point(at.X / zoom, at.Y / zoom);
+    }
+
     private void Pointer(PointerAction action, MouseEventArgs e, MouseButton button = MouseButton.Left)
     {
         if (_designer is null || _selectedId is null) return;
 
-        Point at = e.GetPosition(_image);
+        Point at = InPreview(e);
 
         _designer.Send(new PointerMessage(action, (float)at.X, (float)at.Y)
         {

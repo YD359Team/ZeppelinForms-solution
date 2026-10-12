@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Text;
+﻿using System.Collections.ObjectModel;
 
 namespace ZeppelinForms.Core.Collections;
 
-public static class ObservableCollectionEx
+public static class ObservableCollectionExtensions
 {
-    extension<T> (ObservableCollection<T> oc)
+    extension<T>(ObservableCollection<T> oc)
     {
         public void AddRange(IEnumerable<T> items)
         {

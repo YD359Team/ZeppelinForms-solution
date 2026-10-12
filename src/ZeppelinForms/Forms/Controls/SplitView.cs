@@ -61,6 +61,7 @@ public partial class SplitView : DecoratedPanel
 {
     private readonly SplitViewPaneHost _host;
     private readonly SplitViewScrim _scrim;
+    private readonly SplitViewPaneButton _paneButton;
 
     private UIElement? _content;
 
@@ -77,30 +78,45 @@ public partial class SplitView : DecoratedPanel
     {
         _host = new SplitViewPaneHost(this);
         _scrim = new SplitViewScrim(this);
+        _paneButton = new SplitViewPaneButton(this);
 
-        // drawn in this order: the content, the scrim over it, the pane on top.
-        // The content goes in at the front when it is set
+        // drawn in this order: the content, the menu's pane button over its corner,
+        // the scrim over both, the pane on top. The content goes in at the front
+        // when it is set
+        Children.Add(_paneButton);
         Children.Add(_scrim);
         Children.Add(_host);
+
+        InitializeNavigation();
 
         SyncParts();
     }
 
     // ===== content =====
 
-    /// <summary>What the pane shows.</summary>
+    /// <summary>What the pane shows. With <see cref="Items"/> the split view builds
+    /// its pane itself — a menu — and setting one of one's own throws.</summary>
     public UIElement? Pane
     {
-        get => _host.Child;
+        get => HasMenu ? null : _host.Child;
         set
         {
-            if (ReferenceEquals(_host.Child, value)) return;
+            if (HasMenu)
+                throw new InvalidOperationException(
+                    "The SplitView builds its pane from Items and FooterItems; a Pane of one's own doesn't go with them. Use one or the other.");
 
-            _host.Child = value;
-
-            SyncParts();
-            Invalidate();
+            SetPaneCore(value);
         }
+    }
+
+    private void SetPaneCore(UIElement? value)
+    {
+        if (ReferenceEquals(_host.Child, value)) return;
+
+        _host.Child = value;
+
+        SyncParts();
+        Invalidate();
     }
 
     /// <summary>The main area.</summary>
@@ -132,8 +148,11 @@ public partial class SplitView : DecoratedPanel
         {
             yield return _host;
 
+            // the menu's pane button over the content is navigation too
+            yield return _paneButton;
+
             foreach (UIElement child in Children)
-                if (!ReferenceEquals(child, _host) && !ReferenceEquals(child, _scrim))
+                if (!ReferenceEquals(child, _host) && !ReferenceEquals(child, _scrim) && !ReferenceEquals(child, _paneButton))
                     yield return child;
         }
     }
@@ -320,6 +339,7 @@ public partial class SplitView : DecoratedPanel
         _content?.Measure(contentAvailable);
         _host.Measure(new Size(CurrentPaneLength, inner.Height));
         _scrim.Measure(contentAvailable);
+        _paneButton.Measure(new Size(CompactPaneLength, ItemHeight));
 
         Size content = _content?.DesiredSize ?? Size.Empty;
         Size pane = _host.DesiredSize;
@@ -356,6 +376,15 @@ public partial class SplitView : DecoratedPanel
 
         // the scrim lies over the content only: the closed strip is the pane's
         _scrim.Arrange(content);
+
+        // the menu's pane button: the content's corner on the pane's side, where the
+        // open menu has its own
+        float buttonWidth = Math.Min(CompactPaneLength, content.Width);
+        float buttonHeight = Math.Min(ItemHeight, content.Height);
+
+        _paneButton.Arrange(new Rectangle(
+            new Point(right ? content.X + content.Width - buttonWidth : content.X, content.Y),
+            new Size(buttonWidth, buttonHeight)));
 
         _host.Arrange(new Rectangle(
             new Point(right ? area.X + area.Width - pane : area.X, area.Y),
@@ -429,6 +458,10 @@ public partial class SplitView : DecoratedPanel
 
         _scrim.IsVisible = IsOverlay && IsLightDismissEnabled && _host.Child is not null
             && (_isPaneOpen || _progress > 0f);
+
+        // a menu whose pane hides whole needs a way to open it: the button stands
+        // over the content while the pane is closed and still
+        _paneButton.IsVisible = HasMenu && IsPaneToggleButtonVisible && !IsCompact && !_isPaneOpen && _progress == 0f;
 
         SetPseudoClass(PseudoClass.Compact, IsCompact);
         SetPseudoClass(PseudoClass.Overlay, IsOverlay);

@@ -165,7 +165,7 @@ public class TreeView : DecoratedPanel, IInputElement
             SelectedNode = null;
     }
 
-    private UIElement CreateRow(object item) => new TreeViewItem(this, (TreeNode)item);
+    private TreeViewItem CreateRow(object item) => new(this, (TreeNode)item);
 
     // ===== keyboard =====
 
@@ -291,12 +291,12 @@ public class TreeView : DecoratedPanel, IInputElement
         return ResolveSize(content, availableSize);
     }
 
-    protected override void ArrangeContentOverride(Size finalSize)
+    protected override void ArrangeContentOverride(Size contentSize)
     {
         _panel.Arrange(new Rectangle(
             new Point(Padding.Left, Padding.Top),
             new Size(
-                Math.Max(0, finalSize.Width - Padding.Horizontal),
-                Math.Max(0, finalSize.Height - Padding.Vertical))));
+                Math.Max(0, contentSize.Width - Padding.Horizontal),
+                Math.Max(0, contentSize.Height - Padding.Vertical))));
     }
 }
