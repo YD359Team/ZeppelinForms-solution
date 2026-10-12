@@ -500,3 +500,7 @@ dotnet run --project bench/ZeppelinForms.Benchmarks -c Release -- --update-basel
 Run-to-run spread on a desktop machine reaches tens of percent, so a single run
 proves nothing: take the median of three, and record a baseline only from a quiet
 machine. Current numbers are in the release entry in `CHANGELOG.md`.
+
+---
+
+ZeppelinForms. Fully free. For everyone.
