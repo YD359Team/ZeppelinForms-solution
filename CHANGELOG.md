@@ -2,7 +2,7 @@
 
 ## [0.15.0] - Lake Baikal
 
-[TODO: paste image]
+![Lake Baikal](assets/Logo-0.15.0.jpg)
 
 > Codename "Lake Baikal" is the deepest lake in the world. Because this release develops 
 what is already embedded in the framework, i.e. "goes deep".
