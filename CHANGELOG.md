@@ -1,5 +1,16 @@
 # Changes
 
+## [0.15.1]
+
+### Fixes
+
+- `SplitView` with `Items` in the Overlay and Inline modes: the pane button stood
+  over the content's corner and covered what was there — the first column header of
+  a data grid, with the hover fill coming and going over it. It now has a band of its
+  own above the content, as the button of WinUI's navigation view in its minimal
+  mode, and the content is laid out under it. The band stays while the pane is open,
+  so the content doesn't jump; `IsPaneToggleButtonVisible = false` removes it
+
 ## [0.15.0] - Lake Baikal
 
 ![Lake Baikal](assets/Logo-0.15.0.jpg)

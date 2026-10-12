@@ -669,13 +669,20 @@ internal sealed class SplitViewMenu : InteractiveControl
 
 /// <summary>
 /// The pane button of a menu whose pane hides whole while closed — the Overlay and
-/// Inline modes. It stands over the content's corner on the pane's side, where the
+/// Inline modes. It stands in a band above the content, on the pane's side, where the
 /// menu's own pane button is when the pane is open; it hides while the pane moves.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Without it a split view with <see cref="SplitView.Items"/> in the default Overlay
 /// mode had nothing to open its menu with: the pane, and the button in it, were
 /// hidden. WinUI's navigation view keeps the same button in its minimal mode.
+/// </para>
+/// <para>
+/// In 0.15.0 it stood over the content's corner and covered what was there — the
+/// first header of a grid, the hover fill coming and going over it. Since 0.15.1 the
+/// content is laid out under the button's band.
+/// </para>
 /// </remarks>
 internal sealed class SplitViewPaneButton : InteractiveControl
 {

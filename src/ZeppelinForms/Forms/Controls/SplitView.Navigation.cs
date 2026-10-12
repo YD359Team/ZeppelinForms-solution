@@ -306,7 +306,8 @@ public partial class SplitView
 
     /// <summary>The button at the top of the menu that opens and closes the pane.
     /// In the modes that hide the closed pane whole — Overlay and Inline — the same
-    /// button stands over the content's corner while the pane is closed.</summary>
+    /// button stands in a band above the content while the pane is closed; the
+    /// content is laid out under the band.</summary>
     public bool IsPaneToggleButtonVisible
     {
         get;
@@ -317,6 +318,9 @@ public partial class SplitView
             field = value;
             SyncParts();
             _menu?.Invalidate();
+
+            // the band of the button above the content comes and goes with it
+            Invalidate();
         }
     } = true;
 

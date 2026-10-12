@@ -319,6 +319,15 @@ public partial class SplitView : DecoratedPanel
     /// takes only its closed strip, a pane beside it all it has.</summary>
     private float ReservedLength => IsOverlay ? ClosedLength : CurrentPaneLength;
 
+    /// <summary>The menu's pane button stands in a band of its own above the content,
+    /// as the button of WinUI's navigation view in its minimal mode: over the content
+    /// it covered what was in the content's corner — a grid's first header. Kept while
+    /// the pane is open too, so the content doesn't jump up and down with it.</summary>
+    internal bool HasButtonBand => HasMenu && IsPaneToggleButtonVisible && !IsCompact;
+
+    /// <summary>The height the content gives up to the band of the pane button.</summary>
+    private float ButtonBandHeight => HasButtonBand ? Math.Max(0f, ItemHeight) : 0f;
+
     /// <summary>The pane, in the split view's coordinates.</summary>
     public Rectangle PaneBounds => new(_host.Position, _host.ActualSize);
 
@@ -331,14 +340,20 @@ public partial class SplitView : DecoratedPanel
             Math.Max(0, availableSize.Height - Padding.Vertical));
 
         float reserved = ReservedLength;
+        float band = ButtonBandHeight;
 
-        var contentAvailable = new Size(
+        var column = new Size(
             float.IsFinite(inner.Width) ? Math.Max(0, inner.Width - reserved) : inner.Width,
             inner.Height);
 
+        // the content is under the band of the pane button; the scrim covers both
+        var contentAvailable = new Size(
+            column.Width,
+            float.IsFinite(inner.Height) ? Math.Max(0, inner.Height - band) : inner.Height);
+
         _content?.Measure(contentAvailable);
         _host.Measure(new Size(CurrentPaneLength, inner.Height));
-        _scrim.Measure(contentAvailable);
+        _scrim.Measure(column);
         _paneButton.Measure(new Size(CompactPaneLength, ItemHeight));
 
         Size content = _content?.DesiredSize ?? Size.Empty;
@@ -349,7 +364,7 @@ public partial class SplitView : DecoratedPanel
         return ResolveSize(
             new Size(
                 (float.IsFinite(inner.Width) ? inner.Width : content.Width + reserved) + Padding.Horizontal,
-                (float.IsFinite(inner.Height) ? inner.Height : Math.Max(content.Height, pane.Height)) + Padding.Vertical),
+                (float.IsFinite(inner.Height) ? inner.Height : Math.Max(content.Height + band, pane.Height)) + Padding.Vertical),
             availableSize);
     }
 
@@ -368,22 +383,30 @@ public partial class SplitView : DecoratedPanel
         // right-to-left by itself, and the start lands on the right there
         bool right = PanePlacement == SplitViewPanePlacement.End;
 
-        var content = new Rectangle(
+        // the side of the split view that isn't the pane's: the band of the pane
+        // button on top, the content under it
+        var column = new Rectangle(
             new Point(right ? area.X : area.X + reserved, area.Y),
             new Size(area.Width - reserved, area.Height));
 
+        float band = Math.Min(ButtonBandHeight, column.Height);
+
+        var content = new Rectangle(
+            new Point(column.X, column.Y + band),
+            new Size(column.Width, column.Height - band));
+
         _content?.Arrange(content);
 
-        // the scrim lies over the content only: the closed strip is the pane's
-        _scrim.Arrange(content);
+        // the scrim lies over the content and its band only: the closed strip is the pane's
+        _scrim.Arrange(column);
 
-        // the menu's pane button: the content's corner on the pane's side, where the
-        // open menu has its own
-        float buttonWidth = Math.Min(CompactPaneLength, content.Width);
-        float buttonHeight = Math.Min(ItemHeight, content.Height);
+        // the menu's pane button: in its band, on the pane's side, where the open
+        // menu has its own
+        float buttonWidth = Math.Min(CompactPaneLength, column.Width);
+        float buttonHeight = Math.Min(ItemHeight, column.Height);
 
         _paneButton.Arrange(new Rectangle(
-            new Point(right ? content.X + content.Width - buttonWidth : content.X, content.Y),
+            new Point(right ? column.X + column.Width - buttonWidth : column.X, column.Y),
             new Size(buttonWidth, buttonHeight)));
 
         _host.Arrange(new Rectangle(
