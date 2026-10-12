@@ -1,6 +1,10 @@
 ﻿; Shipped analyzer releases
 ; https://github.com/dotnet/roslyn/blob/main/src/RoslynAnalyzers/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md
 
+## Release 0.15.0
+
+### New Rules
+
 Rule ID | Category    | Severity | Notes
 --------|-------------|----------|-------
 ZF0001  | Reliability | Warning  | Assigning a new ObservableCollection instance

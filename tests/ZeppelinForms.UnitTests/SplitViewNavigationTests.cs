@@ -254,6 +254,56 @@ public class SplitViewNavigationTests
         Assert.True(view.IsPaneOpen);
     }
 
+    [Theory]
+    [InlineData(SplitViewDisplayMode.Overlay, false)]
+    [InlineData(SplitViewDisplayMode.Inline, false)]
+    [InlineData(SplitViewDisplayMode.Overlay, true)]
+    public void TheButtonHasABandOfItsOwnAboveTheContent(SplitViewDisplayMode mode, bool open)
+    {
+        // over the content's corner it covered what was there — in the process
+        // monitor the grid's first header, the hover fill coming and going over it
+        var (form, view) = Create(mode);
+        var page = new StackPanel();
+        view.Items.Add(new SplitViewItem("Processes", content: () => page));
+        view.IsPaneOpen = open;
+        Settle(form);
+
+        Assert.Equal(view.ItemHeight, page.Position.Y);
+        Assert.Equal(Height - view.ItemHeight, page.ActualSize.Height);
+
+        // and the band stays while the pane is open: the content doesn't jump
+        view.IsPaneOpen = !open;
+        Settle(form);
+
+        Assert.Equal(view.ItemHeight, page.Position.Y);
+    }
+
+    [Theory]
+    [InlineData(SplitViewDisplayMode.CompactInline)]
+    [InlineData(SplitViewDisplayMode.CompactOverlay)]
+    public void ACompactPaneLeavesTheContentWholeHeight(SplitViewDisplayMode mode)
+    {
+        var (form, view) = Create(mode);
+        var page = new StackPanel();
+        view.Items.Add(new SplitViewItem("Processes", content: () => page));
+        Settle(form);
+
+        Assert.Equal(0f, page.Position.Y);
+        Assert.Equal(Height, page.ActualSize.Height);
+    }
+
+    [Fact]
+    public void WithoutTheButtonThereIsNoBand()
+    {
+        var (form, view) = Create(SplitViewDisplayMode.Overlay);
+        var page = new StackPanel();
+        view.Items.Add(new SplitViewItem("Processes", content: () => page));
+        view.IsPaneToggleButtonVisible = false;
+        Settle(form);
+
+        Assert.Equal(0f, page.Position.Y);
+    }
+
     [Fact]
     public void ACompactPaneNeedsNoButtonOverTheContent()
     {
