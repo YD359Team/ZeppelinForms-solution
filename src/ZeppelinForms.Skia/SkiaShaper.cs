@@ -1,4 +1,4 @@
-using HarfBuzzSharp;
+﻿using HarfBuzzSharp;
 using SkiaSharp;
 using SkiaSharp.HarfBuzz;
 using HbBuffer = HarfBuzzSharp.Buffer;
@@ -49,6 +49,11 @@ internal static class SkiaShaper
 
     [ThreadStatic] private static Dictionary<SKTypeface, HbFont?>? t_fonts;
 
+    /// <summary>The native HarfBuzz library couldn't be loaded: an application published
+    /// without HarfBuzzSharp's native assets for its platform. Text is then drawn a glyph
+    /// per character, as before 0.15 — complex scripts unshaped, but nothing fails.</summary>
+    private static volatile bool s_unavailable;
+
     /// <summary>Release this thread's HarfBuzz fonts: the font selection changed.</summary>
     public static void Clear()
     {
@@ -69,7 +74,28 @@ internal static class SkiaShaper
     /// <param name="rightToLeft">Its direction.</param>
     public static ShapedRun? Shape(string text, int start, int length, SKFont font, bool rightToLeft)
     {
-        if (length == 0 || FontFor(font.Typeface) is not { } shaper) return null;
+        if (length == 0 || s_unavailable) return null;
+
+        try
+        {
+            return ShapeCore(text, start, length, font, rightToLeft);
+        }
+        catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException or TypeInitializationException or BadImageFormatException)
+        {
+            // once: the library won't appear later in the process
+            s_unavailable = true;
+
+            System.Diagnostics.Trace.TraceWarning(
+                $"[ZF] HarfBuzz is not available ({e.GetType().Name}: {e.Message}); complex text is drawn unshaped. " +
+                "Reference the HarfBuzzSharp.NativeAssets package of the platform.");
+
+            return null;
+        }
+    }
+
+    private static ShapedRun? ShapeCore(string text, int start, int length, SKFont font, bool rightToLeft)
+    {
+        if (FontFor(font.Typeface) is not { } shaper) return null;
 
         using var buffer = new HbBuffer();
         buffer.AddUtf16(text, start, length);

@@ -188,6 +188,9 @@ what is already embedded in the framework, i.e. "goes deep".
   - Linux: the input context is over the spot — ibus and fcitx draw the composition
     at the caret rather than where they chose
 - `HeadlessInput.Compose` and `CommitComposition` for tests
+- Without HarfBuzz's native library — an application published without the
+  HarfBuzzSharp.NativeAssets package of its platform — complex text is drawn unshaped,
+  as before 0.15, with a warning to `Trace`, rather than failing at the first Hebrew word
 
 ### Analyzers, trimming and native AOT
 
