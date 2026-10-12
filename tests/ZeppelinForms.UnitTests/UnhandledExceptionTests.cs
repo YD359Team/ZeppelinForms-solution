@@ -111,4 +111,26 @@ public class UnhandledExceptionTests
             App.UnhandledException -= handler;
         }
     }
+
+    [Fact]
+    public void HandledStepThatAnswersTheSystemGivesTheFallback()
+    {
+        EventHandler<DispatcherUnhandledExceptionEventArgs> handler = (_, args) => args.Handled = true;
+
+        App.UnhandledException += handler;
+
+        try
+        {
+            // an Android callback that answers "the event was mine": handled, it
+            // still says so, rather than letting the system act on it a second time
+            bool answer = App.RunGuarded<bool>(
+                () => throw new InvalidOperationException("касание"), whenHandled: true);
+
+            Assert.True(answer);
+        }
+        finally
+        {
+            App.UnhandledException -= handler;
+        }
+    }
 }
