@@ -100,9 +100,31 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         owner.AddAnimation(exiting);
     }
 
+    /// <summary>A child was hidden: it disappears the way a removed one does,
+    /// drawn on top as a ghost until its exit transition ends. It stays among the
+    /// children — layout and hit testing already pass it by as invisible.</summary>
+    internal void BeginHide(UIElement item)
+    {
+        if (FindOwner() is not { } owner) return;
+        if (item.ExitTransitionIn(this) is not { } rule) return;
+
+        // a panel that isn't visible doesn't show disappearances either
+        if (!IsEffectivelyVisible) return;
+
+        // hidden twice in a row — the ghost already playing goes on
+        if (_exiting is not null && _exiting.Exists(e => ReferenceEquals(e.Element, item))) return;
+
+        var exiting = new ExitingChild(this, item, rule);
+
+        _exiting ??= [];
+        _exiting.Add(exiting);
+
+        owner.AddAnimation(exiting);
+    }
+
     /// <summary>The element was returned while it was still disappearing:
     /// it must not be drawn twice — alive and as a ghost.</summary>
-    private void CancelExit(UIElement item)
+    internal void CancelExit(UIElement item)
     {
         if (_exiting is null) return;
 

@@ -280,3 +280,9 @@ static readonly ZeppelinForms.Forms.Controls.ToggleSwitch.VerticalContentAlignPr
 virtual ZeppelinForms.Drawing.Graphics.DrawSymbol(string! text, ZeppelinForms.Drawing.Primitives.Rectangle rect, ZeppelinForms.Drawing.Primitives.Color color, ZeppelinForms.Drawing.Font! font, ZeppelinForms.Forms.Enums.HorizontalContentAlignment hAlign = ZeppelinForms.Forms.Enums.HorizontalContentAlignment.Center, ZeppelinForms.Forms.Enums.VerticalContentAlignment vAlign = ZeppelinForms.Forms.Enums.VerticalContentAlignment.Center) -> void
 ~override ZeppelinForms.Drawing.FontMetrics.Equals(object obj) -> bool
 ~override ZeppelinForms.Drawing.FontMetrics.ToString() -> string
+ZeppelinForms.Forms.Controls.ZoomBox.PanOffset.get -> ZeppelinForms.Drawing.Primitives.Point
+ZeppelinForms.Forms.Controls.ZoomBox.ResetZoom() -> void
+ZeppelinForms.Forms.Controls.ZoomBox.WheelZoomModifiers.get -> ZeppelinForms.Input.Keyboard.KeyModifiers
+ZeppelinForms.Forms.Controls.ZoomBox.WheelZoomModifiers.set -> void
+ZeppelinForms.Forms.Controls.ZoomBox.Zoom(float factor, ZeppelinForms.Drawing.Primitives.Point anchor) -> void
+ZeppelinForms.Forms.Controls.ZoomBox.ZoomChanged -> System.EventHandler?

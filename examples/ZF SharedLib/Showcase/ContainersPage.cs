@@ -7,6 +7,7 @@ using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.Keyboard;
 
 namespace ZF_SharedLib.Showcase;
 
@@ -18,7 +19,7 @@ internal static class ContainersPage
         Demo.Page("Containers", "One child each, and something around it.",
             Demo.Section("Borders", Borders(), "Border draws a frame, a fill and round corners; GradientBorder fills with a gradient"),
             Demo.Section("Group box and spoiler", Groups(), "A spoiler folds away by its header: click it, or Space and Enter"),
-            Demo.Section("Zoom box", Zoom(), "Ctrl + wheel or a pinch zooms the child; the buttons call Zoom"),
+            Demo.Section("Zoom box", Zoom(), "Ctrl + wheel or a pinch zooms around the cursor; drag the zoomed picture to look around"),
             Demo.Section("Grip box", Grip(), "Drag the handles to resize the child, the round one above to rotate it; Shift snaps the angle"),
             Demo.Section("Pull to refresh", Refresh(), "Pull the list down with the mouse or a finger; the indicator spins until the work is done"));
 
@@ -97,6 +98,8 @@ internal static class ContainersPage
             Size = new(float.NaN, 220),
             MinZoom = 0.5f,
             MaxZoom = 4f,
+            // the plain wheel keeps scrolling the page over the box
+            WheelZoomModifiers = KeyModifiers.Control,
             Child = picture,
         };
 
@@ -105,15 +108,16 @@ internal static class ContainersPage
         void Show() => factor.Text = box.ZoomFactor.ToString("P0", CultureInfo.CurrentCulture);
 
         var zoomIn = new Button { Text = "+" };
-        zoomIn.Click += (_, _) => { box.Zoom(box.ZoomFactor * 1.25f); Show(); };
+        zoomIn.Click += (_, _) => box.Zoom(box.ZoomFactor * 1.25f);
 
         var zoomOut = new Button { Text = "−" };
-        zoomOut.Click += (_, _) => { box.Zoom(box.ZoomFactor / 1.25f); Show(); };
+        zoomOut.Click += (_, _) => box.Zoom(box.ZoomFactor / 1.25f);
 
         var reset = new Button { Text = "100%" };
-        reset.Click += (_, _) => { box.Zoom(1f); Show(); };
+        reset.Click += (_, _) => box.ResetZoom();
 
-        box.MouseWheel += (_, _) => Show();
+        // the wheel, a pinch and the buttons alike
+        box.ZoomChanged += (_, _) => Show();
 
         var root = new StackPanel { Orientation = Orientation.Vertical, Spacing = 10, CrossAxisAlignment = CrossAxisAlignment.Stretch };
         root.Children.AddRange([Demo.Row(zoomOut, zoomIn, reset, factor), box]);

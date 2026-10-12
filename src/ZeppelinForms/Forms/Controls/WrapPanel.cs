@@ -120,9 +120,12 @@ public partial class WrapPanel : DecoratedPanel
 
             float main = MainOf(child.DesiredSize) + MainMargin(m);
             float cross = CrossOf(child.DesiredSize) + CrossMargin(m);
-            float advance = firstInLine ? main : main + Spacing;
 
-            if (!firstInLine && mainOffset + advance > limit)
+            // the gap goes before every element but the first of a line — the same
+            // sum the measure made, or the second element would touch the first
+            float gap = firstInLine ? 0 : Spacing;
+
+            if (!firstInLine && mainOffset + gap + main > limit)
             {
                 PlaceLine(line, crossOffset, lineCross);
 
@@ -130,16 +133,16 @@ public partial class WrapPanel : DecoratedPanel
                 mainOffset = 0;
                 lineCross = 0;
                 line.Clear();
-                advance = main;
+                gap = 0;
             }
 
-            child.Arrange(ToPoint(mainOffset + (IsHorizontal ? m.Left : m.Top),
+            child.Arrange(ToPoint(mainOffset + gap + (IsHorizontal ? m.Left : m.Top),
                           crossOffset + (IsHorizontal ? m.Top : m.Left)),
                           child.DesiredSize);
 
             line.Add(child);
 
-            mainOffset += advance;
+            mainOffset += gap + main;
             lineCross = Math.Max(lineCross, cross);
             firstInLine = false;
         }

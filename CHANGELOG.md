@@ -51,6 +51,36 @@ what is already embedded in the framework, i.e. "goes deep".
   all; while a result is shown, a fixed error clears as you type, and a correct field
   being retyped goes neutral rather than red until you leave it. `ResetValidation()`
   makes a field new again
+- An element shown again is laid out again. Hidden, it is skipped by its panel's
+  measure and kept a stale "measure me" mark, and the mark stopped the walk up to the
+  panel when it was shown: the panel stayed measured without it, and the element
+  didn't come back until something else laid the page out — scrolling, for one
+- `WrapPanel.Spacing` lies between the first and the second element of a line too.
+  The arrange added it after each element rather than before it, so the first two
+  touched — a toggle switch's caption ran into the next switch — while the measure
+  counted the gap
+- A control inside a `ZoomBox` redraws the whole box when it changes: its place on
+  screen doesn't add up from offsets under the zoom, and a hovered button repainted
+  where it would have been unzoomed
+
+### ZoomBox
+
+- Zooms around a point: the wheel around the cursor, a pinch between the fingers,
+  `Zoom(factor)` around the middle of the box, `Zoom(factor, anchor)` around any point.
+  It used to scale around the box's top-left corner, and a child in the middle slid out
+  of view as it grew
+- The zoomed child stays in sight: larger than the box, it covers it with no empty
+  strip at an edge; smaller, it stays inside. Dragged with the mouse or a finger, it
+  shows the rest (`PanOffset`); `ResetZoom()` puts it back
+- `WheelZoomModifiers`: the keys to hold for the wheel to zoom. With `Control` the
+  plain wheel goes on scrolling the page over the box. None by default, as before
+- `ZoomChanged`, for the wheel, a pinch and a call alike
+
+### Visibility transitions
+
+- `EnterTransition` and `ExitTransition` play when `IsVisible` changes, as they do when
+  a panel gets or loses the element: hidden, it is drawn on top until its exit ends;
+  shown again, it enters. Hiding and showing was instant whatever the rules
 
 ### Text
 
@@ -101,6 +131,8 @@ what is already embedded in the framework, i.e. "goes deep".
   its reason
 - The example gets the ZF analyzers and generators through a project reference, as an
   application gets them with the package
+- A root `.editorconfig` asks for file-scoped namespaces, as every file has: the IDE's
+  own default is the block form, and it kept offering to convert them
 
 ### Scroll bars
 

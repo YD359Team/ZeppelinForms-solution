@@ -41,13 +41,15 @@ public static class ElementTreeRenderer
     /// the pixels, but text blobs, paths and shadows still had to be built
     /// for each one.
     /// </remarks>
-    private static void Draw(UIElement element, Graphics g, Point origin, Rectangle? clip, bool cull)
+    /// <param name="disappearing">The element is drawn as it disappears: hidden
+    /// already, it is still shown until its exit transition ends.</param>
+    private static void Draw(UIElement element, Graphics g, Point origin, Rectangle? clip, bool cull, bool disappearing = false)
     {
         // a transition's curves may briefly take the opacity beyond [0; 1] —
         // it is brought into range here, not in the setter
         float opacity = Math.Clamp(element.Opacity, 0f, 1f);
 
-        if (!element.IsVisible || opacity <= 0f) return;
+        if ((!element.IsVisible && !disappearing) || opacity <= 0f) return;
         if (!float.IsFinite(element.ActualSize.Width) || !float.IsFinite(element.ActualSize.Height)) return;
 
         var placed = new Point(origin.X + element.Position.X, origin.Y + element.Position.Y);
@@ -214,7 +216,7 @@ public static class ElementTreeRenderer
 
         if (opacity < 1f) g.SaveLayer(opacity);
 
-        Draw(element, g, origin, clip: null, cull: false);
+        Draw(element, g, origin, clip: null, cull: false, disappearing: true);
 
         if (opacity < 1f) g.Restore();
 
