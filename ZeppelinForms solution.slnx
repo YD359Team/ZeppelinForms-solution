@@ -48,7 +48,6 @@
     <Project Path="tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.csproj" />
   </Folder>
   <Folder Name="/Элементы решения/">
-    <File Path=".editorconfig" />
     <File Path=".gitattributes" />
     <File Path=".gitignore" />
     <File Path="CHANGELOG.md" />
@@ -58,5 +57,6 @@
     <File Path="LICENSE.txt" />
     <File Path="nuget.config" />
     <File Path="README.md" />
+    <File Path="ZeppelinForms.globalconfig" />
   </Folder>
 </Solution>
