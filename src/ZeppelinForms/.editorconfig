@@ -1,16 +1,69 @@
-# The analyzers of the framework itself: AnalysisLevel latest-recommended (see the
-# project file). These are the rules it deliberately departs from, each with its reason.
+# Code style of the whole repository. The framework's analyzer departures live in
+# src/ZeppelinForms/.editorconfig.
+root = true
 
 [*.cs]
 
-# The framework's event data are records, and a record can't derive from
-# System.EventArgs; the EventArgs suffix still tells what they are
-dotnet_code_quality.CA1711.allowed_suffixes = EventArgs
+# Every file declares its namespace with a semicolon. The IDE's own default is the
+# block form, and it kept offering to convert the files to it
+csharp_style_namespace_declarations = file_scoped:suggestion
+dotnet_diagnostic.IDE0161.severity = suggestion
 
-# Names that are keywords of other .NET languages — Select, End, Stop, Exit, To —
-# where they are the natural name: the framework targets C#, and C# can call them
-dotnet_diagnostic.CA1716.severity = none
+# ===== Style rules are the repository's, not the IDE's =====
+#
+# A key missing here is taken from the personal settings of whoever opens the
+# solution (Tools > Options > Text Editor > C# > Code Style), so the Error List
+# filled with suggestions against the style the code is actually written in —
+# braces around every if first of all. Every style rule is silent: nothing in the
+# Error List or the build, but the light bulb (Ctrl+.) still offers the fix.
+# The values below describe the code as it is written
+dotnet_analyzer_diagnostic.category-Style.severity = silent
 
-# Single, Decimal, Float name what they are: a selection of one item, the keypad's
-# decimal key, a float interpolator — as WinForms and WPF name them too
-dotnet_diagnostic.CA1720.severity = none
+# One-line ifs without braces are the norm here: `if (x is null) return;`
+csharp_prefer_braces = false:silent
+
+# var where the type is visible on the right side, the type name elsewhere
+csharp_style_var_for_built_in_types = false:silent
+csharp_style_var_when_type_is_apparent = true:silent
+csharp_style_var_elsewhere = false:silent
+
+# No this. qualification; private fields are _camelCase
+dotnet_style_qualification_for_field = false:silent
+dotnet_style_qualification_for_property = false:silent
+dotnet_style_qualification_for_method = false:silent
+dotnet_style_qualification_for_event = false:silent
+
+# Expression bodies where the body is one line
+csharp_style_expression_bodied_methods = when_on_single_line:silent
+csharp_style_expression_bodied_constructors = when_on_single_line:silent
+csharp_style_expression_bodied_operators = when_on_single_line:silent
+csharp_style_expression_bodied_properties = true:silent
+csharp_style_expression_bodied_indexers = true:silent
+csharp_style_expression_bodied_accessors = true:silent
+csharp_style_expression_bodied_lambdas = true:silent
+csharp_style_expression_bodied_local_functions = when_on_single_line:silent
+
+# An if stays an if: rewriting it into ?: or a switch expression is a choice
+# made case by case, not a rule
+dotnet_style_prefer_conditional_expression_over_assignment = false:silent
+dotnet_style_prefer_conditional_expression_over_return = false:silent
+csharp_style_prefer_switch_expression = true:silent
+
+# Modern C# the code already uses
+csharp_style_prefer_primary_constructors = true:silent
+dotnet_style_prefer_collection_expression = when_types_loosely_match:silent
+csharp_style_implicit_object_creation_when_type_is_apparent = true:silent
+csharp_prefer_simple_using_statement = true:silent
+csharp_using_directive_placement = outside_namespace:silent
+csharp_style_prefer_pattern_matching = true:silent
+csharp_style_prefer_not_pattern = true:silent
+
+# A discarded result doesn't need `_ =` in front of it
+csharp_style_unused_value_expression_statement_preference = discard_variable:silent
+csharp_style_unused_value_assignment_preference = discard_variable:silent
+
+# Explicit accessibility on everything except interface members
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:silent
+
+# Folder names don't have to repeat the namespace
+dotnet_style_namespace_match_folder = false:silent
