@@ -108,6 +108,7 @@ jobs:
   nuget-org:
     needs: publish
     runs-on: ubuntu-latest
+    environment: nuget-org
 
     permissions:
       id-token: write
