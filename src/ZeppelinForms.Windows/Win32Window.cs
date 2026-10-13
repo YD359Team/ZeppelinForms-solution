@@ -80,8 +80,11 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
         switch (_form.WindowStartupLocation)
         {
-            // the window doesn't know its owner — Form.ShowDialog doesn't pass it
-            // to the platform — so CenterOwner centers on the screen for now
+            // a first guess on the primary screen: the scale is known only once the
+            // window exists, and the final place is set then, see PlaceAfterCreate.
+            // Until 0.16 the window didn't know its owner — Form.ShowDialog didn't pass
+            // it to the platform — and CenterOwner centered on the screen; now the
+            // owner is Form.Owner, and PlaceAfterCreate centers on it
             case WindowStartupLocation.CenterScreen:
             case WindowStartupLocation.CenterOwner:
                 Rectangle area = Displays.Primary.WorkingArea;
@@ -133,37 +136,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
         _skiaSurface = Win32SkiaSurfaceFactory.Create(_handle);
         _scale = NativeMethods.GetDpiForWindow(_handle) / 96f;
 
-        if (_scale != 1f)
-        {
-            int physicalWidth = (int)(width * _scale);
-            int physicalHeight = (int)(height * _scale);
-
-            bool center = _form.WindowStartupLocation
-                is WindowStartupLocation.CenterScreen or WindowStartupLocation.CenterOwner;
-
-            if (center)
-            {
-                // the working area, not SM_CXSCREEN/SM_CYSCREEN: those describe the
-                // whole screen, and the window shifted by the taskbar's height —
-                // while before the DPI correction it was centered on the working area
-                Rectangle area = Displays.Primary.WorkingArea;
-
-                int cx = (int)(area.X + (area.Width - physicalWidth) / 2);
-                int cy = (int)(area.Y + (area.Height - physicalHeight) / 2);
-
-                NativeMethods.SetWindowPos(
-                    _handle, 0, cx, cy, physicalWidth, physicalHeight,
-                    NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
-            }
-            else
-            {
-                NativeMethods.SetWindowPos(
-                    _handle, 0, 0, 0, physicalWidth, physicalHeight,
-                    NativeConstants.SWP_NOZORDER
-                        | NativeConstants.SWP_NOACTIVATE
-                        | NativeConstants.SWP_NOMOVE);
-            }
-        }
+        PlaceAfterCreate(width, height);
 
         // WM_SIZE during CreateWindowEx came before the surface existed,
         // so the first time it is initialized by hand
@@ -210,6 +183,76 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
         // would never run
         if (!_invokeQueue.IsEmpty)
             NativeMethods.PostMessage(_handle, NativeConstants.WM_INVOKE, 0, 0);
+    }
+
+    /// <summary>The size and place the window gets once its scale is known: the
+    /// logical size becomes physical, a window sized to its content gets its frame
+    /// around the client area, and a centered window is centered on its owner or on
+    /// the screen.</summary>
+    private void PlaceAfterCreate(int width, int height)
+    {
+        bool sizedToContent = _form.SizeToContent != SizeToContent.None;
+        bool centered = _form.WindowStartupLocation
+            is WindowStartupLocation.CenterScreen or WindowStartupLocation.CenterOwner;
+
+        // created at its size on its spot already: nothing to correct
+        if (_scale == 1f && !sizedToContent && _form.WindowStartupLocation != WindowStartupLocation.CenterOwner)
+            return;
+
+        int physicalWidth = (int)(width * _scale);
+        int physicalHeight = (int)(height * _scale);
+
+        if (sizedToContent)
+        {
+            // Size is the client area here, as on every other platform: the frame of
+            // this window's styles at this window's DPI goes around it
+            (uint style, uint exStyle) = ChromeStyles();
+
+            var frame = new NativeMethods.RECT { Right = physicalWidth, Bottom = physicalHeight };
+
+            if (NativeMethods.AdjustWindowRectExForDpi(ref frame, style, false, exStyle, (uint)MathF.Round(_scale * 96f)))
+            {
+                physicalWidth = frame.Right - frame.Left;
+                physicalHeight = frame.Bottom - frame.Top;
+            }
+        }
+
+        if (!centered)
+        {
+            NativeMethods.SetWindowPos(
+                _handle, 0, 0, 0, physicalWidth, physicalHeight,
+                NativeConstants.SWP_NOZORDER
+                    | NativeConstants.SWP_NOACTIVATE
+                    | NativeConstants.SWP_NOMOVE);
+            return;
+        }
+
+        Rectangle area = CenteringArea();
+
+        int cx = (int)(area.X + (area.Width - physicalWidth) / 2);
+        int cy = (int)(area.Y + (area.Height - physicalHeight) / 2);
+
+        NativeMethods.SetWindowPos(
+            _handle, 0, cx, cy, physicalWidth, physicalHeight,
+            NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
+    }
+
+    /// <summary>What a centered window is centered in: its owner's window for
+    /// CenterOwner, when it has one; otherwise the primary screen's working area —
+    /// not SM_CXSCREEN/SM_CYSCREEN, which describe the whole screen, and the window
+    /// shifted by the taskbar's height.</summary>
+    private Rectangle CenteringArea()
+    {
+        if (_form.WindowStartupLocation == WindowStartupLocation.CenterOwner &&
+            _form.Owner?.PlatformWindow is Win32Window { _handle: not 0 } owner &&
+            NativeMethods.GetWindowRect(owner._handle, out NativeMethods.RECT rect))
+        {
+            return new Rectangle(
+                new Point(rect.Left, rect.Top),
+                new Size(rect.Right - rect.Left, rect.Bottom - rect.Top));
+        }
+
+        return Displays.Primary.WorkingArea;
     }
 
     private void DestroyIcons()

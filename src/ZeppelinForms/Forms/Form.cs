@@ -1706,6 +1706,9 @@ public partial class Form : IDisposable
         // dialog was a window of its own and could fall behind the one it blocked
         SetOwner(owner);
 
+        // and sized to its content, if it asks to be: the window is created at Size
+        ApplySizeToContent();
+
         platform.CreateWindow(this);
 
         // modality is a disabled owner, not a nested loop:

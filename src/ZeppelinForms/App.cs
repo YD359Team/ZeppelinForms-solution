@@ -235,6 +235,9 @@ public partial class App
     {
         this.MainForm.Icon ??= Assets.Logo;
 
+        // before the window: the platform creates it at Form.Size
+        this.MainForm.ApplySizeToContent();
+
         IPlatformWindow window = _platform.CreateWindow(this.MainForm);
 
         // this thread is the application's UI thread, even if another one opened

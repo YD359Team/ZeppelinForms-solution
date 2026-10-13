@@ -50,6 +50,9 @@ public partial class Form
 
             Platform = platform;
 
+            // the window is created at Size: a form sized to its content measures first
+            ApplySizeToContent();
+
             // the owner is known before the window exists: Win32 gives it to
             // CreateWindowEx, X11 sets the transient hint before mapping
             platform.CreateWindow(this);

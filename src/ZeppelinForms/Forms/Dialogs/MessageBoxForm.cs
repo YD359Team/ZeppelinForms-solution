@@ -10,37 +10,49 @@ namespace ZeppelinForms.Forms.Dialogs;
 
 internal sealed class MessageBoxForm : Form
 {
-    private const float MaxTextWidth = 420f;
+    /// <summary>The widest the message may make the box: beyond it the text wraps.</summary>
+    private const float MaxWidth = 480f;
+
+    /// <summary>A one-word message still gets a box that looks like one.</summary>
+    private const float MinWidth = 320f;
 
     public MessageBoxForm(string message, string title, MessageBoxButtons buttons, MessageBoxIcon icon)
     {
         Title = title;
-        WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
         CanMaximize = false;
         CanMinimize = false;
 
+        // the box is as large as its message and its buttons. It used to be sized by
+        // the text alone: three buttons didn't fit next to a short question, and on
+        // Windows, where Size includes the title bar, the height came out ~40 px short
+        SizeToContent = SizeToContent.WidthAndHeight;
+        MinimumSize = new Size(MinWidth, float.NaN);
+        MaximumSize = new Size(MaxWidth, float.NaN);
+
+        // no color of its own: the theme's text color, readable in the dark theme too.
+        // It used to be black, and vanished on a dark background
         var text = new Label
         {
             Text = message,
-            TextColor = Colors.Black,
+            TextWrapping = TextWrapping.Wrap,
             HorizontalContentAlign = HorizontalContentAlignment.Left,
             VerticalContentAlign = VerticalContentAlignment.Top,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
 
-        // размер окна считаем по тексту: диалог не должен быть шире нужного
-        Size textSize = TextMeasurer.Current.MeasureText(message, Font.Default);
-        float width = Math.Clamp(textSize.Width + 48, 260, MaxTextWidth);
-
-        var body = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 12,
-            Docking = Dock.Fill,
-        };
+        // a dock panel rather than a horizontal stack: the stack offered the text an
+        // endless width, and a long message never wrapped
+        var body = new DockPanel();
 
         if (icon != MessageBoxIcon.None)
-            body.Children.Add(CreateIcon(icon));
+        {
+            SvgIcon glyph = CreateIcon(icon);
+            glyph.Docking = Dock.Left;
+            glyph.Margin = new Thickness(0, 0, 12, 0);
+
+            body.Children.Add(glyph);
+        }
 
         body.Children.Add(text);
 
@@ -50,6 +62,7 @@ internal sealed class MessageBoxForm : Form
             Spacing = 8,
             Docking = Dock.Bottom,
             HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 16, 0, 0),
         };
 
         foreach (Button button in CreateButtons(buttons))
@@ -60,8 +73,6 @@ internal sealed class MessageBoxForm : Form
             Padding = new Thickness(16),
             Children = { buttonBar, body },
         };
-
-        Size = new Size(width, Math.Max(140, textSize.Height + 110));
     }
 
     private IEnumerable<Button> CreateButtons(MessageBoxButtons buttons)

@@ -174,6 +174,11 @@ ZeppelinForms.Forms.Controls.Text.RichLabel.HorizontalContentAlign.set -> void
 ZeppelinForms.Forms.Controls.Text.RichLabel.VerticalContentAlign.get -> ZeppelinForms.Forms.Enums.VerticalContentAlignment
 ZeppelinForms.Forms.Controls.Text.RichLabel.VerticalContentAlign.set -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.ResetValidation() -> void
+ZeppelinForms.Forms.Enums.SizeToContent
+ZeppelinForms.Forms.Enums.SizeToContent.Height = 2 -> ZeppelinForms.Forms.Enums.SizeToContent
+ZeppelinForms.Forms.Enums.SizeToContent.None = 0 -> ZeppelinForms.Forms.Enums.SizeToContent
+ZeppelinForms.Forms.Enums.SizeToContent.Width = 1 -> ZeppelinForms.Forms.Enums.SizeToContent
+ZeppelinForms.Forms.Enums.SizeToContent.WidthAndHeight = 3 -> ZeppelinForms.Forms.Enums.SizeToContent
 ZeppelinForms.Forms.Enums.TextTrimming
 ZeppelinForms.Forms.Enums.TextTrimming.CharacterEllipsis = 1 -> ZeppelinForms.Forms.Enums.TextTrimming
 ZeppelinForms.Forms.Enums.TextTrimming.None = 0 -> ZeppelinForms.Forms.Enums.TextTrimming
@@ -184,6 +189,8 @@ ZeppelinForms.Forms.Enums.TextWrapping.Wrap = 1 -> ZeppelinForms.Forms.Enums.Tex
 ZeppelinForms.Forms.Form.OwnedForms.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Form!>!
 ZeppelinForms.Forms.Form.Owner.get -> ZeppelinForms.Forms.Form?
 ZeppelinForms.Forms.Form.Show(ZeppelinForms.Forms.Form! owner) -> void
+ZeppelinForms.Forms.Form.SizeToContent.get -> ZeppelinForms.Forms.Enums.SizeToContent
+ZeppelinForms.Forms.Form.SizeToContent.set -> void
 ZeppelinForms.Forms.Styling.StyleTypeRegistry
 ZeppelinForms.Headless.HeadlessTextMeasurer.MeasureFont(ZeppelinForms.Drawing.Font! font) -> ZeppelinForms.Drawing.FontMetrics
 ZeppelinForms.Headless.HeadlessWindow.Invalidate(ZeppelinForms.Drawing.Primitives.Rectangle? rect = null) -> void
