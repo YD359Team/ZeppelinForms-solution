@@ -45,7 +45,8 @@ internal sealed class CachedLine : IDisposable
     };
 
     /// <summary>The line the parse belongs to. It is the same instance as the one
-    /// in the cache key, so no copy arises.</summary>
+    /// in the cache key, so no copy arises unless the line had tabs,
+    /// see SkiaFontCache.WithoutTabs.</summary>
     public required string Text { get; init; }
 
     public required FontRun[] Runs { get; init; }
