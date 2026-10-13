@@ -431,3 +431,5 @@ override sealed ZeppelinForms.DispatcherUnhandledExceptionEventArgs.Equals(Zeppe
 static ZeppelinForms.DispatcherUnhandledExceptionEventArgs.operator !=(ZeppelinForms.DispatcherUnhandledExceptionEventArgs? left, ZeppelinForms.DispatcherUnhandledExceptionEventArgs? right) -> bool
 static ZeppelinForms.DispatcherUnhandledExceptionEventArgs.operator ==(ZeppelinForms.DispatcherUnhandledExceptionEventArgs? left, ZeppelinForms.DispatcherUnhandledExceptionEventArgs? right) -> bool
 static ZeppelinForms.App.UnhandledException -> System.EventHandler<ZeppelinForms.DispatcherUnhandledExceptionEventArgs!>?
+static readonly ZeppelinForms.Forms.Controls.Calendar.RangeColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Calendar.RangeTextColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!

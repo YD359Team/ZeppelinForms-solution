@@ -65,8 +65,8 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
     public void Create()
     {
-        // before the first show: a dark window must not flash a white caption
-        AttachCaptionTheme();
+        if (_handle != 0)
+            return;
 
         RegisterWindowClass();
 
