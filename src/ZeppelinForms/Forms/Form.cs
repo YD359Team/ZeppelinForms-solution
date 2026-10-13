@@ -1510,6 +1510,11 @@ public partial class Form : IDisposable
 
     // ===== Flyout API =====
 
+    /// <summary>Show <paramref name="content"/> next to <paramref name="anchor"/>. It closes
+    /// on a click outside or Esc.</summary>
+    /// <remarks>The content is shown as it is: a menu or a picker draws its own surface.
+    /// Content without one — a plain panel — goes into a <see cref="FlyoutPresenter"/>,
+    /// otherwise it has no background and the form shows through it.</remarks>
     public void ShowFlyout(UIElement anchor, UIElement content, FlyoutPlacement placement = FlyoutPlacement.Bottom)
     {
         AttachOverlay(content);

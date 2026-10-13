@@ -94,6 +94,9 @@ ZeppelinForms.Forms.Controls.Base.UIElement.Bind<T, TSource>(ZeppelinForms.Forms
 ZeppelinForms.Forms.Controls.Base.UIElementExtensions
 ZeppelinForms.Forms.Controls.DockPanel.LastChildFill.get -> bool
 ZeppelinForms.Forms.Controls.DockPanel.LastChildFill.set -> void
+ZeppelinForms.Forms.Controls.FlyoutPresenter
+ZeppelinForms.Forms.Controls.FlyoutPresenter.FlyoutPresenter() -> void
+ZeppelinForms.Forms.Controls.FlyoutPresenter.FlyoutPresenter(ZeppelinForms.Forms.Controls.Base.UIElement! child) -> void
 ZeppelinForms.Forms.Controls.SplitView.BadgeColor.get -> ZeppelinForms.Drawing.Primitives.Color
 ZeppelinForms.Forms.Controls.SplitView.BadgeColor.set -> void
 ZeppelinForms.Forms.Controls.SplitView.BadgeTextColor.get -> ZeppelinForms.Drawing.Primitives.Color

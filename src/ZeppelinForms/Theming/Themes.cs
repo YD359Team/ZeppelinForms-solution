@@ -536,6 +536,19 @@ public static partial class Themes
             // the map's labels take the theme's text color, so their backing must
             // follow the theme too: a fixed white left light text on a light patch
             .For<MapControl>((map, c) =>
-                map.TextBackground = new Color(200, c.Surface.R, c.Surface.G, c.Surface.B));
+                map.TextBackground = new Color(200, c.Surface.R, c.Surface.G, c.Surface.B))
+
+            // what floats over the content: a surface of its own, a hairline edge and a
+            // shadow, rounded as the theme rounds its overlays — Fluent more than its controls
+            .For<FlyoutPresenter>((presenter, t) =>
+            {
+                ThemeColors c = t.Colors;
+
+                presenter.Background = c.Surface;
+                presenter.BorderColor = c.Border;
+                presenter.BorderWidth = 1f;
+                presenter.CornerRadius = t.Metrics.OverlayCornerRadius;
+                presenter.BoxShadow = BoxShadow.Medium;
+            });
     }
 }
