@@ -1199,7 +1199,7 @@ public partial class Form : IDisposable
 
     /// <summary>The element with the keyboard focus, for a control that hands the
     /// focus over and takes it back — a split view opening its pane.</summary>
-    internal UIElement? FocusedElement => _focusDispatcher.FocusedElement;
+    public UIElement? FocusedElement => _focusDispatcher.FocusedElement;
 
     /// <summary>Focus an element of this form, if it takes the focus.</summary>
     internal bool FocusElement(UIElement element) =>

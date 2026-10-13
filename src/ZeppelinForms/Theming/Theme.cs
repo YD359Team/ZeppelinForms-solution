@@ -30,6 +30,20 @@ public sealed class Theme
     /// is being changed is the same race as reading a half-written dictionary.</summary>
     private readonly System.Threading.Lock _chainSync = new();
 
+    /// <summary>The <see cref="s_defaultsVersion"/> the cached chains were built with:
+    /// a default rule registered after that makes them stale.</summary>
+    private int _chainsVersion;
+
+    /// <summary>Rules a control library gives for its own types, shared by every theme.
+    /// See <see cref="RegisterDefault{T}"/>.</summary>
+    private static readonly Dictionary<Type, Action<UIElement, Theme>> s_defaults = [];
+
+    private static readonly System.Threading.Lock s_defaultsSync = new();
+
+    /// <summary>Bumped by every default rule. Themes compare it with the version of
+    /// their cached chains rather than being told: the registry doesn't know them.</summary>
+    private static int s_defaultsVersion;
+
     public required string Name { get; init; }
     public required ThemeColors Colors { get; init; }
     public Font BaseFont { get; init; } = Font.Default;
@@ -84,6 +98,41 @@ public sealed class Theme
     /// Derived types pick up the ancestor's styling when they have none of their own.</summary>
     public Theme For<T>(Action<T, ThemeColors> apply) where T : UIElement =>
         For<T>((T element, Theme theme) => apply(element, theme.Colors));
+
+    /// <summary>How every theme styles a control of this type unless it has a rule of
+    /// its own for it: the rule a control library gives for its controls.</summary>
+    /// <remarks>
+    /// <para>
+    /// A library can't add a rule to the themes an application makes, copies or
+    /// recolors, nor to the built-in ones it doesn't own. A default rule is in all of
+    /// them at once: the light and the dark, Fluent, high contrast, and a theme made
+    /// later. Write it from the theme it gets — <c>theme.Colors.Accent</c>, not
+    /// a color of its own — and the control follows the theme switch and the system
+    /// accent like the built-in ones; in high contrast the palette is the system's.
+    /// </para>
+    /// <para>
+    /// A theme's own <see cref="For{T}(Action{T, Theme})"/> for the same type replaces
+    /// the default in that theme: that is how an application restyles a library's
+    /// control. The rules of the base types still apply first, as with any rule.
+    /// Registering again replaces the previous default.
+    /// </para>
+    /// <para>
+    /// Register from the control's static constructor: it runs before the first
+    /// instance is styled, and a module initializer in a library is flagged by CA2255.
+    /// </para>
+    /// </remarks>
+    public static void RegisterDefault<T>(Action<T, Theme> apply) where T : UIElement
+    {
+        ArgumentNullException.ThrowIfNull(apply);
+
+        lock (s_defaultsSync)
+        {
+            s_defaults[typeof(T)] = (element, theme) => apply((T)element, theme);
+
+            // after the rule is in: a theme that reads the new version finds it
+            Interlocked.Increment(ref s_defaultsVersion);
+        }
+    }
 
     /// <summary>A copy of the theme with another palette: the same rules,
     /// shapes, font and type ramp.</summary>
@@ -208,6 +257,16 @@ public sealed class Theme
         // costs nothing noticeable
         lock (_chainSync)
         {
+            // read before the walk: a default registered during it bumps the version
+            // past this one, and the chain built here is rebuilt on the next call
+            int version = Volatile.Read(ref s_defaultsVersion);
+
+            if (_chainsVersion != version)
+            {
+                _chains.Clear();
+                _chainsVersion = version;
+            }
+
             if (_chains.TryGetValue(type, out Action<UIElement, Theme>[]? cached))
                 return cached;
 
@@ -215,7 +274,9 @@ public sealed class Theme
 
             for (Type? current = type; current is not null; current = current.BaseType)
             {
-                if (_appliers.TryGetValue(current, out Action<UIElement, Theme>? apply))
+                // the theme's own rule replaces a library's default for the same type
+                if (_appliers.TryGetValue(current, out Action<UIElement, Theme>? apply) ||
+                    TryGetDefault(current, out apply))
                     chain.Add(apply);
             }
 
@@ -229,6 +290,12 @@ public sealed class Theme
 
             return result;
         }
+    }
+
+    private static bool TryGetDefault(Type type, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Action<UIElement, Theme>? apply)
+    {
+        lock (s_defaultsSync)
+            return s_defaults.TryGetValue(type, out apply);
     }
 
     internal static void Apply(UIElement element, ControlStyle style)

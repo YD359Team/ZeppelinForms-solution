@@ -1373,10 +1373,7 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
         // the input method's candidate list opens at the caret
         if (IsFocused)
-        {
-            Point absolute = GetAbsolutePosition();
-            FindOwner()?.ReportTextInputArea(this, caret.Offset(absolute.X, absolute.Y));
-        }
+            ReportTextInputArea(caret);
 
         g.Restore();
     }

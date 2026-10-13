@@ -65,6 +65,7 @@ static readonly ZeppelinForms.Core.Globalization.ZfText.Paste -> ZeppelinForms.C
 static readonly ZeppelinForms.Core.Globalization.ZfText.Redo -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.SelectAll -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.Undo -> ZeppelinForms.Core.Globalization.TextKey!
+static ZeppelinForms.Theming.Theme.RegisterDefault<T>(System.Action<T!, ZeppelinForms.Theming.Theme!>! apply) -> void
 virtual ZeppelinForms.Forms.Controls.Base.UIElement.GetDefaultContextMenu() -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>?
 ZeppelinForms.Accessibility.Peers.SplitViewMenuPeer
 ZeppelinForms.Accessibility.Peers.SplitViewMenuRowPeer
@@ -102,6 +103,9 @@ ZeppelinForms.Drawing.ITextMeasurer.MeasureFont(ZeppelinForms.Drawing.Font! font
 ZeppelinForms.Forms.Controls.Base.UIElement.Bind<T, TSource>(ZeppelinForms.Forms.Styling.StyledProperty<T>! property, TSource source, string! sourcePropertyName, ZeppelinForms.Data.BindingMode mode = ZeppelinForms.Data.BindingMode.OneWay) -> ZeppelinForms.Data.Binding!
 ZeppelinForms.Forms.Controls.Base.UIElement.CursorImage.get -> ZeppelinForms.Input.Mouse.CursorImage?
 ZeppelinForms.Forms.Controls.Base.UIElement.CursorImage.set -> void
+ZeppelinForms.Forms.Controls.Base.UIElement.FindForm() -> ZeppelinForms.Forms.Form?
+ZeppelinForms.Forms.Controls.Base.UIElement.Focus() -> bool
+ZeppelinForms.Forms.Controls.Base.UIElement.ReportTextInputArea(ZeppelinForms.Drawing.Primitives.Rectangle caret) -> void
 ZeppelinForms.Forms.Controls.Base.UIElementExtensions
 ZeppelinForms.Forms.Controls.Calendar.RangeColor.get -> ZeppelinForms.Drawing.Primitives.Color
 ZeppelinForms.Forms.Controls.Calendar.RangeColor.set -> void
@@ -225,6 +229,7 @@ ZeppelinForms.Forms.Enums.TitleBarTheme.FollowApp = 0 -> ZeppelinForms.Forms.Enu
 ZeppelinForms.Forms.Enums.TitleBarTheme.Light = 1 -> ZeppelinForms.Forms.Enums.TitleBarTheme
 ZeppelinForms.Forms.Form.Background.get -> ZeppelinForms.Drawing.Primitives.Color?
 ZeppelinForms.Forms.Form.Background.set -> void
+ZeppelinForms.Forms.Form.FocusedElement.get -> ZeppelinForms.Forms.Controls.Base.UIElement?
 ZeppelinForms.Forms.Form.OwnedForms.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Form!>!
 ZeppelinForms.Forms.Form.Owner.get -> ZeppelinForms.Forms.Form?
 ZeppelinForms.Forms.Form.Show(ZeppelinForms.Forms.Form! owner) -> void
@@ -234,6 +239,9 @@ ZeppelinForms.Forms.Form.TitleBarColor.get -> ZeppelinForms.Drawing.Primitives.C
 ZeppelinForms.Forms.Form.TitleBarColor.set -> void
 ZeppelinForms.Forms.Form.TitleBarTheme.get -> ZeppelinForms.Forms.Enums.TitleBarTheme
 ZeppelinForms.Forms.Form.TitleBarTheme.set -> void
+ZeppelinForms.Forms.Interfaces.ITextCompositionTarget
+ZeppelinForms.Forms.Interfaces.ITextCompositionTarget.AcceptsComposition.get -> bool
+ZeppelinForms.Forms.Interfaces.ITextCompositionTarget.SetComposition(string! text, int cursor) -> void
 ZeppelinForms.Forms.Styling.StyleTypeRegistry
 ZeppelinForms.Headless.HeadlessTextMeasurer.MeasureFont(ZeppelinForms.Drawing.Font! font) -> ZeppelinForms.Drawing.FontMetrics
 ZeppelinForms.Headless.HeadlessWindow.CursorImage.get -> ZeppelinForms.Input.Mouse.CursorImage?

@@ -112,6 +112,24 @@ public sealed class SkiaGraphics : Graphics
 
     public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
 
+    /// <summary>The Skia canvas being drawn on now, for a control that draws with Skia
+    /// itself — a chart, a PDF page, a map — rather than through <see cref="Graphics"/>.</summary>
+    /// <remarks>
+    /// <para>
+    /// The canvas has the element's place, transform and clip already applied: drawing
+    /// at (0, 0) draws at the element's top-left corner, as <see cref="Graphics"/> does.
+    /// Whatever is saved on it is restored before the element's drawing returns —
+    /// <c>Save</c> and <c>Restore</c> in pairs.
+    /// </para>
+    /// <para>
+    /// Read it where it is drawn on, and don't keep it: while an effect captures the
+    /// element, this is the canvas of an offscreen layer, and it changes back after.
+    /// Reach it with <c>if (g is SkiaGraphics skia)</c>: the drawing is Skia's on every
+    /// platform, but a test may draw through a recording <see cref="Graphics"/>.
+    /// </para>
+    /// </remarks>
+    public SKCanvas Canvas => _canvas;
+
     private static SKImage GetOrCreate(Image image)
     {
         if (!ImageCache.TryGetValue(image, out SKImage? cached))
