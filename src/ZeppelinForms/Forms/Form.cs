@@ -1512,9 +1512,14 @@ public partial class Form : IDisposable
 
     /// <summary>Show <paramref name="content"/> next to <paramref name="anchor"/>. It closes
     /// on a click outside or Esc.</summary>
-    /// <remarks>The content is shown as it is: a menu or a picker draws its own surface.
+    /// <remarks>
+    /// <para>The content is shown as it is: a menu or a picker draws its own surface.
     /// Content without one — a plain panel — goes into a <see cref="FlyoutPresenter"/>,
-    /// otherwise it has no background and the form shows through it.</remarks>
+    /// otherwise it has no background and the form shows through it.</para>
+    /// <para>The side is a wish: where the flyout doesn't fit, it opens on the opposite
+    /// side if it fits there, and stays inside the window along both axes. A drop-down
+    /// at the bottom of the window used to be cut off by its edge.</para>
+    /// </remarks>
     public void ShowFlyout(UIElement anchor, UIElement content, FlyoutPlacement placement = FlyoutPlacement.Bottom)
     {
         AttachOverlay(content);
@@ -1524,8 +1529,11 @@ public partial class Form : IDisposable
         Point anchorPos = anchor.GetAbsolutePosition();
         Size anchorSize = anchor.ActualSize;
         Size contentSize = content.DesiredSize;
+        Size window = ClientSize;
 
-        content.Position = placement switch
+        FlyoutPlacement side = FitPlacement(placement, anchorPos, anchorSize, contentSize, window);
+
+        Point at = side switch
         {
             FlyoutPlacement.Bottom => new Point(anchorPos.X, anchorPos.Y + anchorSize.Height),
             FlyoutPlacement.Top => new Point(anchorPos.X, anchorPos.Y - contentSize.Height),
@@ -1534,9 +1542,42 @@ public partial class Form : IDisposable
             _ => anchorPos,
         };
 
+        // kept inside the window on both axes, as far as it fits: across its side it
+        // slides along the anchor, and on a side too small for it, it covers the anchor
+        // rather than leaving the window
+        content.Position = new Point(
+            Math.Clamp(at.X, 0, Math.Max(0, window.Width - contentSize.Width)),
+            Math.Clamp(at.Y, 0, Math.Max(0, window.Height - contentSize.Height)));
+
         _flyouts.Add(content);
 
         Invalidate();
+    }
+
+    /// <summary>The side a flyout opens on: the one asked for while it fits; the opposite
+    /// one when that fits and the asked one doesn't; when neither fits, the roomier one.</summary>
+    private static FlyoutPlacement FitPlacement(
+        FlyoutPlacement wanted, Point anchor, Size anchorSize, Size content, Size window)
+    {
+        float below = window.Height - (anchor.Y + anchorSize.Height);
+        float above = anchor.Y;
+        float right = window.Width - (anchor.X + anchorSize.Width);
+        float left = anchor.X;
+
+        return wanted switch
+        {
+            FlyoutPlacement.Bottom => Choose(FlyoutPlacement.Bottom, below, FlyoutPlacement.Top, above, content.Height),
+            FlyoutPlacement.Top => Choose(FlyoutPlacement.Top, above, FlyoutPlacement.Bottom, below, content.Height),
+            FlyoutPlacement.Right => Choose(FlyoutPlacement.Right, right, FlyoutPlacement.Left, left, content.Width),
+            FlyoutPlacement.Left => Choose(FlyoutPlacement.Left, left, FlyoutPlacement.Right, right, content.Width),
+            _ => wanted,
+        };
+
+        static FlyoutPlacement Choose(
+            FlyoutPlacement side, float room, FlyoutPlacement opposite, float oppositeRoom, float need) =>
+            room >= need ? side
+            : oppositeRoom >= need || oppositeRoom > room ? opposite
+            : side;
     }
 
     public void CloseFlyout(UIElement content)

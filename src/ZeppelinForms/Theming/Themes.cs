@@ -405,6 +405,11 @@ public static partial class Themes
                 calendar.TodayColor = c.SurfaceHover;
                 calendar.HoverColor = c.SurfaceHover;
                 calendar.HeaderHoverColor = c.SurfacePressed;
+
+                // the days between the ends of a range: the selection's tint, quieter
+                // than the accent of the ends
+                calendar.RangeColor = c.Selection;
+                calendar.RangeTextColor = c.TextSelection;
             })
 
             .For<Shape>((shape, c) =>

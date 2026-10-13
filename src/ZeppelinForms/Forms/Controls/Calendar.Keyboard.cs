@@ -43,7 +43,8 @@ public partial class Calendar : IInputElement
 
     /// <summary>Move the cursor or pick its day: arrows by a day and a week,
     /// PageUp and PageDown by a month — with Ctrl by a year — Home and End to the
-    /// month's ends, Enter and Space pick. False — not a calendar key.</summary>
+    /// month's ends, Enter and Space pick, Esc drops a range half picked.
+    /// False — not a calendar key.</summary>
     internal bool HandleNavigationKey(Key key, KeyModifiers modifiers)
     {
         DateTime current = KeyboardDate;
@@ -74,6 +75,15 @@ public partial class Calendar : IInputElement
         if (key is Key.Enter or Key.Space)
         {
             Pick(current);
+            return true;
+        }
+
+        // only while a range is half picked: otherwise Esc is not the calendar's —
+        // a date picker closes its drop-down on it
+        if (key == Key.Escape && _rangeAnchor is not null)
+        {
+            _rangeAnchor = null;
+            InvalidateVisual();
             return true;
         }
 

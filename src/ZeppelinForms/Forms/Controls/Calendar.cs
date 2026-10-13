@@ -101,6 +101,37 @@ public partial class Calendar : DecoratedControl
     public DateTime? SelectedDate { get; private set; }
     public event EventHandler<DateTime>? DateSelected;
 
+    /// <summary>One day, or a range of days picked with two clicks.</summary>
+    public CalendarSelectionMode SelectionMode
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // a range half picked in one mode means nothing in the other
+            _rangeAnchor = null;
+            InvalidateVisual();
+        }
+    }
+
+    /// <summary>The first day of the range picked last, in <see cref="CalendarSelectionMode.Range"/>.</summary>
+    public DateTime? RangeStart { get; private set; }
+
+    /// <summary>The last day of the range, never before <see cref="RangeStart"/>.</summary>
+    public DateTime? RangeEnd { get; private set; }
+
+    /// <summary>Both ends of a range are picked. <see cref="DateSelected"/> comes for
+    /// each click as well.</summary>
+    public event EventHandler? RangeSelected;
+
+    /// <summary>The first end of a range being picked: set by the first click, cleared
+    /// by the second, by Esc and by a change of the mode. The range picked before stays
+    /// in RangeStart and RangeEnd until the new one is complete.</summary>
+    private DateTime? _rangeAnchor;
+
     private int _hoveredCell = -1;
     private int _hoveredHeaderButton;   // -1 — back, 1 — forward, 0 — none
 
@@ -117,6 +148,16 @@ public partial class Calendar : DecoratedControl
     [Styled(Category = "Calendar")]
     public partial Color SelectedTextColor { get; set; }
     private static Color SelectedTextColorDefault => Colors.White;
+
+    /// <summary>The days between the ends of a range.</summary>
+    [Styled(Category = "Calendar")]
+    public partial Color RangeColor { get; set; }
+    private static Color RangeColorDefault => new(255, 0xCF, 0xE2, 0xFF);
+
+    /// <summary>The text of the days between the ends of a range.</summary>
+    [Styled(Category = "Calendar")]
+    public partial Color RangeTextColor { get; set; }
+    private static Color RangeTextColorDefault => new(255, 0x21, 0x21, 0x21);
 
     [Styled(Category = "Calendar")]
     public partial Color TodayColor { get; set; }
@@ -204,6 +245,25 @@ public partial class Calendar : DecoratedControl
             ? text
             : culture.TextInfo.ToUpper(text[0]) + text[1..];
 
+    /// <summary>The range to mark, in Range mode: the one being picked — from its first
+    /// end to the day under the mouse, or under the keyboard's cursor — or the one picked
+    /// last. Null — nothing to mark, and the single selection is drawn instead.</summary>
+    private (DateTime From, DateTime To)? ShownRange()
+    {
+        if (SelectionMode != CalendarSelectionMode.Range) return null;
+
+        if (_rangeAnchor is { } anchor)
+        {
+            DateTime other = _hoveredCell >= 0 ? FirstCellDate.AddDays(_hoveredCell).Date
+                : ShowsCursor ? KeyboardDate
+                : anchor;
+
+            return other < anchor ? (other, anchor) : (anchor, other);
+        }
+
+        return RangeStart is { } start && RangeEnd is { } end ? (start, end) : null;
+    }
+
     // the background, border and corner radius are drawn by the base — only the date grid here
     protected override void DrawContent(Graphics g)
     {
@@ -281,6 +341,8 @@ public partial class Calendar : DecoratedControl
         DateTime date = FirstCellDate;
         float gridTop = content.Y + layout.GridTop;
 
+        (DateTime From, DateTime To)? range = ShownRange();
+
         for (int row = 0; row < Rows; row++)
         {
             for (int col = 0; col < Columns; col++)
@@ -290,19 +352,36 @@ public partial class Calendar : DecoratedControl
                     layout.Cell);
 
                 int cellIndex = (row * Columns) + col;
-                bool selected = SelectedDate?.Date == date.Date;
+
+                // in a range the ends are the selected days and the days between are
+                // marked; otherwise the one selected date
+                bool selected;
+                bool between;
+
+                if (range is { } shown)
+                {
+                    selected = date.Date == shown.From || date.Date == shown.To;
+                    between = date.Date > shown.From && date.Date < shown.To;
+                }
+                else
+                {
+                    selected = SelectedDate?.Date == date.Date;
+                    between = false;
+                }
 
                 // exactly one fill per cell: previously selected ones were filled
                 // twice, and a translucent SelectionColor came out denser
                 if (selected)
                     g.FillRectangle(rect, SelectionColor);
+                else if (between)
+                    g.FillRectangle(rect, RangeColor);
                 else if (cellIndex == _hoveredCell)
                     g.FillRectangle(rect, HoverColor);
                 else if (date.Date == DateTime.Today)
                     g.FillRectangle(rect, TodayColor);
 
                 Color color = date.Month == _displayMonth.Month
-                    ? selected ? SelectedTextColor : TextColor
+                    ? selected ? SelectedTextColor : between ? RangeTextColor : TextColor
                     : MutedColor;
 
                 // a day's number stands alone in its cell and its circle: centered by
@@ -348,11 +427,30 @@ public partial class Calendar : DecoratedControl
         Pick(picked);
     }
 
-    /// <summary>Select a day: the click and Enter come here.</summary>
+    /// <summary>Select a day: the click and Enter come here. In Range mode the first
+    /// pick is one end of the range and the second completes it.</summary>
     private void Pick(DateTime picked)
     {
         SelectedDate = picked;
         _displayMonth = picked;
+
+        if (SelectionMode == CalendarSelectionMode.Range)
+        {
+            if (_rangeAnchor is { } anchor)
+            {
+                (RangeStart, RangeEnd) = picked.Date < anchor ? (picked.Date, anchor) : (anchor, picked.Date);
+                _rangeAnchor = null;
+
+                Invalidate();
+
+                DateSelected?.Invoke(this, picked);
+                RangeSelected?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
+            _rangeAnchor = picked.Date;
+        }
+
         Invalidate();
 
         DateSelected?.Invoke(this, picked);
@@ -416,6 +514,22 @@ public partial class Calendar : DecoratedControl
 
         // the keyboard starts from the selected day
         _keyboardDate = date.Date;
+
+        Invalidate();
+    }
+
+    /// <summary>Show a range as picked, in either order of the ends. Raises no event,
+    /// as <see cref="SetSelectedDate"/> doesn't.</summary>
+    public void SetSelectedRange(DateTime start, DateTime end)
+    {
+        (DateTime from, DateTime to) = start.Date <= end.Date ? (start.Date, end.Date) : (end.Date, start.Date);
+
+        RangeStart = from;
+        RangeEnd = to;
+        _rangeAnchor = null;
+
+        _displayMonth = from;
+        _keyboardDate = from;
 
         Invalidate();
     }

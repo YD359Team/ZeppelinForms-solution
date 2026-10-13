@@ -28,6 +28,14 @@
 - `WindowStartupLocation.CenterOwner` centers on the owner on Windows; it centered
   on the screen, as the window didn't know its owner
 - The showcase's flyout has a surface; its text ran into the page under it
+- The window is cleared with the theme's background. It was a fixed white: panels
+  draw no background of their own, and the dark themes showed white between the
+  cards of every page
+- A tab is drawn as a gap, not as the box of a missing glyph
+- A right click in a text field keeps the selection; it used to move the caret and
+  drop it, leaving the context menu nothing to act on
+- A flyout that doesn't fit on its side opens on the opposite one and stays inside
+  the window; a drop-down at the bottom of the window was cut off by its edge
 
 ### Input and frames
 
@@ -74,6 +82,17 @@
 - `FlyoutPresenter`: the theme's surface for a flyout — background, hairline edge,
   shadow and the theme's overlay rounding. `ShowFlyout` shows its content as it is,
   and a plain panel needs one
+
+### Context menus and pickers
+
+- Text fields have a context menu of their own — Undo, Redo, Cut, Copy, Paste, Delete
+  and Select all, each enabled by what it can do — unless the application sets
+  `ContextMenu`. Any control can offer one by overriding `GetDefaultContextMenu`.
+  `TextBox.Cut`, `Copy`, `Paste`, `Undo`, `Redo`, `CanUndo` and `CanRedo` are public
+- `Calendar.SelectionMode = Range`: two clicks pick the ends of a range, the days
+  between are marked with `RangeColor`, `RangeSelected` comes when both are picked,
+  and Esc drops a range half picked. `RangeStart`, `RangeEnd`, `SetSelectedRange`
+- `Form.Background`: the color the window is cleared with; the theme's by default
 
 ## [0.15.0] - Lake Baikal
 

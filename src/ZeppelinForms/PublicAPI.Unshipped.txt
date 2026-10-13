@@ -101,6 +101,16 @@ ZeppelinForms.Drawing.FontMetrics.LineHeight.get -> float
 ZeppelinForms.Drawing.ITextMeasurer.MeasureFont(ZeppelinForms.Drawing.Font! font) -> ZeppelinForms.Drawing.FontMetrics
 ZeppelinForms.Forms.Controls.Base.UIElement.Bind<T, TSource>(ZeppelinForms.Forms.Styling.StyledProperty<T>! property, TSource source, string! sourcePropertyName, ZeppelinForms.Data.BindingMode mode = ZeppelinForms.Data.BindingMode.OneWay) -> ZeppelinForms.Data.Binding!
 ZeppelinForms.Forms.Controls.Base.UIElementExtensions
+ZeppelinForms.Forms.Controls.Calendar.RangeColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Calendar.RangeColor.set -> void
+ZeppelinForms.Forms.Controls.Calendar.RangeEnd.get -> System.DateTime?
+ZeppelinForms.Forms.Controls.Calendar.RangeSelected -> System.EventHandler?
+ZeppelinForms.Forms.Controls.Calendar.RangeStart.get -> System.DateTime?
+ZeppelinForms.Forms.Controls.Calendar.RangeTextColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Calendar.RangeTextColor.set -> void
+ZeppelinForms.Forms.Controls.Calendar.SelectionMode.get -> ZeppelinForms.Forms.Enums.CalendarSelectionMode
+ZeppelinForms.Forms.Controls.Calendar.SelectionMode.set -> void
+ZeppelinForms.Forms.Controls.Calendar.SetSelectedRange(System.DateTime start, System.DateTime end) -> void
 ZeppelinForms.Forms.Controls.DockPanel.LastChildFill.get -> bool
 ZeppelinForms.Forms.Controls.DockPanel.LastChildFill.set -> void
 ZeppelinForms.Forms.Controls.FlyoutPresenter
@@ -190,6 +200,9 @@ ZeppelinForms.Forms.Controls.Text.TextBox.Paste() -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.Redo() -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.ResetValidation() -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.Undo() -> void
+ZeppelinForms.Forms.Enums.CalendarSelectionMode
+ZeppelinForms.Forms.Enums.CalendarSelectionMode.Range = 1 -> ZeppelinForms.Forms.Enums.CalendarSelectionMode
+ZeppelinForms.Forms.Enums.CalendarSelectionMode.Single = 0 -> ZeppelinForms.Forms.Enums.CalendarSelectionMode
 ZeppelinForms.Forms.Enums.SizeToContent
 ZeppelinForms.Forms.Enums.SizeToContent.Height = 2 -> ZeppelinForms.Forms.Enums.SizeToContent
 ZeppelinForms.Forms.Enums.SizeToContent.None = 0 -> ZeppelinForms.Forms.Enums.SizeToContent
