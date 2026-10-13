@@ -20,6 +20,8 @@ internal static class NativeConstants
     public const int IDC_SIZEALL = 32646;
     public const int IDC_NO = 32648;
     public const int IDC_HAND = 32649;
+    public const int IDC_SIZENWSE = 32642;
+    public const int IDC_SIZENESW = 32643;
     public const int CFS_POINT = 0x0002;
     public const int CFS_EXCLUDE = 0x0080;
     public const uint WM_IME_STARTCOMPOSITION = 0x010D;

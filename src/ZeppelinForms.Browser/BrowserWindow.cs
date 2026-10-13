@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing.Primitives;
+﻿using SkiaSharp;
+using System.Runtime.CompilerServices;
+using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Keyboard;
@@ -245,6 +247,30 @@ internal sealed class BrowserWindow : IPlatformWindow, ITextInputMethodWindow
     public void ReleaseMouseCapture() => _captured = false;
 
     public void SetCursor(CursorKind cursor) => Interop.SetCursor(Interop.ToCssCursor(cursor));
+
+    /// <summary>The CSS of each picture cursor, made once: a PNG in a data URL takes an
+    /// encode, and the cursor is asked for on every move into an element.</summary>
+    private static readonly ConditionalWeakTable<CursorImage, string> CssCursors = new();
+
+    /// <summary>A picture as a CSS cursor, with the kind's own as the fallback the CSS
+    /// rule asks for. A browser ignores pictures larger than 128 pixels.</summary>
+    public void SetCursor(CursorImage cursor) =>
+        Interop.SetCursor(CssCursors.GetValue(cursor, ToCssCursor));
+
+    private static string ToCssCursor(CursorImage cursor)
+    {
+        string fallback = Interop.ToCssCursor(cursor.Fallback);
+
+        var info = new SKImageInfo(cursor.Image.Width, cursor.Image.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+
+        using SKImage? image = SKImage.FromPixelCopy(info, cursor.Image.Pixels, info.RowBytes);
+        using SKData? png = image?.Encode(SKEncodedImageFormat.Png, 100);
+
+        if (png is null) return fallback;
+
+        return $"url(data:image/png;base64,{Convert.ToBase64String(png.AsSpan())}) " +
+               $"{(int)cursor.Hotspot.X} {(int)cursor.Hotspot.Y}, {fallback}";
+    }
 
     /// <summary>The page's color scheme and theme color. Only the bottom form's: a dialog
     /// over it doesn't repaint the page under it.</summary>

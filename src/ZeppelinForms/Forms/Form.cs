@@ -306,6 +306,7 @@ public partial class Form : IDisposable
     private UIElement? _dropTarget;
     private UIElement? _hoveredElement;
     private CursorKind _lastCursor = CursorKind.Arrow;
+    private CursorImage? _lastCursorImage;
     private readonly FocusDispatcher _focusDispatcher = new();
 
     /// <summary>The mouse identifier. One rather than zero — W3C Pointer Events
@@ -606,21 +607,17 @@ public partial class Form : IDisposable
 
             hit?.RaiseMouseMove(e.Location, modifiers, buttons);
 
-            CursorKind cursor = hit?.EffectiveCursor ?? CursorKind.Arrow;
+            (CursorKind cursor, CursorImage? cursorImage) = hit?.EffectiveCursor ?? (CursorKind.Arrow, null);
 
-            if (cursor != _lastCursor)
+            if (cursor != _lastCursor || !ReferenceEquals(cursorImage, _lastCursorImage))
             {
                 _lastCursor = cursor;
-                PlatformWindow?.SetCursor(cursor);
-            }
+                _lastCursorImage = cursorImage;
 
-            if (IsInspectorEnabled)
-            {
-                InspectedElement = !IsInsideInspector(e.Location) && Content is not null
-                    ? HitTester.HitTest(Content, e.Location)
-                    : null;
-
-                InvalidateVisual();
+                if (cursorImage is not null)
+                    PlatformWindow?.SetCursor(cursorImage);
+                else
+                    PlatformWindow?.SetCursor(cursor);
             }
         }
         finally

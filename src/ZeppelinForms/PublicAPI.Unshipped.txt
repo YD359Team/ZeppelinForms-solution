@@ -100,6 +100,8 @@ ZeppelinForms.Drawing.FontMetrics.FontMetrics(float Ascent, float Descent) -> vo
 ZeppelinForms.Drawing.FontMetrics.LineHeight.get -> float
 ZeppelinForms.Drawing.ITextMeasurer.MeasureFont(ZeppelinForms.Drawing.Font! font) -> ZeppelinForms.Drawing.FontMetrics
 ZeppelinForms.Forms.Controls.Base.UIElement.Bind<T, TSource>(ZeppelinForms.Forms.Styling.StyledProperty<T>! property, TSource source, string! sourcePropertyName, ZeppelinForms.Data.BindingMode mode = ZeppelinForms.Data.BindingMode.OneWay) -> ZeppelinForms.Data.Binding!
+ZeppelinForms.Forms.Controls.Base.UIElement.CursorImage.get -> ZeppelinForms.Input.Mouse.CursorImage?
+ZeppelinForms.Forms.Controls.Base.UIElement.CursorImage.set -> void
 ZeppelinForms.Forms.Controls.Base.UIElementExtensions
 ZeppelinForms.Forms.Controls.Calendar.RangeColor.get -> ZeppelinForms.Drawing.Primitives.Color
 ZeppelinForms.Forms.Controls.Calendar.RangeColor.set -> void
@@ -203,6 +205,8 @@ ZeppelinForms.Forms.Controls.Text.TextBox.Undo() -> void
 ZeppelinForms.Forms.Enums.CalendarSelectionMode
 ZeppelinForms.Forms.Enums.CalendarSelectionMode.Range = 1 -> ZeppelinForms.Forms.Enums.CalendarSelectionMode
 ZeppelinForms.Forms.Enums.CalendarSelectionMode.Single = 0 -> ZeppelinForms.Forms.Enums.CalendarSelectionMode
+ZeppelinForms.Forms.Enums.CursorKind.SizeNorthEastSouthWest = 11 -> ZeppelinForms.Forms.Enums.CursorKind
+ZeppelinForms.Forms.Enums.CursorKind.SizeNorthWestSouthEast = 10 -> ZeppelinForms.Forms.Enums.CursorKind
 ZeppelinForms.Forms.Enums.SizeToContent
 ZeppelinForms.Forms.Enums.SizeToContent.Height = 2 -> ZeppelinForms.Forms.Enums.SizeToContent
 ZeppelinForms.Forms.Enums.SizeToContent.None = 0 -> ZeppelinForms.Forms.Enums.SizeToContent
@@ -232,6 +236,7 @@ ZeppelinForms.Forms.Form.TitleBarTheme.get -> ZeppelinForms.Forms.Enums.TitleBar
 ZeppelinForms.Forms.Form.TitleBarTheme.set -> void
 ZeppelinForms.Forms.Styling.StyleTypeRegistry
 ZeppelinForms.Headless.HeadlessTextMeasurer.MeasureFont(ZeppelinForms.Drawing.Font! font) -> ZeppelinForms.Drawing.FontMetrics
+ZeppelinForms.Headless.HeadlessWindow.CursorImage.get -> ZeppelinForms.Input.Mouse.CursorImage?
 ZeppelinForms.Headless.HeadlessWindow.Invalidate(ZeppelinForms.Drawing.Primitives.Rectangle? rect = null) -> void
 const ZeppelinForms.Input.Pointer.PointerThresholds.RepeatDelayMs = 400 -> int
 const ZeppelinForms.Input.Pointer.PointerThresholds.RepeatIntervalMs = 50 -> int
@@ -341,9 +346,16 @@ static readonly ZeppelinForms.Forms.Controls.Text.TextBox.VerticalContentAlignPr
 static readonly ZeppelinForms.Forms.Controls.ToggleSwitch.HorizontalContentAlignProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Forms.Enums.HorizontalContentAlignment>!
 static readonly ZeppelinForms.Forms.Controls.ToggleSwitch.VerticalContentAlignProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Forms.Enums.VerticalContentAlignment>!
 virtual ZeppelinForms.Drawing.Graphics.DrawSymbol(string! text, ZeppelinForms.Drawing.Primitives.Rectangle rect, ZeppelinForms.Drawing.Primitives.Color color, ZeppelinForms.Drawing.Font! font, ZeppelinForms.Forms.Enums.HorizontalContentAlignment hAlign = ZeppelinForms.Forms.Enums.HorizontalContentAlignment.Center, ZeppelinForms.Forms.Enums.VerticalContentAlignment vAlign = ZeppelinForms.Forms.Enums.VerticalContentAlignment.Center) -> void
+ZeppelinForms.Headless.HeadlessWindow.SetCursor(ZeppelinForms.Input.Mouse.CursorImage! cursor) -> void
 ZeppelinForms.Headless.HeadlessWindow.SetTitleBarAppearance(bool isDark, ZeppelinForms.Drawing.Primitives.Color? background, ZeppelinForms.Drawing.Primitives.Color? foreground) -> void
 ZeppelinForms.Headless.HeadlessWindow.TitleBarBackground.get -> ZeppelinForms.Drawing.Primitives.Color?
 ZeppelinForms.Headless.HeadlessWindow.TitleBarIsDark.get -> bool
+ZeppelinForms.Input.Mouse.CursorImage
+ZeppelinForms.Input.Mouse.CursorImage.CursorImage(ZeppelinForms.Drawing.Imaging.Image! image, ZeppelinForms.Drawing.Primitives.Point hotspot, ZeppelinForms.Forms.Enums.CursorKind fallback = ZeppelinForms.Forms.Enums.CursorKind.Arrow) -> void
+ZeppelinForms.Input.Mouse.CursorImage.Fallback.get -> ZeppelinForms.Forms.Enums.CursorKind
+ZeppelinForms.Input.Mouse.CursorImage.Hotspot.get -> ZeppelinForms.Drawing.Primitives.Point
+ZeppelinForms.Input.Mouse.CursorImage.Image.get -> ZeppelinForms.Drawing.Imaging.Image!
+ZeppelinForms.IPlatformWindow.SetCursor(ZeppelinForms.Input.Mouse.CursorImage! cursor) -> void
 ZeppelinForms.IPlatformWindow.SetTitleBarAppearance(bool isDark, ZeppelinForms.Drawing.Primitives.Color? background, ZeppelinForms.Drawing.Primitives.Color? foreground) -> void
 ~override ZeppelinForms.Drawing.FontMetrics.Equals(object obj) -> bool
 ~override ZeppelinForms.Drawing.FontMetrics.ToString() -> string

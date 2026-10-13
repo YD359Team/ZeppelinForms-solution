@@ -1,5 +1,6 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms;
 
@@ -26,6 +27,9 @@ public interface IPlatformWindow
     void CaptureMouse();
     void ReleaseMouseCapture();
     void SetCursor(CursorKind cursor);
+    /// <summary>A cursor drawn from a picture. A platform without cursors of its own
+    /// shows the picture's fallback — the default.</summary>
+    void SetCursor(CursorImage cursor) => SetCursor(cursor.Fallback);
 
     /// <summary>Register the window as a system drag-and-drop target.
     /// Without this AllowDrop on elements won't work.</summary>

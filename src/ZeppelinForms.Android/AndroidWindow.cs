@@ -150,8 +150,10 @@ internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
 
     public void ReleaseMouseCapture() { }
 
-    /// <summary>There is no cursor.</summary>
-    public void SetCursor(CursorKind cursor) { }
+    /// <summary>The mouse pointer: a tablet with a mouse, DeX, a Chromebook.</summary>
+    public void SetCursor(CursorKind cursor) => _platform.SetCursor(cursor);
+
+    public void SetCursor(CursorImage cursor) => _platform.SetCursor(cursor);
 
     /// <summary>The system bars' icons. Only the bottom form's: a dialog over it doesn't
     /// repaint the bars.</summary>

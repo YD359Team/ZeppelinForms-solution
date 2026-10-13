@@ -1223,15 +1223,26 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// <summary>The cursor over the element. Default — inherited from ancestors.</summary>
     public CursorKind Cursor { get; set; } = CursorKind.Default;
 
-    internal CursorKind EffectiveCursor
+    /// <summary>A cursor drawn from a picture over the element. Set, it wins over
+    /// <see cref="Cursor"/> here, and descendants that set neither inherit it.</summary>
+    public CursorImage? CursorImage { get; set; }
+
+    /// <summary>The cursor over the element: the first one set on the way up, a picture
+    /// or a kind; the arrow when none is.</summary>
+    internal (CursorKind Kind, CursorImage? Image) EffectiveCursor
     {
         get
         {
             for (UIElement? current = this; current is not null; current = current.Parent)
-                if (current.Cursor != CursorKind.Default)
-                    return current.Cursor;
+            {
+                if (current.CursorImage is { } image)
+                    return (image.Fallback, image);
 
-            return CursorKind.Arrow;
+                if (current.Cursor != CursorKind.Default)
+                    return (current.Cursor, null);
+            }
+
+            return (CursorKind.Arrow, null);
         }
     }
 

@@ -871,42 +871,6 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
         }
     }
 
-    private static readonly Dictionary<CursorKind, nint> CursorCache = [];
-    private nint _currentCursor;
-
-    public void SetCursor(CursorKind cursor)
-    {
-        nint handle = LoadCursorHandle(cursor);
-
-        if (handle == _currentCursor) return;
-
-        _currentCursor = handle;
-        NativeMethods.SetCursor(handle);
-    }
-
-    private static nint LoadCursorHandle(CursorKind cursor)
-    {
-        if (CursorCache.TryGetValue(cursor, out nint cached))
-            return cached;
-
-        int id = cursor switch
-        {
-            CursorKind.Hand => NativeConstants.IDC_HAND,
-            CursorKind.IBeam => NativeConstants.IDC_IBEAM,
-            CursorKind.Wait => NativeConstants.IDC_WAIT,
-            CursorKind.SizeWestEast => NativeConstants.IDC_SIZEWE,
-            CursorKind.SizeNorthSouth => NativeConstants.IDC_SIZENS,
-            CursorKind.SizeAll => NativeConstants.IDC_SIZEALL,
-            CursorKind.Cross => NativeConstants.IDC_CROSS,
-            CursorKind.No => NativeConstants.IDC_NO,
-            _ => NativeConstants.IDC_ARROW,
-        };
-
-        nint handle = NativeMethods.LoadCursor(0, id);
-        CursorCache[cursor] = handle;
-        return handle;
-    }
-
     private Point PointFromLParam(nint lParam)
     {
         // (short) rather than a mask: coordinates may be negative

@@ -106,6 +106,16 @@
   the system bars' icons go light over a dark app. The system's high contrast keeps
   its own colors
 
+### Cursors
+
+- `UIElement.CursorImage`: a cursor drawn from a picture, with its hotspot and a
+  fallback kind for where a platform can't make one. It wins over `Cursor` on its
+  element, and descendants that set neither inherit it. Windows makes it with its
+  alpha, X11 through libXcursor, the browser as a CSS cursor; on Android the mouse
+  pointer follows both kinds and pictures, where it stayed the arrow before
+- `CursorKind.SizeNorthWestSouthEast` and `SizeNorthEastSouthWest`: the diagonal
+  resize cursors of a corner grip
+
 ## [0.15.0] - Lake Baikal
 
 ![Lake Baikal](assets/Logo-0.15.0.jpg)

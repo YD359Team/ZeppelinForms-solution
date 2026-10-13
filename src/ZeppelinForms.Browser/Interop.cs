@@ -250,6 +250,8 @@ internal static partial class Interop
         CursorKind.Wait => "wait",
         CursorKind.SizeWestEast => "ew-resize",
         CursorKind.SizeNorthSouth => "ns-resize",
+        CursorKind.SizeNorthWestSouthEast => "nwse-resize",
+        CursorKind.SizeNorthEastSouthWest => "nesw-resize",
         CursorKind.SizeAll => "move",
         CursorKind.Cross => "crosshair",
         CursorKind.No => "not-allowed",

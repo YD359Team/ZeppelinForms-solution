@@ -1,6 +1,7 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Headless;
 
@@ -18,7 +19,21 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
     public WindowState WindowState { get; private set; }
 
     public CursorKind Cursor { get; private set; } = CursorKind.Default;
-    public void SetCursor(CursorKind cursor) => Cursor = cursor;
+
+    /// <summary>The picture cursor asked for last; null after a cursor of a kind.</summary>
+    public CursorImage? CursorImage { get; private set; }
+
+    public void SetCursor(CursorKind cursor)
+    {
+        Cursor = cursor;
+        CursorImage = null;
+    }
+
+    public void SetCursor(CursorImage cursor)
+    {
+        CursorImage = cursor;
+        Cursor = cursor.Fallback;
+    }
 
     /// <summary>How many times a redraw was requested — checked in tests.</summary>
     public int InvalidateCount { get; private set; }
