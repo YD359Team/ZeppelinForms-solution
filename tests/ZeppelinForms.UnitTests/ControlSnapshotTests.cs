@@ -20,7 +20,8 @@ public class ControlSnapshotTests : IClassFixture<SnapshotFixture>
         var button = Buttons.Primary("Сохранить");
         button.Size = new Size(140, 36);
 
-        var form = new Form { Size = new Size(180, 60), Content = button };
+        // the baseline was taken on the white the window used to be cleared with
+        var form = new Form { Size = new Size(180, 60), Content = button, Background = Colors.White };
         new HeadlessPlatform(registerServices: false).CreateWindow(form);
 
         SnapshotAssert.Matches(form, "button-primary");
@@ -31,7 +32,7 @@ public class ControlSnapshotTests : IClassFixture<SnapshotFixture>
     {
         var checkBox = new CheckBox { Text = "Готово", IsChecked = true };
 
-        var form = new Form { Size = new Size(160, 40), Content = checkBox };
+        var form = new Form { Size = new Size(160, 40), Content = checkBox, Background = Colors.White };
         new HeadlessPlatform(registerServices: false).CreateWindow(form);
 
         SnapshotAssert.Matches(form, "checkbox-checked");

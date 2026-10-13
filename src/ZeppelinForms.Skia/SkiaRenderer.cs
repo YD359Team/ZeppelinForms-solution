@@ -45,9 +45,15 @@ public static class SkiaRenderer
 
             var formRect = new SKRect(0, 0, form.ClientSize.Width, form.ClientSize.Height);
 
+            // the form's background — the theme's unless it has one of its own. It was a
+            // fixed white: panels draw no background, and a dark theme showed white
+            // between the cards of every page
+            Color back = form.EffectiveBackground;
+            var backColor = new SKColor(back.R, back.G, back.B, back.A);
+
             if (clearBackground)
             {
-                canvas.Clear(SKColors.White);   // Clear respects the clip
+                canvas.Clear(backColor);   // Clear respects the clip
             }
             else
             {
@@ -56,7 +62,7 @@ public static class SkiaRenderer
                 // so we paint exactly what we occupy
                 canvas.ClipRect(formRect);
 
-                using var background = new SKPaint { Color = SKColors.White };
+                using var background = new SKPaint { Color = backColor };
                 canvas.DrawRect(formRect, background);
             }
 
