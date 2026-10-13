@@ -20,6 +20,14 @@
   own above the content, as the button of WinUI's navigation view in its minimal
   mode, and the content is laid out under it. The band stays while the pane is open,
   so the content doesn't jump; `IsPaneToggleButtonVisible = false` removes it
+- The message box is as large as its message and its buttons. It was sized by the
+  text alone: three buttons didn't fit next to a short question, and on Windows the
+  height lost the title bar's ~40 px. A long message wraps instead of running on,
+  and the text takes the theme's color — it was black, unreadable in the dark theme
+- The input box keeps its buttons inside on Windows: its height follows its content
+- `WindowStartupLocation.CenterOwner` centers on the owner on Windows; it centered
+  on the screen, as the window didn't know its owner
+- The showcase's flyout has a surface; its text ran into the page under it
 
 ### Input and frames
 
@@ -56,6 +64,16 @@
   and could fall behind its owner; now it stays above it and minimizes with it. On
   Linux an owned window is transient for its owner and a dialog is typed as one, so
   the window manager keeps it above and centers it
+
+### Window size from its content
+
+- `Form.SizeToContent`, as WPF's: the window measures its content and takes its size;
+  `MinimumSize` and `MaximumSize` bound it, and `MaximumSize.Width` is where text
+  wraps. With it `Size` is the client area on every platform — Windows adds the frame
+  and the title bar for the window's styles and DPI
+- `FlyoutPresenter`: the theme's surface for a flyout — background, hairline edge,
+  shadow and the theme's overlay rounding. `ShowFlyout` shows its content as it is,
+  and a plain panel needs one
 
 ## [0.15.0] - Lake Baikal
 
