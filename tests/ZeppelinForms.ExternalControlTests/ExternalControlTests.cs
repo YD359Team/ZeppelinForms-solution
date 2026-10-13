@@ -13,9 +13,6 @@ using ZeppelinForms.Headless;
 using ZeppelinForms.Skia;
 using ZeppelinForms.Theming;
 
-// the tests switch App.Theme and Font.Default, which are global
-[assembly: Parallelization(Mode = Xunit.Sdk.ParallelMode.All)]
-
 namespace ZeppelinForms.ExternalControlTests;
 
 /// <summary>
@@ -23,6 +20,7 @@ namespace ZeppelinForms.ExternalControlTests;
 /// properties, theme rules, style sheets, focus, the input method, flyouts and the
 /// Skia canvas — what a package of controls needs from the framework.
 /// </summary>
+[Collection("Platform")]
 public class ExternalControlTests
 {
     private static (Form Form, HeadlessWindow Window) Show(UIElement content)
@@ -71,6 +69,15 @@ public class ExternalControlTests
         Assert.Equal("Fill", Swatch.FillProperty.Name);
         Assert.Equal(new Color(0x12, 0x34, 0x56), swatch.Fill);
         Assert.Equal(new Color(0x12, 0x34, 0x56), Swatch.FillProperty.GetValue(swatch));
+    }
+
+    [Fact]
+    public void TheGeneratorWritesStyledPropertiesInTheGlobalNamespace()
+    {
+        var swatch = new GlobalSwatch { Fill = Colors.Red };
+
+        Assert.Equal("Fill", GlobalSwatch.FillProperty.Name);
+        Assert.Equal(Colors.Red, swatch.Fill);
     }
 
     [Fact]
@@ -170,8 +177,12 @@ public class ExternalControlTests
     {
         WithTheme(Themes.Light, () =>
         {
+            // in the middle of the form, away from its corner: drawing at (0, 0) of
+            // a canvas that wasn't moved to the element would land at the corner.
+            // Not a margin — the form's content takes none, only panels apply it
             Swatch swatch = TopLeft(new Swatch(), 40, 40);
-            swatch.Margin = new Thickness(30, 20, 0, 0);
+            swatch.HorizontalAlignment = HorizontalAlignment.Center;
+            swatch.VerticalAlignment = VerticalAlignment.Center;
             swatch.Fill = new Color(0x12, 0x34, 0x56);
 
             (Form form, _) = Show(swatch);
@@ -182,7 +193,7 @@ public class ExternalControlTests
             Assert.True(swatch.DrewOnCanvas);
 
             Point at = swatch.GetAbsolutePosition();
-            Assert.True(at.X >= 30 && at.Y >= 20, $"The swatch is at {at}.");
+            Assert.True(at.X >= 40 && at.Y >= 40, $"The swatch is at {at}.");
 
             // drawn at (0, 0) of the canvas, it is inside the swatch on the form;
             // left of the swatch is the window's background
@@ -298,7 +309,8 @@ public class ExternalControlTests
         WithTheme(Themes.Light, () =>
         {
             CodeField field = TopLeft(new CodeField(), 200, 30);
-            field.Margin = new Thickness(10, 15, 0, 0);
+            field.HorizontalAlignment = HorizontalAlignment.Center;
+            field.VerticalAlignment = VerticalAlignment.Center;
 
             (Form form, HeadlessWindow window) = Show(field);
 

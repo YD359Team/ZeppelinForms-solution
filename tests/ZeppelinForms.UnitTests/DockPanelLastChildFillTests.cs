@@ -107,13 +107,8 @@ public class DockPanelLastChildFillTests
         Assert.Equal(Height, content.ActualSize.Height, 0.5f);
 
         panel.LastChildFill = false;
-        panel.FindForm().UpdateLayout();
+        panel.FindForm()!.UpdateLayout();
 
         Assert.True(content.ActualSize.Height < Height, $"height {content.ActualSize.Height}");
     }
-}
-
-file static class DockPanelTestExtensions
-{
-    public static Form FindForm(this UIElement element) => element.FindOwner()!;
 }
