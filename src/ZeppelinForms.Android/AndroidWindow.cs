@@ -153,6 +153,14 @@ internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
     /// <summary>There is no cursor.</summary>
     public void SetCursor(CursorKind cursor) { }
 
+    /// <summary>The system bars' icons. Only the bottom form's: a dialog over it doesn't
+    /// repaint the bars.</summary>
+    public void SetTitleBarAppearance(bool isDark, Color? background, Color? foreground)
+    {
+        if (_platform.IsRoot(this))
+            _platform.SetSystemBarsDark(isDark);
+    }
+
     /// <summary>Dragging from other applications is not supported.</summary>
     public void SetDragDropEnabled(bool enabled) { }
 

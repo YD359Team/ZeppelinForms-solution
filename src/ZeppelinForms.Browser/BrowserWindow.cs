@@ -246,6 +246,17 @@ internal sealed class BrowserWindow : IPlatformWindow, ITextInputMethodWindow
 
     public void SetCursor(CursorKind cursor) => Interop.SetCursor(Interop.ToCssCursor(cursor));
 
+    /// <summary>The page's color scheme and theme color. Only the bottom form's: a dialog
+    /// over it doesn't repaint the page under it.</summary>
+    public void SetTitleBarAppearance(bool isDark, Color? background, Color? foreground)
+    {
+        if (!_platform.IsRoot(this)) return;
+
+        Interop.SetTitleBarAppearance(
+            isDark,
+            background is { } fill ? $"#{fill.R:X2}{fill.G:X2}{fill.B:X2}" : string.Empty);
+    }
+
     /// <summary>Dragging files from the system is not supported yet:
     /// HTML5 drag-and-drop is separate work, not a switch.</summary>
     public void SetDragDropEnabled(bool enabled) { }

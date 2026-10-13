@@ -145,6 +145,9 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
     /// <summary>The bottom form takes the whole canvas; everything above it is dialogs.</summary>
     private BrowserWindow? Root => _windows.Count > 0 ? _windows[0] : null;
 
+    /// <summary>Whether the window is the bottom one: the page is its, not a dialog's.</summary>
+    internal bool IsRoot(BrowserWindow window) => ReferenceEquals(Root, window);
+
     public IPlatformWindow CreateWindow(Form form)
     {
         var window = new BrowserWindow(this, form);

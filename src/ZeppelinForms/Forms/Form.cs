@@ -1044,6 +1044,10 @@ public partial class Form : IDisposable
         // through its properties, so the measure cache is reset for the whole tree
         InvalidateMeasureTree();
 
+        // a title bar that follows the app follows its theme: the window used to
+        // subscribe to the theme itself, on Windows only
+        ApplyTitleBar();
+
         Invalidate();
     }
 
@@ -1165,6 +1169,10 @@ public partial class Form : IDisposable
 
         DesktopWindow?.SetOpacity(_opacity);
         DesktopWindow?.SetTitle(Title);
+
+        // before the window is seen: a dark caption must not flash white first
+        ApplyTitleBar();
+
         PlatformWindow?.Show();
 
         // before Shown: a handler that wants the focus elsewhere moves it after us

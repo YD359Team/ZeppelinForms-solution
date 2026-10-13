@@ -83,6 +83,11 @@ internal static partial class Interop
     [JSImport("setFavicon", ModuleName)]
     internal static partial void SetFavicon(string dataUrl);
 
+    /// <summary>The page's color scheme and theme color; an empty background gives the
+    /// theme color back to the page's own.</summary>
+    [JSImport("setTitleBarAppearance", ModuleName)]
+    internal static partial void SetTitleBarAppearance(bool dark, string background);
+
     /// <summary>The viewport size in physical pixels and devicePixelRatio.</summary>
     [JSImport("viewportWidth", ModuleName)]
     internal static partial int ViewportWidth();

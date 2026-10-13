@@ -157,6 +157,29 @@ internal static class Win32Appearance
             DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, ref value, sizeof(int));
     }
 
+    // ===== the caption's colors, Windows 11 (22000) and later =====
+
+    private const uint DWMWA_CAPTION_COLOR = 35;
+    private const uint DWMWA_TEXT_COLOR = 36;
+
+    /// <summary>Back to the system's own color.</summary>
+    private const int DWMWA_COLOR_DEFAULT = unchecked((int)0xFFFFFFFF);
+
+    /// <summary>The caption's fill and text. Null gives each back to the system.</summary>
+    internal static void SetCaptionColors(nint hwnd, Color? background, Color? foreground)
+    {
+        int caption = background is { } fill ? ColorRef(fill) : DWMWA_COLOR_DEFAULT;
+        int text = foreground is { } ink ? ColorRef(ink) : DWMWA_COLOR_DEFAULT;
+
+        // a failure is not an error: Windows 10 has no caption colors, and the dark
+        // mode set before is all it gets
+        DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref caption, sizeof(int));
+        DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, ref text, sizeof(int));
+    }
+
+    /// <summary>COLORREF: 0x00BBGGRR. The alpha is not Windows' to take.</summary>
+    private static int ColorRef(Color color) => color.R | (color.G << 8) | (color.B << 16);
+
     private static Color Entry(byte[] data, int index) =>
         new(data[index * 4], data[index * 4 + 1], data[index * 4 + 2]);
 

@@ -1,25 +1,25 @@
-﻿namespace ZeppelinForms.Windows;
+﻿using ZeppelinForms.Drawing.Primitives;
 
-/// <summary>The title bar follows the application's theme — not the system's mode:
-/// an application in its dark theme on a light system still wants a dark caption.</summary>
+namespace ZeppelinForms.Windows;
+
+/// <summary>The title bar as the form asks for it: dark or light, and on Windows 11
+/// the caption's own colors.</summary>
+/// <remarks>
+/// The form decides — from its TitleBarTheme and TitleBarColor and the application's
+/// theme, not the system's mode: an application in its dark theme on a light system
+/// still wants a dark caption — and calls this when it is shown, before the window is
+/// seen, and whenever any of them changes.
+/// The window used to follow App.ThemeChanged by itself, and its first call came from
+/// the top of Create, before the window had a handle: it did nothing, and a dark theme
+/// opened under a light caption until the theme was switched.
+/// </remarks>
 internal sealed partial class Win32Window
 {
-    /// <summary>Paint the caption before the window is first shown, and follow
-    /// the theme from then on.</summary>
-    private void AttachCaptionTheme()
-    {
-        ApplyCaptionTheme();
-        App.ThemeChanged += OnAppThemeChanged;
-    }
-
-    private void DetachCaptionTheme() => App.ThemeChanged -= OnAppThemeChanged;
-
-    private void OnAppThemeChanged(object? sender, EventArgs e) => ApplyCaptionTheme();
-
-    private void ApplyCaptionTheme()
+    public void SetTitleBarAppearance(bool isDark, Color? background, Color? foreground)
     {
         if (_handle == 0) return;
 
-        Win32Appearance.SetDarkCaption(_handle, App.Theme.Colors.IsDark);
+        Win32Appearance.SetDarkCaption(_handle, isDark);
+        Win32Appearance.SetCaptionColors(_handle, background, foreground);
     }
 }

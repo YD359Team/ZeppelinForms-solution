@@ -65,9 +65,6 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
     public void Create()
     {
-        if (_handle != 0)
-            return;
-
         // before the first show: a dark window must not flash a white caption
         AttachCaptionTheme();
 
@@ -633,7 +630,6 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                 }
 
             case NativeConstants.WM_DESTROY:
-                DetachCaptionTheme();
                 DisposeAutomation();
                 _form.OnWindowClosed();
                 _platform.WindowDestroyed();

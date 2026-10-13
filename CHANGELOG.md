@@ -36,6 +36,8 @@
   drop it, leaving the context menu nothing to act on
 - A flyout that doesn't fit on its side opens on the opposite one and stays inside
   the window; a drop-down at the bottom of the window was cut off by its edge
+- A dark theme opens under a dark caption on Windows. The caption was applied before
+  the window had a handle, did nothing, and stayed light until the theme was switched
 
 ### Input and frames
 
@@ -93,6 +95,16 @@
   between are marked with `RangeColor`, `RangeSelected` comes when both are picked,
   and Esc drops a range half picked. `RangeStart`, `RangeEnd`, `SetSelectedRange`
 - `Form.Background`: the color the window is cleared with; the theme's by default
+
+### Title bar
+
+- `Form.TitleBarTheme` — follow the app, light or dark — and `Form.TitleBarColor`, the
+  caption's own color. Windows 10 draws the caption dark or light; Windows 11 takes the
+  color too, with a text color that reads on it. On Linux GNOME's window manager draws
+  the frame's dark or light variant. In the browser the page's color scheme follows,
+  and the theme color — a phone's address bar, an installed app's title bar. On Android
+  the system bars' icons go light over a dark app. The system's high contrast keeps
+  its own colors
 
 ## [0.15.0] - Lake Baikal
 

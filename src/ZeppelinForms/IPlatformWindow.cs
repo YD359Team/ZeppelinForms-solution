@@ -38,6 +38,13 @@ public interface IPlatformWindow
     /// <summary>Make the window active.</summary>
     void Activate();
 
+    /// <summary>The title bar dark or light, and its own colors where the platform has
+    /// them. Called by the form when it is shown and whenever its title bar or the theme
+    /// changes. A platform without a title bar does nothing — the default.</summary>
+    /// <param name="background">null — the system's color.</param>
+    /// <param name="foreground">The caption's text on <paramref name="background"/>; null with it.</param>
+    void SetTitleBarAppearance(bool isDark, Color? background, Color? foreground) { }
+
     IFrameDriver Frames { get; }
 }
 

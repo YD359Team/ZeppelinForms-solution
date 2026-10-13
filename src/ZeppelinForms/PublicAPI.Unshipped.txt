@@ -215,6 +215,10 @@ ZeppelinForms.Forms.Enums.TextTrimming.WordEllipsis = 2 -> ZeppelinForms.Forms.E
 ZeppelinForms.Forms.Enums.TextWrapping
 ZeppelinForms.Forms.Enums.TextWrapping.NoWrap = 0 -> ZeppelinForms.Forms.Enums.TextWrapping
 ZeppelinForms.Forms.Enums.TextWrapping.Wrap = 1 -> ZeppelinForms.Forms.Enums.TextWrapping
+ZeppelinForms.Forms.Enums.TitleBarTheme
+ZeppelinForms.Forms.Enums.TitleBarTheme.Dark = 2 -> ZeppelinForms.Forms.Enums.TitleBarTheme
+ZeppelinForms.Forms.Enums.TitleBarTheme.FollowApp = 0 -> ZeppelinForms.Forms.Enums.TitleBarTheme
+ZeppelinForms.Forms.Enums.TitleBarTheme.Light = 1 -> ZeppelinForms.Forms.Enums.TitleBarTheme
 ZeppelinForms.Forms.Form.Background.get -> ZeppelinForms.Drawing.Primitives.Color?
 ZeppelinForms.Forms.Form.Background.set -> void
 ZeppelinForms.Forms.Form.OwnedForms.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Form!>!
@@ -222,6 +226,10 @@ ZeppelinForms.Forms.Form.Owner.get -> ZeppelinForms.Forms.Form?
 ZeppelinForms.Forms.Form.Show(ZeppelinForms.Forms.Form! owner) -> void
 ZeppelinForms.Forms.Form.SizeToContent.get -> ZeppelinForms.Forms.Enums.SizeToContent
 ZeppelinForms.Forms.Form.SizeToContent.set -> void
+ZeppelinForms.Forms.Form.TitleBarColor.get -> ZeppelinForms.Drawing.Primitives.Color?
+ZeppelinForms.Forms.Form.TitleBarColor.set -> void
+ZeppelinForms.Forms.Form.TitleBarTheme.get -> ZeppelinForms.Forms.Enums.TitleBarTheme
+ZeppelinForms.Forms.Form.TitleBarTheme.set -> void
 ZeppelinForms.Forms.Styling.StyleTypeRegistry
 ZeppelinForms.Headless.HeadlessTextMeasurer.MeasureFont(ZeppelinForms.Drawing.Font! font) -> ZeppelinForms.Drawing.FontMetrics
 ZeppelinForms.Headless.HeadlessWindow.Invalidate(ZeppelinForms.Drawing.Primitives.Rectangle? rect = null) -> void
@@ -333,6 +341,10 @@ static readonly ZeppelinForms.Forms.Controls.Text.TextBox.VerticalContentAlignPr
 static readonly ZeppelinForms.Forms.Controls.ToggleSwitch.HorizontalContentAlignProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Forms.Enums.HorizontalContentAlignment>!
 static readonly ZeppelinForms.Forms.Controls.ToggleSwitch.VerticalContentAlignProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Forms.Enums.VerticalContentAlignment>!
 virtual ZeppelinForms.Drawing.Graphics.DrawSymbol(string! text, ZeppelinForms.Drawing.Primitives.Rectangle rect, ZeppelinForms.Drawing.Primitives.Color color, ZeppelinForms.Drawing.Font! font, ZeppelinForms.Forms.Enums.HorizontalContentAlignment hAlign = ZeppelinForms.Forms.Enums.HorizontalContentAlignment.Center, ZeppelinForms.Forms.Enums.VerticalContentAlignment vAlign = ZeppelinForms.Forms.Enums.VerticalContentAlignment.Center) -> void
+ZeppelinForms.Headless.HeadlessWindow.SetTitleBarAppearance(bool isDark, ZeppelinForms.Drawing.Primitives.Color? background, ZeppelinForms.Drawing.Primitives.Color? foreground) -> void
+ZeppelinForms.Headless.HeadlessWindow.TitleBarBackground.get -> ZeppelinForms.Drawing.Primitives.Color?
+ZeppelinForms.Headless.HeadlessWindow.TitleBarIsDark.get -> bool
+ZeppelinForms.IPlatformWindow.SetTitleBarAppearance(bool isDark, ZeppelinForms.Drawing.Primitives.Color? background, ZeppelinForms.Drawing.Primitives.Color? foreground) -> void
 ~override ZeppelinForms.Drawing.FontMetrics.Equals(object obj) -> bool
 ~override ZeppelinForms.Drawing.FontMetrics.ToString() -> string
 ZeppelinForms.Forms.Controls.ZoomBox.PanOffset.get -> ZeppelinForms.Drawing.Primitives.Point

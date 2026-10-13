@@ -37,6 +37,18 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
     public void SetEnabled(bool enabled) => IsEnabled = enabled;
     public void Activate() => IsActive = true;
 
+    /// <summary>The title bar the form asked for last.</summary>
+    public bool TitleBarIsDark { get; private set; }
+
+    /// <summary>The title bar's own color the form asked for last; null — none.</summary>
+    public Color? TitleBarBackground { get; private set; }
+
+    public void SetTitleBarAppearance(bool isDark, Color? background, Color? foreground)
+    {
+        TitleBarIsDark = isDark;
+        TitleBarBackground = background;
+    }
+
     internal HeadlessWindow(HeadlessPlatform platform, Form form)
     {
         _platform = platform;
