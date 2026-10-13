@@ -40,6 +40,7 @@
     <Project Path="src/ZeppelinForms/ZeppelinForms.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ZeppelinForms.ExternalControlTests/ZeppelinForms.ExternalControlTests.csproj" />
     <Project Path="tests/ZeppelinForms.UnitTests/ZeppelinForms.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tools/">

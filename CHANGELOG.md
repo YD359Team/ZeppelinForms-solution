@@ -116,6 +116,31 @@
 - `CursorKind.SizeNorthWestSouthEast` and `SizeNorthEastSouthWest`: the diagonal
   resize cursors of a corner grip
 
+### Controls of other packages
+
+What a package of controls — a PDF view, a chart, a web view, a code editor — needs
+from the framework is public now; the built-in controls reached it as internals
+
+- `UIElement.FindForm()`: the form the element is in, through its parents or as an
+  overlay — to open a flyout, give the focus back, read the window's state
+- `UIElement.Focus()`: move the keyboard focus to the element. There was no public
+  way to focus anything, from a control or from an application. `Form.FocusedElement`
+  says which element has it
+- `Theme.RegisterDefault<T>`: a library's theme rule for its own control, in every
+  theme at once — light, dark, Fluent, high contrast and the ones an application
+  makes. A library couldn't add a rule to themes it doesn't own, and its controls
+  stayed unstyled until the application wrote rules for them. A theme's own
+  `For<T>` for the type still replaces the default
+- `ITextCompositionTarget` and `UIElement.ReportTextInputArea`: an editor of another
+  package shows the input method's composition in place and has the candidate list
+  open at its caret, as `TextBox` does
+- `SkiaGraphics.Canvas`: the Skia canvas being drawn on, with the element's place and
+  transform applied, for a control that draws with Skia itself
+- A test project, `ZeppelinForms.ExternalControlTests`, builds controls of this kind
+  without access to the framework's internals: a styled property, a theme rule,
+  a pseudo-class in a style sheet, focus, composition, a flyout and Skia drawing.
+  It runs with the scan of loaded assemblies off, as a trimmed application does
+
 ## [0.15.0] - Lake Baikal
 
 ![Lake Baikal](assets/Logo-0.15.0.jpg)

@@ -1,10 +1,42 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<!-- Controls written the way another package writes them: against the public API
+       alone. ZeppelinForms.UnitTests sees the framework's internals, and a control
+       there compiles with what a package of PDF, chart or web view controls can't
+       reach. Here nothing is visible but what is public: a member a control needs
+       that turns internal fails this build, not a library's -->
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<OutputType>Exe</OutputType>
+		<TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+		<UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- the platforms for the native Skia libraries, as an application has one -->
+		<ProjectReference Include="..\..\src\ZeppelinForms.Linux\ZeppelinForms.Linux.csproj" />
+		<ProjectReference Include="..\..\src\ZeppelinForms.Windows\ZeppelinForms.Windows.csproj" />
+		<ProjectReference Include="..\..\src\ZeppelinForms.Skia\ZeppelinForms.Skia.csproj" />
+		<ProjectReference Include="..\..\src\ZeppelinForms\ZeppelinForms.csproj" />
+
+		<!-- what the package brings with it: the styled property generator and the list
+         of this assembly's controls for the style sheets. A project reference doesn't
+         carry analyzers on its own -->
+		<ProjectReference Include="..\..\src\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- as a trimmed or AOT application runs: style sheets find the controls only in
+         the lists the generator writes, without enumerating the loaded assemblies.
+         A control the generator left out isn't found by name here -->
+		<RuntimeHostConfigurationOption Include="ZeppelinForms.Styling.ScanAssemblies" Value="false" />
+	</ItemGroup>
 
 </Project>
