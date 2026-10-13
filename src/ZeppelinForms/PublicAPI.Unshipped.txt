@@ -57,6 +57,15 @@
 *REMOVED*static ZeppelinForms.Drawing.FontEx.WithSize(this ZeppelinForms.Drawing.Font! font, float fontSize) -> ZeppelinForms.Drawing.Font!
 *REMOVED*static ZeppelinForms.Forms.Controls.Base.UIElementEx.At<T>(this T! element, int row, int column) -> T!
 *REMOVED*static ZeppelinForms.Forms.Controls.Base.UIElementEx.With<T>(this T! element, System.Action<T!>! configure) -> T!
+override ZeppelinForms.Forms.Controls.Text.TextBox.GetDefaultContextMenu() -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>?
+static readonly ZeppelinForms.Core.Globalization.ZfText.Copy -> ZeppelinForms.Core.Globalization.TextKey!
+static readonly ZeppelinForms.Core.Globalization.ZfText.Cut -> ZeppelinForms.Core.Globalization.TextKey!
+static readonly ZeppelinForms.Core.Globalization.ZfText.Delete -> ZeppelinForms.Core.Globalization.TextKey!
+static readonly ZeppelinForms.Core.Globalization.ZfText.Paste -> ZeppelinForms.Core.Globalization.TextKey!
+static readonly ZeppelinForms.Core.Globalization.ZfText.Redo -> ZeppelinForms.Core.Globalization.TextKey!
+static readonly ZeppelinForms.Core.Globalization.ZfText.SelectAll -> ZeppelinForms.Core.Globalization.TextKey!
+static readonly ZeppelinForms.Core.Globalization.ZfText.Undo -> ZeppelinForms.Core.Globalization.TextKey!
+virtual ZeppelinForms.Forms.Controls.Base.UIElement.GetDefaultContextMenu() -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>?
 ZeppelinForms.Accessibility.Peers.SplitViewMenuPeer
 ZeppelinForms.Accessibility.Peers.SplitViewMenuRowPeer
 ZeppelinForms.Accessibility.Peers.SplitViewPaneButtonPeer
@@ -173,7 +182,14 @@ ZeppelinForms.Forms.Controls.Text.RichLabel.HorizontalContentAlign.get -> Zeppel
 ZeppelinForms.Forms.Controls.Text.RichLabel.HorizontalContentAlign.set -> void
 ZeppelinForms.Forms.Controls.Text.RichLabel.VerticalContentAlign.get -> ZeppelinForms.Forms.Enums.VerticalContentAlignment
 ZeppelinForms.Forms.Controls.Text.RichLabel.VerticalContentAlign.set -> void
+ZeppelinForms.Forms.Controls.Text.TextBox.CanRedo.get -> bool
+ZeppelinForms.Forms.Controls.Text.TextBox.CanUndo.get -> bool
+ZeppelinForms.Forms.Controls.Text.TextBox.Copy() -> void
+ZeppelinForms.Forms.Controls.Text.TextBox.Cut() -> void
+ZeppelinForms.Forms.Controls.Text.TextBox.Paste() -> void
+ZeppelinForms.Forms.Controls.Text.TextBox.Redo() -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.ResetValidation() -> void
+ZeppelinForms.Forms.Controls.Text.TextBox.Undo() -> void
 ZeppelinForms.Forms.Enums.SizeToContent
 ZeppelinForms.Forms.Enums.SizeToContent.Height = 2 -> ZeppelinForms.Forms.Enums.SizeToContent
 ZeppelinForms.Forms.Enums.SizeToContent.None = 0 -> ZeppelinForms.Forms.Enums.SizeToContent

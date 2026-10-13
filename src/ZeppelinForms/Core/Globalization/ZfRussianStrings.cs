@@ -25,6 +25,15 @@ internal sealed class ZfRussianStrings : StringTable
         Add(ZfText.SaveFileTitle, "Сохранить файл");
         Add(ZfText.SelectFolderTitle, "Выбрать папку");
 
+        // the access keys differ from each other: О, П, В, К, А, У, Д
+        Add(ZfText.Undo, "&Отменить");
+        Add(ZfText.Redo, "&Повторить");
+        Add(ZfText.Cut, "&Вырезать");
+        Add(ZfText.Copy, "&Копировать");
+        Add(ZfText.Paste, "Вст&авить");
+        Add(ZfText.Delete, "&Удалить");
+        Add(ZfText.SelectAll, "Вы&делить всё");
+
         Add(ZfText.AllFiles, "Все файлы");
         Add(ZfText.FileExists, "Файл «{0}» уже есть. Заменить?");
 

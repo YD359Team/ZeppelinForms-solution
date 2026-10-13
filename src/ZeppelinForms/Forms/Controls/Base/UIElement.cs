@@ -1192,6 +1192,13 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     protected virtual Color CurrentBorderColor => BorderColor;
 
     public List<MenuItem>? ContextMenu { get; set; }
+    /// <summary>The menu the element offers when <see cref="ContextMenu"/> is not set — a
+    /// text field's Cut, Copy and Paste. Asked each time the menu opens, so its items show
+    /// the element's state at that moment. Null — none; the search goes on up the tree.</summary>
+    protected virtual List<MenuItem>? GetDefaultContextMenu() => null;
+
+    internal List<MenuItem>? DefaultContextMenu() => GetDefaultContextMenu();
+
     // IGridPlaceable
 
     public Size DesiredSize { get; private set; }

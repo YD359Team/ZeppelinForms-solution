@@ -2038,10 +2038,15 @@ public partial class Form : IDisposable
         UIElement? hit = HitTestAll(point);
 
         // the menu is searched up the tree: if the button itself has none,
-        // ask the panel, then the form
+        // ask the panel, then the form. An element's own menu comes first,
+        // then the one it offers by default — a text field's editing commands
         for (UIElement? current = hit; current is not null; current = current.Parent)
         {
-            if (current.ContextMenu is { Count: > 0 } items)
+            List<MenuItem>? items = current.ContextMenu is { Count: > 0 } own
+                ? own
+                : current.DefaultContextMenu();
+
+            if (items is { Count: > 0 })
             {
                 ShowContextMenu(items, point);
                 return;
