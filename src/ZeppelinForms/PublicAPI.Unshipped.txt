@@ -568,3 +568,78 @@ static ZeppelinForms.DispatcherUnhandledExceptionEventArgs.operator ==(ZeppelinF
 static ZeppelinForms.App.UnhandledException -> System.EventHandler<ZeppelinForms.DispatcherUnhandledExceptionEventArgs!>?
 static readonly ZeppelinForms.Forms.Controls.Calendar.RangeColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 static readonly ZeppelinForms.Forms.Controls.Calendar.RangeTextColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+ZeppelinForms.Forms.Controls.PropertyEditContext
+ZeppelinForms.Forms.Controls.PropertyEditContext.Change(object? value) -> bool
+ZeppelinForms.Forms.Controls.PropertyEditContext.Commit() -> void
+ZeppelinForms.Forms.Controls.PropertyEditContext.IsMixed.get -> bool
+ZeppelinForms.Forms.Controls.PropertyEditContext.IsReadOnly.get -> bool
+ZeppelinForms.Forms.Controls.PropertyEditContext.Property.get -> ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor!
+ZeppelinForms.Forms.Controls.PropertyEditContext.Set(object? value) -> bool
+ZeppelinForms.Forms.Controls.PropertyEditContext.Targets.get -> System.Collections.Generic.IReadOnlyList<object!>!
+ZeppelinForms.Forms.Controls.PropertyEditContext.Value.get -> object?
+ZeppelinForms.Forms.Controls.PropertyGrid.CategoryColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.PropertyGrid.CategoryColor.set -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.CategoryTextColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.PropertyGrid.CategoryTextColor.set -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.CommitEdit() -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.Editors.get -> System.Collections.Generic.IDictionary<System.Type!, System.Func<ZeppelinForms.Forms.Controls.PropertyEditContext!, ZeppelinForms.Forms.Controls.Base.UIElement!>!>!
+ZeppelinForms.Forms.Controls.PropertyGrid.Filter.get -> string!
+ZeppelinForms.Forms.Controls.PropertyGrid.Filter.set -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.GroupByCategory.get -> bool
+ZeppelinForms.Forms.Controls.PropertyGrid.GroupByCategory.set -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.MarkerColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.PropertyGrid.MarkerColor.set -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.NameColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.PropertyGrid.NameColor.set -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.NameColumnRatio.get -> float
+ZeppelinForms.Forms.Controls.PropertyGrid.NameColumnRatio.set -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.PropertiesProvider.get -> System.Func<object!, System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor!>!>?
+ZeppelinForms.Forms.Controls.PropertyGrid.PropertiesProvider.set -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.PropertyValueChanged -> System.EventHandler<ZeppelinForms.Forms.Controls.PropertyValueChangedEventArgs!>?
+ZeppelinForms.Forms.Controls.PropertyGrid.PropertyValueChanging -> System.EventHandler<ZeppelinForms.Forms.Controls.PropertyValueChangingEventArgs!>?
+ZeppelinForms.Forms.Controls.PropertyGrid.Refresh() -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.RowHoverColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.PropertyGrid.RowHoverColor.set -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.SelectedObjects.get -> System.Collections.Generic.IReadOnlyList<object!>!
+ZeppelinForms.Forms.Controls.PropertyGrid.SelectedObjects.set -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.SeparatorColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.PropertyGrid.SeparatorColor.set -> void
+ZeppelinForms.Forms.Controls.PropertyGrid.ShowToolbar.get -> bool
+ZeppelinForms.Forms.Controls.PropertyGrid.ShowToolbar.set -> void
+ZeppelinForms.Forms.Controls.PropertyValueChangedEventArgs
+ZeppelinForms.Forms.Controls.PropertyValueChangedEventArgs.NewValue.get -> object?
+ZeppelinForms.Forms.Controls.PropertyValueChangedEventArgs.OldValues.get -> System.Collections.Generic.IReadOnlyList<object?>!
+ZeppelinForms.Forms.Controls.PropertyValueChangedEventArgs.Property.get -> ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor!
+ZeppelinForms.Forms.Controls.PropertyValueChangedEventArgs.PropertyValueChangedEventArgs(ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor! property, System.Collections.Generic.IReadOnlyList<object!>! targets, System.Collections.Generic.IReadOnlyList<object?>! oldValues, object? newValue) -> void
+ZeppelinForms.Forms.Controls.PropertyValueChangedEventArgs.Redo() -> void
+ZeppelinForms.Forms.Controls.PropertyValueChangedEventArgs.Targets.get -> System.Collections.Generic.IReadOnlyList<object!>!
+ZeppelinForms.Forms.Controls.PropertyValueChangedEventArgs.Undo() -> void
+ZeppelinForms.Forms.Controls.PropertyValueChangingEventArgs
+ZeppelinForms.Forms.Controls.PropertyValueChangingEventArgs.Cancel.get -> bool
+ZeppelinForms.Forms.Controls.PropertyValueChangingEventArgs.Cancel.set -> void
+ZeppelinForms.Forms.Controls.PropertyValueChangingEventArgs.NewValue.get -> object?
+ZeppelinForms.Forms.Controls.PropertyValueChangingEventArgs.Property.get -> ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor!
+ZeppelinForms.Forms.Controls.PropertyValueChangingEventArgs.PropertyValueChangingEventArgs(ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor! property, System.Collections.Generic.IReadOnlyList<object!>! targets, object? newValue) -> void
+ZeppelinForms.Forms.Controls.PropertyValueChangingEventArgs.Targets.get -> System.Collections.Generic.IReadOnlyList<object!>!
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.DecimalPlaces.get -> int?
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.DecimalPlaces.init -> void
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.Description.get -> string?
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.Description.init -> void
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.DisplayName.get -> string?
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.DisplayName.init -> void
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.Editor.get -> System.Func<ZeppelinForms.Forms.Controls.PropertyEditContext!, ZeppelinForms.Forms.Controls.Base.UIElement!>?
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.Editor.init -> void
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.Increment.get -> double?
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.Increment.init -> void
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.Maximum.get -> double?
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.Maximum.init -> void
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.Minimum.get -> double?
+ZeppelinForms.Forms.Controls.Tools.PropertyDescriptor.Minimum.init -> void
+override ZeppelinForms.Forms.Controls.PropertyGrid.OnDetached() -> void
+static ZeppelinForms.Forms.Controls.PropertyGrid.RegisterDefaultEditor(System.Type! type, System.Func<ZeppelinForms.Forms.Controls.PropertyEditContext!, ZeppelinForms.Forms.Controls.Base.UIElement!>! editor) -> void
+static readonly ZeppelinForms.Forms.Controls.PropertyGrid.CategoryColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.PropertyGrid.CategoryTextColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.PropertyGrid.MarkerColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.PropertyGrid.NameColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.PropertyGrid.RowHoverColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.PropertyGrid.SeparatorColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!

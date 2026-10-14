@@ -112,12 +112,27 @@ public static partial class Themes
                 panel.ScrollThumbColor = c.ScrollThumb;
             })
 
-            .For<PropertyGrid>((panel, c) =>
+            // a property grid as a card of the theme: one thin border, the theme's corners,
+            // category bands a shade off the surface, hairlines between the rows, names in
+            // the secondary text and the accent for what was set by hand. The 2 px border
+            // and the full-strength stripes made it look bolted on from another toolkit
+            .For<PropertyGrid>((panel, t) =>
             {
+                ThemeColors c = t.Colors;
+
                 panel.Background = c.Surface;
-                panel.AlternateRowColor = c.SurfaceHover;
                 panel.BorderColor = c.Border;
-                panel.BorderWidth = 2f;
+                panel.BorderWidth = t.Metrics.StrokeThickness;
+                panel.CornerRadius = t.Metrics.OverlayCornerRadius;
+                panel.Padding = new Thickness(6);
+
+                panel.AlternateRowColor = new Color(8, c.Text.R, c.Text.G, c.Text.B);
+                panel.CategoryColor = c.SurfaceHover;
+                panel.CategoryTextColor = c.Text;
+                panel.SeparatorColor = c.Border.WithA((byte)(c.Border.A * 2 / 5));
+                panel.RowHoverColor = new Color(14, c.Text.R, c.Text.G, c.Text.B);
+                panel.NameColor = c.TextSecondary;
+                panel.MarkerColor = c.Accent;
             })
 
             // base — a neutral button when the type is not more specific

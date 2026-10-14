@@ -158,12 +158,29 @@ internal static class StylesPage
         var grid = new PropertyGrid
         {
             SelectedObject = target,
-            Size = new(float.NaN, 320),
-            OverflowY = Overflow.Auto,
+            Size = new(float.NaN, 420),
+        };
+
+        // every edit is one step, however many turns of the wheel it took
+        var history = new Stack<PropertyValueChangedEventArgs>();
+        var undo = new Button { Text = "Undo", IsEnabled = false };
+
+        grid.PropertyValueChanged += (_, e) =>
+        {
+            history.Push(e);
+            undo.IsEnabled = true;
+        };
+
+        undo.Click += (_, _) =>
+        {
+            if (history.Count == 0) return;
+
+            history.Pop().Undo();
+            undo.IsEnabled = history.Count > 0;
         };
 
         var root = new StackPanel { Orientation = Orientation.Vertical, Spacing = 10, CrossAxisAlignment = CrossAxisAlignment.Stretch };
-        root.Children.AddRange([Demo.Row(target), grid]);
+        root.Children.AddRange([Demo.Row(target, undo), grid]);
         return root;
     }
 
