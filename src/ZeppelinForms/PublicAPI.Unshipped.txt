@@ -388,17 +388,20 @@ ZeppelinForms.Headless.HeadlessWindow.TitleBarBackground.get -> ZeppelinForms.Dr
 ZeppelinForms.Headless.HeadlessWindow.TitleBarIsDark.get -> bool
 ZeppelinForms.Input.Commands.Command
 ZeppelinForms.Input.Commands.Command.CanExecuteChanged -> System.EventHandler?
-ZeppelinForms.Input.Commands.Command.Command(System.Action! execute, System.Func<bool>? canExecute = null) -> void
-ZeppelinForms.Input.Commands.Command.Command(System.Action<object?>! execute, System.Func<object?, bool>? canExecute = null) -> void
+ZeppelinForms.Input.Commands.Command.Command(System.Action! execute) -> void
+ZeppelinForms.Input.Commands.Command.Command(System.Action! execute, System.Func<bool>? canExecute) -> void
+ZeppelinForms.Input.Commands.Command.Command(System.Action<object?>! execute) -> void
+ZeppelinForms.Input.Commands.Command.Command(System.Action<object?>! execute, System.Func<object?, bool>? canExecute) -> void
 ZeppelinForms.Input.Commands.Command.Gesture.get -> ZeppelinForms.Input.Keyboard.KeyGesture?
 ZeppelinForms.Input.Commands.Command.Gesture.init -> void
 ZeppelinForms.Input.Commands.Command.NotifyCanExecuteChanged() -> void
 ZeppelinForms.Input.Commands.KeyBinding
 ZeppelinForms.Input.Commands.KeyBinding.Command.get -> System.Windows.Input.ICommand!
 ZeppelinForms.Input.Commands.KeyBinding.CommandParameter.get -> object?
+ZeppelinForms.Input.Commands.KeyBinding.CommandParameter.init -> void
 ZeppelinForms.Input.Commands.KeyBinding.Gesture.get -> ZeppelinForms.Input.Keyboard.KeyGesture
-ZeppelinForms.Input.Commands.KeyBinding.KeyBinding(ZeppelinForms.Input.Commands.Command! command, object? commandParameter = null) -> void
-ZeppelinForms.Input.Commands.KeyBinding.KeyBinding(ZeppelinForms.Input.Keyboard.KeyGesture gesture, System.Windows.Input.ICommand! command, object? commandParameter = null) -> void
+ZeppelinForms.Input.Commands.KeyBinding.KeyBinding(ZeppelinForms.Input.Commands.Command! command) -> void
+ZeppelinForms.Input.Commands.KeyBinding.KeyBinding(ZeppelinForms.Input.Keyboard.KeyGesture gesture, System.Windows.Input.ICommand! command) -> void
 ZeppelinForms.Input.Commands.ToggleCommand
 ZeppelinForms.Input.Commands.ToggleCommand.IsChecked.get -> bool
 ZeppelinForms.Input.Commands.ToggleCommand.IsChecked.set -> void

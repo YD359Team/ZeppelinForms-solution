@@ -9,19 +9,18 @@ namespace ZeppelinForms.Input.Commands;
 /// focused element left the key unhandled, so a text field keeps Ctrl+C and Ctrl+Z.</remarks>
 public sealed class KeyBinding
 {
-    public KeyBinding(KeyGesture gesture, ICommand command, object? commandParameter = null)
+    public KeyBinding(KeyGesture gesture, ICommand command)
     {
         ArgumentNullException.ThrowIfNull(command);
 
         Gesture = gesture;
         Command = command;
-        CommandParameter = commandParameter;
     }
 
     /// <summary>The command's own shortcut, <see cref="Commands.Command.Gesture"/>.</summary>
     /// <exception cref="ArgumentException">The command has no gesture.</exception>
-    public KeyBinding(Command command, object? commandParameter = null)
-        : this(GestureOf(command), command, commandParameter)
+    public KeyBinding(Command command)
+        : this(GestureOf(command), command)
     {
     }
 
@@ -29,7 +28,10 @@ public sealed class KeyBinding
 
     public ICommand Command { get; }
 
-    public object? CommandParameter { get; }
+    /// <summary>What the command gets as its parameter. An initializer rather than a
+    /// constructor argument: both constructors would need it as an optional parameter,
+    /// and two overloads with optional parameters can't grow without breaking callers.</summary>
+    public object? CommandParameter { get; init; }
 
     private static KeyGesture GestureOf(Command command)
     {

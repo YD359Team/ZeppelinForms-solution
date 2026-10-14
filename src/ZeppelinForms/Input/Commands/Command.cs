@@ -24,9 +24,18 @@ public class Command : ICommand
     private readonly Action<object?> _execute;
     private readonly Func<object?, bool>? _canExecute;
 
+    // Overloads rather than an optional canExecute: two public overloads with
+    // optional parameters can't both grow later without breaking callers (RS0026)
+
+    /// <param name="execute">The action; it can always run.</param>
+    public Command(Action execute)
+        : this(execute, null)
+    {
+    }
+
     /// <param name="execute">The action.</param>
     /// <param name="canExecute">Whether it can run now; null — always.</param>
-    public Command(Action execute, Func<bool>? canExecute = null)
+    public Command(Action execute, Func<bool>? canExecute)
     {
         ArgumentNullException.ThrowIfNull(execute);
 
@@ -34,10 +43,17 @@ public class Command : ICommand
         _canExecute = canExecute is null ? null : _ => canExecute();
     }
 
+    /// <param name="execute">The action, with the parameter of the button or the menu
+    /// item that runs it; it can always run.</param>
+    public Command(Action<object?> execute)
+        : this(execute, null)
+    {
+    }
+
     /// <param name="execute">The action, with the parameter of the button or
     /// the menu item that runs it.</param>
     /// <param name="canExecute">Whether it can run now with that parameter; null — always.</param>
-    public Command(Action<object?> execute, Func<object?, bool>? canExecute = null)
+    public Command(Action<object?> execute, Func<object?, bool>? canExecute)
     {
         ArgumentNullException.ThrowIfNull(execute);
 
