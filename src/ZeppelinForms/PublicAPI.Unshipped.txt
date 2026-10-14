@@ -233,6 +233,65 @@ ZeppelinForms.Forms.Controls.Text.TextBox.Paste() -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.Redo() -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.ResetValidation() -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.Undo() -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNode.Icon.get -> ZeppelinForms.Drawing.IconSource?
+ZeppelinForms.Forms.Controls.Tree.TreeNode.Icon.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNode.IsChecked.get -> bool
+ZeppelinForms.Forms.Controls.Tree.TreeNode.IsChecked.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditedEventArgs
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditedEventArgs.Cancel.get -> bool
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditedEventArgs.Cancel.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditedEventArgs.Node.get -> ZeppelinForms.Forms.Controls.Tree.TreeNode!
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditedEventArgs.Text.get -> string!
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditedEventArgs.Text.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditedEventArgs.TreeNodeEditedEventArgs(ZeppelinForms.Forms.Controls.Tree.TreeNode! node, string! text) -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditingEventArgs
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditingEventArgs.Cancel.get -> bool
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditingEventArgs.Cancel.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditingEventArgs.Node.get -> ZeppelinForms.Forms.Controls.Tree.TreeNode!
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditingEventArgs.Text.get -> string!
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditingEventArgs.Text.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNodeEditingEventArgs.TreeNodeEditingEventArgs(ZeppelinForms.Forms.Controls.Tree.TreeNode! node, string! text) -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNodeInvokedEventArgs
+ZeppelinForms.Forms.Controls.Tree.TreeNodeInvokedEventArgs.Handled.get -> bool
+ZeppelinForms.Forms.Controls.Tree.TreeNodeInvokedEventArgs.Handled.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNodeInvokedEventArgs.Node.get -> ZeppelinForms.Forms.Controls.Tree.TreeNode!
+ZeppelinForms.Forms.Controls.Tree.TreeNodeInvokedEventArgs.TreeNodeInvokedEventArgs(ZeppelinForms.Forms.Controls.Tree.TreeNode! node) -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.BeginEdit(ZeppelinForms.Forms.Controls.Tree.TreeNode! node) -> bool
+ZeppelinForms.Forms.Controls.Tree.TreeView.CheckBoxes.get -> bool
+ZeppelinForms.Forms.Controls.Tree.TreeView.CheckBoxes.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.ClearSelection() -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.EditingNode.get -> ZeppelinForms.Forms.Controls.Tree.TreeNode?
+ZeppelinForms.Forms.Controls.Tree.TreeView.EndEdit(bool cancel) -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.IsSelected(ZeppelinForms.Forms.Controls.Tree.TreeNode! node) -> bool
+ZeppelinForms.Forms.Controls.Tree.TreeView.ItemIcon.get -> System.Func<ZeppelinForms.Forms.Controls.Tree.TreeNode!, ZeppelinForms.Drawing.IconSource?>?
+ZeppelinForms.Forms.Controls.Tree.TreeView.ItemIcon.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.LabelEdit.get -> bool
+ZeppelinForms.Forms.Controls.Tree.TreeView.LabelEdit.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.NodeAt(ZeppelinForms.Drawing.Primitives.Point location) -> ZeppelinForms.Forms.Controls.Tree.TreeNode?
+ZeppelinForms.Forms.Controls.Tree.TreeView.NodeCheckedChanged -> System.EventHandler<ZeppelinForms.Forms.Controls.Tree.TreeNode!>?
+ZeppelinForms.Forms.Controls.Tree.TreeView.NodeContextMenu.get -> System.Func<ZeppelinForms.Forms.Controls.Tree.TreeNode!, System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>?>?
+ZeppelinForms.Forms.Controls.Tree.TreeView.NodeContextMenu.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.NodeEdited -> System.EventHandler<ZeppelinForms.Forms.Controls.Tree.TreeNodeEditedEventArgs!>?
+ZeppelinForms.Forms.Controls.Tree.TreeView.NodeEditing -> System.EventHandler<ZeppelinForms.Forms.Controls.Tree.TreeNodeEditingEventArgs!>?
+ZeppelinForms.Forms.Controls.Tree.TreeView.NodeInvoked -> System.EventHandler<ZeppelinForms.Forms.Controls.Tree.TreeNodeInvokedEventArgs!>?
+ZeppelinForms.Forms.Controls.Tree.TreeView.SelectAll() -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.SelectedNodes.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Controls.Tree.TreeNode!>!
+ZeppelinForms.Forms.Controls.Tree.TreeView.SelectionMode.get -> ZeppelinForms.Forms.Enums.SelectionMode
+ZeppelinForms.Forms.Controls.Tree.TreeView.SelectionMode.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.SetSelected(ZeppelinForms.Forms.Controls.Tree.TreeNode! node, bool selected) -> void
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CheckColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CheckColor.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CheckGlyphColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CheckGlyphColor.set -> void
+const ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CheckBoxWidth = 18 -> float
+const ZeppelinForms.Forms.Controls.Tree.TreeViewItem.IconWidth = 20 -> float
+override ZeppelinForms.Accessibility.Peers.TreeNodePeer.Toggle() -> bool
+override ZeppelinForms.Accessibility.Peers.TreeViewPeer.ControlStates.get -> ZeppelinForms.Accessibility.AccessibilityStates
+override ZeppelinForms.Forms.Controls.Tree.TreeView.OnPreviewKeyDown(ZeppelinForms.Input.Keyboard.KeyEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Tree.TreeViewItem.GetDefaultContextMenu() -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>?
+override ZeppelinForms.Forms.Controls.Tree.TreeViewItem.OnMouseDown(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
+static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CheckColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CheckGlyphColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 ZeppelinForms.Forms.Enums.CalendarSelectionMode
 ZeppelinForms.Forms.Enums.CalendarSelectionMode.Range = 1 -> ZeppelinForms.Forms.Enums.CalendarSelectionMode
 ZeppelinForms.Forms.Enums.CalendarSelectionMode.Single = 0 -> ZeppelinForms.Forms.Enums.CalendarSelectionMode

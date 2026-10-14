@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using ZeppelinForms.Diagnostics;
+using ZeppelinForms.Drawing;
 
 namespace ZeppelinForms.Forms.Controls.Tree;
 
@@ -34,6 +35,38 @@ public sealed class TreeNode
 
             field = value;
             RaiseChanged(TreeChangeKind.Content);
+        }
+    }
+
+    /// <summary>The icon before the caption — a bone, a helper, an emitter. Null — the
+    /// tree's <see cref="TreeView.ItemIcon"/>, if it gives one, otherwise none.</summary>
+    public IconSource? Icon
+    {
+        get;
+        set
+        {
+            if (Equals(field, value)) return;
+
+            field = value;
+            RaiseChanged(TreeChangeKind.Content);
+        }
+    }
+
+    /// <summary>The node's check box, shown while the tree's
+    /// <see cref="TreeView.CheckBoxes"/> is on: visible, enabled, exported.</summary>
+    /// <remarks>Each node keeps its own: checking a parent doesn't check its children,
+    /// and a parent doesn't show what its children are. A bone hidden with its parent
+    /// shown is a state of its own, not a third state of the parent.</remarks>
+    public bool IsChecked
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            RaiseChanged(TreeChangeKind.Content);
+            RaiseCheckedChanged();
         }
     }
 
@@ -77,6 +110,10 @@ public sealed class TreeNode
     /// nothing to forget.</summary>
     internal event Action<TreeNode, TreeChangeKind>? Changed;
 
+    /// <summary>A node of the subtree was checked or unchecked — raised at the root,
+    /// as <see cref="Changed"/> is.</summary>
+    internal event Action<TreeNode>? CheckedChanged;
+
     public void Expand() => IsExpanded = true;
 
     public void Collapse() => IsExpanded = false;
@@ -109,6 +146,16 @@ public sealed class TreeNode
         }
 
         RaiseChanged(TreeChangeKind.Structure);
+    }
+
+    private void RaiseCheckedChanged()
+    {
+        TreeNode root = this;
+
+        while (root.Parent is not null)
+            root = root.Parent;
+
+        root.CheckedChanged?.Invoke(this);
     }
 
     private void RaiseChanged(TreeChangeKind kind)

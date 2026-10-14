@@ -278,6 +278,10 @@ public static partial class Themes
                 item.SelectionColor = c.Selection;
                 item.HoverColor = new Color(24, c.Text.R, c.Text.G, c.Text.B);
                 item.GlyphColor = c.TextSecondary;
+                // the node check boxes as the check box control has them: the accent
+                // with its own text color on it
+                item.CheckColor = c.Accent;
+                item.CheckGlyphColor = c.TextOnAccent;
             })
 
             .For<Table>((table, c) =>
