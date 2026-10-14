@@ -205,7 +205,7 @@ public partial class MenuBar : DecoratedControl
     /// <summary>Open the highlighted item's submenu. False — nothing to open.</summary>
     internal bool OpenHighlighted()
     {
-        if (_hoveredIndex < 0 || !Items[_hoveredIndex].IsEnabled) return false;
+        if (_hoveredIndex < 0 || !Items[_hoveredIndex].IsEffectivelyEnabled) return false;
 
         OpenSubmenu(_hoveredIndex);
         return _openIndex == _hoveredIndex;
@@ -213,7 +213,7 @@ public partial class MenuBar : DecoratedControl
 
     /// <summary>The item whose caption marks this access key; −1 — none.</summary>
     internal int IndexOfAccessKey(char key) =>
-        Items.FindIndex(item => item.IsEnabled && Mnemonic.Key(item.Text) == key);
+        Items.FindIndex(item => item.IsEffectivelyEnabled && Mnemonic.Key(item.Text) == key);
 
     /// <summary>An item's cell in the form's coordinates — for the accessibility
     /// peer, whose items are not elements and have no bounds of their own.</summary>
@@ -240,6 +240,10 @@ public partial class MenuBar : DecoratedControl
         float x = GetAbsolutePosition().X;
         for (int i = 0; i < index; i++)
             x += WidthOf(Items[i]);
+
+        // before the menu is built and measured: the handler sets what the items
+        // show — enabled, checked — and may add or remove items
+        Items[index].RaiseOpening();
 
         owner.ShowContextMenu(Items[index].Items,
             new Point(x, GetAbsolutePosition().Y + ActualSize.Height));

@@ -995,6 +995,11 @@ public partial class Form : IDisposable
         if (!args.Handled)
             OnKeyDown(args);
 
+        // shortcuts after the focused element: a text field keeps Ctrl+C and Ctrl+Z,
+        // and what it doesn't take — Ctrl+S — runs the form's command
+        if (!args.Handled && TryKeyGesture(key, modifiers))
+            args.Handled = true;
+
         if (!args.Handled && key == Key.Tab && Content is not null)
         {
             if (modifiers.HasFlag(KeyModifiers.Shift))

@@ -5,6 +5,8 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Navigation;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.Commands;
+using ZeppelinForms.Input.Keyboard;
 
 namespace ZF_SharedLib.Showcase;
 
@@ -17,7 +19,7 @@ internal static class NavigationPage
             Demo.Section("Tab control", Tabs(), "Ctrl+Tab and Ctrl+Shift+Tab go through the tabs; the disabled one is skipped"),
             Demo.Section("Tab strip", Strip(), "The plus adds a tab, the cross or a middle click closes one, dragging reorders them"),
             Demo.Section("Pages", Pages(), "Swipe or drag the page sideways, or click the dots"),
-            Demo.Section("Menu bar", Menu(), "Alt and the underlined letter open a menu from the keyboard"),
+            Demo.Section("Menu bar", Menu(), "Alt and the underlined letter open a menu from the keyboard; Ctrl+N, Ctrl+O and Ctrl+S run their items with the menu closed, Ctrl+G switches the grid"),
             Demo.Section("Split view", Split(), "The control this whole showcase is: items with icons, headers, a footer, a badge"));
 
     private static UIElement Tabs()
@@ -127,29 +129,64 @@ internal static class NavigationPage
     {
         Label ran = Demo.Note("Choose a command");
 
-        MenuItem Command(string text)
+        MenuItem Command(string text, string? gesture = null)
         {
-            var item = new MenuItem { Text = text };
+            var item = new MenuItem
+            {
+                Text = text,
+                KeyGesture = gesture is null ? null : KeyGesture.Parse(gesture),
+            };
+
             item.Click += (_, _) => ran.Text = $"Ran: {text.Replace("&", string.Empty, StringComparison.Ordinal)}";
             return item;
         }
 
-        var file = new MenuItem { Text = "&File" };
-        file.Items.AddRange([Command("&New"), Command("&Open…"), Command("&Save"), MenuItem.Separator, Command("E&xit")]);
+        // Save is available only with changes to save: the File menu asks as it
+        // opens, and so does Ctrl+S with the menu closed
+        var changed = new CheckBox { Text = "Unsaved changes", IsChecked = true };
 
+        MenuItem save = Command("&Save", "Ctrl+S");
+
+        // Alt+F4 is the window's: the system closes it, the item only shows the key
+        MenuItem exit = Command("E&xit");
+        exit.InputGestureText = "Alt+F4";
+
+        var file = new MenuItem { Text = "&File" };
+        file.Items.AddRange([Command("&New", "Ctrl+N"), Command("&Open…", "Ctrl+O"), save, MenuItem.Separator, exit]);
+        file.Opening += (_, _) => save.IsEnabled = changed.IsChecked;
+
+        // shown, not run: these are the text field's own keys while it has the focus
         var edit = new MenuItem { Text = "&Edit" };
         edit.Items.AddRange([Command("&Undo"), Command("&Redo"), MenuItem.Separator, Command("Cu&t"), Command("&Copy"), Command("&Paste")]);
+
+        foreach ((MenuItem item, string keys) in edit.Items.Where(item => !item.IsSeparator)
+                     .Zip(["Ctrl+Z", "Ctrl+Y", "Ctrl+X", "Ctrl+C", "Ctrl+V"]))
+            item.InputGestureText = keys;
 
         var recent = new MenuItem { Text = "&Recent" };
         recent.Items.AddRange([Command("report.md"), Command("budget.xlsx")]);
 
+        // one state for the menu's check and the toolbar's button: each follows the other
+        var grid = new ToggleCommand(on => ran.Text = on ? "Grid shown" : "Grid hidden")
+        {
+            Gesture = KeyGesture.Parse("Ctrl+G"),
+        };
+
         var view = new MenuItem { Text = "&View" };
-        view.Items.AddRange([Command("&Zoom in"), Command("Zoom &out"), MenuItem.Separator, recent]);
+        view.Items.AddRange(
+        [
+            Command("&Zoom in", "Ctrl+="), Command("Zoom &out", "Ctrl+-"), MenuItem.Separator,
+            new MenuItem { Text = "Show &grid", Command = grid },
+            new MenuItem { Text = "&Rulers", IsCheckable = true, IsChecked = true },
+            MenuItem.Separator, recent,
+        ]);
 
         var bar = new MenuBar { Items = [file, edit, view] };
 
+        var gridButton = new ToggleButton { Text = "Grid", Command = grid };
+
         var root = Stretch();
-        root.Children.AddRange([bar, ran]);
+        root.Children.AddRange([bar, Demo.Row(gridButton, changed), ran]);
         return root;
     }
 

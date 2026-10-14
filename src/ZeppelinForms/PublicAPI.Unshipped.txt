@@ -58,6 +58,10 @@
 *REMOVED*static ZeppelinForms.Forms.Controls.Base.UIElementEx.At<T>(this T! element, int row, int column) -> T!
 *REMOVED*static ZeppelinForms.Forms.Controls.Base.UIElementEx.With<T>(this T! element, System.Action<T!>! configure) -> T!
 override ZeppelinForms.Forms.Controls.Text.TextBox.GetDefaultContextMenu() -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>?
+override ZeppelinForms.Input.Commands.ToggleCommand.Execute(object? parameter) -> void
+override ZeppelinForms.Input.Keyboard.KeyGesture.Equals(object? obj) -> bool
+override ZeppelinForms.Input.Keyboard.KeyGesture.GetHashCode() -> int
+override ZeppelinForms.Input.Keyboard.KeyGesture.ToString() -> string!
 static readonly ZeppelinForms.Core.Globalization.ZfText.Copy -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.Cut -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.Delete -> ZeppelinForms.Core.Globalization.TextKey!
@@ -65,8 +69,14 @@ static readonly ZeppelinForms.Core.Globalization.ZfText.Paste -> ZeppelinForms.C
 static readonly ZeppelinForms.Core.Globalization.ZfText.Redo -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.SelectAll -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.Undo -> ZeppelinForms.Core.Globalization.TextKey!
+static ZeppelinForms.Input.Keyboard.KeyGesture.operator !=(ZeppelinForms.Input.Keyboard.KeyGesture left, ZeppelinForms.Input.Keyboard.KeyGesture right) -> bool
+static ZeppelinForms.Input.Keyboard.KeyGesture.operator ==(ZeppelinForms.Input.Keyboard.KeyGesture left, ZeppelinForms.Input.Keyboard.KeyGesture right) -> bool
+static ZeppelinForms.Input.Keyboard.KeyGesture.Parse(string! text) -> ZeppelinForms.Input.Keyboard.KeyGesture
+static ZeppelinForms.Input.Keyboard.KeyGesture.TryParse(string? text, out ZeppelinForms.Input.Keyboard.KeyGesture gesture) -> bool
 static ZeppelinForms.Theming.Theme.RegisterDefault<T>(System.Action<T!, ZeppelinForms.Theming.Theme!>! apply) -> void
 virtual ZeppelinForms.Forms.Controls.Base.UIElement.GetDefaultContextMenu() -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>?
+virtual ZeppelinForms.Input.Commands.Command.CanExecute(object? parameter) -> bool
+virtual ZeppelinForms.Input.Commands.Command.Execute(object? parameter) -> void
 ZeppelinForms.Accessibility.Peers.SplitViewMenuPeer
 ZeppelinForms.Accessibility.Peers.SplitViewMenuRowPeer
 ZeppelinForms.Accessibility.Peers.SplitViewPaneButtonPeer
@@ -100,6 +110,10 @@ ZeppelinForms.Drawing.FontMetrics.FontMetrics() -> void
 ZeppelinForms.Drawing.FontMetrics.FontMetrics(float Ascent, float Descent) -> void
 ZeppelinForms.Drawing.FontMetrics.LineHeight.get -> float
 ZeppelinForms.Drawing.ITextMeasurer.MeasureFont(ZeppelinForms.Drawing.Font! font) -> ZeppelinForms.Drawing.FontMetrics
+ZeppelinForms.Forms.Controls.Base.ButtonBase.Command.get -> System.Windows.Input.ICommand?
+ZeppelinForms.Forms.Controls.Base.ButtonBase.Command.set -> void
+ZeppelinForms.Forms.Controls.Base.ButtonBase.CommandParameter.get -> object?
+ZeppelinForms.Forms.Controls.Base.ButtonBase.CommandParameter.set -> void
 ZeppelinForms.Forms.Controls.Base.UIElement.Bind<T, TSource>(ZeppelinForms.Forms.Styling.StyledProperty<T>! property, TSource source, string! sourcePropertyName, ZeppelinForms.Data.BindingMode mode = ZeppelinForms.Data.BindingMode.OneWay) -> ZeppelinForms.Data.Binding!
 ZeppelinForms.Forms.Controls.Base.UIElement.CursorImage.get -> ZeppelinForms.Input.Mouse.CursorImage?
 ZeppelinForms.Forms.Controls.Base.UIElement.CursorImage.set -> void
@@ -122,6 +136,19 @@ ZeppelinForms.Forms.Controls.DockPanel.LastChildFill.set -> void
 ZeppelinForms.Forms.Controls.FlyoutPresenter
 ZeppelinForms.Forms.Controls.FlyoutPresenter.FlyoutPresenter() -> void
 ZeppelinForms.Forms.Controls.FlyoutPresenter.FlyoutPresenter(ZeppelinForms.Forms.Controls.Base.UIElement! child) -> void
+ZeppelinForms.Forms.Controls.MenuItem.Command.get -> System.Windows.Input.ICommand?
+ZeppelinForms.Forms.Controls.MenuItem.Command.set -> void
+ZeppelinForms.Forms.Controls.MenuItem.CommandParameter.get -> object?
+ZeppelinForms.Forms.Controls.MenuItem.CommandParameter.set -> void
+ZeppelinForms.Forms.Controls.MenuItem.InputGestureText.get -> string?
+ZeppelinForms.Forms.Controls.MenuItem.InputGestureText.set -> void
+ZeppelinForms.Forms.Controls.MenuItem.IsCheckable.get -> bool
+ZeppelinForms.Forms.Controls.MenuItem.IsCheckable.set -> void
+ZeppelinForms.Forms.Controls.MenuItem.IsChecked.get -> bool
+ZeppelinForms.Forms.Controls.MenuItem.IsChecked.set -> void
+ZeppelinForms.Forms.Controls.MenuItem.KeyGesture.get -> ZeppelinForms.Input.Keyboard.KeyGesture?
+ZeppelinForms.Forms.Controls.MenuItem.KeyGesture.set -> void
+ZeppelinForms.Forms.Controls.MenuItem.Opening -> System.EventHandler?
 ZeppelinForms.Forms.Controls.SplitView.BadgeColor.get -> ZeppelinForms.Drawing.Primitives.Color
 ZeppelinForms.Forms.Controls.SplitView.BadgeColor.set -> void
 ZeppelinForms.Forms.Controls.SplitView.BadgeTextColor.get -> ZeppelinForms.Drawing.Primitives.Color
@@ -230,6 +257,7 @@ ZeppelinForms.Forms.Enums.TitleBarTheme.Light = 1 -> ZeppelinForms.Forms.Enums.T
 ZeppelinForms.Forms.Form.Background.get -> ZeppelinForms.Drawing.Primitives.Color?
 ZeppelinForms.Forms.Form.Background.set -> void
 ZeppelinForms.Forms.Form.FocusedElement.get -> ZeppelinForms.Forms.Controls.Base.UIElement?
+ZeppelinForms.Forms.Form.KeyBindings.get -> System.Collections.Generic.List<ZeppelinForms.Input.Commands.KeyBinding!>!
 ZeppelinForms.Forms.Form.OwnedForms.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Form!>!
 ZeppelinForms.Forms.Form.Owner.get -> ZeppelinForms.Forms.Form?
 ZeppelinForms.Forms.Form.Show(ZeppelinForms.Forms.Form! owner) -> void
@@ -358,6 +386,31 @@ ZeppelinForms.Headless.HeadlessWindow.SetCursor(ZeppelinForms.Input.Mouse.Cursor
 ZeppelinForms.Headless.HeadlessWindow.SetTitleBarAppearance(bool isDark, ZeppelinForms.Drawing.Primitives.Color? background, ZeppelinForms.Drawing.Primitives.Color? foreground) -> void
 ZeppelinForms.Headless.HeadlessWindow.TitleBarBackground.get -> ZeppelinForms.Drawing.Primitives.Color?
 ZeppelinForms.Headless.HeadlessWindow.TitleBarIsDark.get -> bool
+ZeppelinForms.Input.Commands.Command
+ZeppelinForms.Input.Commands.Command.CanExecuteChanged -> System.EventHandler?
+ZeppelinForms.Input.Commands.Command.Command(System.Action! execute, System.Func<bool>? canExecute = null) -> void
+ZeppelinForms.Input.Commands.Command.Command(System.Action<object?>! execute, System.Func<object?, bool>? canExecute = null) -> void
+ZeppelinForms.Input.Commands.Command.Gesture.get -> ZeppelinForms.Input.Keyboard.KeyGesture?
+ZeppelinForms.Input.Commands.Command.Gesture.init -> void
+ZeppelinForms.Input.Commands.Command.NotifyCanExecuteChanged() -> void
+ZeppelinForms.Input.Commands.KeyBinding
+ZeppelinForms.Input.Commands.KeyBinding.Command.get -> System.Windows.Input.ICommand!
+ZeppelinForms.Input.Commands.KeyBinding.CommandParameter.get -> object?
+ZeppelinForms.Input.Commands.KeyBinding.Gesture.get -> ZeppelinForms.Input.Keyboard.KeyGesture
+ZeppelinForms.Input.Commands.KeyBinding.KeyBinding(ZeppelinForms.Input.Commands.Command! command, object? commandParameter = null) -> void
+ZeppelinForms.Input.Commands.KeyBinding.KeyBinding(ZeppelinForms.Input.Keyboard.KeyGesture gesture, System.Windows.Input.ICommand! command, object? commandParameter = null) -> void
+ZeppelinForms.Input.Commands.ToggleCommand
+ZeppelinForms.Input.Commands.ToggleCommand.IsChecked.get -> bool
+ZeppelinForms.Input.Commands.ToggleCommand.IsChecked.set -> void
+ZeppelinForms.Input.Commands.ToggleCommand.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+ZeppelinForms.Input.Commands.ToggleCommand.ToggleCommand(System.Action<bool>? changed = null, System.Func<bool>? canExecute = null) -> void
+ZeppelinForms.Input.Keyboard.KeyGesture
+ZeppelinForms.Input.Keyboard.KeyGesture.Equals(ZeppelinForms.Input.Keyboard.KeyGesture other) -> bool
+ZeppelinForms.Input.Keyboard.KeyGesture.Key.get -> ZeppelinForms.Input.Keyboard.Key
+ZeppelinForms.Input.Keyboard.KeyGesture.KeyGesture() -> void
+ZeppelinForms.Input.Keyboard.KeyGesture.KeyGesture(ZeppelinForms.Input.Keyboard.Key key, ZeppelinForms.Input.Keyboard.KeyModifiers modifiers = ZeppelinForms.Input.Keyboard.KeyModifiers.None) -> void
+ZeppelinForms.Input.Keyboard.KeyGesture.Matches(ZeppelinForms.Input.Keyboard.Key key, ZeppelinForms.Input.Keyboard.KeyModifiers modifiers) -> bool
+ZeppelinForms.Input.Keyboard.KeyGesture.Modifiers.get -> ZeppelinForms.Input.Keyboard.KeyModifiers
 ZeppelinForms.Input.Mouse.CursorImage
 ZeppelinForms.Input.Mouse.CursorImage.CursorImage(ZeppelinForms.Drawing.Imaging.Image! image, ZeppelinForms.Drawing.Primitives.Point hotspot, ZeppelinForms.Forms.Enums.CursorKind fallback = ZeppelinForms.Forms.Enums.CursorKind.Arrow) -> void
 ZeppelinForms.Input.Mouse.CursorImage.Fallback.get -> ZeppelinForms.Forms.Enums.CursorKind

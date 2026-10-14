@@ -185,12 +185,16 @@ public partial class SplitButton : ButtonBase
         }
 
         OnActivated();
+
+        // the button's own command, for the main part — the arrow only opens the menu
+        ExecuteCommand();
     }
 
     protected override void OnActivated()
     {
+        // the item's command runs too, as it did when the item was chosen from the menu
         if (RepeatLastAction && _lastInvoked is not null)
-            _lastInvoked.RaiseClick();
+            _lastInvoked.Invoke();
     }
 
     private UIElement BuildMenu()

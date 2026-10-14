@@ -415,22 +415,30 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
         bool masked = PasswordChar is not null;
         bool editable = !IsReadOnly;
 
+        // the shortcuts are shown, not run by the menu: the field takes these keys
+        // itself while it has the focus
         return
         [
-            Command(ZfText.Undo, CanUndo, Undo),
-            Command(ZfText.Redo, CanRedo, Redo),
+            Command(ZfText.Undo, CanUndo, Undo, Key.Z),
+            Command(ZfText.Redo, CanRedo, Redo, Key.Y),
             MenuItem.Separator,
-            Command(ZfText.Cut, editable && selection && !masked, Cut),
-            Command(ZfText.Copy, selection && !masked, Copy),
-            Command(ZfText.Paste, editable, Paste),
-            Command(ZfText.Delete, editable && selection, () => _document.DeleteSelection()),
+            Command(ZfText.Cut, editable && selection && !masked, Cut, Key.X),
+            Command(ZfText.Copy, selection && !masked, Copy, Key.C),
+            Command(ZfText.Paste, editable, Paste, Key.V),
+            Command(ZfText.Delete, editable && selection, () => _document.DeleteSelection(), Key.Delete, KeyModifiers.None),
             MenuItem.Separator,
-            Command(ZfText.SelectAll, _document.Length > 0, SelectAll),
+            Command(ZfText.SelectAll, _document.Length > 0, SelectAll, Key.A),
         ];
 
-        static MenuItem Command(TextKey caption, bool enabled, Action run)
+        static MenuItem Command(TextKey caption, bool enabled, Action run, Key key, KeyModifiers modifiers = KeyModifiers.Control)
         {
-            var item = new MenuItem { Text = Localization.Get(caption), IsEnabled = enabled };
+            var item = new MenuItem
+            {
+                Text = Localization.Get(caption),
+                IsEnabled = enabled,
+                InputGestureText = new KeyGesture(key, modifiers).ToString(),
+            };
+
             item.Click += (_, _) => run();
             return item;
         }

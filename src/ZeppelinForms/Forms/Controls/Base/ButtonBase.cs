@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Windows.Input;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
@@ -91,6 +92,11 @@ public abstract partial class ButtonBase : InteractiveControl
         SetControlDefault(PaddingProperty, new(14, 6));
         SetControlDefault(CornerRadiusProperty, new CornerRadius(4f));
         SetControlDefault(BorderWidthProperty, 1f);
+        // events, not the OnAttached/OnDetached overrides: a derived button that
+        // overrides them and forgets the base call would keep the command's
+        // subscription — and through it the whole form — alive
+        Attached += (_, _) => HookCommand();
+        Detached += (_, _) => UnhookCommand();
     }
 
     /// <summary>The backdrop color for the current state. The order of checks
@@ -220,9 +226,114 @@ public abstract partial class ButtonBase : InteractiveControl
         if (!IsEnabled) return;
 
         OnActivated();
+        ExecuteCommand();
         e.Handled = true;
     }
 
     /// <summary>The control was pressed — click, Space or Enter.</summary>
     protected virtual void OnActivated() { }
+
+    // ===== command =====
+
+    /// <summary>Whether the command's subscription is in place: only while the
+    /// button is in a form, so a long-lived command doesn't keep the form alive.</summary>
+    private bool _commandHooked;
+
+    /// <summary>Runs when the button is pressed, after <see cref="UIElement.Click"/>.
+    /// While it can't run, the button is disabled.</summary>
+    /// <remarks>
+    /// The command enables and disables the button as a binding would: an
+    /// <see cref="UIElement.IsEnabled"/> set from code takes over from it. A
+    /// <see cref="Input.Commands.ToggleCommand"/> on a <see cref="ToggleButton"/>
+    /// also gives it its checked state.
+    /// </remarks>
+    public ICommand? Command
+    {
+        get;
+        set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            UnhookCommand();
+
+            ICommand? old = field;
+            field = value;
+
+            if (FindOwner() is not null) HookCommand();
+
+            // without a command the button goes back to what it would be without one
+            if (value is null && old is not null && !IsLocal(IsEnabledProperty))
+                ClearValue(IsEnabledProperty);
+
+            UpdateCanExecute();
+            OnCommandChanged();
+        }
+    }
+
+    public object? CommandParameter
+    {
+        get;
+        set
+        {
+            if (Equals(field, value)) return;
+
+            field = value;
+            UpdateCanExecute();
+        }
+    }
+
+    /// <summary>Run the command, if it can run. The press comes here.</summary>
+    private protected void ExecuteCommand()
+    {
+        if (Command is not { } command || !command.CanExecute(CommandParameter)) return;
+
+        command.Execute(CommandParameter);
+    }
+
+    /// <summary>The command or its subscription changed — for a derived button that
+    /// takes more from it than whether it can run.</summary>
+    private protected virtual void OnCommandChanged() { }
+
+    /// <summary>The button entered a form, or got a command there.</summary>
+    private protected virtual void OnCommandHooked(ICommand command) { }
+
+    /// <summary>The button left its form, or lost its command.</summary>
+    private protected virtual void OnCommandUnhooked(ICommand command) { }
+
+    private void HookCommand()
+    {
+        if (_commandHooked || Command is not { } command) return;
+
+        command.CanExecuteChanged += OnCanExecuteChanged;
+        _commandHooked = true;
+
+        OnCommandHooked(command);
+
+        // whatever changed while the button was out of every form
+        UpdateCanExecute();
+    }
+
+    private void UnhookCommand()
+    {
+        if (!_commandHooked || Command is not { } command) return;
+
+        command.CanExecuteChanged -= OnCanExecuteChanged;
+        _commandHooked = false;
+
+        OnCommandUnhooked(command);
+    }
+
+    private void OnCanExecuteChanged(object? sender, EventArgs e) => UpdateCanExecute();
+
+    /// <summary>Enable or disable the button as the command says — unless code set
+    /// <see cref="UIElement.IsEnabled"/> itself, which wins as it wins over a binding.</summary>
+    private void UpdateCanExecute()
+    {
+        if (Command is not { } command || IsLocal(IsEnabledProperty)) return;
+
+        bool can = command.CanExecute(CommandParameter);
+
+        if (IsEnabled != can)
+            SetBoundValue(IsEnabledProperty, can);
+    }
 }

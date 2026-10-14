@@ -89,7 +89,9 @@ public class MenuListPeer(MenuList owner) : MenuPeerBase(owner)
 
     internal override Rectangle ItemBounds(int index) => owner.ItemBounds(index);
 
-    internal override AccessibilityStates ItemStates(int index) => AccessibilityStates.None;
+    /// <summary>A checkable item, or one with a toggle command, says whether it is checked.</summary>
+    internal override AccessibilityStates ItemStates(int index) =>
+        owner.Items[index].IsEffectivelyChecked ? AccessibilityStates.Checked : AccessibilityStates.None;
 
     internal override AccessibilityActions ItemActions(int index) => AccessibilityActions.Invoke;
 
@@ -121,11 +123,11 @@ public class MenuItemPeer : AccessibilityPeer
 
     public override AccessibilityStates States =>
         _item.IsSeparator ? AccessibilityStates.None
-        : (_item.IsEnabled && _menu.Owner.IsEffectivelyEnabled ? 0 : AccessibilityStates.Disabled)
+        : (_item.IsEffectivelyEnabled && _menu.Owner.IsEffectivelyEnabled ? 0 : AccessibilityStates.Disabled)
           | _menu.ItemStates(Index);
 
     public override AccessibilityActions Actions =>
-        _item.IsSeparator || !_item.IsEnabled ? AccessibilityActions.None : _menu.ItemActions(Index);
+        _item.IsSeparator || !_item.IsEffectivelyEnabled ? AccessibilityActions.None : _menu.ItemActions(Index);
 
     /// <summary>"2 of 5" counts the entries a user can reach: separators
     /// are neither counted nor numbered.</summary>
@@ -150,9 +152,9 @@ public class MenuItemPeer : AccessibilityPeer
     public override Form? Form => _menu.Form;
 
     public override bool Invoke() =>
-        Index >= 0 && _item.IsEnabled && _menu.Owner.IsEffectivelyEnabled && _menu.Invoke(Index);
+        Index >= 0 && _item.IsEffectivelyEnabled && _menu.Owner.IsEffectivelyEnabled && _menu.Invoke(Index);
 
-    public override bool Expand() => Index >= 0 && _item.IsEnabled && _menu.Expand(Index);
+    public override bool Expand() => Index >= 0 && _item.IsEffectivelyEnabled && _menu.Expand(Index);
 
     public override bool Collapse() => Index >= 0 && _menu.Collapse(Index);
 }
