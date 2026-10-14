@@ -116,6 +116,41 @@
 - `CursorKind.SizeNorthWestSouthEast` and `SizeNorthEastSouthWest`: the diagonal
   resize cursors of a corner grip
 
+### Property grid and inspector
+
+- Categories: the rows come under folding category headers; a folded category says
+  how many rows it holds and stays folded across selections. `GroupByCategory = false`
+  lists them by name. A toolbar names what is shown and filters the rows by name
+  (`ShowToolbar`, `Filter`); the filter opens the categories it finds rows in
+- A new look: one thin border and the theme's corners, category bands, hairlines
+  between the rows and the columns, names in the secondary text, the row being edited
+  marked with the accent. A dot before the name says where the value came from — code
+  or the grid, a binding, a style, the theme — and the tooltip says it in words, with
+  the descriptor's `Description`. The border between the columns can be dragged
+  (`NameColumnRatio`). The 2 px border and the full-strength stripes are gone
+- Editors by type: a number field takes the descriptor's `Minimum`, `Maximum`,
+  `DecimalPlaces` and `Increment` instead of a fixed ±100000 with two decimals; a
+  flags enum gets a list of check boxes, one per flag; vectors and quaternions of
+  System.Numerics, points, sizes, thicknesses and corner radii get a field per part.
+  `PropertyDescriptor.Editor`, `PropertyGrid.Editors` and
+  `PropertyGrid.RegisterDefaultEditor` put editors of their own ahead of the built-in
+  ones; an editor gets a `PropertyEditContext` to read and write through
+- Undo: `PropertyValueChanged` comes once per edit — a number spun with the wheel,
+  a name typed — with the values it replaced, and `Undo()` / `Redo()` write them back.
+  `PropertyValueChanging` can refuse a value before it is written
+- `SelectedObjects`: several objects at once, showing the properties they all have;
+  where the values differ the editor shows none, and a value written goes to each,
+  through each object's own descriptor
+- `PropertiesProvider`: the rows of an object given per object rather than per type —
+  a bone and a helper of the same class with different properties
+- The grid follows its objects: a change they report — an undo, an animation, the
+  theme — shows in the rows, read again once after the burst
+- `PropertyDescriptor.DisplayName` for the caption, the name staying the key
+- The F12 inspector floats as cards with the theme's shadow instead of a slab glued to
+  the window's side. A picked element is outlined on the form — it was outlined only
+  when chosen from the audit list — with its margin and padding shaded, as browsers' tools
+  show them, and a chip with its type, name and size in the theme's accent
+
 ### Controls of other packages
 
 What a package of controls — a PDF view, a chart, a web view, a code editor — needs
