@@ -112,14 +112,13 @@ internal static class TreePage
         var collapse = new Button { Text = "Collapse all" };
         collapse.Click += (_, _) => { foreach (TreeNode node in tree.Nodes) node.Collapse(); };
 
-        // the path to it opens, and it is selected: the tree scrolls to it
         var reveal = new Button { Text = "Find Hades" };
         reveal.Click += (_, _) =>
         {
             TreeNode? hades = tree.Nodes.SelectMany(n => n.Children).FirstOrDefault(n => n.Content is Game { Title: "Hades" });
             if (hades is null) return;
 
-            // the path to it opens, and it is selected
+            // the path to it opens, and it is selected: the tree scrolls to it
             hades.ExpandAncestors();
             tree.SelectedNode = hades;
         };

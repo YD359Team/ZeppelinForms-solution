@@ -49,7 +49,6 @@ public partial class MenuList : DecoratedControl
     private static float HeightOf(MenuItem item) => item.IsSeparator ? SeparatorHeight : ItemHeight;
 
     // the background, border and corner radius are drawn by the base — only the menu items here
-    // the background, border and corner radius are drawn by the base — only the menu items here
     protected override void DrawContent(Graphics g)
     {
         var content = this.ContentBounds;

@@ -442,9 +442,10 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     /// <summary>Distributes the widths: first fixed and Auto,
     /// the remainder is shared among the star columns.
+    /// </summary>
     /// <remarks>A star column gets at least <see cref="MinColumnWidth"/>: in a narrow
     /// grid the columns used to shrink to slivers of clipped text, with nothing to
-    /// scroll. Now they stop at their minimum and the grid scrolls sideways.</remarks></summary>
+    /// scroll. Now they stop at their minimum and the grid scrolls sideways.</remarks>
     private void ResolveWidths(float available, int firstRow, int lastRow)
     {
         _widths.Clear();

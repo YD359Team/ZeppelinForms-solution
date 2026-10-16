@@ -13,6 +13,9 @@
 
 The project is under active development.
 
+The showcase — every control, the styles and the effects — runs in the browser:
+**https://yd359team.github.io/**
+
 | # | Name        | Status |
 | - | ----------- | ------ |
 | 1 | Headless    | ✅     |
@@ -77,7 +80,7 @@ If hardware acceleration is unavailable, the framework falls back to software re
 | 10 | Folder Dialog        | ✅****  |
 | 11 | Drag&Drop (internal) | ✅      |
 
-\* — the inspector currently works only with certain types \
+\* — F12 opens the inspector — the element under the cursor with its margin and padding, and its properties in a property grid — and the accessibility audit \
 \*\* — the API will be extended further \
 \*\*\* — some limitations and unfinished parts remain \
 \*\*\*\* - managed implementation by default; a platform may supply a system picker through `IFilePicker`, as the browser backend does
@@ -154,14 +157,16 @@ Flags: `AffectsLayout = true` when the value changes measurement — the setter
 then invalidates layout instead of only repainting. `Inherits = true` when the
 value cascades down the tree, as `TextColor` does.
 
-Value precedence, highest first:
+Value precedence, highest first — `GetValueSource` tells which one a value came from:
 
 1. set from user code
-2. set from user code on any ancestor, for inherited properties
-3. a binding
-4. theme or style
-5. control default — `SetControlDefault` from a constructor
-6. `DefaultValue` from the registration
+2. a binding
+3. a style — a style sheet, or a `Style` of the application, a form or an element
+4. for inherited properties (`Inherits = true`): the nearest ancestor's value of
+   one of the three above
+5. a theme rule
+6. control default — `SetControlDefault` from a constructor
+7. the default — the `<Name>Default` property, or `default(T)`
 
 A constructor must use `SetControlDefault`: a plain assignment there would mark
 the value as user-set and lock the theme out for good. ZF0006 reports this.
@@ -178,33 +183,36 @@ registration to call directly.
 
 **Unit controls** are similar to `Control` in WinForms and can be thought of as regular controls. They cannot contain child controls.
 
-|  № | Name            | Status |  № | Name                 | Status |
-| -: | ------------------- | :----:  | -: | --------------- | :----: |
-|  1 | Label               |    ✅   | 23 | LineChart       |    ✅   |
-|  2 | Button              |    ✅   | 24 | PieChart        |    ✅   |
-|  3 | CheckBox            |    ✅   | 25 | RichLabel       |    ✅   |
-|  4 | PictureBox          |    ✅   | 26 | LinkLabel       |    ✅   |
-|  5 | RadioButton         |    ✅   | 27 | LineShape       |    ✅   |
-|  6 | TextBox             |    ✅*  | 28 | RectangleShape  |    ✅   |
-|  7 | ToggleSwitch        |    ✅   | 29 | EllipseShape    |    ✅   |
-|  8 | DateTimePicker      |    ✅   | 30 | PolygonShape    |    ✅   |
-|  9 | TimePicker          |    ✅   | 31 | CheckedComboBox |    ✅   |
-| 10 | ColorPicker         |    ✅   | 32 | ComboBox        |    ✅   |
-| 11 | ScrollBar           |    ✅   | 33 | GridSplitter    |    ✅   |
-| 12 | SvgIcon             |    ✅   | 34 | MaskedTextBox   |    ✅   |
-| 13 | NumericUpDown       |    ✅   | 35 | HintLabel       |    ✅   |
-| 14 | ProgressBar         |    ✅   | 36 | MapControl      |    ✅   |
-| 15 | CircularProgressBar |    ✅   | 37 | Loader          |    ✅   |
-| 16 | TrackBar            |    ✅   | 38 | PageIndicator   |    ✅   |
-| 17 | Calendar            |    ✅   | 39 | DataGridView    |    ✅** |
-| 18 | MenuBar             |    ✅   | 40 | Table           |    ✅   |
-| 19 | MenuList            |    ✅   | 41 | RadarChart      |    ✅   | 
-| 20 | SplitButton         |    ✅   | 42 | CandlestickChart |   ✅   |
-| 21 | ToggleButton        |    ✅   |    |                 |       |
-| 22 | BarChart            |    ✅   |    |                 |       |
+|  № | Name                | Status |  № | Name             | Status |
+| -: | ------------------- | :----: | -: | ---------------- | :----: |
+|  1 | Label               | ✅     |  24 | AutoCompleteBox  | ✅    |
+|  2 | Button              | ✅     |  25 | BarChart         | ✅    |
+|  3 | CheckBox            | ✅     |  26 | LineChart        | ✅    |
+|  4 | PictureBox          | ✅     |  27 | PieChart         | ✅    |
+|  5 | RadioButton         | ✅     |  28 | RadarChart       | ✅    |
+|  6 | TextBox             | ✅*    |  29 | CandlestickChart | ✅    |
+|  7 | ToggleSwitch        | ✅     |  30 | RichLabel        | ✅    |
+|  8 | DateTimePicker      | ✅     |  31 | LinkLabel        | ✅    |
+|  9 | TimePicker          | ✅     |  32 | HintLabel        | ✅    |
+| 10 | ColorPicker         | ✅     |  33 | LineShape        | ✅    |
+| 11 | ScrollBar           | ✅     |  34 | RectangleShape   | ✅    |
+| 12 | SvgIcon             | ✅     |  35 | EllipseShape     | ✅    |
+| 13 | NumericUpDown       | ✅     |  36 | PolygonShape     | ✅    |
+| 14 | ProgressBar         | ✅     |  37 | CheckedComboBox  | ✅    |
+| 15 | CircularProgressBar | ✅     |  38 | ComboBox         | ✅    |
+| 16 | TrackBar            | ✅     |  39 | GridSplitter     | ✅    |
+| 17 | RangeSlider         | ✅     |  40 | MaskedTextBox    | ✅    |
+| 18 | Calendar            | ✅     |  41 | MapControl       | ✅    |
+| 19 | MenuBar             | ✅     |  42 | Loader           | ✅    |
+| 20 | MenuList            | ✅     |  43 | PageIndicator    | ✅    |
+| 21 | SplitButton         | ✅     |  44 | ImageViewer      | ✅    |
+| 22 | ToggleButton        | ✅     |  45 | DataGridView     | ✅**  |
+| 23 | TabStrip            | ✅     |     |                  |        |
 
 \* — contains bugs and is missing part of its API
 \*\* — DataGridView: no cell editing or frozen columns yet
+
+`Button` has the variants `PrimaryButton`, `SecondaryButton` and `DangerButton`.
 
 #### Panels
 
@@ -227,6 +235,10 @@ registration to call directly.
 | 11 | Table                 | ✅      |
 | 12 | AttachButton          | ✅      |
 | 13 | PropertyGrid          | ✅      |
+| 14 | SplitView             | ✅      |
+| 15 | TreeView              | ✅      |
+| 16 | ImageGallery          | ✅      |
+| 17 | MarkdownViewer        | ✅      |
 
 ##### Items Panels
 
@@ -239,7 +251,6 @@ A specialized type of panel capable of working with collections of elements.
 | 1 | ListBox | ✅ |
 | 2 | CheckedListBox | ✅ |
 | 3 | DragList | ✅ |
-| 4 | TreeView | ✅ |
 
 ⭐ All panels can display a scrollbar when their content overflows, and scroll by
 finger with kinetic flings and rubber-band overscroll on touch devices.
@@ -260,6 +271,51 @@ finger with kinetic flings and rubber-band overscroll on touch devices.
 | 6 | Page           | ✅    |
 | 7 | GradientBorder | ✅    |
 | 8 | GripBox        | ✅    |
+| 9 | AdaptiveLayout | ✅    |
+| 10 | RefreshContainer | ✅  |
+
+#### Your Own Controls
+
+A control of another package — a PDF view, a chart, a code editor — is written
+against the public API alone, as the built-in ones are. Reference the
+`ZeppelinForms` package: it brings the generator for `[Styled]` and lists the
+assembly's controls for the style sheets.
+
+```csharp
+public partial class Swatch : DecoratedControl
+{
+    public static readonly PseudoClass Chosen = PseudoClass.Register("chosen");
+
+    // in every theme, unless the application's theme has a rule of its own
+    static Swatch() =>
+        Theme.RegisterDefault<Swatch>(static (swatch, theme) => swatch.Fill = theme.Colors.Accent);
+
+    [Styled(Category = "Appearance")]
+    public partial Color Fill { get; set; }
+
+    protected override void DrawContent(Graphics g)
+    {
+        if (g is SkiaGraphics skia)     // draw with Skia itself, at the element's place
+            skia.Canvas.DrawRect(/* … */);
+        else
+            g.FillRectangle(LocalBounds, Fill);
+    }
+}
+```
+
+| Need                            | API                                                     |
+| ------------------------------- | ------------------------------------------------------- |
+| The form the element is in      | `FindForm()`                                            |
+| Take the keyboard focus         | `Focus()`, `Form.FocusedElement`                        |
+| A flyout or a popup             | `FindForm()?.ShowFlyout(anchor, content)`               |
+| A theme rule for every theme    | `Theme.RegisterDefault<T>(…)`                           |
+| A state for style sheets        | `PseudoClass.Register`, `SetPseudoClass`                |
+| Input method composition        | `ITextCompositionTarget`, `ReportTextInputArea(caret)`  |
+| Copy / paste menu of its own    | override `GetDefaultContextMenu()`                      |
+| Draw with Skia directly         | `SkiaGraphics.Canvas`                                   |
+
+`tests/ZeppelinForms.ExternalControlTests` builds such controls without access to
+the framework's internals, so a member they need can't quietly turn internal.
 
 ### 🎄 Themes
 
@@ -278,7 +334,7 @@ Transitions belong to the property system, not to individual controls. A rule on
 a property makes assignment the target while the visible value travels to it:
 
 ```csharp
-card.Transitions.Add(Transition.Ease(DecoratedControl.BackColorProperty, 200));
+card.Transitions.Add(Transition.Ease(UIElement.BackgroundProperty, 200));
 list.ChildrenLayoutTransition = LayoutTransition.Speed();
 list.ChildrenEnterTransition = VisibilityTransition.Slide(220, 0f, -12f);
 list.ChildrenExitTransition = VisibilityTransition.Fade(160);
@@ -320,17 +376,33 @@ source change would silently overwrite what was just written.
 
 ### 🛠️ Getting Started
 
+The UI references the `ZeppelinForms` package; the application references the package
+of its platform as well, which brings the framework with it:
+
+| Platform    | Package                 | Started by                                   |
+| ----------- | ----------------------- | -------------------------------------------- |
+| Windows     | `ZeppelinForms.Windows` | `new App(new WindowsPlatform())` (namespace `ZeppelinForms.Windows`) |
+| Linux (X11) | `ZeppelinForms.Linux`   | `new App(new X11Platform())` (namespace `ZeppelinForms.Linux`) |
+| Browser     | `ZeppelinForms.Browser` | `BrowserApp.RunAsync(…)`                     |
+| Android     | `ZeppelinForms.Android` | `AndroidApp.Run(activity, …)`                |
+
+A desktop application is a `WinExe` (Windows) or `Exe` project for `net10.0`; see
+[ZF_ProcessMonitor](https://github.com/YD359Team/ZF_ProcessMonitor) for a complete one.
+
 Creating an application in Windows:
 
 ```csharp
 public class Program
 {
+    [STAThread]   // drag and drop from other applications needs a single-threaded apartment
     static void Main()
     {
         WindowsPlatform windowsPlatform = new();
         App myApp = new(windowsPlatform)
         {
-            MainForm = new MainForm()
+            MainForm = new MainForm(),
+            StartupTheme = Themes.FluentLight,   // optional: the theme to start with
+            Icon = Icon.FromFile(Path.Combine(Assets.Root, "app.ico")),  // optional
         };
         myApp.Run();
     }
@@ -401,13 +473,76 @@ await runtime.runMain();
 `zf.js` ships with `ZeppelinForms.Browser` and has to be copied into the
 application's `wwwroot`. See `examples/ZF Wasm` for a complete project.
 
+On Android `AndroidApp.Run(this, () => new MainForm(), assets: ["logo.png"])` is called
+from the activity's `OnCreate`; the files named in `assets` are copied out of the APK's
+assets so that `Assets.Root` finds them. See `examples/ZF Android`.
+
+### 📁 Files and Assets
+
+| File | What it is | How it is used |
+| ---- | ---------- | -------------- |
+| `.zss` | Style sheet: CSS-like rules over the controls and their properties | `App.Styles.Load(path, watch: true)`, `form.Styles.Add(StyleSheet.LoadAsset("app.zss"))`, `StyleSheet.Parse(text)` |
+| `.zfml` | Markup: a tree of controls compiled into C# at build time | picked up by the package's build on its own — no project change |
+| `.ico` | Window and application icon | `Icon.FromFile(path)` — `Icon` reads ICO files only, not PNG |
+| `.png`, `.jpg`, `.webp`, `.gif`, `.bmp` | Images | `Image.LoadAsset("logo.png")`, `Image.LoadFromFile`, `Image.LoadFromUri` |
+| `.ttf`, `.otf` | Fonts | `Font.Default.WithFile(path)` |
+
+SVG files are not read; vector icons are given as SVG path data, `IconSource.FromPath(…)`.
+
+**Assets** are looked up in `Assets.Root`, the `Assets` folder next to the executable.
+They are not copied there by themselves; the project copies them:
+
+```xml
+<ItemGroup>
+  <None Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" />
+</ItemGroup>
+```
+
+**Style sheets** in short:
+
+```css
+$radius: 6;
+
+Button.primary {
+    BackgroundColor: @Accent;            /* a theme color */
+    CornerRadius: $radius;
+    transition: BackgroundColor 150ms ease-out;
+
+    &:hover { BackgroundColor: @AccentHover; }
+}
+
+DataGridView { ShowAlternateRows: true; }
+```
+
+Property names are the C# ones (or the same in kebab case), values are written as the
+C# would construct them (`Padding: 14 6`). A mistake skips its declaration and is
+reported with its file, line and column; the Visual Studio extension highlights `.zss`
+and lists the problems in the Error List. `watch: true` reloads a sheet on every save.
+
+**Icons.** `App.Icon` is the icon of every form without one of its own and of the
+taskbar button; without it the ZeppelinForms logo is used. `Form.Icon` overrides it
+for one window and can be changed while the window is open. The icon of the executable
+itself — the one Explorer shows and a pinned taskbar button keeps — is set in the
+project file:
+
+```xml
+<PropertyGroup>
+  <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+</PropertyGroup>
+```
+
 ### 📺 Previewer
 
-Install previewer extension for VS 2022 and VS 2026.
+The **ZeppelinForms Tools** extension for Visual Studio 2022 (17.10 and later) and
+Visual Studio 2026: the `.vsix` is attached to every release. It runs on the machine's
+.NET 10.
 
-Press `Ctrl`+`Alt`+`Shift`+`P` for showing previewer window.
-
-See needed `Form` or use `[Previewer]` attribute otherwise.
+`Ctrl`+`Alt`+`Shift`+`P` (View › Other Windows › ZeppelinForms Preview) shows the
+preview of the active project: every form with a parameterless constructor, and every
+method marked `[Preview]` (namespace `ZeppelinForms.Design`). What `Main` does before
+showing a form — loading style sheets, choosing a theme — goes into a `[PreviewSetup]`
+method. The extension also highlights `.zss` style sheets and reports their problems in
+the Error List. See `tools/ZeppelinForms.VisualStudio/README.md`.
 
 ### 📝 Markup
 
@@ -473,7 +608,7 @@ public class MainForm : Form
 
 `UIElement.OnHotReload` does the same for a control that builds its children itself, and
 `HotReload.Applied` is raised once the forms have caught up. Style sheets loaded from
-files follow their saves on their own.
+files with `watch: true` follow their saves on their own.
 
 ### 🧪 Snapshot Tests
 
@@ -486,6 +621,8 @@ Text rendering differs between platforms, so separate snapshot sets are maintain
 Local snapshot update:
 - bash: `ZF_UPDATE_SNAPSHOTS=true dotnet test`
 - PowerShell: `$env:ZF_UPDATE_SNAPSHOTS='true'; dotnet test`
+
+`ZF_CREATE_SNAPSHOTS=true` only adds the missing ones, leaving the existing as they are.
 
 ### 📈 Benchmarks
 

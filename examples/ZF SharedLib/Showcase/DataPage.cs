@@ -11,7 +11,8 @@ using ZF_SharedLib.Models;
 namespace ZF_SharedLib.Showcase;
 
 /// <summary>Data in rows and columns: a plain table of strings and a data grid over
-/// objects, with sorting, resizing and selection.</summary>
+/// objects, with sorting, resizing and selection, move the selection. 
+/// Shift+wheel scrolls a grid wider than the window sideways.</summary>
 internal static class DataPage
 {
     public static UIElement Create()
@@ -137,7 +138,7 @@ internal static class DataPage
             Spacing = 10,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
         };
-        gridDemo.Children.AddRange([grid, Demo.Row(sortable, resizable), selection, sorted]);
+        gridDemo.Children.AddRange([grid, Demo.Row(sortable, resizable, gridStripes, dimUnfinished), selection, sorted]);
 
         return Demo.Page("Grids and tables", "A table of strings to show, a data grid over objects to work with.",
             Demo.Section("Table", Demo.Column(table, Demo.Row(lines, stripes)), "Table lays out strings; its columns are Auto, Fixed or Star like a Grid's"),

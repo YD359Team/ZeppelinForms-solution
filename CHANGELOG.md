@@ -2,7 +2,11 @@
 
 ## [0.16.0] - Stonehenge
 
-### Braking changes
+![Stonehenge](assets/Logo-0.16.0.jpg)
+
+> The codename "Stonehenge" symbolizes the solid and powerful foundation of the framework
+
+### Breaking changes
 
 - Failures of the platform and of a missing setup throw the framework's own
   exceptions, derived from `ZfException`, instead of `InvalidOperationException`:
@@ -52,6 +56,22 @@
   as two pale ones — the top of a button or a border looked thinner than its other
   sides. `Graphics.AlignToPixels` snaps a rectangle to device pixels under the current
   transform
+- `DataGridView`'s horizontal scroll bar: star columns share the width exactly, and
+  their sum in floats came out a hair over it, so a bar was shown whose thumb filled
+  the track and never moved. It is shown only when there is something to scroll. Star
+  columns no longer shrink below `MinColumnWidth` — a narrow grid scrolls sideways
+  instead of cutting its text to slivers — and the grid scrolls sideways by a tilt of
+  the wheel, a touchpad's sideways swipe, or Shift with the wheel
+- `.zss` highlighting in Visual Studio with a rule's brace on its own line, as C# code
+  puts braces: the grammar recognized a rule only with its selector and `{` on one
+  line, and a sheet written that way had no colors at all. It still checked and
+  previewed, which go through the parser
+- `App.Icon` is used: it is the icon of every form without one of its own — it went
+  nowhere, and the main form took the logo. `Form.Icon` changed while the window is
+  open shows at once. On Windows the icons are made at the sizes of the window's DPI,
+  and the application's icon is the window class's too: the taskbar falls back to it
+  when a window busy at start — filling its lists in `Shown` — doesn't answer for its
+  own, where it showed the executable's default icon instead
 
 ### Input and frames
 
@@ -130,6 +150,60 @@
 - `CursorKind.SizeNorthWestSouthEast` and `SizeNorthEastSouthWest`: the diagonal
   resize cursors of a corner grip
 
+### Commands and menus
+
+- `Command`: an action a menu item, a button and a shortcut share, the standard
+  `ICommand` — a `RelayCommand` of an MVVM library works in its place. `Gesture` is
+  its shortcut. `Button.Command` and `MenuItem.Command` run it, with
+  `CommandParameter`, and are disabled while it can't run; a button listens to
+  `CanExecuteChanged` only while it is in a form, so a long-lived command doesn't
+  keep the form alive. `IsEnabled` set from code takes over from the command, as it
+  does from a binding
+- `ToggleCommand`: a command that is on or off. A menu item shows its state as a
+  check mark and a `ToggleButton` stays pressed with it; switching either — or the
+  shortcut, or code — switches the others
+- `MenuItem.IsCheckable` and `IsChecked`: a check mark before the caption, flipped by
+  a click on a checkable item. An item with an icon frames it instead
+- `MenuItem.KeyGesture` and `InputGestureText`: the shortcut, shown right of the
+  caption in a column of its own. The form runs the gestures of its menu bar's items
+  with the menu closed. `InputGestureText` only shows a key — the text field's
+  Ctrl+C in its context menu, which now shows its shortcuts
+- `MenuItem.Opening`: raised before a menu bar opens the item's submenu, and before
+  a shortcut runs an item under it — the place to set what the items show, once,
+  instead of keeping forty items up to date as the application changes. Ctrl+S with
+  the menu closed sees the state the open menu would show
+- `Form.KeyBindings`: shortcuts for commands without a menu item. Shortcuts are tried
+  after the focused element leaves the key unhandled: a text field keeps Ctrl+C and
+  Ctrl+Z
+- `KeyGesture`: a key with its modifiers, written and read as menus show it —
+  `KeyGesture.Parse("Ctrl+Shift+S")`, `ToString()` gives "Ctrl+Shift+S"
+- A split button's repeated action runs the item's command as well as its `Click`,
+  and the button's own `Command` runs from its main part
+
+### Tree view
+
+- `TreeView.SelectionMode`: `Multiple` and `Extended` select several nodes — Ctrl
+  adds one, Shift a range from the anchor, Shift with the arrows extends it, Ctrl+A
+  selects every shown node. `SelectedNodes`, `IsSelected`, `SetSelected`,
+  `ClearSelection`, `SelectAll`; `SelectedNode` is the lead, and setting it selects
+  that node alone, as before. Nodes hidden by a collapsed ancestor leave the selection
+- `TreeView.CheckBoxes` and `TreeNode.IsChecked`: a check box before every node, each
+  node its own — a parent doesn't check its children. Space checks or unchecks all
+  the selected nodes together; `NodeCheckedChanged` tells. Screen readers hear the
+  state and can toggle it
+- `TreeNode.Icon` and `TreeView.ItemIcon`: an icon before the caption, the node's own
+  or one by the kind of its content. The rows keep a column for icons once any node
+  has one, so the captions line up
+- `NodeInvoked`: a double click on the caption or Enter. A handler that sets `Handled`
+  keeps a node with children as it is; otherwise it expands or collapses, as before
+- Renaming in place: `BeginEdit(node)`, F2 with `LabelEdit`, Enter or a click elsewhere
+  commits, Escape cancels. `NodeEditing` can refuse or change the starting text,
+  `NodeEdited` can reject or change the result; a string content takes the new text
+  by itself
+- `NodeAt(point)`, and a press of the right button selects the node under the cursor
+  unless it is already among the selected ones, as in Explorer. `NodeContextMenu`
+  builds the menu per node
+
 ### Property grid and inspector
 
 - Categories: the rows come under folding category headers; a folded category says
@@ -162,8 +236,8 @@
 - `PropertyDescriptor.DisplayName` for the caption, the name staying the key
 - The F12 inspector floats as cards with the theme's shadow instead of a slab glued to
   the window's side. A picked element is outlined on the form — it was outlined only
-  when chosen from the audit list — with its margin and padding shaded, as browsers' tools
-  show them, and a chip with its type, name and size in the theme's accent
+  when chosen from the audit list — with its margin and padding shaded, as browsers'
+  tools show them, and a chip with its type, name and size in the theme's accent
 
 ### Controls of other packages
 
@@ -189,6 +263,23 @@ from the framework is public now; the built-in controls reached it as internals
   without access to the framework's internals: a styled property, a theme rule,
   a pseudo-class in a style sheet, focus, composition, a flyout and Skia drawing.
   It runs with the scan of loaded assemblies off, as a trimmed application does
+
+### Data grid rows
+
+- `ShowAlternateRows` and `AlternateRowColor` stripe every other row of a
+  `DataGridView`, as `Table` does; both are styled properties, so a style sheet turns
+  them on: `DataGridView { ShowAlternateRows: true; }`
+- `RowStyle` gives a row its look by its record — a fill, a text color, a font:
+  `grid.RowStyle = item => ((Process)item).Responding ? null : hung;`
+
+### Documentation
+
+- The README says what is true of 0.16: which package each platform needs and how it
+  starts, the files the framework reads — `.zss`, `.zfml`, `.ico` (ICO only), images,
+  fonts — and that assets are copied to the output by the project, how style sheets are
+  loaded and watched, `App.Icon` and `<ApplicationIcon>`, the previewer's `[Preview]`
+  (it said `[Previewer]`), the value precedence as the property system has it, and
+  the controls in the categories they belong to — `Table` and `TreeView` are panels
 
 ### Examples
 
