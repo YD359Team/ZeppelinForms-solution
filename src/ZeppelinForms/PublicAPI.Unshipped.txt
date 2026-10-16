@@ -643,3 +643,7 @@ static readonly ZeppelinForms.Forms.Controls.PropertyGrid.MarkerColorProperty ->
 static readonly ZeppelinForms.Forms.Controls.PropertyGrid.NameColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 static readonly ZeppelinForms.Forms.Controls.PropertyGrid.RowHoverColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 static readonly ZeppelinForms.Forms.Controls.PropertyGrid.SeparatorColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+ZeppelinForms.Forms.Controls.Base.ButtonBase.PressedTextColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Base.ButtonBase.PressedTextColor.set -> void
+static readonly ZeppelinForms.Forms.Controls.Base.ButtonBase.PressedTextColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+virtual ZeppelinForms.Drawing.Graphics.AlignToPixels(ZeppelinForms.Drawing.Primitives.Rectangle rect) -> ZeppelinForms.Drawing.Primitives.Rectangle

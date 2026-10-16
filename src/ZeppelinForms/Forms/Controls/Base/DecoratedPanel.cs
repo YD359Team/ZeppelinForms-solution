@@ -12,9 +12,8 @@ public abstract class DecoratedPanel : PanelControl
 {
     public sealed override void Draw(Graphics g)
     {
-        Rectangle bounds = LocalBounds;
-
-        FillBackground(g, bounds);
+        // on whole pixels, as the border over the children: see BorderPainter
+        FillBackground(g, g.AlignToPixels(LocalBounds));
 
         // the panel's content is drawn before the children: the renderer calls
         // Draw and then walks Children
@@ -30,8 +29,9 @@ public abstract class DecoratedPanel : PanelControl
     /// </summary>
     protected internal override void DrawOverlay(Graphics g)
     {
+        // inside the box, on whole pixels: see BorderPainter
         if (BorderWidth > 0 && CurrentBorderColor.A > 0)
-            g.DrawRoundRectangle(LocalBounds, CornerRadius, CurrentBorderColor, BorderWidth);
+            BorderPainter.Draw(g, g.AlignToPixels(LocalBounds), CornerRadius, CurrentBorderColor, BorderWidth);
 
         // scrollbars from PanelControl
         base.DrawOverlay(g);

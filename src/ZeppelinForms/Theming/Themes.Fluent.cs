@@ -171,6 +171,9 @@ public static partial class Themes
                 button.CheckedBackgroundColor = c.Accent;
                 button.DisabledBackgroundColor = c.SurfacePressed;
                 button.DisabledTextColor = c.TextDisabled;
+                // the pressed fill is a shade off the hovered one, as in WinUI; what
+                // shows the press is the text going secondary (TextFillColorSecondary)
+                button.PressedTextColor = c.TextSecondary;
 
                 button.ElevationBorderColor = c.ControlStrokeSecondary;
                 button.FocusRingInset = t.Metrics.FocusStrokeThickness / 2f;
@@ -191,6 +194,10 @@ public static partial class Themes
                 button.DisabledBackgroundColor = c.SurfacePressed;
                 button.TextColor = c.TextOnAccent;
                 button.DisabledTextColor = c.TextDisabled;
+                // TextOnAccentFillColorSecondary: the text on accent at 70 % in the
+                // light theme, 50 % in the dark
+                button.PressedTextColor = c.TextOnAccent.WithA(c.IsDark ? (byte)0x80 : (byte)0xB3);
+
                 button.BorderColor = c.Accent;
                 button.ElevationBorderColor = c.Accent.Darken(c.IsDark ? 0.14f : 0.4f);
                 button.RippleColor = new Color(70, c.TextOnAccent.R, c.TextOnAccent.G, c.TextOnAccent.B);
@@ -206,6 +213,7 @@ public static partial class Themes
                 button.CheckedBackgroundColor = c.Accent;
                 button.DisabledBackgroundColor = Colors.Transparent;
                 button.TextColor = c.Accent;
+                button.PressedTextColor = c.Accent.WithA(0xB3);
                 button.DisabledTextColor = c.TextDisabled;
                 button.BorderColor = c.Accent;
                 button.ElevationBorderColor = Colors.Transparent;
@@ -223,6 +231,7 @@ public static partial class Themes
                 button.TextColor = c.TextOnAccent;
                 button.DisabledTextColor = c.TextDisabled;
                 button.BorderColor = c.Error;
+                button.PressedTextColor = c.TextOnAccent.WithA(c.IsDark ? (byte)0x80 : (byte)0xB3);
                 button.ElevationBorderColor = c.Error.Darken(c.IsDark ? 0.14f : 0.4f);
                 button.RippleColor = new Color(70, c.TextOnAccent.R, c.TextOnAccent.G, c.TextOnAccent.B);
             })
@@ -239,6 +248,7 @@ public static partial class Themes
 
                 button.DisabledBackgroundColor = c.SurfacePressed;
                 button.TextColor = c.Text;
+                button.PressedTextColor = c.TextSecondary;
                 button.CheckedTextColor = c.TextOnAccent;
                 button.DisabledTextColor = c.TextDisabled;
             })

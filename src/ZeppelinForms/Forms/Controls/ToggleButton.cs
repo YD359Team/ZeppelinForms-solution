@@ -24,9 +24,11 @@ public partial class ToggleButton : Button
     // never shown, and pressing a checked toggle briefly flashed the color of
     // a pressed unchecked one
 
+    // unchecked, the press dims the text as on any button
     protected override Color CurrentTextColor =>
     !IsEnabled ? DisabledTextColor
     : _isChecked ? CheckedTextColor
+    : UsesPressedTextColor ? PressedTextColor
     : TextColor;
 
     private bool _isChecked;

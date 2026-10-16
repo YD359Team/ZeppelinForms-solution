@@ -11,15 +11,17 @@ public abstract class DecoratedControl : UnitControl
 {
     public sealed override void Draw(Graphics g)
     {
-        Rectangle bounds = LocalBounds;
+        // the background and the border on whole pixels, the border inside the box:
+        // see BorderPainter — one side of a frame looked thinner than the others
+        Rectangle box = g.AlignToPixels(LocalBounds);
 
-        FillBackground(g, bounds);
+        FillBackground(g, box);
 
         DrawContent(g);
 
         // the border goes on top of the content: otherwise long text would cover it
         if (BorderWidth > 0 && CurrentBorderColor.A > 0)
-            g.DrawRoundRectangle(bounds, CornerRadius, CurrentBorderColor, BorderWidth);
+            BorderPainter.Draw(g, box, CornerRadius, CurrentBorderColor, BorderWidth);
 
         DrawDecoration(g);
     }

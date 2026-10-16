@@ -38,6 +38,11 @@ public class TreeView : DecoratedPanel, IInputElement
     /// <summary>The node being renamed.</summary>
     private TreeNode? _editing;
 
+    /// <summary>A node to bring into sight on the next layout: right after its ancestors
+    /// expand, the rows under them are not measured yet, and a scroll clamped to the
+    /// old, shorter extent stops short of it.</summary>
+    private TreeNode? _reveal;
+
     /// <summary>The root nodes. The service root is not visible from outside:
     /// it is needed so that there is one subscription to changes rather than
     /// one per node.</summary>
@@ -147,11 +152,18 @@ public class TreeView : DecoratedPanel, IInputElement
     private TreeNode? _lead;
 
     /// <summary>The lead node: the one selected last, where the keyboard is. Setting it
-    /// selects that node alone; null clears the selection.</summary>
+    /// selects that node alone and scrolls it into sight, as a selection from the
+    /// keyboard does; null clears the selection.</summary>
     public TreeNode? SelectedNode
     {
         get => _lead;
-        set => SelectOnly(value);
+        set
+        {
+            SelectOnly(value);
+
+            if (value is not null)
+                ScrollIntoView(value);
+        }
     }
 
     /// <summary>The selected nodes, top to bottom.</summary>
@@ -736,14 +748,28 @@ public class TreeView : DecoratedPanel, IInputElement
 
     /// <summary>Bring a node into the visible part. A node under a collapsed
     /// ancestor is not shown at all — there is nowhere to bring it.</summary>
+    /// <remarks>Works right after <see cref="TreeNode.ExpandAncestors"/> too: the
+    /// scroll is done again on the next layout, when the rows the expand added
+    /// are measured and the extent reaches the node.</remarks>
     public void ScrollIntoView(TreeNode node)
     {
+        ArgumentNullException.ThrowIfNull(node);
+
+        _reveal = node;
+        Reveal(node, _panel.ActualSize.Height);
+
+        // the layout that finishes the scroll comes even when nothing had to move now
+        Invalidate();
+    }
+
+    /// <summary>Scroll so the node's row is inside a viewport of this height.</summary>
+    private void Reveal(TreeNode node, float viewport)
+    {
         int row = RowOf(node);
-        if (row < 0 || ItemHeight <= 0) return;
+        if (row < 0 || ItemHeight <= 0 || viewport <= 0) return;
 
         float top = row * ItemHeight;
         float bottom = top + ItemHeight;
-        float viewport = _panel.ActualSize.Height;
 
         if (top < _panel.ScrollY)
             _panel.ScrollTo(_panel.ScrollX, top);
@@ -771,6 +797,14 @@ public class TreeView : DecoratedPanel, IInputElement
 
     protected override void ArrangeContentOverride(Size contentSize)
     {
+        // the panel is measured with every row by now: the scroll asked for before
+        // the measure reaches its node. Before the panel's arrange — the rows it
+        // realizes are those of the scroll position
+        if (_reveal is { } reveal)
+        {
+            _reveal = null;
+            Reveal(reveal, Math.Max(0, contentSize.Height - Padding.Vertical));
+        }
         _panel.Arrange(new Rectangle(
             new Point(Padding.Left, Padding.Top),
             new Size(

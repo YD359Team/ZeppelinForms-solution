@@ -38,6 +38,20 @@
   the window; a drop-down at the bottom of the window was cut off by its edge
 - A dark theme opens under a dark caption on Windows. The caption was applied before
   the window had a handle, did nothing, and stayed light until the theme was switched
+- A tree view scrolls to the node it is given: `SelectedNode` brings the node into
+  sight, as a selection from the keyboard does, and `ScrollIntoView` right after
+  `ExpandAncestors` reaches it — the rows of the opened branch weren't measured yet,
+  and the scroll stopped at the old, shorter extent
+- A held Fluent button says so: the text goes to the secondary color, as in WinUI,
+  where the pressed fill is a shade off the hovered one — the light buttons looked the
+  same hovered and pressed. `ButtonBase.PressedTextColor`; it gives way to a text
+  color or a background set in code or a style sheet
+- A border is drawn inside its box, on whole pixels, as CSS and WinUI draw it. The
+  stroke ran along the edge, half of it outside: a parent cutting its children at its
+  edge took the outer half of the top line, and a box between pixels drew a 1 px line
+  as two pale ones — the top of a button or a border looked thinner than its other
+  sides. `Graphics.AlignToPixels` snaps a rectangle to device pixels under the current
+  transform
 
 ### Input and frames
 
@@ -175,6 +189,15 @@ from the framework is public now; the built-in controls reached it as internals
   without access to the framework's internals: a styled property, a theme rule,
   a pseudo-class in a style sheet, focus, composition, a flyout and Skia drawing.
   It runs with the scan of loaded assemblies off, as a trimmed application does
+
+### Examples
+
+- A 3D scene: a cube on a ground grid with axes, drawn with the 2D graphics alone, and
+  turned as in a 3D editor — orbit, pan and zoom with the mouse, a flick that keeps
+  turning, an axis gizmo to look along an axis, Blender's numpad keys, a perspective and
+  an orthographic projection, a turntable. `SceneView` shows a custom interactive
+  control with a theme rule of its own (`Theme.RegisterDefault`) and frames from
+  `AnimateFrames`
 
 ## [0.15.0] - Lake Baikal
 

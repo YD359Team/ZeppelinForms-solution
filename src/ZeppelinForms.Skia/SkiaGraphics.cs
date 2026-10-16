@@ -381,6 +381,27 @@ public sealed class SkiaGraphics : Graphics
         _canvas.DrawRoundRect(rounded, paint);
     }
 
+    public override Rectangle AlignToPixels(Rectangle rect)
+    {
+        SKMatrix m = _canvas.TotalMatrix;
+
+        // only a scale and an offset keep the edges on pixel rows and columns
+        if (m.SkewX != 0 || m.SkewY != 0 || m.Persp0 != 0 || m.Persp1 != 0 || m.ScaleX <= 0 || m.ScaleY <= 0)
+            return rect;
+
+        float left = MathF.Round(rect.X * m.ScaleX + m.TransX);
+        float top = MathF.Round(rect.Y * m.ScaleY + m.TransY);
+        float right = MathF.Round(rect.Right * m.ScaleX + m.TransX);
+        float bottom = MathF.Round(rect.Bottom * m.ScaleY + m.TransY);
+
+        // a rectangle thinner than a pixel would vanish: it stays where it was
+        if (right <= left || bottom <= top) return rect;
+
+        return new Rectangle(
+            new Point((left - m.TransX) / m.ScaleX, (top - m.TransY) / m.ScaleY),
+            new Size((right - left) / m.ScaleX, (bottom - top) / m.ScaleY));
+    }
+
     public override void ClipRoundRect(Rectangle rect, CornerRadius radius)
     {
         if (radius.IsZero) { ClipRect(rect); return; }

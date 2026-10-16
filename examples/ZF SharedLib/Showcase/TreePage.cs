@@ -112,6 +112,7 @@ internal static class TreePage
         var collapse = new Button { Text = "Collapse all" };
         collapse.Click += (_, _) => { foreach (TreeNode node in tree.Nodes) node.Collapse(); };
 
+        // the path to it opens, and it is selected: the tree scrolls to it
         var reveal = new Button { Text = "Find Hades" };
         reveal.Click += (_, _) =>
         {

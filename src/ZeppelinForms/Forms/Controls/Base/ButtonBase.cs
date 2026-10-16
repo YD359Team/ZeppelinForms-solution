@@ -63,6 +63,20 @@ public abstract partial class ButtonBase : InteractiveControl
     public partial Color DisabledTextColor { get; set; }
     private static Color DisabledTextColorDefault => new(255, 160, 160, 160);
 
+    /// <summary>The text and icon color while the button is held down; transparent —
+    /// the text color.</summary>
+    /// <remarks>
+    /// Fluent answers a press mostly with the text: the fill of a pressed neutral
+    /// button is a shade off the hovered one, too little to see, and the text going
+    /// to the secondary color is what says the button is held. Like the state
+    /// backgrounds, it counts only while it was set at least as firmly as the text
+    /// color and the background it would stand on: the theme's grey doesn't replace
+    /// a color a style sheet or code chose.
+    /// </remarks>
+    [Styled(Category = "States")]
+    public partial Color PressedTextColor { get; set; }
+    private static Color PressedTextColorDefault => Colors.Transparent;
+
     // FocusRingColor and ShowFocusRing moved to InteractiveControl: check boxes,
     // radio buttons and switches need the ring too. The names stay the same, so
     // code that sets them on a button doesn't change
@@ -163,7 +177,24 @@ public abstract partial class ButtonBase : InteractiveControl
     /// two pixels apart.</summary>
     protected override Color CurrentBorderColor => BorderColor;
 
-    protected virtual Color CurrentTextColor => IsEnabled ? TextColor : DisabledTextColor;
+    protected virtual Color CurrentTextColor =>
+        !IsEnabled ? DisabledTextColor
+        : UsesPressedTextColor ? PressedTextColor
+        : TextColor;
+
+    /// <summary>Held down, with a pressed text color set as firmly as the colors it
+    /// replaces — see <see cref="PressedTextColor"/>.</summary>
+    private protected bool UsesPressedTextColor
+    {
+        get
+        {
+            if (!IsPressed || PressedTextColor.A == 0) return false;
+
+            ValueSource own = GetValueSource(PressedTextColorProperty);
+
+            return own >= GetValueSource(TextColorProperty) && own >= GetValueSource(BackgroundColorProperty);
+        }
+    }
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
     {
@@ -203,7 +234,8 @@ public abstract partial class ButtonBase : InteractiveControl
         if (ElevationBorderColor.A == 0 || BorderWidth <= 0f) return;
         if (IsPressed || !IsEnabled) return;
 
-        Rectangle bounds = LocalBounds;
+        // the same box as the border's, so the edge lies exactly over it
+        Rectangle bounds = g.AlignToPixels(LocalBounds);
 
         // the band covers the lower corners, and at least twice the stroke
         // on a button with square ones — otherwise the edge is lost in antialiasing
@@ -216,7 +248,7 @@ public abstract partial class ButtonBase : InteractiveControl
             new Point(bounds.X, bounds.Bottom - band),
             new Size(bounds.Width, band)));
 
-        g.DrawRoundRectangle(bounds, CornerRadius, ElevationBorderColor, BorderWidth);
+        BorderPainter.Draw(g, bounds, CornerRadius, ElevationBorderColor, BorderWidth);
 
         g.Restore();
     }
