@@ -150,30 +150,9 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             }
         }
 
-        if (_form.Icon is not null)
-        {
-            _largeIcon = Win32Icon.Create(
-                _form.Icon,
-                32,
-                32);
-
-            _smallIcon = Win32Icon.Create(
-                _form.Icon,
-                16,
-                16);
-
-            NativeMethods.SendMessage(
-                _handle,
-                NativeConstants.WM_SETICON,
-                NativeConstants.ICON_BIG,
-                _largeIcon);
-
-            NativeMethods.SendMessage(
-                _handle,
-                NativeConstants.WM_SETICON,
-                NativeConstants.ICON_SMALL,
-                _smallIcon);
-        }
+        // the form's icon, or the application's: at the sizes of the window's DPI,
+        // not a fixed 32 and 16 the taskbar of a 150 % screen stretched
+        ApplyIcon(_form.EffectiveIcon);
 
         // Invoke before the window existed only queued the action: there was no
         // handle to post WM_INVOKE to, and without a later Invoke the action
@@ -587,6 +566,11 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                         suggested.Bottom - suggested.Top,
                         NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
 
+                    // the icons of the new DPI's sizes: a window moved to a 150 % screen
+                    // kept its 100 % ones, stretched and blurred in the taskbar
+                    if (_icon is not null)
+                        ApplyIcon(_icon);
+
                     return 0;
                 }
 
@@ -778,6 +762,10 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
             lpszClassName = ClassName
         };
+
+        // the application's icon as the class's: what the taskbar takes when the
+        // window is too busy to answer for its own, see Win32Window.Icon
+        (windowClass.hIcon, windowClass.hIconSm) = ClassIcons();
 
         ushort atom = NativeMethods.RegisterClassEx(
             ref windowClass);

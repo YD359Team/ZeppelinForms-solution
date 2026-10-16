@@ -155,7 +155,25 @@ public partial class Form : IDisposable
 
     public string Name { get; set; } = string.Empty;
     public string? Title { get; set; }
-    public Icon? Icon { get; set; }
+    /// <summary>The window's icon: the title bar's, the taskbar button's. Null — the
+    /// application's, <see cref="App.Icon"/>. Changing it shows at once.</summary>
+    public Icon? Icon
+    {
+        get;
+        set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            field = value;
+
+            // an icon set after the window opened went nowhere: the platform read it
+            // only when making the window
+            DesktopWindow?.SetIcon(EffectiveIcon);
+        }
+    }
+
+    /// <summary>The icon the window shows: its own, or the application's.</summary>
+    internal Icon? EffectiveIcon => Icon ?? App.DefaultIcon;
     public Point Position { get; set; }
 
     /// <summary>The size of the window, frame included. <see cref="DefaultSize"/>

@@ -376,6 +376,10 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern int GetSystemMetrics(int nIndex);
 
+    /// <summary>A system metric at the given DPI. Windows 10 1607 and later, as GetDpiForWindow.</summary>
+    [DllImport("user32.dll")]
+    public static extern int GetSystemMetricsForDpi(int nIndex, uint dpi);
+
     [DllImport("user32.dll")] public static extern short GetKeyState(int nVirtKey);
     [DllImport("user32.dll")] public static extern nint SetCapture(nint hWnd);
     [DllImport("user32.dll")] public static extern bool ReleaseCapture();

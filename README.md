@@ -318,7 +318,7 @@ Assigning a bound property from code wins over the binding: in `TwoWay` the
 value goes to the source, in `OneWay` the binding is broken — otherwise the next
 source change would silently overwrite what was just written.
 
-### 🛠️ Code Examples
+### 🛠️ Getting Started
 
 Creating an application in Windows:
 

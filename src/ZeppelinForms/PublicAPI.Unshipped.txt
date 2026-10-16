@@ -647,3 +647,20 @@ ZeppelinForms.Forms.Controls.Base.ButtonBase.PressedTextColor.get -> ZeppelinFor
 ZeppelinForms.Forms.Controls.Base.ButtonBase.PressedTextColor.set -> void
 static readonly ZeppelinForms.Forms.Controls.Base.ButtonBase.PressedTextColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 virtual ZeppelinForms.Drawing.Graphics.AlignToPixels(ZeppelinForms.Drawing.Primitives.Rectangle rect) -> ZeppelinForms.Drawing.Primitives.Rectangle
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.AlternateRowColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.AlternateRowColor.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.RowStyle.get -> System.Func<object!, ZeppelinForms.Forms.Controls.DataGrid.DataGridViewRowStyle?>?
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.RowStyle.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.ShowAlternateRows.get -> bool
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.ShowAlternateRows.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewRowStyle
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewRowStyle.Background.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewRowStyle.Background.init -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewRowStyle.DataGridViewRowStyle() -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewRowStyle.Font.get -> ZeppelinForms.Drawing.Font?
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewRowStyle.Font.init -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewRowStyle.TextColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewRowStyle.TextColor.init -> void
+ZeppelinForms.IDesktopWindow.SetIcon(ZeppelinForms.Drawing.Imaging.Icon? icon) -> void
+static readonly ZeppelinForms.Forms.Controls.DataGrid.DataGridView.AlternateRowColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.DataGrid.DataGridView.ShowAlternateRowsProperty -> ZeppelinForms.Forms.Styling.StyledProperty<bool>!

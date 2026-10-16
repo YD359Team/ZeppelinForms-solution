@@ -1,5 +1,6 @@
 using System.Globalization;
 using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.DataGrid;
@@ -117,6 +118,18 @@ internal static class DataPage
 
         var resizable = new ToggleSwitch { Text = "Resize columns", IsOn = grid.CanResizeColumns };
         resizable.Toggled += (_, _) => grid.CanResizeColumns = resizable.IsOn;
+
+        // every other row striped, as a style sheet would do it: DataGridView { ShowAlternateRows: true; }
+        var gridStripes = new ToggleSwitch { Text = "Alternate rows" };
+        gridStripes.Toggled += (_, _) => grid.ShowAlternateRows = gridStripes.IsOn;
+
+        // a row's look by its record: the games not completed are dimmed. One shared
+        // style, not one per call — the grid asks for every visible row on every frame
+        var unfinished = new DataGridViewRowStyle { TextColor = new Color(150, 128, 128, 128) };
+
+        var dimUnfinished = new ToggleSwitch { Text = "Dim unfinished" };
+        dimUnfinished.Toggled += (_, _) =>
+            grid.RowStyle = dimUnfinished.IsOn ? item => ((Game)item).Completed ? null : unfinished : null;
 
         var gridDemo = new StackPanel
         {
