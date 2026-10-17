@@ -23,6 +23,9 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
             throw new ZfPlatformException(
                 "Could not connect to the X server. Check the DISPLAY variable.");
 
+        // a protocol error is reported, not fatal: Xlib's own handler ends the process
+        X11ErrorHandler.Install();
+
         _inputMethod = OpenInputMethod(Display);
 
         Skia.SkiaImageDecoder.Register();
@@ -33,6 +36,10 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
     }
 
     private X11Clipboard? _clipboard;
+
+    /// <summary>The clipboard before this platform's: back in place when its last window
+    /// closes — a clipboard working through a destroyed window can't be used.</summary>
+    private IClipboard? _previousClipboard;
 
     /// <summary>The X input method, or 0 if none could be opened — then text
     /// falls back to XLookupString, which knows only Latin-1.</summary>
@@ -132,6 +139,7 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         if (_clipboard is null)
         {
             _clipboard = new X11Clipboard(Display, window.Handle);
+            _previousClipboard = Clipboard.Current;
             Clipboard.Current = _clipboard;
         }
     }
@@ -139,6 +147,24 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
     internal void Unregister(X11Window window)
     {
         _windows.Remove(window.Handle);
+
+        // the clipboard worked through this window: it moves to one still open, or,
+        // with none left, steps aside for the clipboard there was before
+        if (_clipboard is not null && _clipboard.Window == window.Handle)
+        {
+            if (_windows.Count > 0)
+            {
+                _clipboard.MoveTo(_windows.Keys.First());
+            }
+            else
+            {
+                if (ReferenceEquals(Clipboard.Current, _clipboard) && _previousClipboard is not null)
+                    Clipboard.Current = _previousClipboard;
+
+                _clipboard = null;
+                _previousClipboard = null;
+            }
+        }
 
         if (_windows.Count == 0)
             _running = false;

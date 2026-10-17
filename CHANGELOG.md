@@ -72,6 +72,13 @@
   and the application's icon is the window class's too: the taskbar falls back to it
   when a window busy at start — filling its lists in `Shown` — doesn't answer for its
   own, where it showed the executable's default icon instead
+- Linux: the clipboard outlives the window it works through. It stayed bound to the
+  first window the application opened; once that closed, the next copy asked the X
+  server to give the selection to a window that was gone, and Xlib's default error
+  handler ended the process. The clipboard moves to a window still open, with the
+  copied text, and steps aside when the last one closes
+- Linux: an X protocol error is written to the standard error and the application
+  goes on, instead of Xlib ending the process from inside a native call
 
 ### Input and frames
 

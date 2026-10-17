@@ -11,7 +11,9 @@ namespace ZeppelinForms.Linux;
 internal sealed class X11Clipboard : IClipboard
 {
     private readonly nint _display;
-    private readonly nuint _window;
+    /// <summary>The window that owns the selection for the application: the first one
+    /// opened, and another one when that closes, see <see cref="MoveTo"/>.</summary>
+    private nuint _window;
 
     private readonly nuint _clipboardAtom;
     private readonly nuint _targetsAtom;
@@ -162,4 +164,25 @@ internal sealed class X11Clipboard : IClipboard
     }
 
     internal void HandleSelectionClear() => _ownedText = null;
+
+    /// <summary>The window the clipboard works through.</summary>
+    internal nuint Window => _window;
+
+    /// <summary>The owner window closed: the clipboard goes on through another one.</summary>
+    /// <remarks>
+    /// The server dropped the selection with the window. Text copied here and not yet
+    /// replaced by another application's — no SelectionClear came — is owned again by
+    /// the new window, so a paste elsewhere still finds it. The dead window used to stay
+    /// the owner: the next copy was a BadWindow error, and Xlib's default handler ends
+    /// the process on one.
+    /// </remarks>
+    internal void MoveTo(nuint window)
+    {
+        _window = window;
+
+        if (_ownedText is null) return;
+
+        X11.XSetSelectionOwner(_display, _clipboardAtom, _window, 0);
+        X11.XFlush(_display);
+    }
 }
