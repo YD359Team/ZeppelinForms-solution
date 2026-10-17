@@ -14,7 +14,8 @@ public partial class MenuList : DecoratedControl
     private const float ItemHeight = 26f;
     private const float SeparatorHeight = 7f;
     private const float IconWidth = 22f;
-
+    /// <summary>The room between the caption and the shortcut right of it.</summary>
+    private const float GestureGap = 24f;
     private int _hoveredIndex = -1;
 
     public List<MenuItem> Items { get; init; } = [];
@@ -68,19 +69,32 @@ public partial class MenuList : DecoratedControl
             {
                 var row = new Rectangle(new Point(content.X, y), new Size(content.Width, height));
 
-                if (i == _hoveredIndex && item.IsEnabled)
+                // asked once per item and frame: CanExecute of a command may do work
+                bool enabled = item.IsEffectivelyEnabled;
+
+                if (i == _hoveredIndex && enabled)
                     g.FillRectangle(row, HoverColor);
 
-                Color color = !item.IsEnabled ? DisabledColor
+                Color color = !enabled ? DisabledColor
                             : i == _hoveredIndex && HighlightedTextColor.A > 0 ? HighlightedTextColor
                             : TextColor;
 
-                if (!string.IsNullOrEmpty(item.PathData))
-                {
-                    var icon = new Rectangle(
-                        new Point(content.X + 4, y + (height - 14) / 2f), new Size(14, 14));
+                var icon = new Rectangle(
+                    new Point(content.X + 4, y + (height - 14) / 2f), new Size(14, 14));
 
-                    g.DrawSvgPath(item.PathData, icon, color);
+                bool hasIcon = !string.IsNullOrEmpty(item.PathData);
+
+                if (hasIcon)
+                    g.DrawSvgPath(item.PathData!, icon, color);
+
+                // the check takes the icon's place; an item with both keeps its icon
+                // and frames it, as Windows menus do
+                if (item.IsEffectivelyChecked)
+                {
+                    if (hasIcon)
+                        g.DrawRoundRectangle(Grow(icon, 2f), new CornerRadius(3f), color, 1f);
+                    else
+                        DrawCheckMark(g, icon, color);
                 }
 
                 var text = new Rectangle(
@@ -92,6 +106,13 @@ public partial class MenuList : DecoratedControl
                 g.DrawText(caption, text, color, EffectiveFont,
                     HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 
+                // the shortcut at the right edge, in the caption's color
+                if (item.GestureText is { Length: > 0 } gesture)
+                {
+                    g.DrawText(gesture, text, color, EffectiveFont,
+                        HorizontalContentAlignment.Right, VerticalContentAlignment.Center);
+                }
+
                 if (FindOwner() is { ShowsAccessKeys: true })
                 {
                     Mnemonic.DrawUnderline(g, caption, accessKey, text, color, EffectiveFont,
@@ -102,6 +123,22 @@ public partial class MenuList : DecoratedControl
             y += height;
         }
     }
+
+    private static void DrawCheckMark(Graphics g, Rectangle box, Color color)
+    {
+        // the same proportions as the check box's mark
+        ReadOnlySpan<Point> points =
+        [
+            new(box.X + box.Width * 0.18f, box.Y + box.Height * 0.52f),
+            new(box.X + box.Width * 0.40f, box.Y + box.Height * 0.74f),
+            new(box.X + box.Width * 0.82f, box.Y + box.Height * 0.28f),
+        ];
+
+        g.DrawPolyline(points, color, 1.6f);
+    }
+
+    private static Rectangle Grow(Rectangle rect, float by) =>
+        new(new Point(rect.X - by, rect.Y - by), new Size(rect.Width + by * 2, rect.Height + by * 2));
 
     private int IndexFromPoint(Point location)
     {
@@ -152,16 +189,15 @@ public partial class MenuList : DecoratedControl
         InvokeItem(index);
     }
 
-    /// <summary>Run the item: its Click, then ItemInvoked. The click and the
+    /// <summary>Run the item: its Click and command, then ItemInvoked. The click and the
     /// accessibility peer's Invoke come here. False — a separator or a disabled item.</summary>
     internal bool InvokeItem(int index)
     {
         MenuItem item = Items[index];
 
-        if (item.IsSeparator || !item.IsEnabled)
+        if (!item.Invoke())
             return false;
 
-        item.RaiseClick();
         ItemInvoked?.Invoke(this, item);
 
         return true;
@@ -188,7 +224,7 @@ public partial class MenuList : DecoratedControl
         {
             index = (index + step + Items.Count) % Items.Count;
 
-            if (!Items[index].IsSeparator && Items[index].IsEnabled)
+            if (Items[index].IsEffectivelyEnabled)
             {
                 _hoveredIndex = index;
                 InvalidateVisual();
@@ -216,7 +252,7 @@ public partial class MenuList : DecoratedControl
     internal bool InvokeAccessKey(char key)
     {
         int index = Items.FindIndex(item =>
-            !item.IsSeparator && item.IsEnabled && Mnemonic.Key(item.Text) == key);
+            item.IsEffectivelyEnabled && Mnemonic.Key(item.Text) == key);
 
         return index >= 0 && InvokeItem(index);
     }
@@ -240,14 +276,24 @@ public partial class MenuList : DecoratedControl
     {
         float height = 0;
         float width = 0;
+        float gestureWidth = 0;
 
         foreach (MenuItem item in Items)
         {
             height += HeightOf(item);
 
-            if (!item.IsSeparator)
-                width = Math.Max(width, TextMeasurer.Current.MeasureText(Mnemonic.Strip(item.Text), EffectiveFont).Width);
+            if (item.IsSeparator) continue;
+
+            width = Math.Max(width, TextMeasurer.Current.MeasureText(Mnemonic.Strip(item.Text), EffectiveFont).Width);
+
+            // the shortcuts form a column of their own: the widest caption and the
+            // widest shortcut, not the widest pair, so the column lines up
+            if (item.GestureText is { Length: > 0 } gesture)
+                gestureWidth = Math.Max(gestureWidth, TextMeasurer.Current.MeasureText(gesture, EffectiveFont).Width);
         }
+
+        if (gestureWidth > 0)
+            width += GestureGap + gestureWidth;
 
         var content = new Size(
             width + IconWidth + 20 + Padding.Horizontal,

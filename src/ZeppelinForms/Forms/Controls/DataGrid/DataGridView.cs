@@ -7,6 +7,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Gestures;
+using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 using ZeppelinForms.Input.Pointer;
 
@@ -25,6 +26,15 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     /// <summary>A thumb shorter than this is hard to grab: a long table keeps it at
     /// this length, and the track's free part gets smaller instead.</summary>
     private const float MinThumbLength = 20f;
+
+    /// <summary>How far the content must reach past the body before it scrolls.</summary>
+    /// <remarks>
+    /// Star columns share the width exactly, and their sum in floats comes out a
+    /// hair over it — 803.60004 of 803.6. Compared exactly, that hair showed a
+    /// horizontal bar whose thumb filled the track and could not move: a bar that
+    /// did nothing, on every window whose width wasn't a round number.
+    /// </remarks>
+    private const float OverflowTolerance = 0.5f;
 
     private readonly List<float> _widths = [];
 
@@ -161,6 +171,38 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     [Styled(Category = "DataGrid")]
     public partial Color RowHoverColor { get; set; }
     private static Color RowHoverColorDefault => new(20, 0, 0, 0);
+
+    /// <summary>Stripe every other row, as <see cref="Table"/> does: the eye keeps
+    /// to its row across a wide table. Off by default; a style sheet turns it on with
+    /// <c>DataGridView { ShowAlternateRows: true; }</c>.</summary>
+    [Styled(Category = "DataGrid")]
+    public partial bool ShowAlternateRows { get; set; }
+
+    /// <summary>The stripe of every other row. Transparent — a shade of the text
+    /// color, which reads on a light theme and on a dark one alike.</summary>
+    [Styled(Category = "DataGrid")]
+    public partial Color AlternateRowColor { get; set; }
+    private static Color AlternateRowColorDefault => Colors.Transparent;
+
+    /// <summary>The look of a row by its record: a process that stopped answering in
+    /// red, a total in bold. Called for the visible rows as they are drawn; null — no
+    /// row looks different, as does a null returned for a record.</summary>
+    /// <remarks>
+    /// Over the stripes and under the hover, which still shows; the selection takes
+    /// the row's fill and, where the theme pairs one with it, its text color. Return
+    /// shared instances rather than new ones: the call comes on every frame.
+    /// </remarks>
+    public Func<object, DataGridViewRowStyle?>? RowStyle
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    }
 
     /// <summary>The header cell under the cursor, when a click on it sorts.</summary>
     [Styled(Category = "DataGrid")]
@@ -343,9 +385,14 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     private float TotalHeight => Items.Count * RowHeight;
 
-    private float MaxScrollX => Math.Max(0, TotalWidth - BodyBounds.Width);
+    private float MaxScrollX => Overflow(TotalWidth, BodyBounds.Width);
 
-    private float MaxScrollY => Math.Max(0, TotalHeight - BodyBounds.Height);
+    private float MaxScrollY => Overflow(TotalHeight, BodyBounds.Height);
+
+    /// <summary>How far the content reaches past the room it has; a hair of float
+    /// error is none — see <see cref="OverflowTolerance"/>.</summary>
+    private static float Overflow(float content, float room) =>
+        content - room > OverflowTolerance ? content - room : 0;
 
     /// <summary>Recompute the visible range, the bars and the column widths.</summary>
     /// <remarks>
@@ -372,17 +419,17 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             : Math.Min(Items.Count - 1, (int)((_scrollY + bodyHeightGuess) / RowHeight));
 
         // two passes: the bars take space from each other, and one isn't enough
-        _verticalBar = TotalHeight > content.Height - HeaderHeight;
+        _verticalBar = TotalHeight > content.Height - HeaderHeight + OverflowTolerance;
 
         float available = content.Width - (_verticalBar ? ScrollBarThickness : 0);
 
         ResolveWidths(available, _visibleFirst, _visibleLast);
 
-        _horizontalBar = TotalWidth > available;
+        _horizontalBar = TotalWidth > available + OverflowTolerance;
 
         if (_horizontalBar && !_verticalBar)
         {
-            _verticalBar = TotalHeight > content.Height - HeaderHeight - ScrollBarThickness;
+            _verticalBar = TotalHeight > content.Height - HeaderHeight - ScrollBarThickness + OverflowTolerance;
 
             if (_verticalBar)
                 ResolveWidths(content.Width - ScrollBarThickness, _visibleFirst, _visibleLast);
@@ -394,7 +441,11 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     }
 
     /// <summary>Distributes the widths: first fixed and Auto,
-    /// the remainder is shared among the star columns.</summary>
+    /// the remainder is shared among the star columns.
+    /// </summary>
+    /// <remarks>A star column gets at least <see cref="MinColumnWidth"/>: in a narrow
+    /// grid the columns used to shrink to slivers of clipped text, with nothing to
+    /// scroll. Now they stop at their minimum and the grid scrolls sideways.</remarks>
     private void ResolveWidths(float available, int firstRow, int lastRow)
     {
         _widths.Clear();
@@ -427,7 +478,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         {
             if (!Columns[i].Width.IsStar) continue;
 
-            _widths[i] = rest * (Columns[i].Width.Value / starWeight);
+            _widths[i] = Math.Max(MinColumnWidth, rest * (Columns[i].Width.Value / starWeight));
         }
     }
 
@@ -487,6 +538,16 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             new Size(body.Width, RowHeight));
     }
 
+    /// <summary>How far the rows are scrolled, and whether the horizontal bar is shown —
+    /// for the tests, which can't see the drawing.</summary>
+    internal (Point Offset, bool HorizontalBar) ScrollState
+    {
+        get
+        {
+            EnsureLayout();
+            return (new Point(_scrollX, _scrollY), _horizontalBar);
+        }
+    }
     /// <summary>The body in the form's coordinates: what is visible of the rows.</summary>
     internal Rectangle VisibleBodyBounds
     {
@@ -564,13 +625,22 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         // the form delivers the wheel to disabled elements too
         if (!IsEnabled) return;
 
-        float before = _scrollY;
+        float beforeX = _scrollX;
+        float beforeY = _scrollY;
 
-        ScrollTo(_scrollX, _scrollY - (e.Delta / 120f * WheelStep));
+        // a tilt of the wheel or a touchpad's sideways swipe; Shift turns the wheel
+        // sideways, as in browsers and Explorer. The grid scrolled only up and down,
+        // and a table wider than the window could be scrolled by the thumb alone
+        if (e.HorizontalDelta != 0)
+            ScrollTo(_scrollX - e.HorizontalDelta / 120f * WheelStep, _scrollY);
+        else if (Keyboard.IsShiftDown)
+            ScrollTo(_scrollX - e.Delta / 120f * WheelStep, _scrollY);
+        else
+            ScrollTo(_scrollX, _scrollY - (e.Delta / 120f * WheelStep));
 
         // the event is marked handled only if we actually moved: otherwise a grid
         // scrolled to the end would eat the wheel from its parent
-        if (_scrollY != before) e.Handled = true;
+        if (_scrollX != beforeX || _scrollY != beforeY) e.Handled = true;
     }
 
     // ===== input =====
@@ -933,8 +1003,25 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             float top = body.Y + (row * RowHeight) - _scrollY - _overscroll.Y;
             var rowRect = new Rectangle(new Point(body.X, top), new Size(TotalWidth, RowHeight));
 
-            if (row == SelectedIndex) g.FillRectangle(rowRect, SelectionColor);
-            else if (row == _hoveredRow) g.FillRectangle(rowRect, RowHoverColor);
+            // the row's own look: its record's style, over the stripe of every other row
+            DataGridViewRowStyle? style = RowStyle?.Invoke(RowItem(row));
+
+            if (row == SelectedIndex)
+            {
+                g.FillRectangle(rowRect, SelectionColor);
+            }
+            else
+            {
+                if (ShowAlternateRows && row % 2 == 1)
+                    g.FillRectangle(rowRect, AlternateRowColor.A > 0 ? AlternateRowColor : TextColor.WithA(12));
+
+                if (style is { Background.A: > 0 })
+                    g.FillRectangle(rowRect, style.Background);
+
+                if (row == _hoveredRow) g.FillRectangle(rowRect, RowHoverColor);
+            }
+
+            Font rowFont = style?.Font ?? font;
 
             // the keyboard's row: an outline inside the band, over the selection
             // fill, while focus is visible
@@ -959,9 +1046,12 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
                 // the selected row's text in its own color where the theme pairs one
                 // with the selection fill — high contrast does
-                Color text = row == SelectedIndex && SelectedTextColor.A > 0 ? SelectedTextColor : TextColor;
+                Color text =
+                    row == SelectedIndex && SelectedTextColor.A > 0 ? SelectedTextColor :
+                    style is { TextColor.A: > 0 } ? style.TextColor :
+                    TextColor;
 
-                g.DrawText(Columns[col].TextOf(RowItem(row)), cell, text, font,
+                g.DrawText(Columns[col].TextOf(RowItem(row)), cell, text, rowFont,
                     Columns[col].Align, VerticalContentAlignment.Center);
 
                 x += _widths[col];

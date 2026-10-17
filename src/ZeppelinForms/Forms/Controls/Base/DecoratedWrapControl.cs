@@ -22,7 +22,8 @@ public abstract class DecoratedWrapControl : WrapControl
 
     public sealed override void Draw(Graphics g)
     {
-        FillBackground(g, LocalBounds);
+        // on whole pixels, as the border over the child: see BorderPainter
+        FillBackground(g, g.AlignToPixels(LocalBounds));
 
         DrawContent(g);
     }
@@ -34,8 +35,9 @@ public abstract class DecoratedWrapControl : WrapControl
     /// is drawn and outside its clip.</summary>
     protected internal override void DrawOverlay(Graphics g)
     {
+        // inside the box, on whole pixels: see BorderPainter
         if (BorderWidth > 0 && CurrentBorderColor.A > 0)
-            g.DrawRoundRectangle(LocalBounds, CornerRadius, CurrentBorderColor, BorderWidth);
+            BorderPainter.Draw(g, g.AlignToPixels(LocalBounds), CornerRadius, CurrentBorderColor, BorderWidth);
 
         DrawDecoration(g);
     }

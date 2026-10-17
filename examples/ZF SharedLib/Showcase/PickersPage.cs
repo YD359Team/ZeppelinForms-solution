@@ -2,11 +2,12 @@ using System.Globalization;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
+using ZeppelinForms.Forms.Enums;
 using Calendar = ZeppelinForms.Forms.Controls.Calendar;
 
 namespace ZF_SharedLib.Showcase;
 
-/// <summary>Picking a date, a time and a color.</summary>
+/// <summary>Picking a date, a range of dates, a time and a color.</summary>
 internal static class PickersPage
 {
     public static UIElement Create()
@@ -14,6 +15,14 @@ internal static class PickersPage
         Label day = Demo.Note("Click a day");
         var calendar = new Calendar();
         calendar.DateSelected += (_, date) => day.Text = date.ToString("D", CultureInfo.CurrentCulture);
+
+        Label stay = Demo.Note("Click the first day, then the last");
+        var range = new Calendar { SelectionMode = CalendarSelectionMode.Range };
+        range.RangeSelected += (_, _) =>
+        {
+            DateTime from = range.RangeStart!.Value, to = range.RangeEnd!.Value;
+            stay.Text = $"{from:d} – {to:d}, {(to - from).Days + 1} day(s)";
+        };
 
         Label when = Demo.Note("Pick a date and a time");
         var date = new DateTimePicker();
@@ -42,7 +51,8 @@ internal static class PickersPage
         ShowColor();
 
         return Demo.Page("Date and color", "Calendars, date and time pickers, and a color picker.",
-            Demo.Section("Calendar", Demo.Column(calendar, day)),
+            Demo.Section("Calendar", Demo.Row(Demo.Column(calendar, day), Demo.Column(range, stay)),
+                "SelectionMode = Range: two clicks pick the ends and the days between are marked; Esc drops a range half picked"),
             Demo.Section("Date and time", pickers, "Their formats follow the culture: switch it in Settings"),
             Demo.Section("Color", Demo.Row(color, swatch), "AllowAlpha adds the alpha slider and #RRGGBBAA"));
     }

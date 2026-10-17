@@ -225,12 +225,25 @@ internal static class SkiaFontCache
         if (lines.TryGet(key, out CachedLine? cached))
             return cached!;
 
-        CachedLine line = BuildLine(text, font, rightToLeft);
+        CachedLine line = BuildLine(WithoutTabs(text), font, rightToLeft);
 
         lines.Add(key, line);
 
         return line;
     }
+
+    /// <summary>A tab is laid out and drawn as a space.</summary>
+    /// <remarks>
+    /// Fonts have no glyph for U+0009: a line with a tab left the fast path, the
+    /// fallback search found nothing better, and the tab was drawn as the missing
+    /// glyph's box — in a text field, with whitespace marks off. The replacement keeps
+    /// the length, so every index of the caller's text is the same index here, and the
+    /// cache stays keyed by the text as given. The tab is one space wide; in a
+    /// right-to-left line it no longer separates the bidirectional segments, which
+    /// matters only for tab-aligned columns of mixed-direction text.
+    /// </remarks>
+    private static string WithoutTabs(string text) =>
+        text.Contains('\t') ? text.Replace('\t', ' ') : text;
 
     /// <summary>Whether the line needs the bidirectional algorithm or the shaper. Without
     /// either it is parsed as it always was — a glyph per character, left to right.</summary>

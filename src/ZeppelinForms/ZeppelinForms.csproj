@@ -23,10 +23,17 @@
 		<IsAotCompatible>true</IsAotCompatible>
 
 		<!-- One step stricter than the rest of the solution: the recommended set of
-		     the .NET analyzers. The rules it departs from are in .editorconfig here,
-		     each with its reason -->
+		     the .NET analyzers. The rules it departs from are in
+		     ZeppelinForms.globalconfig here, each with its reason -->
 		<AnalysisLevel>latest-recommended</AnalysisLevel>
 	</PropertyGroup>
+
+	<!-- The departures from the recommended set. Given by name, not discovered by
+	     folder: a nested .editorconfig was lost on a mapped drive, where its path
+	     and the sources' paths were spelled differently -->
+	<ItemGroup>
+		<GlobalAnalyzerConfigFiles Include="ZeppelinForms.globalconfig" />
+	</ItemGroup>
 
 	<!-- The public API is declared in PublicAPI.Shipped.txt (what 0.14.1 had) and
 	     PublicAPI.Unshipped.txt (what this release adds): a public member added, changed

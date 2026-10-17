@@ -30,6 +30,13 @@ public class TreeViewPeer : UIElementPeer, IAccessibilityChildFactory
 
     protected override AccessibilityRole DefaultRole => AccessibilityRole.Tree;
 
+    /// <summary>A tree that selects several nodes says so: a screen reader then
+    /// announces "selected" and "not selected" on each node, not just on the one.</summary>
+    protected override AccessibilityStates ControlStates =>
+        _tree.SelectionMode == Forms.Enums.SelectionMode.Single
+            ? AccessibilityStates.None
+            : AccessibilityStates.MultiSelectable;
+
     public override IReadOnlyList<AccessibilityPeer> Children =>
         [.. _tree.Nodes.Select(PeerFor)];
 
@@ -72,11 +79,15 @@ public class TreeNodePeer : AccessibilityPeer
             if (_node.HasChildren)
                 states |= _node.IsExpanded ? AccessibilityStates.Expanded : AccessibilityStates.Collapsed;
 
-            if (ReferenceEquals(_tree.SelectedNode, _node))
-            {
+            if (_tree.IsSelected(_node))
                 states |= AccessibilityStates.Selected;
-                if (_tree.IsFocused) states |= AccessibilityStates.Focused;
-            }
+
+            // the keyboard is on the lead, in a multiple selection too
+            if (ReferenceEquals(_tree.SelectedNode, _node) && _tree.IsFocused)
+                states |= AccessibilityStates.Focused;
+
+            if (_tree.CheckBoxes && _node.IsChecked)
+                states |= AccessibilityStates.Checked;
 
             if (!_tree.IsEffectivelyEnabled) states |= AccessibilityStates.Disabled;
 
@@ -86,6 +97,7 @@ public class TreeNodePeer : AccessibilityPeer
 
     public override AccessibilityActions Actions =>
         AccessibilityActions.Select | AccessibilityActions.ScrollIntoView |
+        (_tree.CheckBoxes ? AccessibilityActions.Toggle : AccessibilityActions.None) |
         (_node.HasChildren
             ? _node.IsExpanded ? AccessibilityActions.Collapse : AccessibilityActions.Expand
             : AccessibilityActions.None);
@@ -143,6 +155,16 @@ public class TreeNodePeer : AccessibilityPeer
         if (!_tree.IsEffectivelyEnabled) return false;
 
         _tree.SelectedNode = _node;
+        return true;
+    }
+
+    /// <summary>The node's check box, while the tree shows them.</summary>
+    public override bool Toggle()
+    {
+        if (!_tree.CheckBoxes || !_tree.IsEffectivelyEnabled) return false;
+
+        _node.IsChecked = !_node.IsChecked;
+        RaisePropertyChanged(AccessibilityProperty.States);
         return true;
     }
 

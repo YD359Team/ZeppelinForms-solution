@@ -644,6 +644,41 @@ export function setFavicon(dataUrl) {
     link.href = dataUrl;
 }
 
+// the page's theme-color as the page had it before the application touched it:
+// undefined — not read yet, null — the page had none
+let pageThemeColor;
+
+/// The window's "title bar" in a browser: the page's color scheme — native scroll
+/// bars, form controls, the canvas's surroundings — and its theme color, which a
+/// phone's address bar and an installed app's title bar take. An empty background
+/// gives the theme color back to what the page had.
+export function setTitleBarAppearance(dark, background) {
+    document.documentElement.style.colorScheme = dark ? "dark" : "light";
+
+    let meta = document.querySelector("meta[name='theme-color']");
+
+    if (pageThemeColor === undefined) {
+        pageThemeColor = meta ? meta.content : null;
+    }
+
+    if (background) {
+        if (!meta) {
+            meta = document.createElement("meta");
+            meta.name = "theme-color";
+            document.head.appendChild(meta);
+        }
+
+        meta.content = background;
+        return;
+    }
+
+    if (pageThemeColor === null) {
+        meta?.remove();
+    } else if (meta) {
+        meta.content = pageThemeColor;
+    }
+}
+
 export function writeClipboard(text) {
     // a failure is ignored: writing without a user gesture is forbidden,
     // and crashing because permission was denied is wrong

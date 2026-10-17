@@ -13,7 +13,10 @@ internal sealed class InputBoxForm : Form
     public InputBoxForm(string prompt, string title, string initialValue, char? passwordChar)
     {
         Title = title;
+        // the width is fixed, the height follows the prompt and the field: on Windows,
+        // where Size used to include the title bar, the buttons were cut at the bottom
         Size = new Size(380, 170);
+        SizeToContent = SizeToContent.Height;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         CanMaximize = false;
         CanMinimize = false;

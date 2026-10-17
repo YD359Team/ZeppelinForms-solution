@@ -89,7 +89,9 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
             return Model.Failed(TypeNotElement, location, owner.Name);
 
         return new Model(
-            Namespace: owner.ContainingNamespace.ToDisplayString(),
+            // empty for the global namespace: its display name is "<global namespace>",
+            // which is neither a namespace declaration nor a valid hint name
+            Namespace: owner.ContainingNamespace.IsGlobalNamespace ? string.Empty : owner.ContainingNamespace.ToDisplayString(),
             OwnerName: owner.Name,
             PropertyName: property.Name,
             ValueType: property.Type.ToDisplayString(TypeFormat),
@@ -169,7 +171,9 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
             // on a repeated AddSource — the whole generator failed, and none of the
             // assembly's styled properties compiled
             context.AddSource(
-                $"{group.Key.Namespace}.{group.Key.OwnerName}.Styled.g.cs",
+                group.Key.Namespace.Length == 0
+                    ? $"{group.Key.OwnerName}.Styled.g.cs"
+                    : $"{group.Key.Namespace}.{group.Key.OwnerName}.Styled.g.cs",
                 SourceText.From(source, Encoding.UTF8));
         }
     }
@@ -183,8 +187,14 @@ public sealed class StyledPropertyGenerator : IIncrementalGenerator
         text.AppendLine();
         text.AppendLine("using ZeppelinForms.Forms.Styling;");
         text.AppendLine();
-        text.AppendLine($"namespace {ns};");
-        text.AppendLine();
+        // a control in the global namespace — a small app's top-level program —
+        // gets no declaration: "<global namespace>" used to fail the whole generator,
+        // and every styled property of the assembly with it
+        if (ns.Length > 0)
+        {
+            text.AppendLine($"namespace {ns};");
+            text.AppendLine();
+        }
         text.AppendLine($"partial class {owner}");
         text.AppendLine("{");
 

@@ -482,9 +482,11 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
 
         double timestampMs = frameTimeNanos / 1_000_000.0;
 
-        // a copy: a tick may open or close a window
+        // a copy: a tick may open or close a window. Each window on its own: the
+        // next frame is ordered inside ShouldTick, before the tick, so a failed
+        // tick doesn't stop the frames
         foreach (AndroidWindow window in _windows.ToArray())
-            window.HandleFrame(timestampMs);
+            App.RunGuarded(() => window.HandleFrame(timestampMs));
 
         if (_paintPending)
             _view?.PostInvalidateOnAnimation();
@@ -497,8 +499,9 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
     /// await continuations ran inside the caller's own code — Task.Yield didn't yield,
     /// and the continuation after ShowDialogAsync ran inside OnWindowClosed, before
     /// the form had finished closing.
+    /// Each action is one step of the UI loop, guarded on its own.
     /// </remarks>
-    internal void Post(Action action) => _uiHandler.Post(action);
+    internal void Post(Action action) => _uiHandler.Post(() => App.RunGuarded(action));
 
     internal AndroidWindow? InputTarget()
     {

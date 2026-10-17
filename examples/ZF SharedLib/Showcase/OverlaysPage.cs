@@ -55,17 +55,20 @@ internal static class OverlaysPage
 
         open.Click += (_, _) =>
         {
-            var content = new StackPanel
+            var panel = new StackPanel
             {
                 Orientation = Orientation.Vertical,
                 Spacing = 8,
                 Padding = new(12),
             };
 
+            // the surface: a plain panel shown bare has no background of its own
+            var content = new FlyoutPresenter(panel);
+
             var close = new Button { Text = "Close" };
             close.Click += (_, _) => form.CloseFlyout(content);
 
-            content.Children.AddRange([
+            panel.Children.AddRange([
                 new Label { Text = "A flyout", TextStyle = TextStyle.BodyStrong },
                 new Label { Text = "Anything can be inside:\nhere a slider and a button." },
                 new TrackBar { Value = 40, Size = new(180, float.NaN) },

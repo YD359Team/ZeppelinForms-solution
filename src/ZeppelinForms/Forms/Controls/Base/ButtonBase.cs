@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Windows.Input;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
@@ -62,6 +63,20 @@ public abstract partial class ButtonBase : InteractiveControl
     public partial Color DisabledTextColor { get; set; }
     private static Color DisabledTextColorDefault => new(255, 160, 160, 160);
 
+    /// <summary>The text and icon color while the button is held down; transparent —
+    /// the text color.</summary>
+    /// <remarks>
+    /// Fluent answers a press mostly with the text: the fill of a pressed neutral
+    /// button is a shade off the hovered one, too little to see, and the text going
+    /// to the secondary color is what says the button is held. Like the state
+    /// backgrounds, it counts only while it was set at least as firmly as the text
+    /// color and the background it would stand on: the theme's grey doesn't replace
+    /// a color a style sheet or code chose.
+    /// </remarks>
+    [Styled(Category = "States")]
+    public partial Color PressedTextColor { get; set; }
+    private static Color PressedTextColorDefault => Colors.Transparent;
+
     // FocusRingColor and ShowFocusRing moved to InteractiveControl: check boxes,
     // radio buttons and switches need the ring too. The names stay the same, so
     // code that sets them on a button doesn't change
@@ -91,6 +106,11 @@ public abstract partial class ButtonBase : InteractiveControl
         SetControlDefault(PaddingProperty, new(14, 6));
         SetControlDefault(CornerRadiusProperty, new CornerRadius(4f));
         SetControlDefault(BorderWidthProperty, 1f);
+        // events, not the OnAttached/OnDetached overrides: a derived button that
+        // overrides them and forgets the base call would keep the command's
+        // subscription — and through it the whole form — alive
+        Attached += (_, _) => HookCommand();
+        Detached += (_, _) => UnhookCommand();
     }
 
     /// <summary>The backdrop color for the current state. The order of checks
@@ -157,7 +177,24 @@ public abstract partial class ButtonBase : InteractiveControl
     /// two pixels apart.</summary>
     protected override Color CurrentBorderColor => BorderColor;
 
-    protected virtual Color CurrentTextColor => IsEnabled ? TextColor : DisabledTextColor;
+    protected virtual Color CurrentTextColor =>
+        !IsEnabled ? DisabledTextColor
+        : UsesPressedTextColor ? PressedTextColor
+        : TextColor;
+
+    /// <summary>Held down, with a pressed text color set as firmly as the colors it
+    /// replaces — see <see cref="PressedTextColor"/>.</summary>
+    private protected bool UsesPressedTextColor
+    {
+        get
+        {
+            if (!IsPressed || PressedTextColor.A == 0) return false;
+
+            ValueSource own = GetValueSource(PressedTextColorProperty);
+
+            return own >= GetValueSource(TextColorProperty) && own >= GetValueSource(BackgroundColorProperty);
+        }
+    }
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
     {
@@ -197,7 +234,8 @@ public abstract partial class ButtonBase : InteractiveControl
         if (ElevationBorderColor.A == 0 || BorderWidth <= 0f) return;
         if (IsPressed || !IsEnabled) return;
 
-        Rectangle bounds = LocalBounds;
+        // the same box as the border's, so the edge lies exactly over it
+        Rectangle bounds = g.AlignToPixels(LocalBounds);
 
         // the band covers the lower corners, and at least twice the stroke
         // on a button with square ones — otherwise the edge is lost in antialiasing
@@ -210,7 +248,7 @@ public abstract partial class ButtonBase : InteractiveControl
             new Point(bounds.X, bounds.Bottom - band),
             new Size(bounds.Width, band)));
 
-        g.DrawRoundRectangle(bounds, CornerRadius, ElevationBorderColor, BorderWidth);
+        BorderPainter.Draw(g, bounds, CornerRadius, ElevationBorderColor, BorderWidth);
 
         g.Restore();
     }
@@ -220,9 +258,114 @@ public abstract partial class ButtonBase : InteractiveControl
         if (!IsEnabled) return;
 
         OnActivated();
+        ExecuteCommand();
         e.Handled = true;
     }
 
     /// <summary>The control was pressed — click, Space or Enter.</summary>
     protected virtual void OnActivated() { }
+
+    // ===== command =====
+
+    /// <summary>Whether the command's subscription is in place: only while the
+    /// button is in a form, so a long-lived command doesn't keep the form alive.</summary>
+    private bool _commandHooked;
+
+    /// <summary>Runs when the button is pressed, after <see cref="UIElement.Click"/>.
+    /// While it can't run, the button is disabled.</summary>
+    /// <remarks>
+    /// The command enables and disables the button as a binding would: an
+    /// <see cref="UIElement.IsEnabled"/> set from code takes over from it. A
+    /// <see cref="Input.Commands.ToggleCommand"/> on a <see cref="ToggleButton"/>
+    /// also gives it its checked state.
+    /// </remarks>
+    public ICommand? Command
+    {
+        get;
+        set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            UnhookCommand();
+
+            ICommand? old = field;
+            field = value;
+
+            if (FindOwner() is not null) HookCommand();
+
+            // without a command the button goes back to what it would be without one
+            if (value is null && old is not null && !IsLocal(IsEnabledProperty))
+                ClearValue(IsEnabledProperty);
+
+            UpdateCanExecute();
+            OnCommandChanged();
+        }
+    }
+
+    public object? CommandParameter
+    {
+        get;
+        set
+        {
+            if (Equals(field, value)) return;
+
+            field = value;
+            UpdateCanExecute();
+        }
+    }
+
+    /// <summary>Run the command, if it can run. The press comes here.</summary>
+    private protected void ExecuteCommand()
+    {
+        if (Command is not { } command || !command.CanExecute(CommandParameter)) return;
+
+        command.Execute(CommandParameter);
+    }
+
+    /// <summary>The command or its subscription changed — for a derived button that
+    /// takes more from it than whether it can run.</summary>
+    private protected virtual void OnCommandChanged() { }
+
+    /// <summary>The button entered a form, or got a command there.</summary>
+    private protected virtual void OnCommandHooked(ICommand command) { }
+
+    /// <summary>The button left its form, or lost its command.</summary>
+    private protected virtual void OnCommandUnhooked(ICommand command) { }
+
+    private void HookCommand()
+    {
+        if (_commandHooked || Command is not { } command) return;
+
+        command.CanExecuteChanged += OnCanExecuteChanged;
+        _commandHooked = true;
+
+        OnCommandHooked(command);
+
+        // whatever changed while the button was out of every form
+        UpdateCanExecute();
+    }
+
+    private void UnhookCommand()
+    {
+        if (!_commandHooked || Command is not { } command) return;
+
+        command.CanExecuteChanged -= OnCanExecuteChanged;
+        _commandHooked = false;
+
+        OnCommandUnhooked(command);
+    }
+
+    private void OnCanExecuteChanged(object? sender, EventArgs e) => UpdateCanExecute();
+
+    /// <summary>Enable or disable the button as the command says — unless code set
+    /// <see cref="UIElement.IsEnabled"/> itself, which wins as it wins over a binding.</summary>
+    private void UpdateCanExecute()
+    {
+        if (Command is not { } command || IsLocal(IsEnabledProperty)) return;
+
+        bool can = command.CanExecute(CommandParameter);
+
+        if (IsEnabled != can)
+            SetBoundValue(IsEnabledProperty, can);
+    }
 }

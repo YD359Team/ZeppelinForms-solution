@@ -1,19 +1,11 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Forms;
 
-/// <summary>An element that shows the text an input method is composing, in place.</summary>
-internal interface ITextCompositionTarget
-{
-    /// <summary>Whether it takes composition now: a password field doesn't — input
-    /// methods are off for them — and its characters come committed.</summary>
-    bool AcceptsComposition { get; }
-
-    /// <summary>The text being composed, and where in it the input method's cursor
-    /// stands. Empty: there is nothing being composed any more.</summary>
-    void SetComposition(string text, int cursor);
-}
+// ITextCompositionTarget moved to Forms/Interfaces and became public in 0.16:
+// a text field of another package needs it as much as TextBox does
 
 /// <summary>Input methods: the text they compose, the text they commit, and where the
 /// focused field's caret is for their windows.</summary>
@@ -53,7 +45,8 @@ public partial class Form
     }
 
     /// <summary>A text field's caret, in the window's coordinates, for the input method's
-    /// windows. Only the focused element's counts.</summary>
+    /// windows. Only the focused element's counts. Elements report through
+    /// <see cref="UIElement.ReportTextInputArea(Rectangle)"/>, in their own coordinates.</summary>
     internal void ReportTextInputArea(UIElement element, Rectangle caret)
     {
         if (ReferenceEquals(element, _focusDispatcher.FocusedElement))

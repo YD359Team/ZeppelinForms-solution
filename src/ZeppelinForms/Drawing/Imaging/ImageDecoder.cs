@@ -1,4 +1,6 @@
-﻿namespace ZeppelinForms.Drawing.Imaging;
+﻿using ZeppelinForms.Core;
+
+namespace ZeppelinForms.Drawing.Imaging;
 
 public abstract class ImageDecoder
 {
@@ -9,7 +11,7 @@ public abstract class ImageDecoder
     private sealed class NotRegisteredImageDecoder : ImageDecoder
     {
         public override Image Decode(Stream stream) =>
-            throw new InvalidOperationException(
+            throw new ZfSetupException(
                 "No image decoder is registered. Call " +
                 "SkiaImageDecoder.Register() at application startup.");
     }

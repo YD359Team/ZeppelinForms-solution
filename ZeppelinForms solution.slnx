@@ -4,6 +4,7 @@
     <File Path=".github/workflows/ci.yml" />
     <File Path=".github/workflows/release.yml" />
     <File Path="bench.yml" />
+    <File Path="showcase.yml" />
   </Folder>
   <Folder Name="/assets/">
     <File Path="assets/Example-android-emulator-0.12.0.jpg" />
@@ -14,6 +15,7 @@
     <File Path="assets/Logo-0.13.0.jpg" />
     <File Path="assets/Logo-0.14.0.jpg" />
     <File Path="assets/Logo-0.15.0.jpg" />
+    <File Path="assets/Logo-0.16.0.jpg" />
     <File Path="assets/Logo-0.9.0.jpg" />
     <File Path="assets/ZF_13_medium.jpg" />
   </Folder>
@@ -40,6 +42,7 @@
     <Project Path="src/ZeppelinForms/ZeppelinForms.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ZeppelinForms.ExternalControlTests/ZeppelinForms.ExternalControlTests.csproj" />
     <Project Path="tests/ZeppelinForms.UnitTests/ZeppelinForms.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tools/">
@@ -57,5 +60,6 @@
     <File Path="LICENSE.txt" />
     <File Path="nuget.config" />
     <File Path="README.md" />
+    <File Path="ZeppelinForms.globalconfig" />
   </Folder>
 </Solution>

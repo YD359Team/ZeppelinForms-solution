@@ -84,6 +84,7 @@ public partial class ExampleMainForm : Form
         view.Items.Add(new SplitViewItem("Icons and shapes", Icons.Shapes, GraphicsPage.Create));
         view.Items.Add(new SplitViewItem("Charts", Icons.Chart, ChartsPage.Create));
         view.Items.Add(new SplitViewItem("Map", Icons.Map, MapPage.Create));
+        view.Items.Add(new SplitViewItem("3D scene", Icons.Axes, ScenePage.Create));
 
         view.Items.Add(SplitViewItem.Header("Look and feel"));
         view.Items.Add(new SplitViewItem("Styles", Icons.Brush, StylesPage.Create));

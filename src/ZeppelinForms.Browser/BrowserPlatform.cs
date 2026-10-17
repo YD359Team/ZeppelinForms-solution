@@ -145,6 +145,9 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
     /// <summary>The bottom form takes the whole canvas; everything above it is dialogs.</summary>
     private BrowserWindow? Root => _windows.Count > 0 ? _windows[0] : null;
 
+    /// <summary>Whether the window is the bottom one: the page is its, not a dialog's.</summary>
+    internal bool IsRoot(BrowserWindow window) => ReferenceEquals(Root, window);
+
     public IPlatformWindow CreateWindow(Form form)
     {
         var window = new BrowserWindow(this, form);
@@ -326,15 +329,17 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
 
     internal void HandleFrame(double timestampMs)
     {
-        // a copy: a tick may open or close a window
+        // a copy: a tick may open or close a window. Each window on its own:
+        // the next frame is already ordered inside ShouldTick, before the tick,
+        // so a failed tick doesn't stop the frames
         foreach (BrowserWindow window in _windows.ToArray())
-            window.HandleFrame(timestampMs);
+            App.RunGuarded(() => window.HandleFrame(timestampMs));
 
         // an animation tick marks the canvas stale — it is checked after it
         if (!_paintPending) return;
 
         _paintPending = false;
-        Paint();
+        App.RunGuarded(Paint);
     }
 
     internal void Enqueue(Action action)
@@ -349,8 +354,10 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
         // this draining the queue might never end
         int pending = _invokeQueue.Count;
 
+        // each action on its own: one that threw used to leave the rest of the queue
+        // until the next microtask, which nothing would schedule
         for (int i = 0; i < pending; i++)
-            _invokeQueue.Dequeue()();
+            App.RunGuarded(_invokeQueue.Dequeue());
     }
 
     // ==== input ====

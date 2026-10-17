@@ -36,9 +36,11 @@ public class ControlRefinementTests
         public override void DrawPolyline(ReadOnlySpan<Point> points, Color color, float width) => Polylines.Add(color);
     }
 
-    private static Form CreateForm(UIElement content)
+    private static Form CreateForm(UIElement content) => CreateForm(content, new Size(400, 300));
+
+    private static Form CreateForm(UIElement content, Size size)
     {
-        var form = new Form { Size = new Size(400, 300), Content = content };
+        var form = new Form { Size = size, Content = content };
 
         new HeadlessPlatform().CreateWindow(form);
         form.UpdateLayout();
@@ -298,7 +300,11 @@ public class ControlRefinementTests
     public void TheEditorHasAnAlphaSliderWhenAllowed()
     {
         var picker = new ColorPicker { Value = new Color(255, 10, 20, 30) };
-        Form form = CreateForm(picker);
+
+        // room for the editor below the picker: in a 300 px form it fits on neither
+        // side, covers the picker as a flyout without room does since 0.16, and the
+        // second click, meant to close it, lands on the editor instead
+        Form form = CreateForm(picker, new Size(400, 600));
 
         Assert.Equal(3, OpenEditor(form, picker).Count);
 

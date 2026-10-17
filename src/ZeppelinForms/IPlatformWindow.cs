@@ -1,5 +1,6 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms;
 
@@ -26,6 +27,9 @@ public interface IPlatformWindow
     void CaptureMouse();
     void ReleaseMouseCapture();
     void SetCursor(CursorKind cursor);
+    /// <summary>A cursor drawn from a picture. A platform without cursors of its own
+    /// shows the picture's fallback — the default.</summary>
+    void SetCursor(CursorImage cursor) => SetCursor(cursor.Fallback);
 
     /// <summary>Register the window as a system drag-and-drop target.
     /// Without this AllowDrop on elements won't work.</summary>
@@ -38,12 +42,19 @@ public interface IPlatformWindow
     /// <summary>Make the window active.</summary>
     void Activate();
 
+    /// <summary>The title bar dark or light, and its own colors where the platform has
+    /// them. Called by the form when it is shown and whenever its title bar or the theme
+    /// changes. A platform without a title bar does nothing — the default.</summary>
+    /// <param name="background">null — the system's color.</param>
+    /// <param name="foreground">The caption's text on <paramref name="background"/>; null with it.</param>
+    void SetTitleBarAppearance(bool isDark, Color? background, Color? foreground) { }
+
     IFrameDriver Frames { get; }
 }
 
 /// <summary>The window's appearance as a desktop object. Not implemented in the
 /// browser and on Android — those concepts don't exist there.</summary>
-// TODO: SetIcon, SetResizable, SetTopMost, CenterOnScreen —
+// TODO: SetResizable, SetTopMost, CenterOnScreen —
 // when implementations appear in Win32Window and X11Window
 public interface IDesktopWindow
 {
@@ -51,9 +62,11 @@ public interface IDesktopWindow
     void SetBounds(Rectangle bounds);
     void SetOpacity(float opacity);
     void SetWindowState(WindowState state);
+    /// <summary>The window's icon changed while it is open. Null — the application's.
+    /// A platform without window icons does nothing — the default.</summary>
+    void SetIcon(Drawing.Imaging.Icon? icon) { }
 
     bool SupportsTransparency { get; }
-
 
     /// <summary>Rebuild the frame from the form: FormBorderStyle, ControlBox,
     /// ShowInTaskbar, CanMinimize, CanMaximize, CanResize changed while the window

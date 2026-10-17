@@ -1,5 +1,6 @@
 ﻿using Android.Content;
 using Android.Util;
+using ZeppelinForms.Core;
 using ZeppelinForms.Drawing.Primitives;
 using Size = ZeppelinForms.Drawing.Primitives.Size;
 
@@ -12,7 +13,7 @@ internal sealed class AndroidDisplayProvider(Context context) : IDisplayProvider
     public IReadOnlyList<DisplayInfo> GetDisplays()
     {
         DisplayMetrics metrics = context.Resources?.DisplayMetrics
-            ?? throw new InvalidOperationException("DisplayMetrics are unavailable.");
+            ?? throw new ZfPlatformException("DisplayMetrics are unavailable.");
 
         var bounds = new Rectangle(
             Point.Empty,

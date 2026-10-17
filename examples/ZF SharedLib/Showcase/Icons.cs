@@ -27,6 +27,7 @@ internal static class Icons
     public static IconSource Shapes { get; } = Line("M7 3 A4 4 0 1 0 7 11 A4 4 0 1 0 7 3 Z M14 13 H21 V20 H14 Z M3 21 L7 14 L11 21 Z");
     public static IconSource Chart { get; } = Line("M3 21 H21 M6 21 V12 M11 21 V5 M16 21 V14 M20 21 V9");
     public static IconSource Map { get; } = Line("M3 6 L9 3 L15 6 L21 3 V18 L15 21 L9 18 L3 21 Z M9 3 V18 M15 6 V21");
+    public static IconSource Axes { get; } = Line("M5 19 V4 M5 19 H20 M5 19 L14 10 M3 6 L5 4 L7 6 M18 17 L20 19 L18 21 M11 10 H14 V13");
     public static IconSource Brush { get; } = Line("M14 4 L20 10 L11 19 L5 13 Z M5 13 L3 21 L11 19");
     public static IconSource Sparkle { get; } = Line("M12 3 L13.8 10.2 L21 12 L13.8 13.8 L12 21 L10.2 13.8 L3 12 L10.2 10.2 Z");
     public static IconSource Motion { get; } = Line("M3 12 H11 M6 7 H13 M8 17 H14 M17 8 A4 4 0 1 1 17 16 A4 4 0 1 1 17 8 Z");

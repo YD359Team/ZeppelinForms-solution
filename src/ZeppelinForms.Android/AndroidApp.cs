@@ -1,5 +1,6 @@
 ﻿using Android.App;
 using Android.Content.Res;
+using ZeppelinForms.Core;
 using ZeppelinForms.Forms;
 
 // ZeppelinForms.Assets and Activity.Assets (AssetManager) are different things
@@ -38,7 +39,7 @@ public static class AndroidApp
         ZfTheme? theme = null)
     {
         string files = activity.FilesDir?.AbsolutePath
-            ?? throw new InvalidOperationException("FilesDir is unavailable.");
+            ?? throw new ZfPlatformException("FilesDir is unavailable.");
 
         ZfAssets.Root = Path.Combine(files, "Assets");
 
@@ -58,7 +59,7 @@ public static class AndroidApp
     private static void Unpack(Activity activity, IEnumerable<string> names)
     {
         AssetManager manager = activity.Assets
-            ?? throw new InvalidOperationException("AssetManager is unavailable.");
+            ?? throw new ZfPlatformException("AssetManager is unavailable.");
 
         Directory.CreateDirectory(ZfAssets.Root);
 

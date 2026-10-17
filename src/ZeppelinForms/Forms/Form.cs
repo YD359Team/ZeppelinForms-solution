@@ -155,7 +155,25 @@ public partial class Form : IDisposable
 
     public string Name { get; set; } = string.Empty;
     public string? Title { get; set; }
-    public Icon? Icon { get; set; }
+    /// <summary>The window's icon: the title bar's, the taskbar button's. Null — the
+    /// application's, <see cref="App.Icon"/>. Changing it shows at once.</summary>
+    public Icon? Icon
+    {
+        get;
+        set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            field = value;
+
+            // an icon set after the window opened went nowhere: the platform read it
+            // only when making the window
+            DesktopWindow?.SetIcon(EffectiveIcon);
+        }
+    }
+
+    /// <summary>The icon the window shows: its own, or the application's.</summary>
+    internal Icon? EffectiveIcon => Icon ?? App.DefaultIcon;
     public Point Position { get; set; }
 
     /// <summary>The size of the window, frame included. <see cref="DefaultSize"/>
@@ -306,6 +324,7 @@ public partial class Form : IDisposable
     private UIElement? _dropTarget;
     private UIElement? _hoveredElement;
     private CursorKind _lastCursor = CursorKind.Arrow;
+    private CursorImage? _lastCursorImage;
     private readonly FocusDispatcher _focusDispatcher = new();
 
     /// <summary>The mouse identifier. One rather than zero — W3C Pointer Events
@@ -348,7 +367,11 @@ public partial class Form : IDisposable
         IsInsideAudit(point);
 
     /// <summary>The width of the inspector's property grid at the right edge.</summary>
-    private const float InspectorWidth = 320f;
+    private const float InspectorWidth = 340f;
+
+    /// <summary>The room between the inspector's cards and the window's edges: they float
+    /// over the form as cards, rather than being bolted to its side.</summary>
+    private const float InspectorMargin = 8f;
 
     private bool _dialogAccepted;
     private object? _dialogValue;
@@ -426,6 +449,11 @@ public partial class Form : IDisposable
             if (picked is not null)
             {
                 _inspectorGrid.SelectedObject = picked;
+
+                // the picked element is outlined on the form, as one chosen from the
+                // audit list is: the grid alone didn't say which of two alike it was
+                InspectedElement = picked;
+
                 Invalidate();
                 return;
             }
@@ -567,7 +595,12 @@ public partial class Form : IDisposable
             // of the interaction anymore, and hover and the cursor don't concern it
             if (contact is { IsCompatCancelled: true }) return;
 
-            var moveArgs = new MouseMoveEventArgs(e.Location);
+            // the held buttons come from the contact, which tracks every press and
+            // release of this pointer; no contact means nothing is held — hover
+            KeyModifiers modifiers = e.Modifiers;
+            PointerButtons buttons = contact?.Buttons ?? PointerButtons.None;
+
+            var moveArgs = new MouseMoveEventArgs(e.Location) { Modifiers = modifiers, Buttons = buttons };
 
             // the preview goes from the root to the target, before the target itself
             // gets the move. It works with a button held down too — that is exactly
@@ -577,7 +610,7 @@ public partial class Form : IDisposable
 
             if (contact?.Target is UIElement held)
             {
-                held.RaiseMouseMove(e.Location);
+                held.RaiseMouseMove(e.Location, modifiers, buttons);
                 return;
             }
 
@@ -591,31 +624,27 @@ public partial class Form : IDisposable
             {
                 // the arguments carry "from" and "to", so that a handler can tell
                 // moving into a descendant from leaving altogether
-                _hoveredElement?.RaiseMouseExit(e.Location, hit);
-                hit?.RaiseMouseEnter(e.Location, _hoveredElement);
+                _hoveredElement?.RaiseMouseExit(e.Location, hit, modifiers, buttons);
+                hit?.RaiseMouseEnter(e.Location, _hoveredElement, modifiers, buttons);
 
                 _hoveredElement = hit;
 
                 ScheduleToolTip(hit);
             }
 
-            hit?.RaiseMouseMove(e.Location);
+            hit?.RaiseMouseMove(e.Location, modifiers, buttons);
 
-            CursorKind cursor = hit?.EffectiveCursor ?? CursorKind.Arrow;
+            (CursorKind cursor, CursorImage? cursorImage) = hit?.EffectiveCursor ?? (CursorKind.Arrow, null);
 
-            if (cursor != _lastCursor)
+            if (cursor != _lastCursor || !ReferenceEquals(cursorImage, _lastCursorImage))
             {
                 _lastCursor = cursor;
-                PlatformWindow?.SetCursor(cursor);
-            }
+                _lastCursorImage = cursorImage;
 
-            if (IsInspectorEnabled)
-            {
-                InspectedElement = !IsInsideInspector(e.Location) && Content is not null
-                    ? HitTester.HitTest(Content, e.Location)
-                    : null;
-
-                InvalidateVisual();
+                if (cursorImage is not null)
+                    PlatformWindow?.SetCursor(cursorImage);
+                else
+                    PlatformWindow?.SetCursor(cursor);
             }
         }
         finally
@@ -993,6 +1022,11 @@ public partial class Form : IDisposable
         if (!args.Handled)
             OnKeyDown(args);
 
+        // shortcuts after the focused element: a text field keeps Ctrl+C and Ctrl+Z,
+        // and what it doesn't take — Ctrl+S — runs the form's command
+        if (!args.Handled && TryKeyGesture(key, modifiers))
+            args.Handled = true;
+
         if (!args.Handled && key == Key.Tab && Content is not null)
         {
             if (modifiers.HasFlag(KeyModifiers.Shift))
@@ -1038,6 +1072,10 @@ public partial class Form : IDisposable
         // everything that didn't set a font itself. Such an element doesn't go
         // through its properties, so the measure cache is reset for the whole tree
         InvalidateMeasureTree();
+
+        // a title bar that follows the app follows its theme: the window used to
+        // subscribe to the theme itself, on Windows only
+        ApplyTitleBar();
 
         Invalidate();
     }
@@ -1160,6 +1198,10 @@ public partial class Form : IDisposable
 
         DesktopWindow?.SetOpacity(_opacity);
         DesktopWindow?.SetTitle(Title);
+
+        // before the window is seen: a dark caption must not flash white first
+        ApplyTitleBar();
+
         PlatformWindow?.Show();
 
         // before Shown: a handler that wants the focus elsewhere moves it after us
@@ -1189,7 +1231,10 @@ public partial class Form : IDisposable
 
     /// <summary>The element with the keyboard focus, for a control that hands the
     /// focus over and takes it back — a split view opening its pane.</summary>
-    internal UIElement? FocusedElement => _focusDispatcher.FocusedElement;
+    /// <remarks>Public since 0.16: a control of another package that opens a pane or
+    /// a picker needs it to give the focus back, as the built-in ones do. Null — no
+    /// element of this form has the focus.</remarks>
+    public UIElement? FocusedElement => _focusDispatcher.FocusedElement;
 
     /// <summary>Focus an element of this form, if it takes the focus.</summary>
     internal bool FocusElement(UIElement element) =>
@@ -1505,6 +1550,16 @@ public partial class Form : IDisposable
 
     // ===== Flyout API =====
 
+    /// <summary>Show <paramref name="content"/> next to <paramref name="anchor"/>. It closes
+    /// on a click outside or Esc.</summary>
+    /// <remarks>
+    /// <para>The content is shown as it is: a menu or a picker draws its own surface.
+    /// Content without one — a plain panel — goes into a <see cref="FlyoutPresenter"/>,
+    /// otherwise it has no background and the form shows through it.</para>
+    /// <para>The side is a wish: where the flyout doesn't fit, it opens on the opposite
+    /// side if it fits there, and stays inside the window along both axes. A drop-down
+    /// at the bottom of the window used to be cut off by its edge.</para>
+    /// </remarks>
     public void ShowFlyout(UIElement anchor, UIElement content, FlyoutPlacement placement = FlyoutPlacement.Bottom)
     {
         AttachOverlay(content);
@@ -1514,8 +1569,11 @@ public partial class Form : IDisposable
         Point anchorPos = anchor.GetAbsolutePosition();
         Size anchorSize = anchor.ActualSize;
         Size contentSize = content.DesiredSize;
+        Size window = ClientSize;
 
-        content.Position = placement switch
+        FlyoutPlacement side = FitPlacement(placement, anchorPos, anchorSize, contentSize, window);
+
+        Point at = side switch
         {
             FlyoutPlacement.Bottom => new Point(anchorPos.X, anchorPos.Y + anchorSize.Height),
             FlyoutPlacement.Top => new Point(anchorPos.X, anchorPos.Y - contentSize.Height),
@@ -1524,9 +1582,42 @@ public partial class Form : IDisposable
             _ => anchorPos,
         };
 
+        // kept inside the window on both axes, as far as it fits: across its side it
+        // slides along the anchor, and on a side too small for it, it covers the anchor
+        // rather than leaving the window
+        content.Position = new Point(
+            Math.Clamp(at.X, 0, Math.Max(0, window.Width - contentSize.Width)),
+            Math.Clamp(at.Y, 0, Math.Max(0, window.Height - contentSize.Height)));
+
         _flyouts.Add(content);
 
         Invalidate();
+    }
+
+    /// <summary>The side a flyout opens on: the one asked for while it fits; the opposite
+    /// one when that fits and the asked one doesn't; when neither fits, the roomier one.</summary>
+    private static FlyoutPlacement FitPlacement(
+        FlyoutPlacement wanted, Point anchor, Size anchorSize, Size content, Size window)
+    {
+        float below = window.Height - (anchor.Y + anchorSize.Height);
+        float above = anchor.Y;
+        float right = window.Width - (anchor.X + anchorSize.Width);
+        float left = anchor.X;
+
+        return wanted switch
+        {
+            FlyoutPlacement.Bottom => Choose(FlyoutPlacement.Bottom, below, FlyoutPlacement.Top, above, content.Height),
+            FlyoutPlacement.Top => Choose(FlyoutPlacement.Top, above, FlyoutPlacement.Bottom, below, content.Height),
+            FlyoutPlacement.Right => Choose(FlyoutPlacement.Right, right, FlyoutPlacement.Left, left, content.Width),
+            FlyoutPlacement.Left => Choose(FlyoutPlacement.Left, left, FlyoutPlacement.Right, right, content.Width),
+            _ => wanted,
+        };
+
+        static FlyoutPlacement Choose(
+            FlyoutPlacement side, float room, FlyoutPlacement opposite, float oppositeRoom, float need) =>
+            room >= need ? side
+            : oppositeRoom >= need || oppositeRoom > room ? opposite
+            : side;
     }
 
     public void CloseFlyout(UIElement content)
@@ -1598,6 +1689,11 @@ public partial class Form : IDisposable
         _isClosed = true;
 
         s_openForms.Remove(this);
+
+        // the forms this one owns close with it, and this one leaves its owner,
+        // see Form.Owner
+        CloseOwnedForms();
+        SetOwner(null);
 
         // App.ThemeChanged is static: while the form stays subscribed, the event
         // holds it together with its whole tree. A closed form nobody disposes —
@@ -1685,6 +1781,14 @@ public partial class Form : IDisposable
         // completion is awaited both synchronously and asynchronously: the source
         // is one — the window closing, wherever it came from
         _dialogClosed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // before the window: Win32 makes the dialog owned at creation, X11 marks it
+        // transient for the owner and a dialog before mapping. Without an owner the
+        // dialog was a window of its own and could fall behind the one it blocked
+        SetOwner(owner);
+
+        // and sized to its content, if it asks to be: the window is created at Size
+        ApplySizeToContent();
 
         platform.CreateWindow(this);
 
@@ -1898,12 +2002,15 @@ public partial class Form : IDisposable
             // the accessibility audit: its outlines go under the grid
             ShowAudit();
 
+            // a card floating over the right edge, with the theme's shadow: the overlay
+            // was a slab glued to the window's side, taller than it and without depth
             _inspectorGrid = new PropertyGrid
             {
-                Size = new Size(InspectorWidth, ClientSize.Height),
-                Position = new Point(Math.Max(0, ClientSize.Width - InspectorWidth), 0),
+                Size = new Size(InspectorWidth, Math.Max(120, ClientSize.Height - InspectorMargin * 2)),
+                Position = new Point(Math.Max(0, ClientSize.Width - InspectorWidth - InspectorMargin), InspectorMargin),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
+                BoxShadow = Drawing.Primitives.BoxShadow.Large,
             };
 
             AttachOverlay(_inspectorGrid);
@@ -2015,10 +2122,15 @@ public partial class Form : IDisposable
         UIElement? hit = HitTestAll(point);
 
         // the menu is searched up the tree: if the button itself has none,
-        // ask the panel, then the form
+        // ask the panel, then the form. An element's own menu comes first,
+        // then the one it offers by default — a text field's editing commands
         for (UIElement? current = hit; current is not null; current = current.Parent)
         {
-            if (current.ContextMenu is { Count: > 0 } items)
+            List<MenuItem>? items = current.ContextMenu is { Count: > 0 } own
+                ? own
+                : current.DefaultContextMenu();
+
+            if (items is { Count: > 0 })
             {
                 ShowContextMenu(items, point);
                 return;

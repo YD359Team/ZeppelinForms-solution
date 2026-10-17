@@ -1,6 +1,7 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Headless;
 
@@ -18,7 +19,21 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
     public WindowState WindowState { get; private set; }
 
     public CursorKind Cursor { get; private set; } = CursorKind.Default;
-    public void SetCursor(CursorKind cursor) => Cursor = cursor;
+
+    /// <summary>The picture cursor asked for last; null after a cursor of a kind.</summary>
+    public CursorImage? CursorImage { get; private set; }
+
+    public void SetCursor(CursorKind cursor)
+    {
+        Cursor = cursor;
+        CursorImage = null;
+    }
+
+    public void SetCursor(CursorImage cursor)
+    {
+        CursorImage = cursor;
+        Cursor = cursor.Fallback;
+    }
 
     /// <summary>How many times a redraw was requested — checked in tests.</summary>
     public int InvalidateCount { get; private set; }
@@ -36,6 +51,18 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
 
     public void SetEnabled(bool enabled) => IsEnabled = enabled;
     public void Activate() => IsActive = true;
+
+    /// <summary>The title bar the form asked for last.</summary>
+    public bool TitleBarIsDark { get; private set; }
+
+    /// <summary>The title bar's own color the form asked for last; null — none.</summary>
+    public Color? TitleBarBackground { get; private set; }
+
+    public void SetTitleBarAppearance(bool isDark, Color? background, Color? foreground)
+    {
+        TitleBarIsDark = isDark;
+        TitleBarBackground = background;
+    }
 
     internal HeadlessWindow(HeadlessPlatform platform, Form form)
     {

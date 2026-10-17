@@ -112,12 +112,27 @@ public static partial class Themes
                 panel.ScrollThumbColor = c.ScrollThumb;
             })
 
-            .For<PropertyGrid>((panel, c) =>
+            // a property grid as a card of the theme: one thin border, the theme's corners,
+            // category bands a shade off the surface, hairlines between the rows, names in
+            // the secondary text and the accent for what was set by hand. The 2 px border
+            // and the full-strength stripes made it look bolted on from another toolkit
+            .For<PropertyGrid>((panel, t) =>
             {
+                ThemeColors c = t.Colors;
+
                 panel.Background = c.Surface;
-                panel.AlternateRowColor = c.SurfaceHover;
                 panel.BorderColor = c.Border;
-                panel.BorderWidth = 2f;
+                panel.BorderWidth = t.Metrics.StrokeThickness;
+                panel.CornerRadius = t.Metrics.OverlayCornerRadius;
+                panel.Padding = new Thickness(6);
+
+                panel.AlternateRowColor = new Color(8, c.Text.R, c.Text.G, c.Text.B);
+                panel.CategoryColor = c.SurfaceHover;
+                panel.CategoryTextColor = c.Text;
+                panel.SeparatorColor = c.Border.WithA((byte)(c.Border.A * 2 / 5));
+                panel.RowHoverColor = new Color(14, c.Text.R, c.Text.G, c.Text.B);
+                panel.NameColor = c.TextSecondary;
+                panel.MarkerColor = c.Accent;
             })
 
             // base — a neutral button when the type is not more specific
@@ -278,6 +293,10 @@ public static partial class Themes
                 item.SelectionColor = c.Selection;
                 item.HoverColor = new Color(24, c.Text.R, c.Text.G, c.Text.B);
                 item.GlyphColor = c.TextSecondary;
+                // the node check boxes as the check box control has them: the accent
+                // with its own text color on it
+                item.CheckColor = c.Accent;
+                item.CheckGlyphColor = c.TextOnAccent;
             })
 
             .For<Table>((table, c) =>
@@ -405,6 +424,11 @@ public static partial class Themes
                 calendar.TodayColor = c.SurfaceHover;
                 calendar.HoverColor = c.SurfaceHover;
                 calendar.HeaderHoverColor = c.SurfacePressed;
+
+                // the days between the ends of a range: the selection's tint, quieter
+                // than the accent of the ends
+                calendar.RangeColor = c.Selection;
+                calendar.RangeTextColor = c.TextSelection;
             })
 
             .For<Shape>((shape, c) =>
@@ -536,6 +560,19 @@ public static partial class Themes
             // the map's labels take the theme's text color, so their backing must
             // follow the theme too: a fixed white left light text on a light patch
             .For<MapControl>((map, c) =>
-                map.TextBackground = new Color(200, c.Surface.R, c.Surface.G, c.Surface.B));
+                map.TextBackground = new Color(200, c.Surface.R, c.Surface.G, c.Surface.B))
+
+            // what floats over the content: a surface of its own, a hairline edge and a
+            // shadow, rounded as the theme rounds its overlays — Fluent more than its controls
+            .For<FlyoutPresenter>((presenter, t) =>
+            {
+                ThemeColors c = t.Colors;
+
+                presenter.Background = c.Surface;
+                presenter.BorderColor = c.Border;
+                presenter.BorderWidth = 1f;
+                presenter.CornerRadius = t.Metrics.OverlayCornerRadius;
+                presenter.BoxShadow = BoxShadow.Medium;
+            });
     }
 }

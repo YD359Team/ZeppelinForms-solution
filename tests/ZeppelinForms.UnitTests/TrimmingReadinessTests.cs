@@ -92,7 +92,9 @@ public class TrimmingReadinessTests
     {
         var grid = new PropertyGrid { SelectedObject = new Label { Text = "x" } };
 
-        ComboBox? editor = grid.Children.OfType<ComboBox>()
+        // the editors stand in the grid's rows since 0.16, not right in the grid
+        ComboBox? editor = grid.Children.OfType<StackPanel>().Single().Children
+            .OfType<PropertyGridRow>().Select(row => row.Editor).OfType<ComboBox>()
             .FirstOrDefault(c => c.Items.Count > 0 && c.Items[0] is TextWrapping);
 
         Assert.NotNull(editor);

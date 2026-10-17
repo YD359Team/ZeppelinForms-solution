@@ -1,5 +1,6 @@
 ﻿using SkiaSharp;
 using System.Runtime.InteropServices;
+using ZeppelinForms.Core;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Forms;
@@ -42,7 +43,7 @@ public sealed class SkiaOffscreenRenderer : IElementRenderer
         var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
 
         using SKSurface surface = SKSurface.Create(info)
-            ?? throw new InvalidOperationException("Could not create an offscreen surface.");
+            ?? throw new ZfPlatformException("Could not create an offscreen surface.");
 
         surface.Canvas.Clear(SKColors.Transparent);
         draw(surface.Canvas);

@@ -528,13 +528,21 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         LostFocus?.Invoke(this, EventArgs.Empty);
     }
 
-    internal void RaiseMouseEnter(Point location, UIElement? from)
+    internal void RaiseMouseEnter(
+    Point location, UIElement? from,
+    KeyModifiers modifiers = KeyModifiers.None,
+    PointerButtons buttons = PointerButtons.None)
     {
         if (IsHovered) return;
 
         IsHovered = true;
 
-        var args = new MouseMoveEventArgs(location) { RelatedElement = from };
+        var args = new MouseMoveEventArgs(location)
+        {
+            RelatedElement = from,
+            Modifiers = modifiers,
+            Buttons = buttons,
+        };
 
         OnMouseEnter(args);
         MouseEnter?.Invoke(this, args);
@@ -542,13 +550,21 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         InvalidateVisual();
     }
 
-    internal void RaiseMouseExit(Point location, UIElement? to)
+    internal void RaiseMouseExit(
+        Point location, UIElement? to,
+        KeyModifiers modifiers = KeyModifiers.None,
+        PointerButtons buttons = PointerButtons.None)
     {
         if (!IsHovered) return;
 
         IsHovered = false;
 
-        var args = new MouseMoveEventArgs(location) { RelatedElement = to };
+        var args = new MouseMoveEventArgs(location)
+        {
+            RelatedElement = to,
+            Modifiers = modifiers,
+            Buttons = buttons,
+        };
 
         OnMouseExit(args);
         MouseExit?.Invoke(this, args);
@@ -556,9 +572,9 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         InvalidateVisual();
     }
 
-    internal void RaiseMouseMove(Point location)
+    internal void RaiseMouseMove(Point location, KeyModifiers modifiers, PointerButtons buttons)
     {
-        var args = new MouseMoveEventArgs(location);
+        var args = new MouseMoveEventArgs(location) { Modifiers = modifiers, Buttons = buttons };
 
         OnMouseMove(args);
         MouseMove?.Invoke(this, args);
@@ -1176,6 +1192,13 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     protected virtual Color CurrentBorderColor => BorderColor;
 
     public List<MenuItem>? ContextMenu { get; set; }
+    /// <summary>The menu the element offers when <see cref="ContextMenu"/> is not set — a
+    /// text field's Cut, Copy and Paste. Asked each time the menu opens, so its items show
+    /// the element's state at that moment. Null — none; the search goes on up the tree.</summary>
+    protected virtual List<MenuItem>? GetDefaultContextMenu() => null;
+
+    internal List<MenuItem>? DefaultContextMenu() => GetDefaultContextMenu();
+
     // IGridPlaceable
 
     public Size DesiredSize { get; private set; }
@@ -1200,15 +1223,26 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// <summary>The cursor over the element. Default — inherited from ancestors.</summary>
     public CursorKind Cursor { get; set; } = CursorKind.Default;
 
-    internal CursorKind EffectiveCursor
+    /// <summary>A cursor drawn from a picture over the element. Set, it wins over
+    /// <see cref="Cursor"/> here, and descendants that set neither inherit it.</summary>
+    public CursorImage? CursorImage { get; set; }
+
+    /// <summary>The cursor over the element: the first one set on the way up, a picture
+    /// or a kind; the arrow when none is.</summary>
+    internal (CursorKind Kind, CursorImage? Image) EffectiveCursor
     {
         get
         {
             for (UIElement? current = this; current is not null; current = current.Parent)
-                if (current.Cursor != CursorKind.Default)
-                    return current.Cursor;
+            {
+                if (current.CursorImage is { } image)
+                    return (image.Fallback, image);
 
-            return CursorKind.Arrow;
+                if (current.Cursor != CursorKind.Default)
+                    return (current.Cursor, null);
+            }
+
+            return (CursorKind.Arrow, null);
         }
     }
 

@@ -1,7 +1,16 @@
 # The analyzers of the framework itself: AnalysisLevel latest-recommended (see the
 # project file). These are the rules it deliberately departs from, each with its reason.
+#
+# A global config rather than an .editorconfig: it is given to the compiler by the
+# project file and applies to every file of the project, with no section paths to
+# match. A nested .editorconfig applies only where the path of a source file begins
+# with its folder's path, and on a mapped or substituted drive the two paths were
+# spelled differently — the departures were lost and the three rules below failed the
+# build on a machine where CI built fine
+is_global = true
 
-[*.cs]
+# Above the SDK's own AnalysisLevel config, which sets the same rules
+global_level = 100
 
 # The framework's event data are records, and a record can't derive from
 # System.EventArgs; the EventArgs suffix still tells what they are

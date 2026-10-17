@@ -20,6 +20,11 @@ namespace ZeppelinForms.Android;
 /// it. A focused element that doesn't show compositions gets it the old way — typed,
 /// and erased and typed again with each new version.
 /// </para>
+/// <para>
+/// Each call from the IME is one step of the UI loop, guarded by App.RunGuarded.
+/// Every one of them answers true either way: the IME only learns whether the
+/// connection is alive, and it is.
+/// </para>
 /// </remarks>
 internal sealed class ZeppelinInputConnection(View view, Form form)
     : BaseInputConnection(view, fullEditor: false)
@@ -37,15 +42,18 @@ internal sealed class ZeppelinInputConnection(View view, Form form)
     {
         string value = text?.ToString() ?? string.Empty;
 
-        if (form.FocusedAcceptsComposition)
+        App.RunGuarded(() =>
         {
-            _composingText = string.Empty;
-            form.OnCompositionCommit(value);
-            return true;
-        }
+            if (form.FocusedAcceptsComposition)
+            {
+                _composingText = string.Empty;
+                form.OnCompositionCommit(value);
+                return;
+            }
 
-        ReplaceComposing(value);
-        _composing = 0;
+            ReplaceComposing(value);
+            _composing = 0;
+        });
 
         return true;
     }
@@ -67,15 +75,18 @@ internal sealed class ZeppelinInputConnection(View view, Form form)
     {
         string value = text?.ToString() ?? string.Empty;
 
-        if (form.FocusedAcceptsComposition)
+        App.RunGuarded(() =>
         {
-            _composingText = value;
-            form.OnCompositionUpdate(value, value.Length);
-            return true;
-        }
+            if (form.FocusedAcceptsComposition)
+            {
+                _composingText = value;
+                form.OnCompositionUpdate(value, value.Length);
+                return;
+            }
 
-        ReplaceComposing(value);
-        _composing = new StringInfo(value).LengthInTextElements;
+            ReplaceComposing(value);
+            _composing = new StringInfo(value).LengthInTextElements;
+        });
 
         return true;
     }
@@ -84,11 +95,14 @@ internal sealed class ZeppelinInputConnection(View view, Form form)
     /// Shown as a composition, it is committed into the text now.</summary>
     public override bool FinishComposingText()
     {
-        if (_composingText.Length > 0 && form.FocusedAcceptsComposition)
-            form.OnCompositionCommit(_composingText);
+        App.RunGuarded(() =>
+        {
+            if (_composingText.Length > 0 && form.FocusedAcceptsComposition)
+                form.OnCompositionCommit(_composingText);
 
-        _composingText = string.Empty;
-        _composing = 0;
+            _composingText = string.Empty;
+            _composing = 0;
+        });
 
         return true;
     }
@@ -97,8 +111,11 @@ internal sealed class ZeppelinInputConnection(View view, Form form)
     /// insert this": the erasing must be done, otherwise the word doubles.</summary>
     public override bool DeleteSurroundingText(int beforeLength, int afterLength)
     {
-        Press(Key.Backspace, beforeLength);
-        Press(Key.Delete, afterLength);
+        App.RunGuarded(() =>
+        {
+            Press(Key.Backspace, beforeLength);
+            Press(Key.Delete, afterLength);
+        });
 
         return true;
     }

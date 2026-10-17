@@ -1,5 +1,6 @@
 ﻿using SkiaSharp;
 using System.Runtime.InteropServices;
+using ZeppelinForms.Core;
 
 namespace ZeppelinForms.Windows.Rendering;
 
@@ -53,7 +54,7 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
         if (format == 0 || !NativeMethods.SetPixelFormat(hdc, format, ref pfd))
         {
             NativeMethods.ReleaseDC(hWnd, hdc);
-            throw new InvalidOperationException("Could not set up the pixel format.");
+            throw new ZfPlatformException("Could not set up the pixel format.");
         }
 
         nint glContext = NativeMethods.wglCreateContext(hdc);
@@ -64,7 +65,7 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
                 NativeMethods.wglDeleteContext(glContext);
 
             NativeMethods.ReleaseDC(hWnd, hdc);
-            throw new InvalidOperationException("Could not create or activate the OpenGL context.");
+            throw new ZfPlatformException("Could not create or activate the OpenGL context.");
         }
 
         try
@@ -84,10 +85,10 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
             }
 
             using GRGlInterface glInterface = GRGlInterface.Create()
-                ?? throw new InvalidOperationException("Could not create GRGlInterface.");
+                ?? throw new ZfPlatformException("Could not create GRGlInterface.");
 
             GRContext grContext = GRContext.CreateGl(glInterface)
-                ?? throw new InvalidOperationException("Could not create GRContext.");
+                ?? throw new ZfPlatformException("Could not create GRContext.");
             grContext.SetResourceCacheLimit(32 * 1024 * 1024);
 
             return new GlSkiaSurface(hWnd, hdc, glContext, grContext);

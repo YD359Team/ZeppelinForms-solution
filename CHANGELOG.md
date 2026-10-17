@@ -1,6 +1,20 @@
 # Changes
 
-## [0.15.1]
+## [0.16.0] - Stonehenge
+
+![Stonehenge](assets/Logo-0.16.0.jpg)
+
+> The codename "Stonehenge" symbolizes the solid and powerful foundation of the framework
+
+### Breaking changes
+
+- Failures of the platform and of a missing setup throw the framework's own
+  exceptions, derived from `ZfException`, instead of `InvalidOperationException`:
+  `ZfPlatformException` where the platform or a native library refused (no X server,
+  no OpenGL context, no offscreen surface, `RegisterDragDrop` failing — with its
+  `NativeErrorCode`), `ZfSetupException` where the application isn't set up (no text
+  measurer, image decoder or element renderer registered, drag and drop on an MTA
+  thread). Wrong arguments and wrong state still throw the standard exceptions
 
 ### Fixes
 
@@ -10,6 +24,278 @@
   own above the content, as the button of WinUI's navigation view in its minimal
   mode, and the content is laid out under it. The band stays while the pane is open,
   so the content doesn't jump; `IsPaneToggleButtonVisible = false` removes it
+- The message box is as large as its message and its buttons. It was sized by the
+  text alone: three buttons didn't fit next to a short question, and on Windows the
+  height lost the title bar's ~40 px. A long message wraps instead of running on,
+  and the text takes the theme's color — it was black, unreadable in the dark theme
+- The input box keeps its buttons inside on Windows: its height follows its content
+- `WindowStartupLocation.CenterOwner` centers on the owner on Windows; it centered
+  on the screen, as the window didn't know its owner
+- The showcase's flyout has a surface; its text ran into the page under it
+- The window is cleared with the theme's background. It was a fixed white: panels
+  draw no background of their own, and the dark themes showed white between the
+  cards of every page
+- A tab is drawn as a gap, not as the box of a missing glyph
+- A right click in a text field keeps the selection; it used to move the caret and
+  drop it, leaving the context menu nothing to act on
+- A flyout that doesn't fit on its side opens on the opposite one and stays inside
+  the window; a drop-down at the bottom of the window was cut off by its edge
+- A dark theme opens under a dark caption on Windows. The caption was applied before
+  the window had a handle, did nothing, and stayed light until the theme was switched
+- A tree view scrolls to the node it is given: `SelectedNode` brings the node into
+  sight, as a selection from the keyboard does, and `ScrollIntoView` right after
+  `ExpandAncestors` reaches it — the rows of the opened branch weren't measured yet,
+  and the scroll stopped at the old, shorter extent
+- A held Fluent button says so: the text goes to the secondary color, as in WinUI,
+  where the pressed fill is a shade off the hovered one — the light buttons looked the
+  same hovered and pressed. `ButtonBase.PressedTextColor`; it gives way to a text
+  color or a background set in code or a style sheet
+- A border is drawn inside its box, on whole pixels, as CSS and WinUI draw it. The
+  stroke ran along the edge, half of it outside: a parent cutting its children at its
+  edge took the outer half of the top line, and a box between pixels drew a 1 px line
+  as two pale ones — the top of a button or a border looked thinner than its other
+  sides. `Graphics.AlignToPixels` snaps a rectangle to device pixels under the current
+  transform
+- `DataGridView`'s horizontal scroll bar: star columns share the width exactly, and
+  their sum in floats came out a hair over it, so a bar was shown whose thumb filled
+  the track and never moved. It is shown only when there is something to scroll. Star
+  columns no longer shrink below `MinColumnWidth` — a narrow grid scrolls sideways
+  instead of cutting its text to slivers — and the grid scrolls sideways by a tilt of
+  the wheel, a touchpad's sideways swipe, or Shift with the wheel
+- `.zss` highlighting in Visual Studio with a rule's brace on its own line, as C# code
+  puts braces: the grammar recognized a rule only with its selector and `{` on one
+  line, and a sheet written that way had no colors at all. It still checked and
+  previewed, which go through the parser
+- `App.Icon` is used: it is the icon of every form without one of its own — it went
+  nowhere, and the main form took the logo. `Form.Icon` changed while the window is
+  open shows at once. On Windows the icons are made at the sizes of the window's DPI,
+  and the application's icon is the window class's too: the taskbar falls back to it
+  when a window busy at start — filling its lists in `Shown` — doesn't answer for its
+  own, where it showed the executable's default icon instead
+- Linux: the clipboard outlives the window it works through. It stayed bound to the
+  first window the application opened; once that closed, the next copy asked the X
+  server to give the selection to a window that was gone, and Xlib's default error
+  handler ended the process. The clipboard moves to a window still open, with the
+  copied text, and steps aside when the last one closes
+- Linux: an X protocol error is written to the standard error and the application
+  goes on, instead of Xlib ending the process from inside a native call
+
+### Input and frames
+
+- `MouseMoveEventArgs.Modifiers` and `MouseMoveEventArgs.Buttons`: a move says which
+  modifier keys and which buttons are held, as a press does. A drag that changes with
+  Shift no longer reads `Keyboard.Modifiers` and counts presses itself. Windows and
+  Linux now report the modifiers of a move; the browser already did
+- `AnimateFrames(key, step => …)`: a callback on every frame with the time since the
+  previous one, until it returns false or `StopAnimation` removes it. For a scene
+  rendered every frame or a game loop with a fixed step; `AnimateLoop` gives only a
+  phase, and `Form.AddAnimation` is internal
+
+### Unhandled exceptions
+
+- `App.UnhandledException`: an exception that escapes an event handler, an action
+  queued to the dispatcher, an await continuation or an `async void` method, an
+  animation step, deferred work, layout or painting comes here first. `Handled = true`
+  keeps the application running and skips the rest of the failed step; without a
+  handler, or with `Handled` left false, the exception ends the application as before,
+  with its original stack. Every platform: Windows, Linux, the browser and Android
+- An animation that throws is removed, so a handled failure isn't repeated every frame
+- One deferred job that throws no longer drops the others due in the same tick: a
+  caret or a tooltip due together with it used to stop for good
+- A frame broken off by an exception no longer leaves the canvas's state behind on a
+  GL surface, where every following frame was drawn with its scale and clip
+
+### Owned forms
+
+- `Form.Show(owner)`: a form shown as a window owned by another — a tool palette,
+  a floating panel — without blocking. The window is created on the owner's platform;
+  a second window used to need `platform.CreateWindow` by hand. `Owner` and
+  `OwnedForms` tell who owns whom; closing the owner closes what it owns
+- Dialogs belong to the form they block. On Windows a dialog was a window of its own
+  and could fall behind its owner; now it stays above it and minimizes with it. On
+  Linux an owned window is transient for its owner and a dialog is typed as one, so
+  the window manager keeps it above and centers it
+
+### Window size from its content
+
+- `Form.SizeToContent`, as WPF's: the window measures its content and takes its size;
+  `MinimumSize` and `MaximumSize` bound it, and `MaximumSize.Width` is where text
+  wraps. With it `Size` is the client area on every platform — Windows adds the frame
+  and the title bar for the window's styles and DPI
+- `FlyoutPresenter`: the theme's surface for a flyout — background, hairline edge,
+  shadow and the theme's overlay rounding. `ShowFlyout` shows its content as it is,
+  and a plain panel needs one
+
+### Context menus and pickers
+
+- Text fields have a context menu of their own — Undo, Redo, Cut, Copy, Paste, Delete
+  and Select all, each enabled by what it can do — unless the application sets
+  `ContextMenu`. Any control can offer one by overriding `GetDefaultContextMenu`.
+  `TextBox.Cut`, `Copy`, `Paste`, `Undo`, `Redo`, `CanUndo` and `CanRedo` are public
+- `Calendar.SelectionMode = Range`: two clicks pick the ends of a range, the days
+  between are marked with `RangeColor`, `RangeSelected` comes when both are picked,
+  and Esc drops a range half picked. `RangeStart`, `RangeEnd`, `SetSelectedRange`
+- `Form.Background`: the color the window is cleared with; the theme's by default
+
+### Title bar
+
+- `Form.TitleBarTheme` — follow the app, light or dark — and `Form.TitleBarColor`, the
+  caption's own color. Windows 10 draws the caption dark or light; Windows 11 takes the
+  color too, with a text color that reads on it. On Linux GNOME's window manager draws
+  the frame's dark or light variant. In the browser the page's color scheme follows,
+  and the theme color — a phone's address bar, an installed app's title bar. On Android
+  the system bars' icons go light over a dark app. The system's high contrast keeps
+  its own colors
+
+### Cursors
+
+- `UIElement.CursorImage`: a cursor drawn from a picture, with its hotspot and a
+  fallback kind for where a platform can't make one. It wins over `Cursor` on its
+  element, and descendants that set neither inherit it. Windows makes it with its
+  alpha, X11 through libXcursor, the browser as a CSS cursor; on Android the mouse
+  pointer follows both kinds and pictures, where it stayed the arrow before
+- `CursorKind.SizeNorthWestSouthEast` and `SizeNorthEastSouthWest`: the diagonal
+  resize cursors of a corner grip
+
+### Commands and menus
+
+- `Command`: an action a menu item, a button and a shortcut share, the standard
+  `ICommand` — a `RelayCommand` of an MVVM library works in its place. `Gesture` is
+  its shortcut. `Button.Command` and `MenuItem.Command` run it, with
+  `CommandParameter`, and are disabled while it can't run; a button listens to
+  `CanExecuteChanged` only while it is in a form, so a long-lived command doesn't
+  keep the form alive. `IsEnabled` set from code takes over from the command, as it
+  does from a binding
+- `ToggleCommand`: a command that is on or off. A menu item shows its state as a
+  check mark and a `ToggleButton` stays pressed with it; switching either — or the
+  shortcut, or code — switches the others
+- `MenuItem.IsCheckable` and `IsChecked`: a check mark before the caption, flipped by
+  a click on a checkable item. An item with an icon frames it instead
+- `MenuItem.KeyGesture` and `InputGestureText`: the shortcut, shown right of the
+  caption in a column of its own. The form runs the gestures of its menu bar's items
+  with the menu closed. `InputGestureText` only shows a key — the text field's
+  Ctrl+C in its context menu, which now shows its shortcuts
+- `MenuItem.Opening`: raised before a menu bar opens the item's submenu, and before
+  a shortcut runs an item under it — the place to set what the items show, once,
+  instead of keeping forty items up to date as the application changes. Ctrl+S with
+  the menu closed sees the state the open menu would show
+- `Form.KeyBindings`: shortcuts for commands without a menu item. Shortcuts are tried
+  after the focused element leaves the key unhandled: a text field keeps Ctrl+C and
+  Ctrl+Z
+- `KeyGesture`: a key with its modifiers, written and read as menus show it —
+  `KeyGesture.Parse("Ctrl+Shift+S")`, `ToString()` gives "Ctrl+Shift+S"
+- A split button's repeated action runs the item's command as well as its `Click`,
+  and the button's own `Command` runs from its main part
+
+### Tree view
+
+- `TreeView.SelectionMode`: `Multiple` and `Extended` select several nodes — Ctrl
+  adds one, Shift a range from the anchor, Shift with the arrows extends it, Ctrl+A
+  selects every shown node. `SelectedNodes`, `IsSelected`, `SetSelected`,
+  `ClearSelection`, `SelectAll`; `SelectedNode` is the lead, and setting it selects
+  that node alone, as before. Nodes hidden by a collapsed ancestor leave the selection
+- `TreeView.CheckBoxes` and `TreeNode.IsChecked`: a check box before every node, each
+  node its own — a parent doesn't check its children. Space checks or unchecks all
+  the selected nodes together; `NodeCheckedChanged` tells. Screen readers hear the
+  state and can toggle it
+- `TreeNode.Icon` and `TreeView.ItemIcon`: an icon before the caption, the node's own
+  or one by the kind of its content. The rows keep a column for icons once any node
+  has one, so the captions line up
+- `NodeInvoked`: a double click on the caption or Enter. A handler that sets `Handled`
+  keeps a node with children as it is; otherwise it expands or collapses, as before
+- Renaming in place: `BeginEdit(node)`, F2 with `LabelEdit`, Enter or a click elsewhere
+  commits, Escape cancels. `NodeEditing` can refuse or change the starting text,
+  `NodeEdited` can reject or change the result; a string content takes the new text
+  by itself
+- `NodeAt(point)`, and a press of the right button selects the node under the cursor
+  unless it is already among the selected ones, as in Explorer. `NodeContextMenu`
+  builds the menu per node
+
+### Property grid and inspector
+
+- Categories: the rows come under folding category headers; a folded category says
+  how many rows it holds and stays folded across selections. `GroupByCategory = false`
+  lists them by name. A toolbar names what is shown and filters the rows by name
+  (`ShowToolbar`, `Filter`); the filter opens the categories it finds rows in
+- A new look: one thin border and the theme's corners, category bands, hairlines
+  between the rows and the columns, names in the secondary text, the row being edited
+  marked with the accent. A dot before the name says where the value came from — code
+  or the grid, a binding, a style, the theme — and the tooltip says it in words, with
+  the descriptor's `Description`. The border between the columns can be dragged
+  (`NameColumnRatio`). The 2 px border and the full-strength stripes are gone
+- Editors by type: a number field takes the descriptor's `Minimum`, `Maximum`,
+  `DecimalPlaces` and `Increment` instead of a fixed ±100000 with two decimals; a
+  flags enum gets a list of check boxes, one per flag; vectors and quaternions of
+  System.Numerics, points, sizes, thicknesses and corner radii get a field per part.
+  `PropertyDescriptor.Editor`, `PropertyGrid.Editors` and
+  `PropertyGrid.RegisterDefaultEditor` put editors of their own ahead of the built-in
+  ones; an editor gets a `PropertyEditContext` to read and write through
+- Undo: `PropertyValueChanged` comes once per edit — a number spun with the wheel,
+  a name typed — with the values it replaced, and `Undo()` / `Redo()` write them back.
+  `PropertyValueChanging` can refuse a value before it is written
+- `SelectedObjects`: several objects at once, showing the properties they all have;
+  where the values differ the editor shows none, and a value written goes to each,
+  through each object's own descriptor
+- `PropertiesProvider`: the rows of an object given per object rather than per type —
+  a bone and a helper of the same class with different properties
+- The grid follows its objects: a change they report — an undo, an animation, the
+  theme — shows in the rows, read again once after the burst
+- `PropertyDescriptor.DisplayName` for the caption, the name staying the key
+- The F12 inspector floats as cards with the theme's shadow instead of a slab glued to
+  the window's side. A picked element is outlined on the form — it was outlined only
+  when chosen from the audit list — with its margin and padding shaded, as browsers'
+  tools show them, and a chip with its type, name and size in the theme's accent
+
+### Controls of other packages
+
+What a package of controls — a PDF view, a chart, a web view, a code editor — needs
+from the framework is public now; the built-in controls reached it as internals
+
+- `UIElement.FindForm()`: the form the element is in, through its parents or as an
+  overlay — to open a flyout, give the focus back, read the window's state
+- `UIElement.Focus()`: move the keyboard focus to the element. There was no public
+  way to focus anything, from a control or from an application. `Form.FocusedElement`
+  says which element has it
+- `Theme.RegisterDefault<T>`: a library's theme rule for its own control, in every
+  theme at once — light, dark, Fluent, high contrast and the ones an application
+  makes. A library couldn't add a rule to themes it doesn't own, and its controls
+  stayed unstyled until the application wrote rules for them. A theme's own
+  `For<T>` for the type still replaces the default
+- `ITextCompositionTarget` and `UIElement.ReportTextInputArea`: an editor of another
+  package shows the input method's composition in place and has the candidate list
+  open at its caret, as `TextBox` does
+- `SkiaGraphics.Canvas`: the Skia canvas being drawn on, with the element's place and
+  transform applied, for a control that draws with Skia itself
+- A test project, `ZeppelinForms.ExternalControlTests`, builds controls of this kind
+  without access to the framework's internals: a styled property, a theme rule,
+  a pseudo-class in a style sheet, focus, composition, a flyout and Skia drawing.
+  It runs with the scan of loaded assemblies off, as a trimmed application does
+
+### Data grid rows
+
+- `ShowAlternateRows` and `AlternateRowColor` stripe every other row of a
+  `DataGridView`, as `Table` does; both are styled properties, so a style sheet turns
+  them on: `DataGridView { ShowAlternateRows: true; }`
+- `RowStyle` gives a row its look by its record — a fill, a text color, a font:
+  `grid.RowStyle = item => ((Process)item).Responding ? null : hung;`
+
+### Documentation
+
+- The README says what is true of 0.16: which package each platform needs and how it
+  starts, the files the framework reads — `.zss`, `.zfml`, `.ico` (ICO only), images,
+  fonts — and that assets are copied to the output by the project, how style sheets are
+  loaded and watched, `App.Icon` and `<ApplicationIcon>`, the previewer's `[Preview]`
+  (it said `[Previewer]`), the value precedence as the property system has it, and
+  the controls in the categories they belong to — `Table` and `TreeView` are panels
+
+### Examples
+
+- A 3D scene: a cube on a ground grid with axes, drawn with the 2D graphics alone, and
+  turned as in a 3D editor — orbit, pan and zoom with the mouse, a flick that keeps
+  turning, an axis gizmo to look along an axis, Blender's numpad keys, a perspective and
+  an orthographic projection, a turntable. `SceneView` shows a custom interactive
+  control with a theme rule of its own (`Theme.RegisterDefault`) and frames from
+  `AnimateFrames`
 
 ## [0.15.0] - Lake Baikal
 

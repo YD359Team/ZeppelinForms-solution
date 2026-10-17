@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Core.Text;
+﻿using ZeppelinForms.Core;
+using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Drawing;
@@ -27,16 +28,16 @@ public static class TextMeasurer
             "No text measurer is registered. Call SkiaTextMeasurer.Register().";
 
         public Size MeasureRuns(IReadOnlyList<TextRun> runs, Font baseFont) =>
-            throw new InvalidOperationException(NotRegistered);
+            throw new ZfSetupException(NotRegistered);
 
         public Size MeasureText(string text, Font font) =>
-            throw new InvalidOperationException(NotRegistered);
+            throw new ZfSetupException(NotRegistered);
 
         public float MeasureTextWidth(string text, int length, Font font) =>
-            throw new InvalidOperationException(NotRegistered);
+            throw new ZfSetupException(NotRegistered);
 
         public FontMetrics MeasureFont(Font font) =>
-            throw new InvalidOperationException(NotRegistered);
+            throw new ZfSetupException(NotRegistered);
 
         // doesn't throw: this is asked before measuring, to decide whether
         // to wait for the font or draw with the fallback. "No" is safer than an exception

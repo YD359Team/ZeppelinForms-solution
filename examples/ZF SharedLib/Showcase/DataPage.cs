@@ -1,5 +1,6 @@
 using System.Globalization;
 using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.DataGrid;
@@ -10,7 +11,8 @@ using ZF_SharedLib.Models;
 namespace ZF_SharedLib.Showcase;
 
 /// <summary>Data in rows and columns: a plain table of strings and a data grid over
-/// objects, with sorting, resizing and selection.</summary>
+/// objects, with sorting, resizing and selection, move the selection. 
+/// Shift+wheel scrolls a grid wider than the window sideways.</summary>
 internal static class DataPage
 {
     public static UIElement Create()
@@ -118,13 +120,25 @@ internal static class DataPage
         var resizable = new ToggleSwitch { Text = "Resize columns", IsOn = grid.CanResizeColumns };
         resizable.Toggled += (_, _) => grid.CanResizeColumns = resizable.IsOn;
 
+        // every other row striped, as a style sheet would do it: DataGridView { ShowAlternateRows: true; }
+        var gridStripes = new ToggleSwitch { Text = "Alternate rows" };
+        gridStripes.Toggled += (_, _) => grid.ShowAlternateRows = gridStripes.IsOn;
+
+        // a row's look by its record: the games not completed are dimmed. One shared
+        // style, not one per call — the grid asks for every visible row on every frame
+        var unfinished = new DataGridViewRowStyle { TextColor = new Color(150, 128, 128, 128) };
+
+        var dimUnfinished = new ToggleSwitch { Text = "Dim unfinished" };
+        dimUnfinished.Toggled += (_, _) =>
+            grid.RowStyle = dimUnfinished.IsOn ? item => ((Game)item).Completed ? null : unfinished : null;
+
         var gridDemo = new StackPanel
         {
             Orientation = Orientation.Vertical,
             Spacing = 10,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
         };
-        gridDemo.Children.AddRange([grid, Demo.Row(sortable, resizable), selection, sorted]);
+        gridDemo.Children.AddRange([grid, Demo.Row(sortable, resizable, gridStripes, dimUnfinished), selection, sorted]);
 
         return Demo.Page("Grids and tables", "A table of strings to show, a data grid over objects to work with.",
             Demo.Section("Table", Demo.Column(table, Demo.Row(lines, stripes)), "Table lays out strings; its columns are Auto, Fixed or Star like a Grid's"),

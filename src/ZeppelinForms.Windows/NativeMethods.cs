@@ -376,6 +376,10 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern int GetSystemMetrics(int nIndex);
 
+    /// <summary>A system metric at the given DPI. Windows 10 1607 and later, as GetDpiForWindow.</summary>
+    [DllImport("user32.dll")]
+    public static extern int GetSystemMetricsForDpi(int nIndex, uint dpi);
+
     [DllImport("user32.dll")] public static extern short GetKeyState(int nVirtKey);
     [DllImport("user32.dll")] public static extern nint SetCapture(nint hWnd);
     [DllImport("user32.dll")] public static extern bool ReleaseCapture();
@@ -387,6 +391,12 @@ internal static class NativeMethods
     public static extern bool SetLayeredWindowAttributes(nint hWnd, uint crKey, byte alpha, uint flags);
     [DllImport("user32.dll")]
     public static extern bool GetClientRect(nint hWnd, out RECT lpRect);
+    [DllImport("user32.dll")]
+    public static extern bool GetWindowRect(nint hWnd, out RECT lpRect);
+    /// <summary>The window rectangle for a client rectangle, for the given styles at
+    /// the given DPI. Windows 10 1607 and later, as GetDpiForWindow.</summary>
+    [DllImport("user32.dll")]
+    public static extern bool AdjustWindowRectExForDpi(ref RECT lpRect, uint dwStyle, bool bMenu, uint dwExStyle, uint dpi);
     [DllImport("user32.dll")] public static extern bool OpenClipboard(nint hWndNewOwner);
     [DllImport("user32.dll")] public static extern bool CloseClipboard();
     [DllImport("user32.dll")] public static extern bool EmptyClipboard();

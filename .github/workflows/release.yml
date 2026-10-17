@@ -194,7 +194,9 @@ jobs:
           VS_MARKETPLACE_PAT: ${{ secrets.VS_MARKETPLACE_PAT }}
         run: |
           if (-not $env:VS_MARKETPLACE_PAT) {
-            Write-Host 'VS_MARKETPLACE_PAT is not set: the extension is not published to the Marketplace'
+            # a warning annotation rather than a log line: it shows on the run's
+            # summary, where a skipped publish is noticed
+            Write-Host '::warning title=Marketplace::VS_MARKETPLACE_PAT is not set: the extension is not published to the Marketplace'
             exit 0
           }
 

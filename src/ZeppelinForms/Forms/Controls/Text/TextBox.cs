@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
@@ -366,6 +367,82 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
     public event EventHandler? TrailingIconClick;
 
     public void SelectAll() => _document.SelectAll();
+
+    // ===== clipboard and history =====
+    // the keys and the context menu go through these, so both behave alike
+
+    /// <summary>Whether <see cref="Undo"/> has an edit to take back.</summary>
+    public bool CanUndo => _document.CanUndo && !IsReadOnly;
+
+    /// <summary>Whether <see cref="Redo"/> has an edit to bring back.</summary>
+    public bool CanRedo => _document.CanRedo && !IsReadOnly;
+
+    /// <summary>Copy the selection. Nothing under a password mask: what the field hides
+    /// must not leave through the clipboard.</summary>
+    public void Copy()
+    {
+        if (_document.SelectionLength > 0 && PasswordChar is null)
+            Clipboard.Current.SetText(_document.SelectedText);
+    }
+
+    /// <summary>Copy the selection and delete it.</summary>
+    public void Cut()
+    {
+        if (IsReadOnly || _document.SelectionLength == 0 || PasswordChar is not null) return;
+
+        Clipboard.Current.SetText(_document.SelectedText);
+        _document.DeleteSelection();
+    }
+
+    public void Undo()
+    {
+        if (!IsReadOnly) _document.Undo();
+    }
+
+    public void Redo()
+    {
+        if (!IsReadOnly) _document.Redo();
+    }
+
+    /// <summary>Undo and redo, cut, copy and paste, delete and select all — as a text
+    /// field has them everywhere. Each item is enabled by what it can do right now.
+    /// An application's own <see cref="UIElement.ContextMenu"/> replaces it.</summary>
+    protected override List<MenuItem>? GetDefaultContextMenu()
+    {
+        if (!IsEnabled) return null;
+
+        bool selection = _document.SelectionLength > 0;
+        bool masked = PasswordChar is not null;
+        bool editable = !IsReadOnly;
+
+        // the shortcuts are shown, not run by the menu: the field takes these keys
+        // itself while it has the focus
+        return
+        [
+            Command(ZfText.Undo, CanUndo, Undo, Key.Z),
+            Command(ZfText.Redo, CanRedo, Redo, Key.Y),
+            MenuItem.Separator,
+            Command(ZfText.Cut, editable && selection && !masked, Cut, Key.X),
+            Command(ZfText.Copy, selection && !masked, Copy, Key.C),
+            Command(ZfText.Paste, editable, Paste, Key.V),
+            Command(ZfText.Delete, editable && selection, () => _document.DeleteSelection(), Key.Delete, KeyModifiers.None),
+            MenuItem.Separator,
+            Command(ZfText.SelectAll, _document.Length > 0, SelectAll, Key.A),
+        ];
+
+        static MenuItem Command(TextKey caption, bool enabled, Action run, Key key, KeyModifiers modifiers = KeyModifiers.Control)
+        {
+            var item = new MenuItem
+            {
+                Text = Localization.Get(caption),
+                IsEnabled = enabled,
+                InputGestureText = new KeyGesture(key, modifiers).ToString(),
+            };
+
+            item.Click += (_, _) => run();
+            return item;
+        }
+    }
 
     /// <summary>The text changed by editing — typing, deleting, pasting, undo — not by
     /// an assignment to <see cref="Text"/> or a binding. After <see cref="TextChanged"/>.</summary>
@@ -1078,16 +1155,11 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
                 break;
 
             case Key.C when ctrl:
-                if (_document.SelectionLength > 0 && PasswordChar is null)
-                    Clipboard.Current.SetText(_document.SelectedText);
+                Copy();
                 break;
 
             case Key.X when ctrl && !IsReadOnly:
-                if (_document.SelectionLength > 0 && PasswordChar is null)
-                {
-                    Clipboard.Current.SetText(_document.SelectedText);
-                    _document.DeleteSelection();
-                }
+                Cut();
                 break;
 
             case Key.V when ctrl && !IsReadOnly:
@@ -1095,17 +1167,17 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
                 break;
 
             case Key.Z when ctrl && !shift && !IsReadOnly:
-                _document.Undo();
+                Undo();
                 break;
 
             case Key.Y when ctrl && !IsReadOnly:
-                _document.Redo();
+                Redo();
                 break;
 
             // Ctrl+Shift+Z is redo by the common convention;
             // this branch used to call Undo, the same as plain Ctrl+Z
             case Key.Z when ctrl && shift && !IsReadOnly:
-                _document.Redo();
+                Redo();
                 break;
 
             default:
@@ -1125,7 +1197,7 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
     /// would silently change what was copied. A multi-line field brings line
     /// endings to \n — the only separator the document knows.
     /// </remarks>
-    private void Paste()
+    public void Paste()
     {
         if (IsReadOnly) return;
         if (Clipboard.Current.GetText() is not { Length: > 0 } text) return;
@@ -1171,6 +1243,28 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
         _pressedIcon = e.Button == MouseButton.Left ? ClickableIconAt(e.Location) : IconPart.None;
 
         if (_pressedIcon != IconPart.None) return;
+
+        // the right and the middle button don't select: the menu they open acts on the
+        // selection there is. Inside the selection it stays; outside it the caret moves
+        // there, as in an editor. Any button used to move the caret, and the context
+        // menu's Copy found nothing left to copy
+        if (e.Button != MouseButton.Left)
+        {
+            // only the left button focuses by itself, and the menu's commands act on
+            // the field the user pointed at
+            FindOwner()?.FocusElement(this);
+
+            int index = IndexFromPoint(e.Location);
+            int start = _document.SelectionStart;
+
+            if (_document.SelectionLength == 0 || index < start || index > start + _document.SelectionLength)
+            {
+                ClearComposition();
+                _document.SetCaret(index);
+            }
+
+            return;
+        }
 
         ClearComposition();
 
@@ -1287,10 +1381,7 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
         // the input method's candidate list opens at the caret
         if (IsFocused)
-        {
-            Point absolute = GetAbsolutePosition();
-            FindOwner()?.ReportTextInputArea(this, caret.Offset(absolute.X, absolute.Y));
-        }
+            ReportTextInputArea(caret);
 
         g.Restore();
     }

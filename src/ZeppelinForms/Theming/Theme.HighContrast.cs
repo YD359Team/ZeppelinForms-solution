@@ -213,6 +213,8 @@ public static partial class Themes
                 calendar.MutedColor = c.TextDisabled;
                 calendar.SelectionColor = c.Selection;
                 calendar.SelectedTextColor = c.TextSelection;
+                calendar.RangeColor = c.Selection;
+                calendar.RangeTextColor = c.TextSelection;
                 calendar.TodayColor = c.Background;
                 calendar.HoverColor = c.Background;
                 calendar.HeaderHoverColor = c.Background;

@@ -105,6 +105,17 @@ public abstract class Graphics
     public abstract void DrawShadow(Rectangle rect, BoxShadow shadow);
     public abstract void FillRoundRectangle(Rectangle rect, CornerRadius radius, Color color);
     public abstract void DrawRoundRectangle(Rectangle rect, CornerRadius radius, Color color, float width);
+    /// <summary>The rectangle with its edges moved to the nearest device pixels, under
+    /// the current transform: a frame drawn inside it is as crisp on one side as on the
+    /// other, wherever the layout put the element.</summary>
+    /// <remarks>
+    /// Text and padding make positions fractional — a row 16.8 px high puts every
+    /// row below it between pixels — and a 1 px line between two pixels is drawn as
+    /// two pale ones: one side of a frame looked thinner than the other. Under a
+    /// rotation or a skew there are no pixel edges to snap to, and the rectangle is
+    /// returned as it is; so it is by a graphics without pixels.
+    /// </remarks>
+    public virtual Rectangle AlignToPixels(Rectangle rect) => rect;
     public abstract void FillPie(Rectangle rect, float startAngle, float sweepAngle, Color color);
     public abstract void DrawRuns(
     IReadOnlyList<TextRun> runs, Rectangle rect, Font baseFont, Color baseColor,

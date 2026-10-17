@@ -27,6 +27,17 @@ public static class ZfText
     public static readonly TextKey SaveFileTitle = new("zf.title.save-file", "Save file");
     public static readonly TextKey SelectFolderTitle = new("zf.title.select-folder", "Select folder");
 
+    // ===== editing =====
+    // the & marks the access key, as menu items take it
+
+    public static readonly TextKey Undo = new("zf.edit.undo", "&Undo");
+    public static readonly TextKey Redo = new("zf.edit.redo", "&Redo");
+    public static readonly TextKey Cut = new("zf.edit.cut", "Cu&t");
+    public static readonly TextKey Copy = new("zf.edit.copy", "&Copy");
+    public static readonly TextKey Paste = new("zf.edit.paste", "&Paste");
+    public static readonly TextKey Delete = new("zf.edit.delete", "&Delete");
+    public static readonly TextKey SelectAll = new("zf.edit.select-all", "Select &all");
+
     // ===== the file dialog =====
 
     public static readonly TextKey AllFiles = new("zf.file.all-files", "All files");

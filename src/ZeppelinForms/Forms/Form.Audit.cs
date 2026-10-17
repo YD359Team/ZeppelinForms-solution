@@ -41,12 +41,14 @@ public partial class Form
 
         AttachOverlay(_auditMarkers);
 
+        // a card beside the grid's, with the same margins and shadow
         _auditList = new ListBox
         {
-            Position = new Point(0, Math.Max(0, ClientSize.Height - AuditListHeight)),
-            Size = new Size(Math.Max(160, ClientSize.Width - InspectorWidth), AuditListHeight),
+            Position = new Point(InspectorMargin, Math.Max(0, ClientSize.Height - AuditListHeight - InspectorMargin)),
+            Size = new Size(Math.Max(160, ClientSize.Width - InspectorWidth - InspectorMargin * 3), AuditListHeight),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
+            BoxShadow = BoxShadow.Large,
         };
 
         if (_auditIssues.Count == 0)

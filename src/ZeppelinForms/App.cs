@@ -13,7 +13,18 @@ public partial class App
     public static event EventHandler? ThemeChanged;
 
     public required Form MainForm { get; init; }
+
+    /// <summary>The application's icon: of every form without one of its own, and of
+    /// the taskbar button while a window is too busy to give its own. Null — the
+    /// ZeppelinForms logo.</summary>
+    /// <remarks>The executable's own icon — the one Explorer shows, and a pinned
+    /// taskbar button — is not this: it is <c>&lt;ApplicationIcon&gt;</c> in the
+    /// project file.</remarks>
     public Icon? Icon { get; init; }
+
+    /// <summary>The icon of the running application, for forms without their own:
+    /// <see cref="Icon"/>, or the logo. Null before <see cref="Run"/>.</summary>
+    internal static Icon? DefaultIcon { get; private set; }
 
     /// <summary>The theme the application starts with, set right where the
     /// application is described: <c>new App(platform) { StartupTheme = Themes.FluentLight,
@@ -233,7 +244,12 @@ public partial class App
 
     public void Run()
     {
-        this.MainForm.Icon ??= Assets.Logo;
+        // App.Icon used to go nowhere: the main form took the logo regardless
+        DefaultIcon = Icon ?? Assets.Logo;
+        this.MainForm.Icon ??= DefaultIcon;
+
+        // before the window: the platform creates it at Form.Size
+        this.MainForm.ApplySizeToContent();
 
         IPlatformWindow window = _platform.CreateWindow(this.MainForm);
 

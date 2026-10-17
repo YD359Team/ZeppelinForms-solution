@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using ZeppelinForms.Core;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls.Tools;
@@ -67,9 +68,6 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
         if (_handle != 0)
             return;
 
-        // before the first show: a dark window must not flash a white caption
-        AttachCaptionTheme();
-
         RegisterWindowClass();
 
         int width = (int)_form.Size.Width;
@@ -79,8 +77,11 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
         switch (_form.WindowStartupLocation)
         {
-            // the window doesn't know its owner — Form.ShowDialog doesn't pass it
-            // to the platform — so CenterOwner centers on the screen for now
+            // a first guess on the primary screen: the scale is known only once the
+            // window exists, and the final place is set then, see PlaceAfterCreate.
+            // Until 0.16 the window didn't know its owner — Form.ShowDialog didn't pass
+            // it to the platform — and CenterOwner centered on the screen; now the
+            // owner is Form.Owner, and PlaceAfterCreate centers on it
             case WindowStartupLocation.CenterScreen:
             case WindowStartupLocation.CenterOwner:
                 Rectangle area = Displays.Primary.WorkingArea;
@@ -132,37 +133,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
         _skiaSurface = Win32SkiaSurfaceFactory.Create(_handle);
         _scale = NativeMethods.GetDpiForWindow(_handle) / 96f;
 
-        if (_scale != 1f)
-        {
-            int physicalWidth = (int)(width * _scale);
-            int physicalHeight = (int)(height * _scale);
-
-            bool center = _form.WindowStartupLocation
-                is WindowStartupLocation.CenterScreen or WindowStartupLocation.CenterOwner;
-
-            if (center)
-            {
-                // the working area, not SM_CXSCREEN/SM_CYSCREEN: those describe the
-                // whole screen, and the window shifted by the taskbar's height —
-                // while before the DPI correction it was centered on the working area
-                Rectangle area = Displays.Primary.WorkingArea;
-
-                int cx = (int)(area.X + (area.Width - physicalWidth) / 2);
-                int cy = (int)(area.Y + (area.Height - physicalHeight) / 2);
-
-                NativeMethods.SetWindowPos(
-                    _handle, 0, cx, cy, physicalWidth, physicalHeight,
-                    NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
-            }
-            else
-            {
-                NativeMethods.SetWindowPos(
-                    _handle, 0, 0, 0, physicalWidth, physicalHeight,
-                    NativeConstants.SWP_NOZORDER
-                        | NativeConstants.SWP_NOACTIVATE
-                        | NativeConstants.SWP_NOMOVE);
-            }
-        }
+        PlaceAfterCreate(width, height);
 
         // WM_SIZE during CreateWindowEx came before the surface existed,
         // so the first time it is initialized by hand
@@ -179,36 +150,85 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             }
         }
 
-        if (_form.Icon is not null)
-        {
-            _largeIcon = Win32Icon.Create(
-                _form.Icon,
-                32,
-                32);
-
-            _smallIcon = Win32Icon.Create(
-                _form.Icon,
-                16,
-                16);
-
-            NativeMethods.SendMessage(
-                _handle,
-                NativeConstants.WM_SETICON,
-                NativeConstants.ICON_BIG,
-                _largeIcon);
-
-            NativeMethods.SendMessage(
-                _handle,
-                NativeConstants.WM_SETICON,
-                NativeConstants.ICON_SMALL,
-                _smallIcon);
-        }
+        // the form's icon, or the application's: at the sizes of the window's DPI,
+        // not a fixed 32 and 16 the taskbar of a 150 % screen stretched
+        ApplyIcon(_form.EffectiveIcon);
 
         // Invoke before the window existed only queued the action: there was no
         // handle to post WM_INVOKE to, and without a later Invoke the action
         // would never run
         if (!_invokeQueue.IsEmpty)
             NativeMethods.PostMessage(_handle, NativeConstants.WM_INVOKE, 0, 0);
+    }
+
+    /// <summary>The size and place the window gets once its scale is known: the
+    /// logical size becomes physical, a window sized to its content gets its frame
+    /// around the client area, and a centered window is centered on its owner or on
+    /// the screen.</summary>
+    private void PlaceAfterCreate(int width, int height)
+    {
+        bool sizedToContent = _form.SizeToContent != SizeToContent.None;
+        bool centered = _form.WindowStartupLocation
+            is WindowStartupLocation.CenterScreen or WindowStartupLocation.CenterOwner;
+
+        // created at its size on its spot already: nothing to correct
+        if (_scale == 1f && !sizedToContent && _form.WindowStartupLocation != WindowStartupLocation.CenterOwner)
+            return;
+
+        int physicalWidth = (int)(width * _scale);
+        int physicalHeight = (int)(height * _scale);
+
+        if (sizedToContent)
+        {
+            // Size is the client area here, as on every other platform: the frame of
+            // this window's styles at this window's DPI goes around it
+            (uint style, uint exStyle) = ChromeStyles();
+
+            var frame = new NativeMethods.RECT { Right = physicalWidth, Bottom = physicalHeight };
+
+            if (NativeMethods.AdjustWindowRectExForDpi(ref frame, style, false, exStyle, (uint)MathF.Round(_scale * 96f)))
+            {
+                physicalWidth = frame.Right - frame.Left;
+                physicalHeight = frame.Bottom - frame.Top;
+            }
+        }
+
+        if (!centered)
+        {
+            NativeMethods.SetWindowPos(
+                _handle, 0, 0, 0, physicalWidth, physicalHeight,
+                NativeConstants.SWP_NOZORDER
+                    | NativeConstants.SWP_NOACTIVATE
+                    | NativeConstants.SWP_NOMOVE);
+            return;
+        }
+
+        Rectangle area = CenteringArea();
+
+        int cx = (int)(area.X + (area.Width - physicalWidth) / 2);
+        int cy = (int)(area.Y + (area.Height - physicalHeight) / 2);
+
+        NativeMethods.SetWindowPos(
+            _handle, 0, cx, cy, physicalWidth, physicalHeight,
+            NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
+    }
+
+    /// <summary>What a centered window is centered in: its owner's window for
+    /// CenterOwner, when it has one; otherwise the primary screen's working area —
+    /// not SM_CXSCREEN/SM_CYSCREEN, which describe the whole screen, and the window
+    /// shifted by the taskbar's height.</summary>
+    private Rectangle CenteringArea()
+    {
+        if (_form.WindowStartupLocation == WindowStartupLocation.CenterOwner &&
+            _form.Owner?.PlatformWindow is Win32Window { _handle: not 0 } owner &&
+            NativeMethods.GetWindowRect(owner._handle, out NativeMethods.RECT rect))
+        {
+            return new Rectangle(
+                new Point(rect.Left, rect.Top),
+                new Size(rect.Right - rect.Left, rect.Bottom - rect.Top));
+        }
+
+        return Displays.Primary.WorkingArea;
     }
 
     private void DestroyIcons()
@@ -546,6 +566,11 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                         suggested.Bottom - suggested.Top,
                         NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
 
+                    // the icons of the new DPI's sizes: a window moved to a 150 % screen
+                    // kept its 100 % ones, stretched and blurred in the taskbar
+                    if (_icon is not null)
+                        ApplyIcon(_icon);
+
                     return 0;
                 }
 
@@ -589,7 +614,6 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                 }
 
             case NativeConstants.WM_DESTROY:
-                DetachCaptionTheme();
                 DisposeAutomation();
                 _form.OnWindowClosed();
                 _platform.WindowDestroyed();
@@ -614,7 +638,9 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                         _trackingMouse = true;
                     }
 
-                    _form.OnPointerMove(new Point(x / _scale, y / _scale));
+                    // the modifiers as for a press: wParam's MK_ flags know no Alt,
+                    // GetKeyState knows all three
+                    _form.OnPointerMove(new Point(x / _scale, y / _scale), GetModifiers());
                     return 0;
                 }
 
@@ -665,8 +691,10 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
             case NativeConstants.WM_INVOKE:
                 {
+                    // each action on its own: one that threw used to leave the rest
+                    // of the queue waiting for the next WM_INVOKE, which may never come
                     while (_invokeQueue.TryDequeue(out var action))
-                        action();
+                        App.RunGuarded(action);
                     return 0;
                 }
 
@@ -735,6 +763,10 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             lpszClassName = ClassName
         };
 
+        // the application's icon as the class's: what the taskbar takes when the
+        // window is too busy to answer for its own, see Win32Window.Icon
+        (windowClass.hIcon, windowClass.hIconSm) = ClassIcons();
+
         ushort atom = NativeMethods.RegisterClassEx(
             ref windowClass);
 
@@ -768,7 +800,21 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
         if (window is not null)
         {
-            return window.ProcessMessage(hWnd, message, wParam, lParam);
+            // one message is one step of the loop: an exception that escapes it goes
+            // to App.UnhandledException. Without a handler the filter is false and the
+            // exception flies on as it always has
+            try
+            {
+                return window.ProcessMessage(hWnd, message, wParam, lParam);
+            }
+            catch (Exception exception) when (App.HasUnhandledExceptionHandler)
+            {
+                if (!App.OfferUnhandledException(exception)) throw;
+
+                // handled: the message is dropped rather than passed on half done.
+                // WM_NCCREATE is the exception — a zero there cancels the window
+                return message == NativeConstants.WM_NCCREATE ? 1 : 0;
+            }
         }
 
         return NativeMethods.DefWindowProc(hWnd, message, wParam, lParam);
@@ -811,42 +857,6 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
         {
             NativeMethods.ImmReleaseContext(_handle, context);
         }
-    }
-
-    private static readonly Dictionary<CursorKind, nint> CursorCache = [];
-    private nint _currentCursor;
-
-    public void SetCursor(CursorKind cursor)
-    {
-        nint handle = LoadCursorHandle(cursor);
-
-        if (handle == _currentCursor) return;
-
-        _currentCursor = handle;
-        NativeMethods.SetCursor(handle);
-    }
-
-    private static nint LoadCursorHandle(CursorKind cursor)
-    {
-        if (CursorCache.TryGetValue(cursor, out nint cached))
-            return cached;
-
-        int id = cursor switch
-        {
-            CursorKind.Hand => NativeConstants.IDC_HAND,
-            CursorKind.IBeam => NativeConstants.IDC_IBEAM,
-            CursorKind.Wait => NativeConstants.IDC_WAIT,
-            CursorKind.SizeWestEast => NativeConstants.IDC_SIZEWE,
-            CursorKind.SizeNorthSouth => NativeConstants.IDC_SIZENS,
-            CursorKind.SizeAll => NativeConstants.IDC_SIZEALL,
-            CursorKind.Cross => NativeConstants.IDC_CROSS,
-            CursorKind.No => NativeConstants.IDC_NO,
-            _ => NativeConstants.IDC_ARROW,
-        };
-
-        nint handle = NativeMethods.LoadCursor(0, id);
-        CursorCache[cursor] = handle;
-        return handle;
     }
 
     private Point PointFromLParam(nint lParam)
@@ -906,7 +916,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             // RPC_E_CHANGED_MODE: the thread is in MTA. Most often this is a forgotten
             // [STAThread] on Main — and without it dragging is impossible
             if (ole == unchecked((int)0x80010106))
-                throw new InvalidOperationException(
+                throw new ZfSetupException(
                     "Drag and drop from the system requires an STA thread. " +
                     "Put [STAThread] on the Main method.");
 
@@ -918,8 +928,8 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             {
                 Ole32.OleUninitialize();
 
-                throw new InvalidOperationException(
-                    $"RegisterDragDrop returned 0x{result:X8}.");
+                throw new ZfPlatformException(
+                    $"RegisterDragDrop returned 0x{result:X8}.", result);
             }
 
             // the reference is held in a field: RegisterDragDrop doesn't keep

@@ -150,8 +150,18 @@ internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
 
     public void ReleaseMouseCapture() { }
 
-    /// <summary>There is no cursor.</summary>
-    public void SetCursor(CursorKind cursor) { }
+    /// <summary>The mouse pointer: a tablet with a mouse, DeX, a Chromebook.</summary>
+    public void SetCursor(CursorKind cursor) => _platform.SetCursor(cursor);
+
+    public void SetCursor(CursorImage cursor) => _platform.SetCursor(cursor);
+
+    /// <summary>The system bars' icons. Only the bottom form's: a dialog over it doesn't
+    /// repaint the bars.</summary>
+    public void SetTitleBarAppearance(bool isDark, Color? background, Color? foreground)
+    {
+        if (_platform.IsRoot(this))
+            _platform.SetSystemBarsDark(isDark);
+    }
 
     /// <summary>Dragging from other applications is not supported.</summary>
     public void SetDragDropEnabled(bool enabled) { }

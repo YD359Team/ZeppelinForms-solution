@@ -7,6 +7,12 @@ namespace ZeppelinForms.Browser;
 /// The only place where the project meets JavaScript. Everything else works
 /// with ordinary types, so that browser specifics don't spread around.
 /// </summary>
+/// <remarks>
+/// Every call from JS is one step of the UI loop and goes through App.RunGuarded:
+/// what escapes it is offered to App.UnhandledException. Unhandled, it reaches JS as
+/// before — an error in the browser console. Frames and the invoke queue are guarded
+/// one window and one action at a time inside BrowserPlatform instead.
+/// </remarks>
 internal static partial class Interop
 {
     internal const string ModuleName = "zf";
@@ -77,6 +83,11 @@ internal static partial class Interop
     [JSImport("setFavicon", ModuleName)]
     internal static partial void SetFavicon(string dataUrl);
 
+    /// <summary>The page's color scheme and theme color; an empty background gives the
+    /// theme color back to the page's own.</summary>
+    [JSImport("setTitleBarAppearance", ModuleName)]
+    internal static partial void SetTitleBarAppearance(bool dark, string background);
+
     /// <summary>The viewport size in physical pixels and devicePixelRatio.</summary>
     [JSImport("viewportWidth", ModuleName)]
     internal static partial int ViewportWidth();
@@ -114,7 +125,8 @@ internal static partial class Interop
     /// <summary>The contents of the picked files: JSON of the form [{name, data}],
     /// data in base64. Written into /uploads, where an ordinary File reads them.</summary>
     [JSExport]
-    internal static void OnFilesPicked(string json) => BrowserFilePicker.Save(json);
+    internal static void OnFilesPicked(string json) =>
+        App.RunGuarded(() => BrowserFilePicker.Save(json));
 
     // ==== JS -> C# ====
     // There is one canvas and one platform, so no window identifier comes from JS:
@@ -122,6 +134,7 @@ internal static partial class Interop
 
     internal static BrowserPlatform? Platform;
 
+    // guarded inside: one window's tick and one queued action at a time
     [JSExport]
     internal static void OnFrame(double timestampMs) => Platform?.HandleFrame(timestampMs);
 
@@ -132,11 +145,11 @@ internal static partial class Interop
     /// default action, "focus" — moved its own focus there.</summary>
     [JSExport]
     internal static void OnAccessibilityAction(string id, string action) =>
-        Platform?.AriaMirror?.Act(id, action);
+        App.RunGuarded(() => Platform?.AriaMirror?.Act(id, action));
 
     [JSExport]
     internal static void OnResize(int physicalWidth, int physicalHeight, double scale) =>
-        Platform?.HandleResize(physicalWidth, physicalHeight, (float)scale);
+        App.RunGuarded(() => Platform?.HandleResize(physicalWidth, physicalHeight, (float)scale));
 
     /// <summary>kind: 0 — mouse, 1 — touch, 2 — pen. timestampMs — browser time
     /// since the page started loading, not TickCount64: BrowserWindow converts it,
@@ -144,81 +157,89 @@ internal static partial class Interop
     [JSExport]
     internal static void OnPointerMove(
         double x, double y, int pointerId, int kind, double pressure, double timestampMs, int modifiers) =>
-        Platform?.InputTarget()?.HandlePointerMove(x, y, pointerId, kind, pressure, timestampMs, modifiers);
+        App.RunGuarded(() =>
+            Platform?.InputTarget()?.HandlePointerMove(x, y, pointerId, kind, pressure, timestampMs, modifiers));
 
     [JSExport]
     internal static void OnPointerDown(
         double x, double y, int pointerId, int kind, int button, double pressure, double timestampMs, int modifiers) =>
-        Platform?.InputTarget()?.HandlePointerDown(x, y, pointerId, kind, button, pressure, timestampMs, modifiers);
+        App.RunGuarded(() =>
+            Platform?.InputTarget()?.HandlePointerDown(x, y, pointerId, kind, button, pressure, timestampMs, modifiers));
 
     [JSExport]
     internal static void OnPointerUp(
         double x, double y, int pointerId, int kind, int button, double pressure, double timestampMs, int modifiers) =>
-        Platform?.InputTarget()?.HandlePointerUp(x, y, pointerId, kind, button, pressure, timestampMs, modifiers);
+        App.RunGuarded(() =>
+            Platform?.InputTarget()?.HandlePointerUp(x, y, pointerId, kind, button, pressure, timestampMs, modifiers));
 
     [JSExport]
     internal static void OnPointerCancel(int pointerId) =>
-        Platform?.InputTarget()?.HandlePointerCancel(pointerId);
+        App.RunGuarded(() => Platform?.InputTarget()?.HandlePointerCancel(pointerId));
 
     [JSExport]
-    internal static void OnPointerLeave() => Platform?.InputTarget()?.HandlePointerLeave();
+    internal static void OnPointerLeave() =>
+        App.RunGuarded(() => Platform?.InputTarget()?.HandlePointerLeave());
 
     /// <summary>The deltas are already in pixels: zf.js brings lines and pages
     /// to pixels by deltaMode before calling.</summary>
     [JSExport]
     internal static void OnWheel(double x, double y, double deltaY, double deltaX) =>
-        Platform?.InputTarget()?.HandleWheel(x, y, deltaY, deltaX);
+        App.RunGuarded(() => Platform?.InputTarget()?.HandleWheel(x, y, deltaY, deltaX));
 
     [JSExport]
     internal static void OnContextMenu(double x, double y) =>
-        Platform?.InputTarget()?.HandleContextMenu(x, y);
+        App.RunGuarded(() => Platform?.InputTarget()?.HandleContextMenu(x, y));
 
     /// <summary>code — the physical key, key — the character according to the layout.
     /// The former is needed for navigation, the latter for text input.</summary>
     [JSExport]
     internal static void OnKeyDown(string code, string key, int modifiers, bool isRepeat) =>
-        Platform?.InputTarget()?.HandleKeyDown(code, key, modifiers, isRepeat);
+        App.RunGuarded(() => Platform?.InputTarget()?.HandleKeyDown(code, key, modifiers, isRepeat));
 
     [JSExport]
     internal static void OnKeyUp(string code, int modifiers) =>
-        Platform?.InputTarget()?.HandleKeyUp(code, modifiers);
+        App.RunGuarded(() => Platform?.InputTarget()?.HandleKeyUp(code, modifiers));
 
     /// <summary>The input method's composition so far, from the hidden text area.</summary>
     [JSExport]
     internal static void OnCompositionUpdate(string text, int cursor) =>
-        Platform?.InputTarget()?.HandleCompositionUpdate(text, cursor);
+        App.RunGuarded(() => Platform?.InputTarget()?.HandleCompositionUpdate(text, cursor));
 
     [JSExport]
     internal static void OnCompositionCommit(string text) =>
-        Platform?.InputTarget()?.HandleCompositionCommit(text);
+        App.RunGuarded(() => Platform?.InputTarget()?.HandleCompositionCommit(text));
 
     /// <summary>Text typed on a phone's keyboard: it comes without a key to read.</summary>
     [JSExport]
     internal static void OnTextInput(string text) =>
-        Platform?.InputTarget()?.HandleTextInput(text);
+        App.RunGuarded(() => Platform?.InputTarget()?.HandleTextInput(text));
 
     [JSExport]
-    internal static void OnFocusLost() => Platform?.InputTarget()?.HandleFocusLost();
+    internal static void OnFocusLost() =>
+        App.RunGuarded(() => Platform?.InputTarget()?.HandleFocusLost());
 
     [JSExport]
-    internal static void OnVisibilityChange(bool visible)
-    {
-        // back on the tab: the accent may have been changed in the system meanwhile,
-        // and the browser has no event for it
-        if (visible) Platform?.RefreshAppearance();
+    internal static void OnVisibilityChange(bool visible) =>
+        App.RunGuarded(() =>
+        {
+            // back on the tab: the accent may have been changed in the system meanwhile,
+            // and the browser has no event for it
+            if (visible) Platform?.RefreshAppearance();
 
-        Platform?.HandleVisibilityChange(visible);
-    }
+            Platform?.HandleVisibilityChange(visible);
+        });
 
     [JSExport]
-    internal static void OnColorSchemeChange() => Platform?.RefreshAppearance();
+    internal static void OnColorSchemeChange() =>
+        App.RunGuarded(() => Platform?.RefreshAppearance());
 
     [JSExport]
     internal static void OnReducedMotionChange(bool reduced) =>
-    Platform?.HandleReducedMotionChange(reduced);
+        App.RunGuarded(() => Platform?.HandleReducedMotionChange(reduced));
 
     [JSExport]
-    internal static void OnPageHide() => Platform?.HandlePageHide();
+    internal static void OnPageHide() =>
+        App.RunGuarded(() => Platform?.HandlePageHide());
 
     /// <summary>The CSS name of the cursor for each kind. Default and Arrow are the
     /// same thing in a browser: we have no arrow of our own, the system draws it.</summary>
@@ -229,6 +250,8 @@ internal static partial class Interop
         CursorKind.Wait => "wait",
         CursorKind.SizeWestEast => "ew-resize",
         CursorKind.SizeNorthSouth => "ns-resize",
+        CursorKind.SizeNorthWestSouthEast => "nwse-resize",
+        CursorKind.SizeNorthEastSouthWest => "nesw-resize",
         CursorKind.SizeAll => "move",
         CursorKind.Cross => "crosshair",
         CursorKind.No => "not-allowed",

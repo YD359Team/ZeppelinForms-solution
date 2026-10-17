@@ -112,6 +112,24 @@ public sealed class SkiaGraphics : Graphics
 
     public SkiaGraphics(SKCanvas canvas) => _canvas = canvas;
 
+    /// <summary>The Skia canvas being drawn on now, for a control that draws with Skia
+    /// itself — a chart, a PDF page, a map — rather than through <see cref="Graphics"/>.</summary>
+    /// <remarks>
+    /// <para>
+    /// The canvas has the element's place, transform and clip already applied: drawing
+    /// at (0, 0) draws at the element's top-left corner, as <see cref="Graphics"/> does.
+    /// Whatever is saved on it is restored before the element's drawing returns —
+    /// <c>Save</c> and <c>Restore</c> in pairs.
+    /// </para>
+    /// <para>
+    /// Read it where it is drawn on, and don't keep it: while an effect captures the
+    /// element, this is the canvas of an offscreen layer, and it changes back after.
+    /// Reach it with <c>if (g is SkiaGraphics skia)</c>: the drawing is Skia's on every
+    /// platform, but a test may draw through a recording <see cref="Graphics"/>.
+    /// </para>
+    /// </remarks>
+    public SKCanvas Canvas => _canvas;
+
     private static SKImage GetOrCreate(Image image)
     {
         if (!ImageCache.TryGetValue(image, out SKImage? cached))
@@ -361,6 +379,27 @@ public sealed class SkiaGraphics : Graphics
         SKPaint paint = StrokePaint(color, width);
         using var rounded = MakeRoundRect(rect, radius);
         _canvas.DrawRoundRect(rounded, paint);
+    }
+
+    public override Rectangle AlignToPixels(Rectangle rect)
+    {
+        SKMatrix m = _canvas.TotalMatrix;
+
+        // only a scale and an offset keep the edges on pixel rows and columns
+        if (m.SkewX != 0 || m.SkewY != 0 || m.Persp0 != 0 || m.Persp1 != 0 || m.ScaleX <= 0 || m.ScaleY <= 0)
+            return rect;
+
+        float left = MathF.Round(rect.X * m.ScaleX + m.TransX);
+        float top = MathF.Round(rect.Y * m.ScaleY + m.TransY);
+        float right = MathF.Round(rect.Right * m.ScaleX + m.TransX);
+        float bottom = MathF.Round(rect.Bottom * m.ScaleY + m.TransY);
+
+        // a rectangle thinner than a pixel would vanish: it stays where it was
+        if (right <= left || bottom <= top) return rect;
+
+        return new Rectangle(
+            new Point((left - m.TransX) / m.ScaleX, (top - m.TransY) / m.ScaleY),
+            new Size((right - left) / m.ScaleX, (bottom - top) / m.ScaleY));
     }
 
     public override void ClipRoundRect(Rectangle rect, CornerRadius radius)

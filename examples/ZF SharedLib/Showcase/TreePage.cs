@@ -31,6 +31,49 @@ internal static class TreePage
                 string developer => developer,
                 _ => string.Empty,
             },
+
+            // an icon by the kind of node, a check box for "played", several nodes at
+            // once with Ctrl and Shift, F2 to rename
+            ItemIcon = node => node.Content is Game ? Icons.Image : Icons.Box,
+            CheckBoxes = true,
+            SelectionMode = ZeppelinForms.Forms.Enums.SelectionMode.Extended,
+            LabelEdit = true,
+        };
+
+        // a game is renamed by its title, without the year the caption adds
+        tree.NodeEditing += (_, e) =>
+        {
+            if (e.Node.Content is Game game) e.Text = game.Title;
+        };
+
+        // a developer's content is the string itself and takes the text by itself;
+        // a game is a record, and the handler makes the renamed one
+        tree.NodeEdited += (_, e) =>
+        {
+            if (string.IsNullOrWhiteSpace(e.Text)) e.Cancel = true;
+            else if (e.Node.Content is Game game) e.Node.Content = game with { Title = e.Text.Trim() };
+        };
+
+        tree.NodeInvoked += (_, e) =>
+        {
+            if (e.Node.Content is not Game game) return;
+
+            selection.Text = $"Opened {game.Title}";
+            e.Handled = true;
+        };
+
+        tree.NodeContextMenu = node =>
+        {
+            var rename = new MenuItem { Text = "&Rename", InputGestureText = "F2" };
+            rename.Click += (_, _) => tree.BeginEdit(node);
+
+            var played = new MenuItem { Text = "Mark as &played" };
+            played.Click += (_, _) =>
+            {
+                foreach (TreeNode selected in tree.SelectedNodes) selected.IsChecked = true;
+            };
+
+            return [rename, played];
         };
 
         foreach (IGrouping<string, Game> group in Samples.Games
@@ -50,12 +93,14 @@ internal static class TreePage
         if (tree.Nodes.Count > 0) tree.Nodes[0].IsExpanded = true;
 
         tree.SelectionChanged += (_, node) =>
-            selection.Text = node?.Content switch
-            {
-                Game game => $"{game.Title} — {game.Developer}, {game.Year}",
-                string developer => $"{developer}: {Samples.Games.Count(game => game.Developer == developer)} game(s)",
-                _ => "Select a node",
-            };
+            selection.Text = tree.SelectedNodes.Count > 1
+                ? $"{tree.SelectedNodes.Count} nodes selected"
+                : node?.Content switch
+                {
+                    Game game => $"{game.Title} — {game.Developer}, {game.Year}",
+                    string developer => $"{developer}: {Samples.Games.Count(game => game.Developer == developer)} game(s)",
+                    _ => "Select a node",
+                };
 
         // the rows below an expanded node slide down instead of jumping
         tree.Children.OfType<VirtualizingStackPanel>().Single()
@@ -73,7 +118,7 @@ internal static class TreePage
             TreeNode? hades = tree.Nodes.SelectMany(n => n.Children).FirstOrDefault(n => n.Content is Game { Title: "Hades" });
             if (hades is null) return;
 
-            // the path to it opens, and it is selected
+            // the path to it opens, and it is selected: the tree scrolls to it
             hades.ExpandAncestors();
             tree.SelectedNode = hades;
         };
@@ -87,6 +132,6 @@ internal static class TreePage
         demo.Children.AddRange([Demo.Row(expand, collapse, reveal), tree, selection]);
 
         return Demo.Page("Tree", "Nested data: nodes with children, expanded on demand.",
-            Demo.Section("Tree view", demo, "Right and Left expand and collapse, Up and Down move; only the visible rows are made"));
+            Demo.Section("Tree view", demo, "Right and Left expand and collapse, Up and Down move, Shift and Ctrl select several; Space checks the selected nodes, F2 renames, Enter or a double click opens a game, the right button has a menu; only the visible rows are made"));
     }
 }
