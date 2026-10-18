@@ -20,3 +20,7 @@ ZeppelinForms.Headless.HeadlessWindow.MaximumSizeLimit.get -> ZeppelinForms.Draw
 ZeppelinForms.Headless.HeadlessWindow.MinimumSizeLimit.get -> ZeppelinForms.Drawing.Primitives.Size
 ZeppelinForms.Headless.HeadlessWindow.SetSizeLimits(ZeppelinForms.Drawing.Primitives.Size minimum, ZeppelinForms.Drawing.Primitives.Size maximum) -> void
 ZeppelinForms.Headless.HeadlessWindow.SetTopMost(bool topMost) -> void
+ZeppelinForms.Forms.Form.LocationChanged -> System.EventHandler?
+ZeppelinForms.Forms.Form.SizeChanged -> System.EventHandler?
+virtual ZeppelinForms.Forms.Form.OnLocationChanged(System.EventArgs! e) -> void
+virtual ZeppelinForms.Forms.Form.OnSizeChanged(System.EventArgs! e) -> void

@@ -103,7 +103,15 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
 
     public void SetBounds(Rectangle bounds)
     {
-        _form.ClientSize = bounds.Size;
+        // a headless window has no frame and no screen: the size is the client area,
+        // kept within the form's limits as a real window manager would keep it, and
+        // both are reported back as a platform reports a move and a resize
+        Size size = _form.ClampToSizeLimits(bounds.Size);
+
+        _form.OnWindowMoved(new Point(bounds.X, bounds.Y));
+        _form.OnWindowResized(size);
+
+        _form.ClientSize = size;
         _form.PerformLayout();
     }
 

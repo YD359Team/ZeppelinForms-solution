@@ -119,6 +119,70 @@ public class FormPlacementTests
     }
 
     [Fact]
+    public void SettingTheSizeOfAnOpenFormResizesTheWindow()
+    {
+        var form = new Form { Size = new Size(400, 300) };
+        Open(form);
+
+        int changes = 0;
+        form.SizeChanged += (_, _) => changes++;
+
+        form.Size = new Size(640, 480);
+
+        // headless has no frame: the client area is the whole window
+        Assert.Equal(new Size(640, 480), form.ClientSize);
+        Assert.Equal(1, changes);
+    }
+
+    [Fact]
+    public void SettingThePositionOfAnOpenFormRaisesLocationChangedOnce()
+    {
+        var form = new Form();
+        Open(form);
+
+        int changes = 0;
+        form.LocationChanged += (_, _) => changes++;
+
+        form.Position = new Point(120, 80);
+
+        // the window reported the move back: the same place, no second event
+        Assert.Equal(new Point(120, 80), form.Position);
+        Assert.Equal(1, changes);
+    }
+
+    [Fact]
+    public void AMoveAndAResizeByTheUserReachTheForm()
+    {
+        var form = new Form { Size = new Size(400, 300) };
+        Open(form);
+
+        int moves = 0, resizes = 0;
+        form.LocationChanged += (_, _) => moves++;
+        form.SizeChanged += (_, _) => resizes++;
+
+        // as a platform reports a drag of the title bar and of an edge
+        form.OnWindowMoved(new Point(10, 20));
+        form.OnWindowResized(new Size(500, 350));
+
+        Assert.Equal(new Point(10, 20), form.Position);
+        Assert.Equal(new Size(500, 350), form.Size);
+        Assert.Equal(1, moves);
+        Assert.Equal(1, resizes);
+    }
+
+    [Fact]
+    public void ASizeFromCodeKeepsWithinTheLimits()
+    {
+        var form = new Form { Size = new Size(400, 300), MaximumSize = new Size(500, 500) };
+        Open(form);
+
+        form.Size = new Size(900, 200);
+
+        Assert.Equal(new Size(500, 200), form.ClientSize);
+        Assert.Equal(new Size(500, 200), form.Size);
+    }
+
+    [Fact]
     public void CenterToScreenBeforeOpeningOpensCentered()
     {
         var form = new Form();

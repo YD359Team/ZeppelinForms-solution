@@ -92,8 +92,44 @@ public partial class Form
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
     }
 
-    /// <summary>A size kept within <see cref="MinimumSize"/> and <see cref="MaximumSize"/>,
-    /// axis by axis: the size a platform opens the window at.</summary>
+    /// <summary><see cref="Position"/> changed: by the application, or by the user
+    /// moving the window.</summary>
+    public event EventHandler? LocationChanged;
+
+    /// <summary><see cref="Size"/> changed: by the application, or by the user resizing
+    /// the window. <see cref="ClientSizeChanged"/> follows the area inside the frame.</summary>
+    public event EventHandler? SizeChanged;
+
+    protected virtual void OnLocationChanged(EventArgs e) => LocationChanged?.Invoke(this, e);
+
+    protected virtual void OnSizeChanged(EventArgs e) => SizeChanged?.Invoke(this, e);
+
+    /// <summary>The window moved, by the user or the system: the platform tells the form
+    /// where it is now, in screen pixels.</summary>
+    /// <remarks>Not through the setter: that would send the window to where it already
+    /// is, and a drag would fight itself.</remarks>
+    internal void OnWindowMoved(Point position)
+    {
+        if (_position == position) return;
+
+        _position = position;
+        OnLocationChanged(EventArgs.Empty);
+    }
+
+    /// <summary>The window was resized: the platform tells the form its size now, in
+    /// logical units and measured as <see cref="Size"/> is.</summary>
+    internal void OnWindowResized(Size size)
+    {
+        if (_size == size) return;
+
+        _size = size;
+        OnSizeChanged(EventArgs.Empty);
+    }
+
+    /// <summary>An open window goes where <see cref="Position"/> and <see cref="Size"/>
+    /// say. Before it is open there is nothing to move: the platform reads them when
+    /// it makes the window.</summary>
+    private void ApplyBounds() => DesktopWindow?.SetBounds(new Rectangle(Position, Size));
     internal Size ClampToSizeLimits(Size size) => new(
         Clamp(size.Width, MinimumSize.Width, MaximumSize.Width),
         Clamp(size.Height, MinimumSize.Height, MaximumSize.Height));

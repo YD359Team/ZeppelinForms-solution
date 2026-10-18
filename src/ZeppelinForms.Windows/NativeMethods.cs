@@ -464,6 +464,10 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern nint MonitorFromWindow(nint hWnd, int flags);
 
+
+    [DllImport("user32.dll")]
+    public static extern bool IsIconic(nint hWnd);
+
     /// <summary>What WM_GETMINMAXINFO asks the window to fill in: the sizes the user's
     /// dragging stays within (the track sizes) and the size and place of the
     /// maximized window. All in physical pixels, frame included.</summary>

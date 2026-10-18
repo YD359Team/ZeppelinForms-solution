@@ -135,6 +135,7 @@ internal static class NativeConstants
 
     // the size limits, the topmost place and centering (Win32Window.Placement)
     public const uint WM_GETMINMAXINFO = 0x0024;
+    public const uint WM_WINDOWPOSCHANGED = 0x0047;
     public const nint HWND_TOPMOST = -1;
     public const nint HWND_NOTOPMOST = -2;
 }

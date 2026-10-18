@@ -64,6 +64,26 @@ internal sealed partial class Win32Window
             NativeConstants.SWP_NOSIZE | NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
     }
 
+    /// <summary>The window reports its moves and resizes to the form: set once it is
+    /// placed, see Create.</summary>
+    private bool _reportsBounds;
+
+    /// <summary>Tell the form where the window is and how big it is now. A minimized
+    /// window isn't reported: it stands at -32000 off every screen, and the form keeps
+    /// the place it will come back to.</summary>
+    private void ReportBounds()
+    {
+        if (!_reportsBounds || _handle == 0 || NativeMethods.IsIconic(_handle)) return;
+        if (!NativeMethods.GetWindowRect(_handle, out NativeMethods.RECT rect)) return;
+
+        (int extraWidth, int extraHeight) = FrameExtra();
+
+        _form.OnWindowMoved(new Point(rect.Left, rect.Top));
+        _form.OnWindowResized(new Size(
+            (rect.Right - rect.Left - extraWidth) / _scale,
+            (rect.Bottom - rect.Top - extraHeight) / _scale));
+    }
+
     /// <summary>WM_GETMINMAXINFO: the form's limits over the system's defaults. An axis
     /// with no limit keeps the default — the system's smallest window, the screen.</summary>
     /// <remarks>

@@ -84,8 +84,10 @@ internal sealed partial class X11Window
 
         switch (_form.WindowStartupLocation)
         {
+            // Form.Position is in screen pixels, as Displays has the screens; until 0.17
+            // Linux took it as logical and multiplied it by the scale, unlike Windows
             case WindowStartupLocation.Manual:
-                return ((int)(_form.Position.X * _scale), (int)(_form.Position.Y * _scale));
+                return ((int)_form.Position.X, (int)_form.Position.Y);
 
             case WindowStartupLocation.CenterOwner
                 when _form.Owner?.PlatformWindow is X11Window { _window: not 0 } owner:
