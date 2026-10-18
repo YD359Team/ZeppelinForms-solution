@@ -1,5 +1,5 @@
 <Project>
-  <!-- Comes with the ZeppelinForms package into every application that references it,
+	<!-- Comes with the ZeppelinForms package into every application that references it,
        directly or through a library.
 
        Style sheets find the controls they name in registrations the ZeppelinForms
@@ -7,15 +7,24 @@
        the framework can also enumerate the loaded assemblies — which trimming breaks
        and native AOT can't do. A trimmed or AOT publish turns the enumeration off, and
        the trimmer removes it -->
-  <ItemGroup Condition="'$(PublishTrimmed)' == 'true' or '$(PublishAot)' == 'true'">
-    <RuntimeHostConfigurationOption Include="ZeppelinForms.Styling.ScanAssemblies"
-                                    Value="false"
-                                    Trim="true" />
-  </ItemGroup>
+	<ItemGroup Condition="'$(PublishTrimmed)' == 'true' or '$(PublishAot)' == 'true'">
+		<RuntimeHostConfigurationOption Include="ZeppelinForms.Styling.ScanAssemblies"
+										Value="false"
+										Trim="true" />
+	</ItemGroup>
 
-  <!-- Markup: every *.zfml of the project goes to the generator, which compiles it into
+	<!-- Markup: every *.zfml of the project goes to the generator, which compiles it into
        the C# of its class (x:Class) -->
-  <ItemGroup>
-    <AdditionalFiles Include="**\*.zfml" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
-  </ItemGroup>
+	<ItemGroup>
+		<AdditionalFiles Include="**\*.zfml" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+	</ItemGroup>
+
+	<!-- Style sheets are read at run time and never compiled. A .zss Visual Studio gave
+       the C# build action — added as a code file and renamed, or set by hand — went to
+       the C# compiler, and the build failed on its braces and colons with "identifier
+       expected" and "; expected". Imported after the project's own items, this takes it
+       out of Compile whatever the project says -->
+	<ItemGroup>
+		<Compile Remove="**\*.zss" />
+	</ItemGroup>
 </Project>

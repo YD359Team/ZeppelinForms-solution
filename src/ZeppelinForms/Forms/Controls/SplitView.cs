@@ -80,11 +80,12 @@ public partial class SplitView : DecoratedPanel
         _scrim = new SplitViewScrim(this);
         _paneButton = new SplitViewPaneButton(this);
 
-        // drawn in this order: the content, the menu's pane button over its corner,
-        // the scrim over both, the pane on top. The content goes in at the front
-        // when it is set
-        Children.Add(_paneButton);
+        // drawn in this order: the content, the scrim over it, the menu's pane button,
+        // the pane on top. The content goes in at the front when it is set. The button
+        // lies under the pane: the opening pane covers it with its own, drawn in the
+        // same place, and over the scrim, which would dim it as the pane slides over
         Children.Add(_scrim);
+        Children.Add(_paneButton);
         Children.Add(_host);
 
         InitializeNavigation();
@@ -400,13 +401,15 @@ public partial class SplitView : DecoratedPanel
         // the scrim lies over the content and its band only: the closed strip is the pane's
         _scrim.Arrange(column);
 
-        // the menu's pane button: in its band, on the pane's side, where the open
-        // menu has its own
-        float buttonWidth = Math.Min(CompactPaneLength, column.Width);
-        float buttonHeight = Math.Min(ItemHeight, column.Height);
+        // the menu's pane button: at the window's edge on the pane's side, exactly where
+        // the open menu has its own. It stays there while the pane moves — the band in
+        // the content column moves aside with an inline pane, and a button following it
+        // slid away from the one the pane brings
+        float buttonWidth = Math.Min(CompactPaneLength, area.Width);
+        float buttonHeight = Math.Min(ItemHeight, area.Height);
 
         _paneButton.Arrange(new Rectangle(
-            new Point(right ? column.X + column.Width - buttonWidth : column.X, column.Y),
+            new Point(right ? area.X + area.Width - buttonWidth : area.X, area.Y),
             new Size(buttonWidth, buttonHeight)));
 
         _host.Arrange(new Rectangle(
@@ -483,8 +486,13 @@ public partial class SplitView : DecoratedPanel
             && (_isPaneOpen || _progress > 0f);
 
         // a menu whose pane hides whole needs a way to open it: the button stands
-        // over the content while the pane is closed and still
-        _paneButton.IsVisible = HasMenu && IsPaneToggleButtonVisible && !IsCompact && !_isPaneOpen && _progress == 0f;
+        // over the content. Not only while the pane is closed and still: it used to go
+        // the moment the pane started to open and come back only once it had closed, and
+        // the pane's own button, cut by the narrow pane at both ends of the move, left the
+        // place empty for a few frames — the button blinked. Now it stays under the moving
+        // pane, which covers it with its own; only the open pane hides it, so a translucent
+        // pane doesn't show two
+        _paneButton.IsVisible = HasButtonBand && _progress < 1f;
 
         SetPseudoClass(PseudoClass.Compact, IsCompact);
         SetPseudoClass(PseudoClass.Overlay, IsOverlay);

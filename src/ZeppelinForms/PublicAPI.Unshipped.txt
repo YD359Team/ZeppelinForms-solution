@@ -664,3 +664,5 @@ ZeppelinForms.Forms.Controls.DataGrid.DataGridViewRowStyle.TextColor.init -> voi
 ZeppelinForms.IDesktopWindow.SetIcon(ZeppelinForms.Drawing.Imaging.Icon? icon) -> void
 static readonly ZeppelinForms.Forms.Controls.DataGrid.DataGridView.AlternateRowColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 static readonly ZeppelinForms.Forms.Controls.DataGrid.DataGridView.ShowAlternateRowsProperty -> ZeppelinForms.Forms.Styling.StyledProperty<bool>!
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.Refresh() -> void
+override ZeppelinForms.Forms.Controls.DataGrid.DataGridView.OnAttached() -> void

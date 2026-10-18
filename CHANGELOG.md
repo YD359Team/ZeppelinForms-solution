@@ -1,5 +1,22 @@
 # Changes
 
+## [0.16.1]
+
+### Fixes
+
+- `DataGridView` drew changed values of its records only when the mouse moved over
+  it: nothing told it that a record had changed. It now listens to the records that
+  implement `INotifyPropertyChanged` while they are in `Items` (sorting again when
+  the grid is sorted), and the new `Refresh()` redraws it for plain records. `Refresh()`
+  may be called from any thread; calls made before the next frame are joined into one.
+- `SplitView`: the pane button blinked when the pane opened or closed. The button of
+  the band was hidden while the pane moved, and the pane's own button was cut by the
+  pane narrower than it. The band button now stays at the window's edge under the
+  pane until the pane is fully open, and comes back at once when it starts to close.
+- A `.zss` style sheet with the C# build action no longer fails the build with C#
+  errors: the package takes style sheets out of the compilation
+- All CI .yml files moved to .github/workflows
+
 ## [0.16.0] - Stonehenge
 
 ![Stonehenge](assets/Logo-0.16.0.jpg)

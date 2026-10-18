@@ -120,6 +120,10 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     /// </remarks>
     private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        // the records that tell about their changes are listened to while they are here,
+        // see DataGridView.Records
+        ObserveRecords(e);
+
         // the display order was built for the previous contents: it holds
         // indices that no longer exist
         if (SortColumnIndex >= 0) BuildOrder();
