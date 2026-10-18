@@ -7,8 +7,6 @@
     <File Path="showcase.yml" />
   </Folder>
   <Folder Name="/assets/">
-    <File Path="assets/Example-android-emulator-0.12.0.jpg" />
-    <File Path="assets/Example-desktop-0.12.0.jpg" />
     <File Path="assets/Logo-0.10.0.jpg" />
     <File Path="assets/Logo-0.11.0.jpg" />
     <File Path="assets/Logo-0.12.0.jpg" />
@@ -17,6 +15,9 @@
     <File Path="assets/Logo-0.15.0.jpg" />
     <File Path="assets/Logo-0.16.0.jpg" />
     <File Path="assets/Logo-0.9.0.jpg" />
+    <File Path="assets/zf1.jpg" />
+    <File Path="assets/zf2.jpg" />
+    <File Path="assets/zf3.jpg" />
     <File Path="assets/ZF_13_medium.jpg" />
   </Folder>
   <Folder Name="/bench/">

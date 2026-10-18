@@ -8,8 +8,9 @@
 
 ![CI](https://github.com/YD359Team/ZeppelinForms-solution/actions/workflows/ci.yml/badge.svg)
 
-![Windows](assets/Example-desktop-0.12.0.jpg)
-![Android emulator](assets/Example-android-emulator-0.12.0.jpg)
+![Example 1](assets/zf1.jpg)
+![Example 2](assets/zf2.jpg)
+![Example 3](assets/zf3.jpg)
 
 The project is under active development.
 
