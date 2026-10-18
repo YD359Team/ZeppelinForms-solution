@@ -35,16 +35,14 @@
 		      SkipUnchangedFiles="true" />
 	</Target>
 
-	<ItemGroup>
-		<Content Remove="wwwroot\zf.js" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<None Include="wwwroot\zf.js" />
-	</ItemGroup>
-
 	<!-- шрифт лежит в wwwroot и подхватывается сам; zf.js приезжает
        из ZeppelinForms.Browser. Объявлять их нельзя: второе объявление
        даст два ресурса с одним маршрутом и уронит сборку -->
+
+	<!-- wwwroot/zf.js is the application's own copy of the module and a static web asset
+	     like the rest of wwwroot: the SDK takes its assets from the Content items, and
+	     removing it from Content left it out of the publish — the published page asked
+	     for ./zf.js and got a 404, with nothing on the canvas. ZeppelinForms.Browser
+	     doesn't bring it (its zf.js is the source, a None item), so there is one route -->
 
 </Project>
