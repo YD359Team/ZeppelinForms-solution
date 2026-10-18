@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Animation;
+﻿using System.Diagnostics.CodeAnalysis;
+using ZeppelinForms.Animation;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Theming;
@@ -97,7 +98,7 @@ public sealed class Style
     }
 
     /// <summary>Set a value.</summary>
-    public Style Set<T>(StyledProperty<T> property, T value)
+    public Style Set<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T value)
     {
         Add(new Setter<T>(property, value));
         return this;
@@ -105,7 +106,7 @@ public sealed class Style
 
     /// <summary>Set a value taken from the theme the style is applied with: switching
     /// to a dark theme recolors the style without touching it.</summary>
-    public Style Set<T>(StyledProperty<T> property, Func<Theme, T> fromTheme)
+    public Style Set<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, Func<Theme, T> fromTheme)
     {
         Add(new Setter<T>(property, fromTheme));
         return this;
@@ -206,7 +207,7 @@ public abstract class Setter
 }
 
 /// <summary>A typed setter: a value, or a way to take it from the theme.</summary>
-public sealed class Setter<T> : Setter
+public sealed class Setter<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T> : Setter
 {
     private readonly T _value = default!;
     private readonly Func<Theme, T>? _fromTheme;

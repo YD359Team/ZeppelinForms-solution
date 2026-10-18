@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using ZeppelinForms.Forms.Styling;
 
@@ -98,13 +99,13 @@ public abstract partial class UIElement
     }
 
     /// <summary>Remember a control's default for its type, see <see cref="ControlDefaults"/>.</summary>
-    private void RememberControlDefault<T>(StyledProperty<T> property, T value) =>
+    private void RememberControlDefault<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T value) =>
         ControlDefaults[(GetType(), property.Index)] = value;
 
     /// <summary>The value the property goes back to: the control's own default
     /// if its type has one, otherwise the property's. <paramref name="own"/> —
     /// whether it is the control's own.</summary>
-    private T DefaultFor<T>(StyledProperty<T> property, out bool own)
+    private T DefaultFor<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, out bool own)
     {
         own = ControlDefaults.TryGetValue((GetType(), property.Index), out object? boxed);
 
@@ -119,7 +120,7 @@ public abstract partial class UIElement
     /// reaction, the invalidation and the notification which properties the 
     /// current theme — and the styles applied in its pass — set on the element, 
     /// and what each of them goes back to when neither sets it any longer.</summary>
-    internal void WithdrawThemeValue<T>(StyledProperty<T> property)
+    internal void WithdrawThemeValue<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property)
     {
         T fallback = DefaultFor(property, out bool own);
         T current = property.GetValue(this);

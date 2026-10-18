@@ -1,5 +1,15 @@
 # Changes
 
+## [0.16.2]
+
+- The trimmed publish of an application (the WebAssembly showcase, `PublishTrimmed`,
+  native AOT) failed with IL2091: `StyledProperty<T>` asks trimming to keep the
+  constructors, properties and fields of `T` for style sheets, and the generic
+  members passing a `StyledProperty<T>` along — `SetValue`, `ClearValue`, `Bind`,
+  `Style.Set`, `Setter<T>`, the transitions — didn't say so of their own `T`. They
+  carry the same annotation now. The library's own build didn't see it: the trim
+  analyzer checks generic arguments in calls, the trimmer also in signatures.
+
 ## [0.16.1]
 
 ### Fixes

@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Forms.Controls.Base;
+﻿using System.Diagnostics.CodeAnalysis;
+using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Animation;
@@ -14,7 +15,7 @@ internal interface IPropertyTransition
 /// clock like any other animation: suspension in an invisible subtree,
 /// stopping frames and displacement by key come for free.
 /// </summary>
-internal sealed class PropertyTransition<T> : IAnimation, IPropertyTransition
+internal sealed class PropertyTransition<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T> : IAnimation, IPropertyTransition
 {
     private readonly UIElement _element;
     private readonly StyledProperty<T> _property;

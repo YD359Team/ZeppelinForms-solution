@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Animation;
+﻿using System.Diagnostics.CodeAnalysis;
+using ZeppelinForms.Animation;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Theming;
@@ -323,8 +324,8 @@ public abstract partial class UIElement
 
     /// <summary>Write a style's value: the theme pass is running, and the write is
     /// staged like the theme's own.</summary>
-    internal void WriteStyleValue<T>(StyledProperty<T> property, T value) =>
-        SetValue(property, value);
+    internal void WriteStyleValue<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T value) =>
+            SetValue(property, value);
 
     // ===== staging =====
 
@@ -374,7 +375,7 @@ public abstract partial class UIElement
     }
 
     /// <summary>Stage a write if this element's pass is staged. False — write now.</summary>
-    private bool TryStage<T>(StyledProperty<T> property, T value)
+    private bool TryStage<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T value)
     {
         if (!ReferenceEquals(s_stagingTarget, this) || s_staged is not { } staged) return false;
 
@@ -399,8 +400,8 @@ public abstract partial class UIElement
         public abstract void Commit(UIElement element);
     }
 
-    private sealed class StagedWrite<T>(StyledProperty<T> property, T value, bool fromStyle)
-        : StagedWrite(property.Index, fromStyle)
+    private sealed class StagedWrite<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T value, bool fromStyle)
+            : StagedWrite(property.Index, fromStyle)
     {
         public override void Commit(UIElement element)
         {

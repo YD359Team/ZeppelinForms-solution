@@ -115,7 +115,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
         Justification = "The two overloads differ by the source's type, not by the optional mode: no argument " +
                         "list fits both differently, and a typed source picks this one.")]
-    public Binding Bind<T, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TSource>(
+    public Binding Bind<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TSource>(
         StyledProperty<T> property,
         TSource source,
         string sourcePropertyName,
@@ -135,7 +135,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// <summary>Bind a property to a property of a source known only at run time.</summary>
     [RequiresUnreferencedCode("The property is looked for on the source's runtime type, whose properties " +
                               "trimming may remove. Pass the source as its own type to use the trimming-safe overload.")]
-    public Binding Bind<T>(
+    public Binding Bind<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(
         StyledProperty<T> property,
         object source,
         string sourcePropertyName,
@@ -151,7 +151,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         return BindTo(property, source, sourceProperty, mode);
     }
 
-    private Binding BindTo<T>(StyledProperty<T> property, object source, PropertyInfo sourceProperty, BindingMode mode)
+    private Binding BindTo<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, object source, PropertyInfo sourceProperty, BindingMode mode)
     {
         // binding the same property again replaces the previous binding
         Unbind(property);
@@ -773,7 +773,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// and user code all the more so. For constructors only: a regular assignment
     /// from them would mark the property as set manually and close it
     /// to the theme forever.</summary>
-    protected void SetControlDefault<T>(StyledProperty<T> property, T value)
+    protected void SetControlDefault<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T value)
     {
         property.Write(this, value);
 
@@ -789,13 +789,13 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
     /// <summary>A bridge for property editors: write the value the same way
     /// a regular assignment would.</summary>
-    internal bool SetStyledValue<T>(StyledProperty<T> property, T value) =>
-        SetValue(property, value);
+    internal bool SetStyledValue<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T value) =>
+            SetValue(property, value);
 
     /// <summary>Write a value taking its source into account.
     /// false — the write was rejected: the theme is writing, and the property
     /// was set manually or is controlled by a binding.</summary>
-    protected bool SetValue<T>(StyledProperty<T> property, ref T storage, T value)
+    protected bool SetValue<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, ref T storage, T value)
     {
         // The ladder of sources, top to bottom: explicit assignment, binding,
         // style, theme, the control's default. The theme and the styles override
@@ -870,7 +870,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// <summary>For properties without a field of their own: the value lives
     /// in another object, and here we only route it. The write goes through
     /// the property's delegate, so no ref storage is needed.</summary>
-    protected bool SetValue<T>(StyledProperty<T> property, T value)
+    protected bool SetValue<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T value)
     {
         if (ApplyingTheme && (IsLocal(property) || IsBound(property))) return false;
 
@@ -957,7 +957,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property.Name));
 
     /// <summary>Forget the manually set value and hand control back to the theme.</summary>
-    public void ClearValue<T>(StyledProperty<T> property)
+    public void ClearValue<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property)
     {
         // a binding is a value source too, and clearing removes it along with
         // the rest: otherwise the source would keep writing into a property
@@ -1006,7 +1006,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// reaches the labels inside, as CSS inheritance does, while a label's own
     /// style still beats it — the walk meets the element itself first.
     /// </remarks>
-    public T GetInheritedValue<T>(StyledProperty<T> property)
+    public T GetInheritedValue<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property)
     {
         for (UIElement? current = this; current is not null; current = current.Parent)
             if (current.IsLocal(property) || current.IsBound(property) || current.IsSetByStyle(property))
@@ -1539,7 +1539,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// <summary>The value that should go into drawing: the intermediate one while
     /// a transition runs, and the target in all other cases. Called
     /// from generated getters.</summary>
-    protected T Presented<T>(StyledProperty<T> property, T target)
+    protected T Presented<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T target)
     {
         if (!IsPresenting || _running is null) return target;
 
@@ -1552,7 +1552,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
     /// <summary>Start a transition to a new value. Called before the write:
     /// it must start from what is visible now.</summary>
-    private void BeginTransition<T>(StyledProperty<T> property, T from)
+    private void BeginTransition<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T from)
     {
         if (!TransitionsActive) return;
 
@@ -1603,7 +1603,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
     /// <summary>The value visible right now: the intermediate one if a transition
     /// is already running, and the given one otherwise.</summary>
-    private T PresentedOrTarget<T>(StyledProperty<T> property, T target)
+    private T PresentedOrTarget<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T target)
     {
         if (_running is null) return target;
 
@@ -1616,7 +1616,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
     /// <summary>Start a property transition from the given value to its current
     /// target. The target is taken from the property itself and read every frame.</summary>
-    internal void StartTransition<T>(StyledProperty<T> property, T from, Transition rule)
+    internal void StartTransition<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T from, Transition rule)
     {
         if (FindOwner() is not { } owner) return;
 
