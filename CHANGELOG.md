@@ -1,5 +1,9 @@
 # Changes
 
+## [0.16.3]
+
+- Fix WASM example and build
+
 ## [0.16.2]
 
 - The trimmed publish of an application (the WebAssembly showcase, `PublishTrimmed`,
