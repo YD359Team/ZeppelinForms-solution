@@ -1,1 +1,7 @@
 #nullable enable
+static ZeppelinForms.Drawing.Primitives.Size.FromHeight(float height) -> ZeppelinForms.Drawing.Primitives.Size
+static ZeppelinForms.Drawing.Primitives.Size.FromWidth(float width) -> ZeppelinForms.Drawing.Primitives.Size
+ZeppelinForms.Forms.Controls.Base.UIElement.Height.get -> float
+ZeppelinForms.Forms.Controls.Base.UIElement.Height.set -> void
+ZeppelinForms.Forms.Controls.Base.UIElement.Width.get -> float
+ZeppelinForms.Forms.Controls.Base.UIElement.Width.set -> void

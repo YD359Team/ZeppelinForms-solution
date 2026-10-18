@@ -1057,6 +1057,39 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         }
     }
 
+    /// <summary>The explicit width alone; NaN — the width is left to the layout,
+    /// whatever <see cref="Height"/> says.</summary>
+    /// <remarks>
+    /// <see cref="Size"/> sets both axes at once, so giving a text box a height meant
+    /// giving it a width as well, and a box docked to the top no longer stretched
+    /// across the form. The workaround — <c>new Size(float.NaN, 30)</c> — worked but
+    /// nobody could guess it. Width and Height read and write the same explicit size
+    /// as Size, one axis each.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">A negative or infinite width.</exception>
+    public float Width
+    {
+        get => _explicitSize.Width;
+        set => Size = new Size(CheckExplicitLength(value, nameof(Width)), _explicitSize.Height);
+    }
+
+    /// <summary>The explicit height alone; NaN — the height is left to the layout,
+    /// whatever <see cref="Width"/> says.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">A negative or infinite height.</exception>
+    public float Height
+    {
+        get => _explicitSize.Height;
+        set => Size = new Size(_explicitSize.Width, CheckExplicitLength(value, nameof(Height)));
+    }
+
+    /// <summary>An explicit length is a finite non-negative number, or NaN for auto:
+    /// an infinite one would mean "no constraint" to the layout, and a negative one
+    /// has no meaning at all.</summary>
+    private static float CheckExplicitLength(float value, string name) =>
+        float.IsNaN(value) || (float.IsFinite(value) && value >= 0f)
+            ? value
+            : throw new ArgumentOutOfRangeException(name, value, "Expected a finite non-negative length, or NaN for auto.");
+
     /// <summary>The actual size after layout. This is what the element is drawn with.</summary>
     public Size ActualSize => _actualSize;
     public Rectangle Rectangle => new(Position, _actualSize);
@@ -1956,15 +1989,25 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// <paramref name="fill"/> is set: for a panel that gives a child the rest of the
     /// room by a rule of its own — a dock panel's last child — without writing
     /// <see cref="Docking"/>, which is the application's.</summary>
-    internal void Arrange(Rectangle finalRect, bool fill)
+    /// <param name="finalRect">The slot the parent gives the element.</param>
+    /// <param name="fill">Fill the axes left to the layout whatever the alignment says.</param>
+    /// <param name="spanWidth">Take the slot's whole width even over an explicit width:
+    /// a dock panel's child docked to the top or the bottom, as in WinForms.</param>
+    /// <param name="spanHeight">The same for the height: a child docked to the left
+    /// or the right.</param>
+    internal void Arrange(Rectangle finalRect, bool fill, bool spanWidth = false, bool spanHeight = false)
     {
-
         // An explicit size beats stretching: Stretch and Dock.Fill fill only an axis
         // left to the layout. A progress bar of Size 100×10 in a wider slot used to be
         // stretched to the slot's width, its size quietly ignored; now it keeps its
         // size and stands in the middle of the slot, as in WPF and Avalonia
-        bool stretchH = _explicitSize.IsWidthAuto && (fill || HorizontalAlignment == HorizontalAlignment.Stretch);
-        bool stretchV = _explicitSize.IsHeightAuto && (fill || VerticalAlignment == VerticalAlignment.Stretch);
+        //
+        // A side dock is the exception, along the axis it runs: Dock.Top is a word
+        // about the width as explicit as the Size, and a text box of Size 200×30 at
+        // the top of a form used to stay 200 wide — the docking was the application's
+        // wish too, and the one a WinForms author expects to win
+        bool stretchH = spanWidth || (_explicitSize.IsWidthAuto && (fill || HorizontalAlignment == HorizontalAlignment.Stretch));
+        bool stretchV = spanHeight || (_explicitSize.IsHeightAuto && (fill || VerticalAlignment == VerticalAlignment.Stretch));
 
         float width = stretchH ? finalRect.Width : Math.Min(DesiredSize.Width, finalRect.Width);
         float height = stretchV ? finalRect.Height : Math.Min(DesiredSize.Height, finalRect.Height);

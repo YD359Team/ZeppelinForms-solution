@@ -119,7 +119,14 @@ public partial class DockPanel : DecoratedPanel
                 _ => rect,
             };
 
-            child.Arrange(slot);
+            // a side dock spans its slot along the edge even over an explicit size
+            // on that axis, as in WinForms: a text box of Size 200×30 docked to the
+            // top runs across the whole panel. The other axis keeps the explicit size
+            child.Arrange(
+                slot,
+                fill: false,
+                spanWidth: child.Docking is Dock.Top or Dock.Bottom,
+                spanHeight: child.Docking is Dock.Left or Dock.Right);
 
             // "eat" the used space out of the common rectangle
             rect = child.Docking switch
