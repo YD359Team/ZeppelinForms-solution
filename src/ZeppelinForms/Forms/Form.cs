@@ -201,7 +201,34 @@ public partial class Form : IDisposable
     /// <summary>The form is shown as a modal dialog.</summary>
     public bool IsDialog { get; private set; }
 
-    public Font? Font { get; set; }
+    /// <summary>The font of every element of the form that sets none of its own and
+    /// inherits none from an ancestor. Until set — <see cref="Font.Default"/>, the
+    /// theme's font, read live: a theme switch reaches a form that set no font.
+    /// Null resets it back to that.</summary>
+    /// <remarks>
+    /// The property used to be a bare field: it read null on a form nobody gave a
+    /// font, though its elements drew with Font.Default all along, and setting it on
+    /// an open form changed nothing on screen until something else asked for a layout.
+    /// </remarks>
+    [AllowNull]
+    public Font Font
+    {
+        get => _font ?? Font.Default;
+        set
+        {
+            if (Equals(_font, value)) return;
+
+            _font = value;
+
+            // no element's own property changed, only what the elements without a
+            // font of their own inherit — as with the text scale, the whole tree
+            // is measured again
+            InvalidateMeasureTree();
+            Invalidate();
+        }
+    }
+
+    private Font? _font;
 
     private WindowState _windowState = WindowState.Normal;
 

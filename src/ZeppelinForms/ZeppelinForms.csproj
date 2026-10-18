@@ -35,11 +35,12 @@
 		<GlobalAnalyzerConfigFiles Include="ZeppelinForms.globalconfig" />
 	</ItemGroup>
 
-	<!-- The public API is declared in PublicAPI.Shipped.txt (what 0.14.1 had) and
-	     PublicAPI.Unshipped.txt (what this release adds): a public member added, changed
-	     or removed without the files saying so is a build error (RS0016, RS0017), so a
-	     change of the API is always a visible line in a review. At a release the
-	     Unshipped lines move to Shipped -->
+	<!-- The public API is declared in PublicAPI.Shipped.txt (what the last released
+	     version had) and PublicAPI.Unshipped.txt (what this release adds): a public member
+	     added, changed or removed without the files saying so is a build error (RS0016,
+	     RS0017), so a change of the API is always a visible line in a review. At the start
+	     of every release branch the Unshipped lines move to Shipped:
+	     dotnet run tools/ship-api.cs -->
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
 		<AdditionalFiles Include="PublicAPI.Shipped.txt" />

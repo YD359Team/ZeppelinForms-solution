@@ -25,6 +25,17 @@ public sealed class StyleSheetLink : IDisposable
     private Timer? _debounce;
     private bool _disposed;
 
+    /// <summary>Which set of watchers is the current one. Every stop of watching moves
+    /// it on, and a reload started under an older set gives up instead of finishing.</summary>
+    /// <remarks>
+    /// Disposing a <see cref="Timer"/> does not wait for a callback that is already
+    /// running on the pool: the callback could still read the file and post a swap
+    /// to a window that was closing. <see cref="_disposed"/> alone stopped only the
+    /// swap itself; with the generation the callback stops at every step — before
+    /// reading, after reading, and on the UI thread before swapping.
+    /// </remarks>
+    private int _generation;
+
     /// <summary>The UI thread's context when watching started, if it had one:
     /// a reload is handed back to it.</summary>
     private SynchronizationContext? _context;
@@ -51,7 +62,7 @@ public sealed class StyleSheetLink : IDisposable
         if (Sheet.Path is not { } path)
             throw new InvalidOperationException("A sheet parsed from text has no file to reload from.");
 
-        Swap(StyleSheet.Load(path));
+        Swap(StyleSheet.Load(path), generation: null);
     }
 
     public void Dispose()
@@ -82,16 +93,24 @@ public sealed class StyleSheetLink : IDisposable
             WatchFiles(Sheet.Files);
     }
 
+    /// <summary>Called under <see cref="_sync"/>.</summary>
     private void WatchFiles(IReadOnlyList<string> files)
     {
         StopWatching();
 
-        // one watcher per folder: imports usually lie next to the sheet
-        foreach (IGrouping<string, string> folder in files.GroupBy(f => Path.GetDirectoryName(f)!, StringComparer.OrdinalIgnoreCase))
+        // one watcher per folder: imports usually lie next to the sheet. A path the
+        // folder can't be taken from — a root, an empty string — has nothing to
+        // watch and is skipped rather than trusted
+        IEnumerable<(string Folder, string Name)> located = files
+            .Select(Locate)
+            .Where(file => file is not null)
+            .Select(file => file!.Value);
+
+        foreach (IGrouping<string, string> folder in located.GroupBy(f => f.Folder, f => f.Name, StringComparer.OrdinalIgnoreCase))
         {
             if (!Directory.Exists(folder.Key)) continue;
 
-            var names = new HashSet<string>(folder.Select(Path.GetFileName)!, StringComparer.OrdinalIgnoreCase);
+            var names = new HashSet<string>(folder, StringComparer.OrdinalIgnoreCase);
             var watcher = new FileSystemWatcher(folder.Key)
             {
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
@@ -116,8 +135,35 @@ public sealed class StyleSheetLink : IDisposable
         }
     }
 
+    /// <summary>The folder and the file name of a sheet's file, by its full path;
+    /// null — a path with no folder or no name to watch.</summary>
+    private static (string Folder, string Name)? Locate(string file)
+    {
+        if (string.IsNullOrWhiteSpace(file)) return null;
+
+        string full;
+
+        try
+        {
+            full = Path.GetFullPath(file);
+        }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+
+        string? folder = Path.GetDirectoryName(full);
+        string name = Path.GetFileName(full);
+
+        return string.IsNullOrEmpty(folder) || name.Length == 0 ? null : (folder, name);
+    }
+
+    /// <summary>Called under <see cref="_sync"/>.</summary>
     private void StopWatching()
     {
+        // a reload already running for the old watchers must not finish
+        _generation++;
+
         foreach (FileSystemWatcher watcher in _watchers)
             watcher.Dispose();
 
@@ -135,14 +181,32 @@ public sealed class StyleSheetLink : IDisposable
         {
             if (_disposed) return;
 
-            _debounce ??= new Timer(_ => ReloadFromWatcher());
+            // the timer belongs to one generation: StopWatching disposes it, and the
+            // next one is made for the next generation
+            _debounce ??= new Timer(
+                static state =>
+                {
+                    var (link, generation) = ((StyleSheetLink, int))state!;
+                    link.ReloadFromWatcher(generation);
+                },
+                (this, _generation),
+                Timeout.InfiniteTimeSpan,
+                Timeout.InfiniteTimeSpan);
+
             _debounce.Change(TimeSpan.FromMilliseconds(120), Timeout.InfiniteTimeSpan);
         }
     }
 
-    private void ReloadFromWatcher()
+    /// <summary>Whether a reload started under the given generation may go on.</summary>
+    private bool IsCurrent(int generation)
     {
-        if (Sheet.Path is not { } path) return;
+        lock (_sync)
+            return !_disposed && generation == _generation;
+    }
+
+    private void ReloadFromWatcher(int generation)
+    {
+        if (!IsCurrent(generation) || Sheet.Path is not { } path) return;
 
         // the editor may still hold the file: a few short retries rather than a
         // sheet that silently stops following saves
@@ -155,32 +219,42 @@ public sealed class StyleSheetLink : IDisposable
                 using (File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) { }
                 fresh = StyleSheet.Load(path);
             }
-            catch (IOException)
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
+                // stopped while waiting for the editor: nobody needs the sheet anymore
+                if (!IsCurrent(generation)) return;
+
                 Thread.Sleep(50);
             }
         }
 
-        if (fresh is null) return;
+        if (fresh is null || !IsCurrent(generation)) return;
 
         // the collection belongs to the UI thread: the context watching started on,
         // or — for a sheet loaded before the application ran, which is the usual
         // place for App.Styles.Load — the window of an open form
         if (_context is { } context)
-            context.Post(_ => Swap(fresh), null);
+            context.Post(_ => Swap(fresh, generation), null);
         else if (Form.OpenForms.FirstOrDefault(f => f.PlatformWindow is not null)?.PlatformWindow is { } window)
-            window.Invoke(() => Swap(fresh));
+            window.Invoke(() => Swap(fresh, generation));
         else
-            Swap(fresh);
+            Swap(fresh, generation);
     }
 
-    private void Swap(StyleSheet fresh)
+    /// <param name="fresh">The sheet just loaded.</param>
+    /// <param name="generation">The generation of the watchers that asked for the
+    /// reload; null — <see cref="Reload"/>, asked by the application itself.</param>
+    private void Swap(StyleSheet fresh, int? generation)
     {
         StyleSheet old;
 
         lock (_sync)
         {
             if (_disposed) return;
+
+            // the watchers that saw the save were replaced while the swap was on its
+            // way to the UI thread: the newer ones will bring their own
+            if (generation is { } g && g != _generation) return;
 
             old = Sheet;
             Sheet = fresh;
