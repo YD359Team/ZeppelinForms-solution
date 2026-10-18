@@ -1007,8 +1007,10 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             float top = body.Y + (row * RowHeight) - _scrollY - _overscroll.Y;
             var rowRect = new Rectangle(new Point(body.X, top), new Size(TotalWidth, RowHeight));
 
+            object item = RowItem(row);
+
             // the row's own look: its record's style, over the stripe of every other row
-            DataGridViewRowStyle? style = RowStyle?.Invoke(RowItem(row));
+            DataGridViewRowStyle? style = RowStyle?.Invoke(item);
 
             if (row == SelectedIndex)
             {
@@ -1038,27 +1040,39 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
                 g.DrawRectangle(outline, TextColor, 1f);
             }
 
+            // the selected row's text in its own color where the theme pairs one
+            // with the selection fill — high contrast does
+            Color text =
+                row == SelectedIndex && SelectedTextColor.A > 0 ? SelectedTextColor :
+                style is { TextColor.A: > 0 } ? style.TextColor :
+                TextColor;
+
             float x = body.X - _scrollX - _overscroll.X;
 
             for (int col = 0; col < Columns.Count; col++)
             {
+                float width = _widths[col];
+
+                // only the columns in sight: a wide grid used to read and format every
+                // cell of every visible row, the ones scrolled off sideways included
+                if (x + width <= body.X)
+                {
+                    x += width;
+                    continue;
+                }
+
+                if (x >= body.X + body.Width) break;
+
                 var cell = new Rectangle(
                     new Point(x + CellPadding.Left, top + CellPadding.Top),
                     new Size(
-                        Math.Max(0, _widths[col] - CellPadding.Horizontal),
+                        Math.Max(0, width - CellPadding.Horizontal),
                         Math.Max(0, RowHeight - CellPadding.Vertical)));
 
-                // the selected row's text in its own color where the theme pairs one
-                // with the selection fill — high contrast does
-                Color text =
-                    row == SelectedIndex && SelectedTextColor.A > 0 ? SelectedTextColor :
-                    style is { TextColor.A: > 0 } ? style.TextColor :
-                    TextColor;
-
-                g.DrawText(Columns[col].TextOf(RowItem(row)), cell, text, rowFont,
+                g.DrawText(Columns[col].TextOf(item), cell, text, rowFont,
                     Columns[col].Align, VerticalContentAlignment.Center);
 
-                x += _widths[col];
+                x += width;
             }
 
             g.DrawLine(
@@ -1086,6 +1100,15 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
         for (int col = 0; col < Columns.Count; col++)
         {
+            // only the headers in sight, as the cells below them
+            if (x + _widths[col] <= content.X)
+            {
+                x += _widths[col];
+                continue;
+            }
+
+            if (x >= content.X + content.Width) break;
+
             var cell = new Rectangle(
                 new Point(x + CellPadding.Left, content.Y),
                 new Size(Math.Max(0, _widths[col] - CellPadding.Horizontal), HeaderHeight));

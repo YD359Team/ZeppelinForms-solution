@@ -39,3 +39,23 @@ ZeppelinForms.Dispatchers.DispatcherTimer.Stop() -> void
 ZeppelinForms.Dispatchers.DispatcherTimer.Tag.get -> object?
 ZeppelinForms.Dispatchers.DispatcherTimer.Tag.set -> void
 ZeppelinForms.Dispatchers.DispatcherTimer.Tick -> System.EventHandler?
+override ZeppelinForms.Forms.Controls.Text.TextBox.OnMouseWheel(ZeppelinForms.Input.Mouse.MouseWheelEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.TextBox.OnPointerCanceled(ZeppelinForms.Input.Pointer.PointerCancelEventArgs! e) -> void
+static readonly ZeppelinForms.Forms.Controls.Text.TextBox.ScrollThumbColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Text.TextBox.ScrollTrackColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+ZeppelinForms.Forms.Controls.Text.TextBox.HorizontalOffset.get -> float
+ZeppelinForms.Forms.Controls.Text.TextBox.HorizontalScrollBarVisibility.get -> ZeppelinForms.Forms.Enums.ScrollBarVisibility
+ZeppelinForms.Forms.Controls.Text.TextBox.HorizontalScrollBarVisibility.set -> void
+ZeppelinForms.Forms.Controls.Text.TextBox.ScrollThumbColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Text.TextBox.ScrollThumbColor.set -> void
+ZeppelinForms.Forms.Controls.Text.TextBox.ScrollTo(float horizontal, float vertical) -> void
+ZeppelinForms.Forms.Controls.Text.TextBox.ScrollToCaret() -> void
+ZeppelinForms.Forms.Controls.Text.TextBox.ScrollTrackColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Text.TextBox.ScrollTrackColor.set -> void
+ZeppelinForms.Forms.Controls.Text.TextBox.VerticalOffset.get -> float
+ZeppelinForms.Forms.Controls.Text.TextBox.VerticalScrollBarVisibility.get -> ZeppelinForms.Forms.Enums.ScrollBarVisibility
+ZeppelinForms.Forms.Controls.Text.TextBox.VerticalScrollBarVisibility.set -> void
+ZeppelinForms.Forms.Enums.ScrollBarVisibility
+ZeppelinForms.Forms.Enums.ScrollBarVisibility.Auto = 0 -> ZeppelinForms.Forms.Enums.ScrollBarVisibility
+ZeppelinForms.Forms.Enums.ScrollBarVisibility.Hidden = 2 -> ZeppelinForms.Forms.Enums.ScrollBarVisibility
+ZeppelinForms.Forms.Enums.ScrollBarVisibility.Visible = 1 -> ZeppelinForms.Forms.Enums.ScrollBarVisibility
