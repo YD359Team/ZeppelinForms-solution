@@ -1,4 +1,6 @@
 #nullable enable
+*REMOVED*ZeppelinForms.Forms.Form.Font.get -> ZeppelinForms.Drawing.Font?
+ZeppelinForms.Forms.Form.Font.get -> ZeppelinForms.Drawing.Font!
 static ZeppelinForms.Drawing.Primitives.Size.FromHeight(float height) -> ZeppelinForms.Drawing.Primitives.Size
 static ZeppelinForms.Drawing.Primitives.Size.FromWidth(float width) -> ZeppelinForms.Drawing.Primitives.Size
 ZeppelinForms.Forms.Controls.Base.UIElement.Height.get -> float
