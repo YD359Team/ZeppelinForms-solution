@@ -70,8 +70,13 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
         RegisterWindowClass();
 
-        int width = (int)_form.Size.Width;
-        int height = (int)_form.Size.Height;
+        // the size the window opens at keeps within the form's limits: the first
+        // WM_GETMINMAXINFO comes before WM_NCCREATE, when the window doesn't know its
+        // form yet, and the system can't hold CreateWindowEx's size to them
+        Size initial = _form.ClampToSizeLimits(_form.Size);
+
+        int width = (int)initial.Width;
+        int height = (int)initial.Height;
 
         int x, y;
 
@@ -134,6 +139,12 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
         _scale = NativeMethods.GetDpiForWindow(_handle) / 96f;
 
         PlaceAfterCreate(width, height);
+
+
+        // a topmost form opens above the others; TopMost set later goes through
+        // SetTopMost from the form
+        if (_form.TopMost)
+            SetTopMost(true);
 
         // WM_SIZE during CreateWindowEx came before the surface existed,
         // so the first time it is initialized by hand
@@ -550,6 +561,12 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
             case NativeConstants.WM_KILLFOCUS:
                 _form.OnWindowFocusLost();
+                return 0;
+
+            // the form's MinimumSize and MaximumSize, read anew each time: dragging an
+            // edge, SetWindowPos and maximizing all ask
+            case NativeConstants.WM_GETMINMAXINFO:
+                OnGetMinMaxInfo(lParam);
                 return 0;
 
             case NativeConstants.WM_DPICHANGED:

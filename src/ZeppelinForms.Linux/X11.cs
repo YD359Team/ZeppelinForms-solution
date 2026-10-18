@@ -101,6 +101,15 @@ internal static class X11
     [DllImport(Lib)] public static extern int XNextEvent(nint display, nint eventReturn);
     [DllImport(Lib)] public static extern int XPending(nint display);
     [DllImport(Lib)] public static extern int XMoveResizeWindow(nint display, nuint window, int x, int y, uint width, uint height);
+    [DllImport(Lib)] public static extern int XMoveWindow(nint display, nuint window, int x, int y);
+    [DllImport(Lib)] public static extern int XResizeWindow(nint display, nuint window, uint width, uint height);
+
+    /// <summary>Held keys repeat as presses alone, with no release between them: auto-repeat
+    /// can be told from typing. False in <paramref name="supported"/> — the server can't,
+    /// and repeats keep coming as release+press pairs.</summary>
+    [DllImport(Lib)]
+    [return: MarshalAs(UnmanagedType.I4)]
+    public static extern bool XkbSetDetectableAutoRepeat(nint display, [MarshalAs(UnmanagedType.I4)] bool detectable, [MarshalAs(UnmanagedType.I4)] out bool supported);
 
     [DllImport(Lib)] public static extern nuint XInternAtom(nint display, string name, bool onlyIfExists);
     [DllImport(Lib)] public static extern int XSetWMProtocols(nint display, nuint window, nuint[] protocols, int count);
@@ -274,6 +283,11 @@ internal static class X11
 
     public const nint PMinSize = 1 << 4;
     public const nint PMaxSize = 1 << 5;
+
+    /// <summary>The position in the hints was asked for by the user / by the program:
+    /// without one of them a manager places a new window where it likes.</summary>
+    public const nint USPosition = 1 << 0;
+    public const nint PPosition = 1 << 2;
 
     [DllImport(Lib)] public static extern void XSetWMNormalHints(nint display, nuint window, ref XSizeHints hints);
 

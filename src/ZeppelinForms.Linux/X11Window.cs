@@ -116,11 +116,14 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
         _scale = X11Dpi.GetScale(_display, screen);
         Displays.Current = new X11DisplayProvider(_display, _scale, X11Dpi.GetDpi(_display, screen));
 
+        // the size within the form's limits and the place its WindowStartupLocation
+        // asks for; the place is repeated in the size hints, or the manager ignores it
+        (uint width, uint height) = OpeningSize();
+        (int x, int y) = OpeningPosition() ?? ((int)(_form.Position.X * _scale), (int)(_form.Position.Y * _scale));
+
         _window = X11.XCreateSimpleWindow(
             _display, X11.XRootWindow(_display, screen),
-            (int)(_form.Position.X * _scale), (int)(_form.Position.Y * _scale),
-            (uint)Math.Max(1, _form.Size.Width * _scale),
-            (uint)Math.Max(1, _form.Size.Height * _scale),
+            x, y, width, height,
             0, 0, X11.XWhitePixel(_display, screen));
 
         X11.XSelectInput(_display, _window,
@@ -236,7 +239,7 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
         // a window that can't be resized is held by its size limits: they move
         // with it, or the manager keeps the old size
         if (_window != 0 && !_form.IsResizable)
-            SetSizeLimits((int)Math.Max(1, bounds.Width), (int)Math.Max(1, bounds.Height));
+            ApplySizeHints((int)Math.Max(1, bounds.Width), (int)Math.Max(1, bounds.Height));
 
         X11.XMoveResizeWindow(_display, _window,
             (int)bounds.X, (int)bounds.Y,

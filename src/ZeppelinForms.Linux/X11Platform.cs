@@ -26,6 +26,10 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         // a protocol error is reported, not fatal: Xlib's own handler ends the process
         X11ErrorHandler.Install();
 
+        // a held key reports isRepeat instead of a release and a press per repeat
+        // (see X11Platform.Keyboard)
+        EnableDetectableAutoRepeat();
+
         _inputMethod = OpenInputMethod(Display);
 
         Skia.SkiaImageDecoder.Register();
@@ -410,6 +414,10 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
             case X11.KeyRelease:
                 {
                     var key = Marshal.PtrToStructure<X11.XKeyEvent>(eventPtr);
+
+                    // the key is up whichever window gets the release
+                    OnKeyReleased(key.keycode);
+
                     if (!_windows.TryGetValue(key.window, out X11Window? window)) break;
 
                     nuint keysym = X11.XLookupKeysym(eventPtr, 0);
@@ -475,9 +483,13 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                     // index 0 is the key's first keysym — the Latin one in every usual
                     // layout, so shortcuts like Ctrl+C keep working under Cyrillic
                     nuint keysym = X11.XLookupKeysym(eventPtr, 0);
-                    // X11 sends auto-repeat as an ordinary release+press pair;
-                    // they can be told apart only through XkbSetDetectableAutoRepeat — TODO
-                    window.Form.OnKeyDown(X11KeyMap.ToKey(keysym), modifiers, isRepeat: false);
+
+                    // X11 sends auto-repeat as an ordinary release+press pair; with
+                    // detectable auto-repeat the releases go, and a press of a key
+                    // already down is a repeat (see X11Platform.Keyboard)
+                    bool isRepeat = OnKeyPressed(key.keycode);
+
+                    window.Form.OnKeyDown(X11KeyMap.ToKey(keysym), modifiers, isRepeat);
 
                     // printable characters with a separate call; surrogate pairs go
                     // char by char, and the text controls assemble them themselves
@@ -520,6 +532,8 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                     // keyboard state, as WM_KILLFOCUS does on Windows. This case used to
                     // be empty, and after Alt+Tab the modifiers stuck
                     var focus = Marshal.PtrToStructure<X11.XAnyEvent>(eventPtr);
+
+                    ForgetHeldKeys();
 
                     if (_windows.TryGetValue(focus.window, out X11Window? window))
                     {

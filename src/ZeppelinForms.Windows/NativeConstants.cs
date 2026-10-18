@@ -132,4 +132,9 @@ internal static class NativeConstants
     public const uint BI_RGB = 0;
     public const uint DIB_RGB_COLORS = 0;
     public const uint SRCCOPY = 0x00CC0020;
+
+    // the size limits, the topmost place and centering (Win32Window.Placement)
+    public const uint WM_GETMINMAXINFO = 0x0024;
+    public const nint HWND_TOPMOST = -1;
+    public const nint HWND_NOTOPMOST = -2;
 }
