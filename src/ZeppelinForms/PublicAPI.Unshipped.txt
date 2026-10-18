@@ -7,3 +7,16 @@ ZeppelinForms.Forms.Controls.Base.UIElement.Height.get -> float
 ZeppelinForms.Forms.Controls.Base.UIElement.Height.set -> void
 ZeppelinForms.Forms.Controls.Base.UIElement.Width.get -> float
 ZeppelinForms.Forms.Controls.Base.UIElement.Width.set -> void
+ZeppelinForms.Forms.Form.CenterToScreen() -> void
+ZeppelinForms.Forms.Form.TopMost.get -> bool
+ZeppelinForms.Forms.Form.TopMost.set -> void
+ZeppelinForms.IDesktopWindow.CenterOnScreen() -> void
+ZeppelinForms.IDesktopWindow.SetSizeLimits(ZeppelinForms.Drawing.Primitives.Size minimum, ZeppelinForms.Drawing.Primitives.Size maximum) -> void
+ZeppelinForms.IDesktopWindow.SetTopMost(bool topMost) -> void
+ZeppelinForms.Headless.HeadlessWindow.CenterOnScreen() -> void
+ZeppelinForms.Headless.HeadlessWindow.CenterOnScreenCount.get -> int
+ZeppelinForms.Headless.HeadlessWindow.IsTopMost.get -> bool
+ZeppelinForms.Headless.HeadlessWindow.MaximumSizeLimit.get -> ZeppelinForms.Drawing.Primitives.Size
+ZeppelinForms.Headless.HeadlessWindow.MinimumSizeLimit.get -> ZeppelinForms.Drawing.Primitives.Size
+ZeppelinForms.Headless.HeadlessWindow.SetSizeLimits(ZeppelinForms.Drawing.Primitives.Size minimum, ZeppelinForms.Drawing.Primitives.Size maximum) -> void
+ZeppelinForms.Headless.HeadlessWindow.SetTopMost(bool topMost) -> void

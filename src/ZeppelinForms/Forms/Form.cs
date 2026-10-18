@@ -194,10 +194,6 @@ public partial class Form : IDisposable
     /// unsized dialog to their own surface instead.</summary>
     internal bool IsSizeSet => _size is not null;
 
-    // TODO: add min\max size support
-    public Size MinimumSize { get; set; } = Size.Auto;
-    public Size MaximumSize { get; set; } = Size.Auto;
-
     /// <summary>The form is shown as a modal dialog.</summary>
     public bool IsDialog { get; private set; }
 

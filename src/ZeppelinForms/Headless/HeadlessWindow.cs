@@ -68,6 +68,12 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
     {
         _platform = platform;
         _form = form;
+
+        // a platform reads these from the form when it makes the window, and is told
+        // of their changes afterwards
+        MinimumSizeLimit = form.MinimumSize;
+        MaximumSizeLimit = form.MaximumSize;
+        IsTopMost = form.TopMost;
     }
 
     public void Show()
@@ -119,6 +125,28 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
     public int ChromeUpdateCount { get; private set; }
 
     public void UpdateChrome() => ChromeUpdateCount++;
+
+    /// <summary>The size limits the form gave the window last — checked in tests.</summary>
+    public Size MinimumSizeLimit { get; private set; }
+
+    /// <summary>See <see cref="MinimumSizeLimit"/>.</summary>
+    public Size MaximumSizeLimit { get; private set; }
+
+    public void SetSizeLimits(Size minimum, Size maximum)
+    {
+        MinimumSizeLimit = minimum;
+        MaximumSizeLimit = maximum;
+    }
+
+    /// <summary>Whether the form asked to be kept above the others.</summary>
+    public bool IsTopMost { get; private set; }
+
+    public void SetTopMost(bool topMost) => IsTopMost = topMost;
+
+    /// <summary>How many times the form asked to be centered on its screen.</summary>
+    public int CenterOnScreenCount { get; private set; }
+
+    public void CenterOnScreen() => CenterOnScreenCount++;
 
     /// <summary>Frames don't run by themselves in headless: nothing ticks
     /// unless a test calls Tick. The step of such a frame is still taken from
