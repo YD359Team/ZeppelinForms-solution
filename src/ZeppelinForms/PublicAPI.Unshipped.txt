@@ -59,3 +59,7 @@ ZeppelinForms.Forms.Enums.ScrollBarVisibility
 ZeppelinForms.Forms.Enums.ScrollBarVisibility.Auto = 0 -> ZeppelinForms.Forms.Enums.ScrollBarVisibility
 ZeppelinForms.Forms.Enums.ScrollBarVisibility.Hidden = 2 -> ZeppelinForms.Forms.Enums.ScrollBarVisibility
 ZeppelinForms.Forms.Enums.ScrollBarVisibility.Visible = 1 -> ZeppelinForms.Forms.Enums.ScrollBarVisibility
+static ZeppelinForms.Drawing.FontFallbacks.Add(string! path) -> void
+static ZeppelinForms.Drawing.FontFallbacks.Clear() -> void
+static ZeppelinForms.Drawing.FontFallbacks.Paths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+ZeppelinForms.Drawing.FontFallbacks
