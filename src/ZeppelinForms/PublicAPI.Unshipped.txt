@@ -24,3 +24,18 @@ ZeppelinForms.Forms.Form.LocationChanged -> System.EventHandler?
 ZeppelinForms.Forms.Form.SizeChanged -> System.EventHandler?
 virtual ZeppelinForms.Forms.Form.OnLocationChanged(System.EventArgs! e) -> void
 virtual ZeppelinForms.Forms.Form.OnSizeChanged(System.EventArgs! e) -> void
+ZeppelinForms.Dispatchers.DispatcherTimer
+ZeppelinForms.Dispatchers.DispatcherTimer.DispatcherTimer() -> void
+ZeppelinForms.Dispatchers.DispatcherTimer.DispatcherTimer(System.TimeSpan interval, System.EventHandler! tick) -> void
+ZeppelinForms.Dispatchers.DispatcherTimer.DispatcherTimer(ZeppelinForms.Forms.Form! owner) -> void
+ZeppelinForms.Dispatchers.DispatcherTimer.Dispatcher.get -> ZeppelinForms.Dispatchers.Dispatcher!
+ZeppelinForms.Dispatchers.DispatcherTimer.Dispose() -> void
+ZeppelinForms.Dispatchers.DispatcherTimer.Interval.get -> System.TimeSpan
+ZeppelinForms.Dispatchers.DispatcherTimer.Interval.set -> void
+ZeppelinForms.Dispatchers.DispatcherTimer.IsEnabled.get -> bool
+ZeppelinForms.Dispatchers.DispatcherTimer.IsEnabled.set -> void
+ZeppelinForms.Dispatchers.DispatcherTimer.Start() -> void
+ZeppelinForms.Dispatchers.DispatcherTimer.Stop() -> void
+ZeppelinForms.Dispatchers.DispatcherTimer.Tag.get -> object?
+ZeppelinForms.Dispatchers.DispatcherTimer.Tag.set -> void
+ZeppelinForms.Dispatchers.DispatcherTimer.Tick -> System.EventHandler?
