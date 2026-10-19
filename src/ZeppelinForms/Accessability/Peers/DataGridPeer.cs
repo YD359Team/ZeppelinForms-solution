@@ -198,7 +198,10 @@ public class DataGridCellPeer : AccessibilityPeer
     {
         get
         {
-            AccessibilityStates states = AccessibilityStates.ReadOnly;
+            // a cell that takes a value is not read-only to a screen reader
+            AccessibilityStates states = Grid.IsCellEditable(_rowIndex, _column)
+                ? AccessibilityStates.None
+                : AccessibilityStates.ReadOnly;
 
             if (!Grid.IsEffectivelyEnabled) states |= AccessibilityStates.Disabled;
 

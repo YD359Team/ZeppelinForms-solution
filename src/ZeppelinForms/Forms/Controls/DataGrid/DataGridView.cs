@@ -126,6 +126,9 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         // the selected records may have moved or disappeared together with the data
         RestoreSelection(e);
 
+        // the record being edited went with them: there is nothing to write into
+        if (_editRecord is not null && DisplayIndexOf(_editRecord) < 0) CancelEdit();
+
         // EnsureLayout will clamp the offset, calling for layout is enough here
         Invalidate();
     }
@@ -206,6 +209,16 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     [Styled(Category = "DataGrid")]
     public partial Color HeaderHoverColor { get; set; }
     private static Color HeaderHoverColorDefault => new(255, 232, 232, 232);
+
+    /// <summary>The fill of a checked box in a check box column.</summary>
+    [Styled(Category = "DataGrid")]
+    public partial Color CheckColor { get; set; }
+    private static Color CheckColorDefault => new(255, 0x0D, 0x6E, 0xFD);
+
+    /// <summary>The check mark on <see cref="CheckColor"/>.</summary>
+    [Styled(Category = "DataGrid")]
+    public partial Color CheckGlyphColor { get; set; }
+    private static Color CheckGlyphColorDefault => Colors.White;
 
     [Styled(Category = "Scrolling")]
     public partial Color ScrollTrackColor { get; set; }
@@ -492,6 +505,9 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         _scrollX = clampedX;
         _scrollY = clampedY;
 
+        // the cell being edited moved with the rows: its editor goes with it
+        PlaceEditor();
+
         InvalidateVisual();
     }
 
@@ -615,6 +631,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         // the visible row range is computed from _scrollY, so recomputing the
         // geometry is mandatory — otherwise a fling would leave empty strips at the bottom
         EnsureLayout();
+        PlaceEditor();
 
         InvalidateVisual();
     }
@@ -848,7 +865,27 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         if (cellColumn < 0 && SelectionUnit != DataGridViewSelectionUnit.FullRow) return;
 
         SelectAt(row, cellColumn >= 0 ? cellColumn : CurrentColumnIndex, GestureOfClick());
+
+        // a check box is toggled by the click that selects its row: one click, not two
+        if (cellColumn >= 0) ActivateCell(row, cellColumn);
+
         e.Handled = true;
+    }
+
+    /// <summary>A double click on a cell edits it.</summary>
+    protected override void OnDoubleClick(MouseClickEventArgs e)
+    {
+        if (_suppressClick) return;
+
+        Point local = ToLocal(e.Location);
+
+        if (IsOverHeader(local)) return;
+
+        int row = RowAt(e.Location);
+        int column = ColumnAt(local);
+
+        if (row >= 0 && column >= 0 && BeginEdit(row, column))
+            e.Handled = true;
     }
 
     /// <summary>How a click changes the selection: by the mode, and by Shift and Ctrl
@@ -1029,6 +1066,10 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         DrawRows(g, body, _visibleFirst, _visibleLast, font);
         DrawHeader(g, content, font);
         DrawScrollBars(g);
+
+        // the grid may have moved in its window — a resize, a scrolled parent —
+        // and the editor over its cell is an overlay that doesn't move with it
+        PlaceEditor();
     }
 
     private void DrawRows(Graphics g, Rectangle body, int first, int last, Font font)
@@ -1134,8 +1175,9 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
                     }
                 }
 
-                g.DrawText(Columns[col].TextOf(item), cell, cellText, rowFont,
-                    Columns[col].Align, VerticalContentAlignment.Center);
+                // the column draws its cell: text, a check box, a picture
+                Columns[col].DrawCell(g, cell, item,
+                    new DataGridViewCellPaint(this, cellText, rowFont, rowSelected || (!byRow && IsCellSelected(row, col))));
 
                 x += width;
             }

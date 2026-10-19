@@ -84,6 +84,21 @@ public class DataGridViewColumn<TItem, TValue> : DataGridViewColumn
         }
     }
 
+    /// <summary>How to turn the text typed into a cell into a value. Null — the text as
+    /// it is for a string; an enum by its name; a number, a date, a bool by the
+    /// interface culture.</summary>
+    /// <remarks>Throwing <see cref="FormatException"/> or <see cref="OverflowException"/>
+    /// means the text isn't a value: the editor stays open on it.</remarks>
+    public new Func<string, TValue>? Parse
+    {
+        get;
+        set
+        {
+            field = value;
+            base.Parse = value is null ? null : text => value(text);
+        }
+    }
+
     /// <summary>The comparison for sorting. Null — Comparer.Default of the value type.</summary>
     public new IComparer<TValue>? Comparer
     {
@@ -128,6 +143,11 @@ public class DataGridViewColumn<TItem, TValue> : DataGridViewColumn
         };
     }
 
+    internal override Type? EditedType(object item) => typeof(TValue);
+
+    /// <summary>The value of a row's record; the default for a record of another kind.</summary>
+    private protected TValue TypedValue(object item) => item is TItem record ? ValueOf(record) : default!;
+
     /// <summary>A value that came through an object: null for a value type is its default.</summary>
-    private static TValue Unbox(object? value) => value is TValue typed ? typed : default!;
+    private protected static TValue Unbox(object? value) => value is TValue typed ? typed : default!;
 }

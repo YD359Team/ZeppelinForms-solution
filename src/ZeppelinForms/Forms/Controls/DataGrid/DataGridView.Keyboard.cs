@@ -7,7 +7,7 @@ namespace ZeppelinForms.Forms.Controls.DataGrid;
 /// <summary>The grid from the keyboard: it takes the focus, and the arrows,
 /// PageUp, PageDown, Home and End move the selected row, scrolling it into view.
 /// Selecting cells or columns, they move between columns too; Shift extends,
-/// Ctrl+A selects all and Ctrl+C copies.</summary>
+/// Ctrl+A selects all and Ctrl+C copies. F2 edits the current cell.</summary>
 /// <remarks>Before 0.13 the grid took no focus at all: a keyboard user could reach
 /// every button around a table, and not a single row of it.</remarks>
 public partial class DataGridView : IInputElement
@@ -26,6 +26,12 @@ public partial class DataGridView : IInputElement
 
         bool control = e.Modifiers.HasFlag(KeyModifiers.Control);
         bool shift = e.Modifiers.HasFlag(KeyModifiers.Shift);
+
+        if (HandleEditKey(e.Key, e.Modifiers))
+        {
+            e.Handled = true;
+            return;
+        }
 
         if (HandleSelectionKey(e.Key, control))
         {
@@ -86,6 +92,23 @@ public partial class DataGridView : IInputElement
         ScrollIntoView(row, byCell ? col : -1);
 
         e.Handled = true;
+    }
+
+    /// <summary>F2 edits the current cell; Space toggles it when it is a check box —
+    /// before Space toggles the selection.</summary>
+    private bool HandleEditKey(Key key, KeyModifiers modifiers)
+    {
+        if (modifiers != KeyModifiers.None) return false;
+
+        int row = SelectedIndex;
+        int column = CurrentColumnIndex;
+
+        return key switch
+        {
+            Key.F2 => BeginEdit(),
+            Key.Space => row >= 0 && column >= 0 && ActivateCell(row, column),
+            _ => false,
+        };
     }
 
     /// <summary>The keys that act on the selection rather than move: Ctrl+A selects
