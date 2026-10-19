@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
@@ -124,6 +124,10 @@ internal static class StylesPage
             Text = PlaygroundSheet,
             Font = ZeppelinForms.Drawing.Font.Monospace,
             Size = new(float.NaN, 240),
+
+            // a text box is as wide as its own content by default: the editor takes
+            // the width of the page
+            HorizontalAlignment = HorizontalAlignment.Stretch,
         };
 
         Label result = Demo.Note("Press Apply");

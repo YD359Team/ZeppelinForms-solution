@@ -145,6 +145,24 @@ public class DataGridEditingTests
     }
 
     [Fact]
+    public void AClickOnAnotherCellCommitsTheEdit()
+    {
+        var (form, grid) = CreateGrid();
+        grid.BeginEdit(0, 0);
+        HeadlessInput.TypeText(form, "Clicked away");
+
+        // the grid takes the focus from the editor, and the editor leaves the form
+        // in the middle of that focus change: the dispatcher used to touch the
+        // element it had just lost, already null
+        form.OnPointerDown(CellPoint(grid, 1, 1));
+        form.OnPointerUp(CellPoint(grid, 1, 1));
+
+        Assert.False(grid.IsEditing);
+        Assert.Equal("Clicked away", GameAt(grid, 0).Title);
+        Assert.Equal(1, grid.SelectedIndex);
+    }
+
+    [Fact]
     public void EscapeCancels()
     {
         var (form, grid) = CreateGrid();

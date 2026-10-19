@@ -378,6 +378,12 @@ public sealed class SkiaGraphics : Graphics
         if (path is null) return;
 
         SKRect bounds = path.Bounds;
+
+        // a stroke reaches half its width past the path's own bounds, and it is scaled
+        // with the path: fitted by the bare bounds, a stroked glyph lost its edges — the
+        // top of a message box's question mark and the dot under it were cut off
+        if (strokeWidth > 0) bounds.Inflate(strokeWidth / 2f, strokeWidth / 2f);
+
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
 
         // fit the path into rect keeping the proportions

@@ -31,12 +31,23 @@ public class FocusDispatcher
         if (ReferenceEquals(_focused, element))
             return true;
 
-        if (_focused is IInputElement prevInput)
+        // the element losing the focus is held here, not read from _focused again:
+        // a LostFocus handler may take it out of the form — an editor over a grid
+        // cell commits and goes — and the form clears the focus while this is still
+        // running. _focused was null by the next line, and Invalidate threw
+        UIElement? previous = _focused;
+
+        if (previous is IInputElement prevInput)
         {
             prevInput.IsFocused = false;
-            _focused.RaiseLostFocus();
-            _focused.Invalidate();
+            previous.RaiseLostFocus();
+            previous.Invalidate();
         }
+
+        // a handler that moved the focus somewhere else meanwhile: that element
+        // loses it again, quietly — this call is the one that decides
+        if (_focused is IInputElement moved && !ReferenceEquals(_focused, previous) && !ReferenceEquals(_focused, element))
+            moved.IsFocused = false;
 
         input.IsFocused = true;
         element.RaiseGotFocus();

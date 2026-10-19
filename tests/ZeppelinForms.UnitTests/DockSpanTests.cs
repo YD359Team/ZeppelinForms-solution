@@ -107,4 +107,37 @@ public class DockSpanTests
         Assert.Equal(nameof(UIElement.Width), Assert.Throws<ArgumentOutOfRangeException>(() => box.Width = length).ParamName);
         Assert.Equal(nameof(UIElement.Height), Assert.Throws<ArgumentOutOfRangeException>(() => box.Height = length).ParamName);
     }
+    [Fact]
+    public void AnAlignmentChosenAlongTheEdgeIsKept()
+    {
+        // a message box's buttons: docked to the bottom, at the right
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            Docking = Dock.Bottom,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Children = { new Button { Size = new Size(96, 32) }, new Button { Size = new Size(96, 32) } },
+        };
+
+        Show(new DockPanel { Children = { buttons, new Panel() } });
+
+        Assert.Equal(200, buttons.ActualSize.Width, 0.5f);
+        Assert.Equal(FormWidth - 200, buttons.Position.X, 0.5f);
+    }
+
+    [Fact]
+    public void AStackWithoutFlexibleChildrenAsksForWhatTheyNeed()
+    {
+        var stack = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            Children = { new Button { Size = new Size(96, 32) }, new Button { Size = new Size(96, 32) } },
+        };
+
+        stack.Measure(new Size(480, 100));
+
+        Assert.Equal(200, stack.DesiredSize.Width, 0.5f);
+    }
 }

@@ -308,7 +308,11 @@ internal static class EffectsPage
         mode.SelectionChanged += (_, _) => Apply();
         Apply();
 
-        return Demo.Column(Demo.Row(new Label { Text = "Mode:" }, mode), stage);
+        // not Demo.Column: it keeps its children at their own width, and the stage,
+        // which has none of its own, came out zero wide — the circles with it
+        var root = new StackPanel { Orientation = Orientation.Vertical, Spacing = 10, CrossAxisAlignment = CrossAxisAlignment.Stretch };
+        root.Children.AddRange([Demo.Row(new Label { Text = "Mode:" }, mode), stage]);
+        return root;
     }
 
     private static UIElement Glitch()
