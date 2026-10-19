@@ -2,6 +2,13 @@
 
 ## [0.17.0] - Victoria Falls
 
+![Stonehenge](assets/Logo-0.17.0.jpg)
+
+> This release provides one of the most important things for application software 
+development - binding to collections and significant improvements to DataGridView. 
+And the image overlay modes will allow you to create beautiful and interesting effects. 
+Therefore, the release was named after one of the most beautiful natural phenomena - 
+Victoria Falls. Victoria is also my wife's name.
 
 
 ## [0.16.3]
