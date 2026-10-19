@@ -120,7 +120,7 @@ public class DataSourceTests
     }
 
     [Fact]
-    public void AChangeFromAnotherThreadReachesTheRowsOnTheUIThread()
+    public async Task AChangeFromAnotherThreadReachesTheRowsOnTheUIThread()
     {
         var people = new ObservableCollection<Person>(People(2));
         DataGridView grid = Grid();
@@ -130,7 +130,7 @@ public class DataSourceTests
         var form = new Form { Size = new Size(400, 300), Content = grid };
         platform.CreateWindow(form);
 
-        Task.Run(() => people.Add(new Person("from a worker", 7))).Wait();
+        await Task.Run(() => people.Add(new Person("from a worker", 7)), TestContext.Current.CancellationToken);
 
         // not applied on the worker: queued to the form's dispatcher
         Assert.Equal(2, grid.Items.Count);
