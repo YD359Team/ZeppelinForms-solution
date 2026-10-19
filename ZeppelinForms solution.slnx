@@ -3,8 +3,8 @@
   <Folder Name="/.github/workflows/">
     <File Path=".github/workflows/ci.yml" />
     <File Path=".github/workflows/release.yml" />
+    <File Path=".github/workflows/wiki.yml" />
     <File Path="bench.yml" />
-    <File Path="showcase.yml" />
   </Folder>
   <Folder Name="/assets/">
     <File Path="assets/Logo-0.10.0.jpg" />
