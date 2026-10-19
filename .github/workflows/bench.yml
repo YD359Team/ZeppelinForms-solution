@@ -31,15 +31,6 @@ jobs:
           --time-tolerance 0.5
           --json bench-results.json
 
-      - name: Прогон бенчмарков
-        run: >
-          dotnet run
-          --project "bench/ZeppelinForms.Benchmarks/ZeppelinForms.Benchmarks.csproj"
-          --configuration Release
-          --
-          --check
-          --json bench-results.json
-
       - name: Результаты
         if: always()
         uses: actions/upload-artifact@v4

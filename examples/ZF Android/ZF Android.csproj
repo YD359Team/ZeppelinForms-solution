@@ -4,6 +4,12 @@
 		<TargetFramework>net10.0-android</TargetFramework>
 		<SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
 		<TargetPlatformVersion>36.0</TargetPlatformVersion>
+		<!-- An Android app is built for Android RIDs only. A newer .NET SDK infers a
+		     publish RID of the host (linux-x64 on a Linux runner) for an executable;
+		     newer Android packs opt out of that themselves, but the 36.1.2 pack
+		     bundled with the SDK does not and fails with XA0035 -->
+		<UseDefaultPublishRuntimeIdentifier>false</UseDefaultPublishRuntimeIdentifier>
+		<RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>ZF_Android</RootNamespace>
 		<ImplicitUsings>enable</ImplicitUsings>
