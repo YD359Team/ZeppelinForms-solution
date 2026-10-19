@@ -460,6 +460,27 @@ internal static class NativeMethods
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern bool GetMonitorInfo(nint monitor, ref MONITORINFOEX info);
 
+
+    [DllImport("user32.dll")]
+    public static extern nint MonitorFromWindow(nint hWnd, int flags);
+
+
+    [DllImport("user32.dll")]
+    public static extern bool IsIconic(nint hWnd);
+
+    /// <summary>What WM_GETMINMAXINFO asks the window to fill in: the sizes the user's
+    /// dragging stays within (the track sizes) and the size and place of the
+    /// maximized window. All in physical pixels, frame included.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MINMAXINFO
+    {
+        public POINT ptReserved;
+        public POINT ptMaxSize;
+        public POINT ptMaxPosition;
+        public POINT ptMinTrackSize;
+        public POINT ptMaxTrackSize;
+    }
+
     [DllImport("shcore.dll")]
     public static extern int GetDpiForMonitor(nint monitor, int dpiType, out uint dpiX, out uint dpiY);
 

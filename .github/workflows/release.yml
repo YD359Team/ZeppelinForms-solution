@@ -20,7 +20,10 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Установка workload
-        run: dotnet workload install wasm-tools android
+        # the workloads of the installed SDK, not the newest workload set: a set can
+        # be published before all of its manifests are (10.0.402.1 named an iOS manifest
+        # nuget.org didn't have yet), and the install failed on both runners
+        run: dotnet workload install wasm-tools android --skip-manifest-update
 
       - run: sudo apt-get update && sudo apt-get install -y libfontconfig1 xvfb
 

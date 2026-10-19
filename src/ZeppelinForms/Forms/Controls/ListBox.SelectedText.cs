@@ -28,7 +28,7 @@ public partial class ListBox
 
         foreach (UIElement row in _recolored.ToList())
         {
-            int index = Children.IndexOf(row);
+            int index = IndexFromContainer(row);
 
             if (color.A > 0 && index >= 0 && _selected.Contains(index)) continue;
 
@@ -38,14 +38,24 @@ public partial class ListBox
 
         if (color.A == 0) return;
 
-        foreach (int index in _selected)
+        foreach ((int index, UIElement row) in RealizedContainers)
         {
-            if (index >= Children.Count) continue;
+            if (!_selected.Contains(index)) continue;
 
-            UIElement row = Children[index];
             row.TextColor = color;
             _recolored.Add(row);
         }
+    }
+
+    /// <summary>A virtualizing list gives a row's label another item as it scrolls —
+    /// right in place, without taking it out of the children: the selected text
+    /// color follows the items after every layout, not only when the selection changes.</summary>
+    protected override void ArrangeContentOverride(Size contentSize)
+    {
+        base.ArrangeContentOverride(contentSize);
+
+        if (IsVirtualizing && (SelectedTextColor.A > 0 || _recolored.Count > 0))
+            UpdateSelectedText();
     }
 
     protected override void OnStyledPropertyChanged(StyledProperty property)

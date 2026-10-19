@@ -1,10 +1,10 @@
 <Solution>
   <Folder Name="/.github/" />
   <Folder Name="/.github/workflows/">
+    <File Path=".github/workflows/bench.yml" />
     <File Path=".github/workflows/ci.yml" />
     <File Path=".github/workflows/release.yml" />
-    <File Path="bench.yml" />
-    <File Path="showcase.yml" />
+    <File Path=".github/workflows/wiki.yml" />
   </Folder>
   <Folder Name="/assets/">
     <File Path="assets/Logo-0.10.0.jpg" />
@@ -14,6 +14,7 @@
     <File Path="assets/Logo-0.14.0.jpg" />
     <File Path="assets/Logo-0.15.0.jpg" />
     <File Path="assets/Logo-0.16.0.jpg" />
+    <File Path="assets/Logo-0.17.0.jpg" />
     <File Path="assets/Logo-0.9.0.jpg" />
     <File Path="assets/zf1.jpg" />
     <File Path="assets/zf2.jpg" />
@@ -47,6 +48,7 @@
     <Project Path="tests/ZeppelinForms.UnitTests/ZeppelinForms.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <File Path="tools/ship-api.cs" />
     <Project Path="tools/ZeppelinForms.Design/ZeppelinForms.Design.csproj" />
     <Project Path="tools/ZeppelinForms.Designer/ZeppelinForms.Designer.csproj" />
     <Project Path="tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.csproj" />

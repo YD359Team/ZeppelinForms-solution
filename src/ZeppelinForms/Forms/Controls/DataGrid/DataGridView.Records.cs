@@ -55,7 +55,7 @@ public partial class DataGridView
         if (SortColumnIndex >= 0)
         {
             BuildOrder();
-            RestoreSelection(_selectedRecord);
+            RestoreSelection(null);
         }
 
         // Auto widths are measured from the values on every layout
@@ -125,5 +125,8 @@ public partial class DataGridView
         base.OnAttached();
 
         _form = FindForm();
+
+        // the source is listened to only while the grid is in a form
+        _dataSource?.OnAttached();
     }
 }

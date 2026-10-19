@@ -186,6 +186,8 @@ public static partial class Themes
                 grid.SelectedTextColor = c.TextSelection;
                 grid.RowHoverColor = Colors.Transparent;
                 grid.GridLineColor = c.Border;
+                grid.CheckColor = c.Accent;
+                grid.CheckGlyphColor = c.TextOnAccent;
             })
 
             .For<MenuBar>((menu, c) =>

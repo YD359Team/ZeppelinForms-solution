@@ -64,13 +64,16 @@ public static class Program
 
         BaselineFile? baseline = Baseline.Load(baselinePath);
 
+        // no baseline for this platform is nothing to compare with, not a regression: the
+        // first run on a new platform — a CI runner's Linux — failed a pull request that
+        // changed nothing. The results are written all the same, to become the baseline
         if (baseline is null)
         {
-            Console.Error.WriteLine(
-                $"Baseline not found: {baselinePath}. " +
-                "Create it with --update-baseline and commit it.");
+            Console.WriteLine(
+                $"Baseline not found: {baselinePath}. Nothing to compare with — " +
+                "create it with --update-baseline and commit it.");
 
-            return 1;
+            return 0;
         }
 
         List<Regression> regressions = Baseline.Compare(

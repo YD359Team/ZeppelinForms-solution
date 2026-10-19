@@ -210,7 +210,42 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
     // so the full size is subtracted rather than ContentBounds — otherwise
     // the padding would be counted twice and you could scroll past the end of the content
     private float MaxScrollX => Math.Max(0, _contentSize.Width - ActualSize.Width + ReservedWidth);
-    private float MaxScrollY => Math.Max(0, _contentSize.Height - ActualSize.Height + ReservedHeight);
+    private float MaxScrollY => Math.Max(0, _contentSize.Height - ActualSize.Height + ReservedHeight) + PastEndExtent;
+
+    /// <summary>Scroll on past the end of the content, as an editor scrolls past its
+    /// last line: down until the last row stands at the top. False by default — in a
+    /// form a list that scrolls into emptiness looks broken; an editor, a log, a long
+    /// document are where it belongs.</summary>
+    /// <remarks>Every way of scrolling follows it — the wheel, the bar, a finger,
+    /// ScrollTo — since each of them stops at the same end.</remarks>
+    public bool ScrollPastEnd
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // turned off at a scroll past the old end: back within the content
+            ScrollTo(ScrollX, ScrollY);
+            OnScrollPastEndChanged();
+        }
+    }
+
+    /// <summary><see cref="ScrollPastEnd"/> changed. A control that scrolls through a
+    /// panel of its own — a tree's rows — hands the setting on to it.</summary>
+    protected virtual void OnScrollPastEndChanged() { }
+
+    /// <summary>The row the end of the content stops at with <see cref="ScrollPastEnd"/>:
+    /// the last one stays in sight. One wheel step by default; a list of rows of one
+    /// height says its row height.</summary>
+    protected virtual float ScrollPastEndRow => WheelStep;
+
+    /// <summary>How far past the end of the content the panel scrolls: the visible
+    /// height but one row.</summary>
+    private float PastEndExtent =>
+        ScrollPastEnd && ScrollsVertically ? Math.Max(0, Viewport.Height - ScrollPastEndRow) : 0;
 
     public ScrollBarMode ScrollBarMode
     {
@@ -273,7 +308,7 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
     /// measuring: the containers are measured there too, and they don't need
     /// a second pass. Attaching to the tree still happens as usual — only
     /// the request for a layout pass is suppressed.</summary>
-    private protected int SuppressChildrenInvalidate;
+    internal int SuppressChildrenInvalidate;
 
     private void Children_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -530,7 +565,10 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
         get
         {
             Rectangle bar = VerticalBarRect;
-            float ratio = _contentSize.Height <= 0 ? 1 : Viewport.Height / _contentSize.Height;
+            // the room past the end counts as content: the thumb reaches the bottom
+            // of the track at the end of the scroll, not at the end of the content
+            float extent = _contentSize.Height + PastEndExtent;
+            float ratio = extent <= 0 ? 1 : Viewport.Height / extent;
             float length = Math.Max(MinThumbLength, bar.Height * Math.Min(1, ratio));
             float position = MaxScrollY <= 0 ? 0 : (bar.Height - length) * (ScrollY / MaxScrollY);
             return (position, length);

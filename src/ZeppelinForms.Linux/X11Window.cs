@@ -116,11 +116,14 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
         _scale = X11Dpi.GetScale(_display, screen);
         Displays.Current = new X11DisplayProvider(_display, _scale, X11Dpi.GetDpi(_display, screen));
 
+        // the size within the form's limits and the place its WindowStartupLocation
+        // asks for; the place is repeated in the size hints, or the manager ignores it
+        (uint width, uint height) = OpeningSize();
+        (int x, int y) = OpeningPosition() ?? ((int)_form.Position.X, (int)_form.Position.Y);
+
         _window = X11.XCreateSimpleWindow(
             _display, X11.XRootWindow(_display, screen),
-            (int)(_form.Position.X * _scale), (int)(_form.Position.Y * _scale),
-            (uint)Math.Max(1, _form.Size.Width * _scale),
-            (uint)Math.Max(1, _form.Size.Height * _scale),
+            x, y, width, height,
             0, 0, X11.XWhitePixel(_display, screen));
 
         X11.XSelectInput(_display, _window,
@@ -231,16 +234,28 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
             X11.XStoreName(_display, _window, title ?? string.Empty);
     }
 
+    /// <summary>Form.Position or Form.Size set while the window is open: the position
+    /// is in screen pixels already, the size is logical — the client area, as Form.Size
+    /// is on Linux.</summary>
+    /// <remarks>Nothing called this until 0.17, and it took the size as pixels.</remarks>
     public void SetBounds(Rectangle bounds)
     {
+        if (_window == 0) return;
+
+        // the size hints bound only the user's dragging: a size from code is kept
+        // within the form's limits here
+        Size size = _form.ClampToSizeLimits(bounds.Size);
+
+        int width = Math.Max(1, (int)MathF.Round(size.Width * _scale));
+        int height = Math.Max(1, (int)MathF.Round(size.Height * _scale));
+
         // a window that can't be resized is held by its size limits: they move
         // with it, or the manager keeps the old size
-        if (_window != 0 && !_form.IsResizable)
-            SetSizeLimits((int)Math.Max(1, bounds.Width), (int)Math.Max(1, bounds.Height));
+        if (!_form.IsResizable)
+            ApplySizeHints(width, height);
 
-        X11.XMoveResizeWindow(_display, _window,
-            (int)bounds.X, (int)bounds.Y,
-            (uint)Math.Max(1, bounds.Width), (uint)Math.Max(1, bounds.Height));
+        X11.XMoveResizeWindow(_display, _window, (int)bounds.X, (int)bounds.Y, (uint)width, (uint)height);
+        X11.XFlush(_display);
     }
 
     // a repaint has been requested and not done yet; _fullRepaint — the whole
@@ -416,6 +431,14 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
 
     internal void HandleConfigure(int width, int height)
     {
+        // the form's Position follows the window. The event's own x and y are relative
+        // to the manager's frame around the window, so the server is asked where the
+        // client area is on the screen
+        nuint root = X11.XRootWindow(_display, X11.XDefaultScreen(_display));
+        X11.XTranslateCoordinates(_display, _window, root, 0, 0, out int left, out int top, out _);
+
+        _form.OnWindowMoved(new Point(left, top));
+
         // ConfigureNotify comes for moves as well. A move used to cost a full layout
         // and a synchronous frame; a window that only moved changes nothing inside
         if (width == _physicalWidth && height == _physicalHeight) return;
@@ -425,6 +448,10 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
 
         _surface?.Resize(width, height);                                // the surface is physical
         _form.ClientSize = new Size(width / _scale, height / _scale);   // the tree is logical
+
+        // Form.Size is the client area on Linux: it follows the window as well
+        _form.OnWindowResized(_form.ClientSize);
+
         _form.PerformLayout();
 
         Invalidate(null);

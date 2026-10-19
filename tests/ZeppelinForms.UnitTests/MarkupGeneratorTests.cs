@@ -248,7 +248,7 @@ public class MarkupGeneratorTests
     [Theory]
     [InlineData("<Buton/>", "ZF2003", 2)]
     [InlineData("<Button Txt=\"x\"/>", "ZF2004", 2)]
-    [InlineData("<Button Width=\"wide\"/>", "ZF2004", 2)]
+    [InlineData("<Button Width=\"wide\"/>", "ZF2005", 2)]
     [InlineData("<StackPanel Spacing=\"wide\"/>", "ZF2005", 2)]
     [InlineData("<StackPanel Orientation=\"Diagonal\"/>", "ZF2005", 2)]
     [InlineData("<Label TextColor=\"@Accent\"/>", "ZF2005", 2)]

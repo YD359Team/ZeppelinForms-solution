@@ -88,10 +88,22 @@ public static class ElementTreeRenderer
         // element a second layer is not needed.
         bool needsLayer = !element.IsEnabled || opacity < 1f;
 
+        // a blend mode is a layer too, put over what is under it in the mode. An
+        // enabled element's opacity rides on the same layer; a disabled one's dimming
+        // is a layer of its own inside it
+        BlendMode blend = element.BlendMode;
+        bool blendLayer = blend != BlendMode.Normal;
+
+        if (blendLayer)
+            g.SaveLayer(element.IsEnabled ? opacity : 1f, blend);
+
         if (!element.IsEnabled)
             g.SaveDisabledLayer(element.DisabledOpacity * opacity, element.DisabledDesaturation);
-        else if (opacity < 1f)
+        else if (opacity < 1f && !blendLayer)
             g.SaveLayer(opacity);
+
+        // the enabled element's opacity went into the blend layer: no second one
+        if (blendLayer && element.IsEnabled) needsLayer = false;
 
         // rotation and scale break the adding up of offsets: under them
         // a rectangle in absolute coordinates no longer describes where the child
@@ -189,6 +201,9 @@ public static class ElementTreeRenderer
             effects.End(g, element.LocalBounds);
 
         if (needsLayer)
+            g.Restore();
+
+        if (blendLayer)
             g.Restore();
 
         g.Restore();

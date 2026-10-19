@@ -17,6 +17,9 @@ The project is under active development.
 The showcase — every control, the styles and the effects — runs in the browser:
 **https://yd359team.github.io/**
 
+The documentation is in the [wiki](https://github.com/YD359Team/ZeppelinForms-solution/wiki)
+(its source is `docs/wiki`).
+
 | # | Name        | Status |
 | - | ----------- | ------ |
 | 1 | Headless    | ✅     |
@@ -211,7 +214,7 @@ registration to call directly.
 | 23 | TabStrip            | ✅     |     |                  |        |
 
 \* — contains bugs and is missing part of its API
-\*\* — DataGridView: no cell editing or frozen columns yet
+\*\* — DataGridView: no frozen columns yet
 
 `Button` has the variants `PrimaryButton`, `SecondaryButton` and `DangerButton`.
 

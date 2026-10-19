@@ -77,7 +77,7 @@ internal sealed class SplitViewMenu : InteractiveControl
     /// pane is. Its compact strip must show the icons, not the texts' ends.</summary>
     private bool ColumnAtRight => _view.PaneAtRight;
 
-    private float Height(SplitViewItem item) => item.Kind switch
+    private float ItemHeight(SplitViewItem item) => item.Kind switch
     {
         SplitViewItemKind.Header => HeaderHeight,
         SplitViewItemKind.Separator => SeparatorHeight,
@@ -88,7 +88,7 @@ internal sealed class SplitViewMenu : InteractiveControl
         (_view.IsBackButtonVisible ? RowHeight : 0f) + (_view.IsPaneToggleButtonVisible ? RowHeight : 0f);
 
     private float FooterHeight =>
-        _view.FooterItems.Count == 0 ? 0f : SeparatorHeight + _view.FooterItems.Sum(Height);
+        _view.FooterItems.Count == 0 ? 0f : SeparatorHeight + _view.FooterItems.Sum(ItemHeight);
 
     /// <summary>Where the scrolled entries are: between the buttons and the footer.</summary>
     private Rectangle ItemsArea
@@ -102,7 +102,7 @@ internal sealed class SplitViewMenu : InteractiveControl
         }
     }
 
-    private float ItemsHeight => _view.Items.Sum(Height);
+    private float ItemsHeight => _view.Items.Sum(ItemHeight);
 
     private float MaxScroll => Math.Max(0, ItemsHeight - ItemsArea.Height);
 
@@ -134,7 +134,7 @@ internal sealed class SplitViewMenu : InteractiveControl
 
             foreach (SplitViewItem item in _view.Items)
             {
-                float height = Height(item);
+                float height = ItemHeight(item);
                 var bounds = new Rectangle(new Point(0, y), new Size(width, height));
                 y += height;
 
@@ -148,7 +148,7 @@ internal sealed class SplitViewMenu : InteractiveControl
 
             foreach (SplitViewItem item in _view.FooterItems)
             {
-                float height = Height(item);
+                float height = ItemHeight(item);
                 rows.Add(new MenuRow(Kind(item), item, new Rectangle(new Point(0, y), new Size(width, height)), true));
                 y += height;
             }
@@ -421,8 +421,8 @@ internal sealed class SplitViewMenu : InteractiveControl
         int index = item is null ? -1 : _view.Items.IndexOf(item);
         if (index < 0) return;
 
-        float top = _view.Items.Take(index).Sum(Height);
-        float bottom = top + Height(item!);
+        float top = _view.Items.Take(index).Sum(ItemHeight);
+        float bottom = top + ItemHeight(item!);
         float visible = ItemsArea.Height;
 
         if (visible <= 0) return;

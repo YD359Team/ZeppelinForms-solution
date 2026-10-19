@@ -1,0 +1,123 @@
+{
+  "Platform": "linux",
+  "CreatedUtc": "2026-10-19T20:45:50.2010045+00:00",
+  "Results": {
+    "layout.business-form": {
+      "Name": "layout.business-form",
+      "Iterations": 300,
+      "MedianMs": 0.5054,
+      "P95Ms": 0.5723400000000001,
+      "MaxMs": 3.6521,
+      "AllocatedBytesPerIteration": 14952,
+      "RetainedBytes": -19160,
+      "WorkingSetDeltaBytes": 5079040,
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0
+    },
+    "layout.business-form-cached": {
+      "Name": "layout.business-form-cached",
+      "Iterations": 300,
+      "MedianMs": 0.18015,
+      "P95Ms": 0.21204,
+      "MaxMs": 0.2598,
+      "AllocatedBytesPerIteration": 7624,
+      "RetainedBytes": -9832,
+      "WorkingSetDeltaBytes": 2502656,
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0
+    },
+    "scroll.virtualized-list": {
+      "Name": "scroll.virtualized-list",
+      "Iterations": 200,
+      "MedianMs": 1.6108500000000001,
+      "P95Ms": 1.7941,
+      "MaxMs": 2.3796,
+      "AllocatedBytesPerIteration": 993,
+      "RetainedBytes": 12632,
+      "WorkingSetDeltaBytes": 1998848,
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0
+    },
+    "render.business-form": {
+      "Name": "render.business-form",
+      "Iterations": 200,
+      "MedianMs": 3.3104,
+      "P95Ms": 3.81176,
+      "MaxMs": 4.1717,
+      "AllocatedBytesPerIteration": 6456,
+      "RetainedBytes": -10632,
+      "WorkingSetDeltaBytes": 4562944,
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0
+    },
+    "render.text-heavy": {
+      "Name": "render.text-heavy",
+      "Iterations": 150,
+      "MedianMs": 2.7249499999999998,
+      "P95Ms": 5.8635399999999995,
+      "MaxMs": 6.2303,
+      "AllocatedBytesPerIteration": 136,
+      "RetainedBytes": -23424,
+      "WorkingSetDeltaBytes": 1421312,
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0
+    },
+    "text.measure-repeated": {
+      "Name": "text.measure-repeated",
+      "Iterations": 100,
+      "MedianMs": 0.22725,
+      "P95Ms": 0.24441,
+      "MaxMs": 0.2552,
+      "AllocatedBytesPerIteration": 8,
+      "RetainedBytes": -23648,
+      "WorkingSetDeltaBytes": 16384,
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0
+    },
+    "memory.image-retention": {
+      "Name": "memory.image-retention",
+      "Iterations": 200,
+      "MedianMs": 0.3403,
+      "P95Ms": 1.0754199999999998,
+      "MaxMs": 1.2935,
+      "AllocatedBytesPerIteration": 262559,
+      "RetainedBytes": -22848,
+      "WorkingSetDeltaBytes": 229376,
+      "Gen0Collections": 16,
+      "Gen1Collections": 16,
+      "Gen2Collections": 16
+    },
+    "memory.font-fallback-growth": {
+      "Name": "memory.font-fallback-growth",
+      "Iterations": 100,
+      "MedianMs": 4.1465499999999995,
+      "P95Ms": 8.32614,
+      "MaxMs": 8.4986,
+      "AllocatedBytesPerIteration": 11580,
+      "RetainedBytes": -448,
+      "WorkingSetDeltaBytes": 2490368,
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0
+    },
+    "memory.text-churn": {
+      "Name": "memory.text-churn",
+      "Iterations": 600,
+      "MedianMs": 0.0826,
+      "P95Ms": 0.16132,
+      "MaxMs": 0.4585,
+      "AllocatedBytesPerIteration": 591,
+      "RetainedBytes": 235520,
+      "WorkingSetDeltaBytes": 4395008,
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0
+    }
+  }
+}

@@ -16,6 +16,12 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
 
+	<ItemGroup>
+		<!-- a test running past a minute is named in the log while it runs: a hang shows
+         which test it is instead of a step that just never ends -->
+		<Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\ZeppelinForms.Linux\ZeppelinForms.Linux.csproj" />
     <ProjectReference Include="..\..\src\ZeppelinForms.Windows\ZeppelinForms.Windows.csproj" />

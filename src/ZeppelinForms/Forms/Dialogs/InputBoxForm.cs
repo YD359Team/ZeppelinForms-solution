@@ -55,6 +55,10 @@ internal sealed class InputBoxForm : Form
                     Spacing = 8,
                     Docking = Dock.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Right,
+
+                    // the field above ended right on the buttons: the same gap
+                    // as a message box keeps over its own
+                    Margin = new Thickness(0, 16, 0, 0),
                     Children = { cancel, ok },
                 },
                 new StackPanel

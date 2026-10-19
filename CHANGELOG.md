@@ -1,5 +1,180 @@
 # Changes
 
+## [0.17.0] - Victoria Falls
+
+![Victoria Falls](assets/Logo-0.17.0.jpg)
+
+> This release provides one of the most important things for application software 
+development - binding to collections and significant improvements to DataGridView. 
+And the image overlay modes will allow you to create beautiful and interesting effects. 
+Therefore, the release was named after one of the most beautiful natural phenomena - 
+Victoria Falls. Victoria is also my wife's name.
+
+### Breaking changes
+
+- `ListBox` virtualizes by default: it has containers only for the rows in sight, and its
+  `Children` are no longer one per item — a child's index there is not its item's index.
+  Find a row's container with `ContainerFromIndex` and `IndexFromContainer`; a list of rows
+  of different heights sets `IsVirtualizing = false`
+- With a `DataSource` set, `Items` of a data grid, a list box or a combo box mirrors it, and
+  adding to it throws `InvalidOperationException` (a combo box's list is refilled instead)
+- A child docked to the top or the bottom of a `DockPanel` spans the panel's width even over
+  an explicit width, as in WinForms (left and right: the height). An alignment the
+  application chose along the edge is kept
+- `StackPanel` asks for what its children need: without a `FlexGrow` child it used to ask
+  for all the room it was offered along its axis. A stack docked or placed in a sized parent
+  may come out smaller than before — a message box's row of buttons made the box as wide as
+  its maximum
+- A `Grid` without `Rows` or `Columns` is one star cell on that axis, as in WPF: its children
+  got cells of zero and weren't seen
+- `Form.Font` is never null: until set it is `Font.Default`, read live. `null` resets it
+- `Form.Size` and `Form.Position` follow an open window both ways, and `Position` is in
+  screen pixels on every platform (it was read once, when the window was made)
+- A multi-line `TextBox` shows scroll bars when its text doesn't fit
+  (`VerticalScrollBarVisibility`, `HorizontalScrollBarVisibility`, `Auto` by default) and
+  takes the wheel
+- Stroked SVG glyphs (`SvgIcon`, `IconSource.FromPath`, `Graphics.DrawSvgPath` with a stroke)
+  are fitted with their stroke: slightly smaller than before, and no longer cut at the edges
+- `DataGridViewColumn` is no longer sealed; a typed column's constructor takes a second,
+  compiler-filled parameter
+
+### Fixes
+
+- A click on another cell of a data grid while a cell was edited threw a
+  `NullReferenceException` in the focus change: the editor left the form in the middle of
+  it. The focus dispatcher no longer reads the element it is taking the focus from twice
+- A watched style sheet whose path has no folder of its own — a bare file name, a root —
+  broke the file watcher (`Path.GetDirectoryName(...)!`): paths are made full first, and one
+  that has none is skipped. The watcher's debounce timer could fire after the link was
+  disposed or reloaded a sheet that had been replaced; a generation counter drops such a tick
+- Linux: a held key reports itself as a repeat (`isRepeat`), as on Windows. X11 sent every
+  repeat as a release and a press, and the form saw the key let go and pressed anew
+- Linux: a window is centered in the work area (`_NET_WORKAREA`) — the panels left out
+- The message box: its buttons stand at the right, it is as wide as its message, and its
+  icon is not cut. The input box has a gap between its field and its buttons
+- The data grid draws only the columns in sight: a wide grid read and formatted every cell
+  of every visible row, those scrolled off sideways included
+- `HeadlessInput.PressKey` lets the modifiers go after the chord: a Ctrl+S in one test made
+  the next test's click a Ctrl-click
+- The showcase: the live style editor takes the page's width, and the blend-mode demo is
+  seen at all
+
+### Data grid
+
+- **Typed columns.** `DataGridViewColumn<TItem, TValue>(record => record.Value)`: no casts,
+  and numbers and dates are neither boxed for every visible cell of every frame nor for
+  every comparison of a sort — they sort as values, not as their text. `Format`, `SetValue`,
+  `Parse` and `Comparer` are typed. The untyped column stays; both go into one `Columns`
+- A typed column reading one member is headed by its name until `Header` is set
+- **Kinds of columns**, each with its editor: `DataGridViewCheckBoxColumn`,
+  `DataGridViewComboBoxColumn` (an enum's members by default), `DataGridViewDateTimeColumn`,
+  `DataGridViewNumericColumn`, `DataGridViewCheckedListColumn`, `DataGridViewImageColumn`. A
+  column of another kind overrides `DrawCell`, `CreateEditor`, `TryGetEditedValue` and
+  `TryActivate`
+- **Editing**: F2, a double click or typing begins it; Enter commits and goes down, Tab goes
+  on to the next editable cell, Escape cancels, a click elsewhere commits. The editor is a
+  real control put over the cell. `CellEditing`, `CellValueChanging` (change or refuse the
+  value), `CellValueChanged`, `BeginEdit`, `EndEdit`, `CancelEdit`, `SetCellValue`,
+  `ReadOnly` for the grid and the column
+- **Selection**: `SelectionUnit` — rows, cells or columns — and `SelectionMode` — `Single`,
+  `Multiple`, `Extended` with Ctrl and Shift. The selection keeps to its records through
+  sorting and changes of the rows. `SelectedItems`, `SelectedIndices`, `SelectedCells`,
+  `SelectedColumns`, `CurrentColumnIndex`, `SelectAll`, `ClearSelection`
+- **Ctrl+C** copies the selection as tab-separated text a spreadsheet pastes as a table
+  (`CopyHeaders`, `CopySelection`, `GetSelectionText`)
+- A column whose delegate throws fails with an exception naming the column and the record's
+  type, not a bare `InvalidCastException` from the middle of a frame
+- `RowItem<T>(row)`, `CellValue`, `CellText`, `ScrollIntoView(row, column)`; the check boxes
+  take `CheckColor` and `CheckGlyphColor`, set by every theme
+- Screen readers see the selected cells, and an editable cell is not read-only to them
+
+### Data sources
+
+- `DataSource` on `DataGridView`, `ListBox` (every `ItemsControl`) and `ComboBox`: a list, an
+  array or a query is read when set and on `RefreshDataSource()`; an
+  `ObservableCollection<T>` or a `BindingList<T>` is followed change by change, so the
+  selection and the rows in sight stay
+- A change made on another thread is applied on the UI thread, once for a burst
+- A control listens to its source only while it is in a form, so a long-lived model doesn't
+  hold closed windows; back in a form, it catches up
+- `DataSource<T>` (`ZeppelinForms.Data`): a filtered and ordered view of a collection —
+  `Filter`, `Comparer`, `Refresh()` — that leaves the collection as it is. A filter narrowed
+  by a keystroke changes only the rows that leave, so a list keeps its selection
+
+### Lists and scrolling
+
+- `ItemsControl.IsVirtualizing`, `ItemHeight`, `ContainerFromIndex`, `IndexFromContainer`,
+  `ScrollIntoView`. The list box and the tree view virtualize with one engine
+  (`ItemRealizer`); the keys bring the row they reach into sight
+- **`ScrollPastEnd`** on panels, lists, the tree, the data grid and the text box: scroll on
+  past the content until the last row stands at the top, as a code editor does. Every way of
+  scrolling follows it — the wheel, the bars, a finger, `ScrollTo`
+- A multi-line `TextBox` scrolls with the wheel and its bars and stays where it was scrolled:
+  the caret was followed on every frame, so nothing else could scroll it. `ScrollTo`,
+  `ScrollToCaret`, `VerticalOffset`, `HorizontalOffset`, `ScrollTrackColor`,
+  `ScrollThumbColor`. Wrapped lines keep their breaks between frames, and an edit breaks
+  again only the lines it changed
+
+### Windows
+
+- `Form.MinimumSize` and `Form.MaximumSize` limit the user's resizing too (WM_GETMINMAXINFO,
+  X11 size hints); a minimum above the maximum raises it, as in WinForms
+- `Form.TopMost`, `Form.CenterToScreen()`
+- `Form.LocationChanged`, `Form.SizeChanged`, `OnLocationChanged`, `OnSizeChanged`
+- `IDesktopWindow.SetSizeLimits`, `SetTopMost`, `CenterOnScreen` for a platform of one's own;
+  the headless window records them
+
+### Layout
+
+- `UIElement.Width` and `UIElement.Height` set one axis of the explicit size;
+  `Size.FromWidth` and `Size.FromHeight` make such a size
+- A text box docked to the top stretches across, even with a size of its own
+
+### Timers
+
+- `DispatcherTimer` (`ZeppelinForms.Dispatchers`, #23): `Tick` on the UI thread, as WinForms'
+  `Timer` and WPF's `DispatcherTimer`. Made for a form, it stops when the form closes. Ticks
+  don't pile up, the cadence doesn't stretch with a slow handler, and a tick queued before
+  `Stop` doesn't run after it. `Start`, `Stop` and the properties work from any thread
+
+### Blend modes
+
+- `UIElement.BlendMode`: an element and its descendants are put over what is under them as
+  Avalonia's `BitmapBlendingMode` and CSS `mix-blend-mode` do — `Multiply`, `Screen`,
+  `Overlay`, the other separable modes, `Hue`/`Saturation`/`Color`/`Luminosity` and the
+  Porter–Duff operators. Styled, so a style sheet sets it (`BlendMode: multiply`)
+- `Graphics.SaveLayer(opacity, mode)` and `Graphics.DrawBlendedImage` for a control's own
+  drawing; a backend without blend modes draws as `Normal`
+
+### Fonts
+
+- `FontFallbacks`: font files searched for a character the font lacks, before the system's
+  fonts. In the browser, which has no fonts of its own, they are the only fallback:
+  `BrowserApp` downloads them with the font. The WebAssembly showcase shows Hebrew, Arabic
+  and Japanese with Noto fonts
+
+### Public API
+
+- `tools/ship-api.cs` moves the API of a released version from `PublicAPI.Unshipped.txt` to
+  `PublicAPI.Shipped.txt` — run once at the start of every release branch;
+  `-- --check` only reports
+
+### Documentation
+
+- English documentation in the GitHub wiki, kept in `docs/wiki` and published by
+  `.github/workflows/wiki.yml`: getting started, forms and windows, layout, controls, lists,
+  the data grid, data binding, styles and themes, graphics and effects, threading and timers,
+  accessibility, markup and tooling, the browser, testing, the public API and releases
+
+### Examples
+
+- The showcase: typed columns and the selection modes in the data grid, an editable grid of
+  every kind of column over a filtered `DataSource<T>`, the blend modes over a picture
+- [ZF Process Monitor](https://github.com/YD359Team/ZF_ProcessMonitor) moves to 0.17: a
+  `DispatcherTimer` with the snapshot taken on a worker, a `DataSource<T>` with a search box,
+  typed columns sorting memory as a number, multi-selection and Ctrl+C
+
+
 ## [0.16.3]
 
 - Fix WASM example and build

@@ -607,11 +607,17 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
     {
         get
         {
-            Rectangle content = this.ContentBounds;
+            // the scroll bars take their room from the text: no character under a bar
+            // (see TextBox.Scrolling)
+            ResolveBars();
+
+            Rectangle column = TextColumn;
 
             return new Rectangle(
-                new Point(content.X + LeadingWidth, content.Y),
-                new Size(Math.Max(0, content.Width - LeadingWidth - TrailingWidth), content.Height));
+                column.Position,
+                new Size(
+                    Math.Max(0, column.Width - (_verticalBar ? ScrollBarThickness : 0)),
+                    Math.Max(0, column.Height - (_horizontalBar ? ScrollBarThickness : 0))));
         }
     }
 
@@ -792,13 +798,31 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
         {
             int lineStart = 0;
 
+            // the breaks of a line that didn't change are taken from the last layout:
+            // a keystroke breaks one line again, not the whole text (see TextBox.Scrolling)
+            WrapCache? cache = wrap ? WrapCacheFor(width, font, direction) : null;
+            var breaks = wrap ? new Dictionary<string, List<(int Start, int Length)>>(StringComparer.Ordinal) : null;
+
             foreach (string line in text.Split('\n'))
             {
-                if (wrap && line.Length > 0) Wrap(line, lineStart, width, font, rows);
-                else rows.Add(new TextRow(lineStart, line, EndsLine: true));
+                if (wrap && line.Length > 0)
+                {
+                    if (!breaks!.TryGetValue(line, out List<(int Start, int Length)>? pieces) &&
+                        !cache!.Lines.TryGetValue(line, out pieces))
+                        pieces = TextWrapper.Wrap(line, width, font);
+
+                    breaks[line] = pieces;
+                    AddPieces(line, lineStart, pieces, rows);
+                }
+                else
+                {
+                    rows.Add(new TextRow(lineStart, line, EndsLine: true));
+                }
 
                 lineStart += line.Length + 1;
             }
+
+            if (cache is not null) cache.Lines = breaks!;
         }
 
         _rows = rows;
@@ -857,10 +881,12 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
     /// <summary>Break one line of the text into rows no wider than <paramref name="width"/>:
     /// after spaces, which hang at the end of their row, as <see cref="TextWrapper"/> breaks
     /// the label's lines too.</summary>
-    private static void Wrap(string line, int offset, float width, Font font, List<TextRow> rows)
-    {
-        List<(int Start, int Length)> pieces = TextWrapper.Wrap(line, width, font);
+    private static void Wrap(string line, int offset, float width, Font font, List<TextRow> rows) =>
+        AddPieces(line, offset, TextWrapper.Wrap(line, width, font), rows);
 
+    /// <summary>The rows of one line from its breaks.</summary>
+    private static void AddPieces(string line, int offset, List<(int Start, int Length)> pieces, List<TextRow> rows)
+    {
         for (int i = 0; i < pieces.Count; i++)
         {
             var (start, length) = pieces[i];
@@ -1244,6 +1270,9 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
         if (_pressedIcon != IconPart.None) return;
 
+        // a press on a scroll bar scrolls, the caret stays (see TextBox.Scrolling)
+        if (e.Button == MouseButton.Left && PressScrollBar(e.Location)) return;
+
         // the right and the middle button don't select: the menu they open acts on the
         // selection there is. Inside the selection it stays; outside it the caret moves
         // there, as in an editor. Any button used to move the caret, and the context
@@ -1274,6 +1303,8 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
     protected override void OnMouseMove(MouseMoveEventArgs e)
     {
+        if (MoveScrollBar(e.Location)) return;
+
         if (_isDragging)
         {
             _document.SetCaret(IndexFromPoint(e.Location), extendSelection: true);
@@ -1281,12 +1312,16 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
         }
 
         // a hand over an icon that does something, the I-beam over the text
-        Cursor = ClickableIconAt(e.Location) != IconPart.None ? CursorKind.Hand : CursorKind.IBeam;
+        Cursor = ClickableIconAt(e.Location) != IconPart.None ? CursorKind.Hand
+            : IsOverScrollBar(e.Location) ? CursorKind.Arrow
+            : CursorKind.IBeam;
     }
 
     protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         _isDragging = false;
+
+        if (ReleaseScrollBar()) return;
 
         IconPart pressed = _pressedIcon;
         _pressedIcon = IconPart.None;
@@ -1319,7 +1354,8 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
         float caretX = RowShift(caretLayout, content.Width) + caretLayout.CaretX(caretColumn);
         float caretY = caretRow * lineHeight;
 
-        UpdateScroll(content, caretX, caretY, lineHeight, rows.Count, caretLayout.Width);
+        UpdateScroll(content, caretX, caretY, lineHeight, rows.Count, ContentWidth(rows),
+            followCaret: TakeCaretFollow(shownCaret, rows, content));
 
         g.Save();
         g.ClipRect(content);
@@ -1384,6 +1420,9 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
             ReportTextInputArea(caret);
 
         g.Restore();
+
+        // over the text's clip, at the edge of the text column
+        DrawScrollBars(g);
     }
 
     /// <summary>The composition's line under its part of a row, as input methods mark the
@@ -1495,14 +1534,31 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
         }
     }
 
-    private void UpdateScroll(Rectangle content, float caretX, float caretY, float lineHeight, int lineCount, float rowWidth)
+    /// <param name="contentWidth">The widest row: how far the text scrolls sideways.</param>
+    /// <param name="followCaret">Bring the caret into view: it moved, the text changed or
+    /// the field was resized. Otherwise the field stays where the wheel or a bar put it,
+    /// kept within the text.</param>
+    private void UpdateScroll(Rectangle content, float caretX, float caretY, float lineHeight, int lineCount,
+        float contentWidth, bool followCaret)
     {
         // wrapped rows fit the width: nothing to scroll sideways to. Nor in a single
         // line that fits — it stands where its alignment puts it, and an offset left
         // from when it was longer used to keep its start hidden
-        if ((IsMultiline && WordWrap) || (!IsMultiline && rowWidth <= content.Width)) _scrollOffset = 0;
-        else if (caretX - _scrollOffset > content.Width) _scrollOffset = caretX - content.Width;
-        else if (caretX - _scrollOffset < 0) _scrollOffset = caretX;
+        if ((IsMultiline && WordWrap) || (!IsMultiline && contentWidth <= content.Width))
+        {
+            _scrollOffset = 0;
+        }
+        else
+        {
+            if (followCaret)
+            {
+                if (caretX - _scrollOffset > content.Width) _scrollOffset = caretX - content.Width;
+                else if (caretX - _scrollOffset < 0) _scrollOffset = caretX;
+            }
+
+            // the caret stands after the last character: room for it at the end
+            _scrollOffset = Math.Clamp(_scrollOffset, 0, Math.Max(0, Math.Max(contentWidth, caretX + CaretWidth) - content.Width));
+        }
 
         if (!IsMultiline)
         {
@@ -1510,13 +1566,18 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
             return;
         }
 
-        if (caretY + lineHeight - _verticalOffset > content.Height)
-            _verticalOffset = caretY + lineHeight - content.Height;
-        else if (caretY - _verticalOffset < 0)
-            _verticalOffset = caretY;
+        if (followCaret)
+        {
+            if (caretY + lineHeight - _verticalOffset > content.Height)
+                _verticalOffset = caretY + lineHeight - content.Height;
+            else if (caretY - _verticalOffset < 0)
+                _verticalOffset = caretY;
+        }
 
-        // don't scroll below the last line
-        _verticalOffset = Math.Clamp(_verticalOffset, 0, Math.Max(0, lineCount * lineHeight - content.Height));
+        // don't scroll below the last line — or, with ScrollPastEnd, below the last
+        // line standing at the top
+        _verticalOffset = Math.Clamp(_verticalOffset, 0,
+            Math.Max(0, lineCount * lineHeight - content.Height) + PastEndExtent(content));
     }
 
     protected override Size MeasureOverride(Size availableSize)

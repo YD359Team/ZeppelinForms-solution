@@ -1,5 +1,7 @@
+﻿using System.Collections.ObjectModel;
 using System.Globalization;
 using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Data;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
@@ -54,7 +56,8 @@ internal static class DataPage
             Columns =
             {
                 // fixed, not Auto: the row number is short and predictable,
-                // and Auto would be measured again on every scroll
+                // and Auto would be measured again on every scroll. An untyped
+                // column: the record comes as an object and is cast
                 new DataGridViewColumn
                 {
                     Header = "#",
@@ -63,43 +66,40 @@ internal static class DataPage
                     CanSort = false,
                     Value = item => Array.IndexOf(Samples.Games, (Game)item) + 1,
                 },
-                new DataGridViewColumn
+                // the same columns typed: the record and the value come as they are,
+                // without casts, and an int or a float isn't boxed for every cell
+                new DataGridViewColumn<Game, string>(game => game.Title)
                 {
                     Header = "Game",
                     Width = GridLength.Star(2),
-                    Value = item => ((Game)item).Title,
                 },
-                new DataGridViewColumn
+                new DataGridViewColumn<Game, string>(game => game.Developer)
                 {
                     Header = "Developer",
                     Width = GridLength.Star(2),
-                    Value = item => ((Game)item).Developer,
                 },
-                new DataGridViewColumn
+                new DataGridViewColumn<Game, int>(game => game.Year)
                 {
                     Header = "Year",
                     Width = GridLength.Fixed(60),
                     Align = HorizontalContentAlignment.Center,
-                    Value = item => ((Game)item).Year,
                     // without a format an int would print as "2 004" in cultures
                     // with a group separator
-                    Format = value => ((int)value!).ToString(CultureInfo.InvariantCulture),
+                    Format = year => year.ToString(CultureInfo.InvariantCulture),
                 },
-                new DataGridViewColumn
+                new DataGridViewColumn<Game, float>(game => game.Rating)
                 {
                     Header = "Rating",
                     Width = GridLength.Fixed(70),
                     Align = HorizontalContentAlignment.Right,
-                    Value = item => ((Game)item).Rating,
-                    Format = value => ((float)value!).ToString("0.0", CultureInfo.CurrentCulture),
+                    Format = rating => rating.ToString("0.0", CultureInfo.CurrentCulture),
                 },
-                new DataGridViewColumn
+                new DataGridViewColumn<Game, bool>(game => game.Completed)
                 {
                     Header = "Completed",
                     Width = GridLength.Fixed(90),
                     Align = HorizontalContentAlignment.Center,
-                    Value = item => ((Game)item).Completed,
-                    Format = value => (bool)value! ? "Yes" : "No",
+                    Format = completed => completed ? "Yes" : "No",
                 },
             },
         };
@@ -107,9 +107,21 @@ internal static class DataPage
         grid.Items.AddRange(Samples.Games);
 
         grid.SelectionChanged += (_, item) =>
-            selection.Text = item is Game game
-                ? $"{game.Title} — {game.Developer}, {game.Year}"
-                : "Select a row";
+            selection.Text = grid.SelectionUnit switch
+            {
+                DataGridViewSelectionUnit.Cell => $"{grid.SelectedCells.Count} cell(s) selected",
+                DataGridViewSelectionUnit.FullColumn => $"{grid.SelectedColumns.Count} column(s) selected",
+                _ when grid.SelectedIndices.Count > 1 => $"{grid.SelectedIndices.Count} games selected",
+                _ => item is Game game ? $"{game.Title} — {game.Developer}, {game.Year}" : "Select a row",
+            };
+
+        // what a click selects and how many: Ctrl+click toggles, Shift+click extends,
+        // Ctrl+A selects all and Ctrl+C copies the selection as a table
+        var unit = new ComboBox { Items = { "Rows", "Cells", "Columns" }, SelectedIndex = 0 };
+        unit.SelectionChanged += (_, _) => grid.SelectionUnit = (DataGridViewSelectionUnit)Math.Max(0, unit.SelectedIndex);
+
+        var mode = new ComboBox { Items = { "Single", "Multiple", "Extended" }, SelectedIndex = 0 };
+        mode.SelectionChanged += (_, _) => grid.SelectionMode = (SelectionMode)Math.Max(0, mode.SelectedIndex);
 
         Label sorted = Demo.Note("Click a header to sort, again to reverse");
         grid.SortChanged += (_, _) => sorted.Text = "Sorted: the selection stays on its game";
@@ -138,10 +150,113 @@ internal static class DataPage
             Spacing = 10,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
         };
-        gridDemo.Children.AddRange([grid, Demo.Row(sortable, resizable, gridStripes, dimUnfinished), selection, sorted]);
+        gridDemo.Children.AddRange([grid, Demo.Row(sortable, resizable, gridStripes, dimUnfinished), Demo.Row(unit, mode), selection, sorted]);
 
         return Demo.Page("Grids and tables", "A table of strings to show, a data grid over objects to work with.",
             Demo.Section("Table", Demo.Column(table, Demo.Row(lines, stripes)), "Table lays out strings; its columns are Auto, Fixed or Star like a Grid's"),
-            Demo.Section("Data grid", gridDemo, "Each column reads its value from the object and formats it; the arrows, Home and End move the selection"));
+            Demo.Section("Data grid", gridDemo, "Each column reads its value from the object and formats it; rows, cells or columns are selected one at a time or many, with Ctrl and Shift"),
+            Demo.Section("Editing", CreateEditableGrid(), "Rows from a DataSource view of an ObservableCollection, filtered as you type. A column with SetValue is edited: F2, a double click or typing opens the editor of its kind, Enter and Tab commit, Escape cancels; a check box toggles with a click"));
+    }
+
+    private enum Priority { Low, Normal, High }
+
+    /// <summary>A mutable record: the games above are records of init-only values,
+    /// and a cell is edited by writing into its record.</summary>
+    private sealed class Chore
+    {
+        public string Title { get; set; } = "";
+        public Priority Priority { get; set; } = Priority.Normal;
+        public DateTime Due { get; set; } = DateTime.Today;
+        public int Hours { get; set; }
+        public bool Done { get; set; }
+        public IReadOnlyList<string> Tags { get; set; } = [];
+    }
+
+    private static UIElement CreateEditableGrid()
+    {
+        var grid = new DataGridView
+        {
+            Size = new(float.NaN, 220),
+            SelectionUnit = DataGridViewSelectionUnit.Cell,
+            Columns =
+            {
+                new DataGridViewColumn<Chore, string>(chore => chore.Title)
+                {
+                    Header = "Chore",
+                    Width = GridLength.Star(2),
+                    SetValue = (chore, title) => chore.Title = title,
+                },
+                new DataGridViewComboBoxColumn<Chore, Priority>(chore => chore.Priority)
+                {
+                    Header = "Priority",
+                    Width = GridLength.Fixed(100),
+                    SetValue = (chore, priority) => chore.Priority = priority,
+                },
+                new DataGridViewDateTimeColumn<Chore>(chore => chore.Due)
+                {
+                    Header = "Due",
+                    Width = GridLength.Fixed(120),
+                    SetValue = (chore, due) => chore.Due = due,
+                },
+                new DataGridViewNumericColumn<Chore, int>(chore => chore.Hours)
+                {
+                    Header = "Hours",
+                    Width = GridLength.Fixed(80),
+                    Minimum = 0,
+                    Maximum = 40,
+                    SetValue = (chore, hours) => chore.Hours = hours,
+                },
+                new DataGridViewCheckedListColumn<Chore, string>(chore => chore.Tags)
+                {
+                    Header = "Tags",
+                    Width = GridLength.Star(),
+                    Options = ["home", "work", "errand", "urgent"],
+                    SetValue = (chore, tags) => chore.Tags = tags,
+                },
+                new DataGridViewCheckBoxColumn<Chore>(chore => chore.Done)
+                {
+                    Header = "Done",
+                    SetValue = (chore, done) => chore.Done = done,
+                },
+            },
+        };
+
+        // the grid shows a view of the collection rather than rows put in by hand:
+        // a chore added to the collection shows, and the search box filters the view
+        var chores = new ObservableCollection<Chore>
+        {
+            new() { Title = "Water the plants", Priority = Priority.Low, Hours = 1, Tags = ["home"] },
+            new() { Title = "Write the release notes", Priority = Priority.High, Due = DateTime.Today.AddDays(2), Hours = 3, Tags = ["work"] },
+            new() { Title = "Buy a new keyboard", Due = DateTime.Today.AddDays(7), Hours = 2, Tags = ["errand"] },
+            new() { Title = "Fix the leaking tap", Priority = Priority.High, Hours = 2, Tags = ["home", "urgent"], Done = true },
+        };
+
+        var view = new DataSource<Chore>(chores);
+        grid.DataSource = view;
+
+        var search = new TextBox { Size = new(220, float.NaN) };
+        search.TextChanged += (_, _) =>
+        {
+            string text = search.Text ?? string.Empty;
+            view.Filter = text.Length == 0 ? null : chore => chore.Title.Contains(text, StringComparison.CurrentCultureIgnoreCase);
+        };
+
+        var add = new Button { Text = "Add a chore" };
+        add.Click += (_, _) => chores.Add(new Chore { Title = $"Chore {chores.Count + 1}" });
+
+        Label changed = Demo.Note("Edit a cell");
+        grid.CellValueChanged += (_, e) =>
+            changed.Text = $"{e.Column.Header} of \"{((Chore)e.Item).Title}\" is now {e.Column.Value(e.Item) switch
+            {
+                IReadOnlyList<string> tags => string.Join(", ", tags),
+                DateTime date => date.ToShortDateString(),
+                { } value => value.ToString(),
+                null => "empty",
+            }}";
+
+        var readOnly = new ToggleSwitch { Text = "Read-only" };
+        readOnly.Toggled += (_, _) => grid.ReadOnly = readOnly.IsOn;
+
+        return Demo.Column(Demo.Row(new Label { Text = "Filter:" }, search, add), grid, Demo.Row(readOnly), changed);
     }
 }

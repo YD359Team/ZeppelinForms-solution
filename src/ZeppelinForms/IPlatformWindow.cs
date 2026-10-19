@@ -51,26 +51,3 @@ public interface IPlatformWindow
 
     IFrameDriver Frames { get; }
 }
-
-/// <summary>The window's appearance as a desktop object. Not implemented in the
-/// browser and on Android — those concepts don't exist there.</summary>
-// TODO: SetResizable, SetTopMost, CenterOnScreen —
-// when implementations appear in Win32Window and X11Window
-public interface IDesktopWindow
-{
-    void SetTitle(string? title);
-    void SetBounds(Rectangle bounds);
-    void SetOpacity(float opacity);
-    void SetWindowState(WindowState state);
-    /// <summary>The window's icon changed while it is open. Null — the application's.
-    /// A platform without window icons does nothing — the default.</summary>
-    void SetIcon(Drawing.Imaging.Icon? icon) { }
-
-    bool SupportsTransparency { get; }
-
-    /// <summary>Rebuild the frame from the form: FormBorderStyle, ControlBox,
-    /// ShowInTaskbar, CanMinimize, CanMaximize, CanResize changed while the window
-    /// is open. A platform that reads them only when creating the window keeps
-    /// this empty.</summary>
-    void UpdateChrome() { }
-}

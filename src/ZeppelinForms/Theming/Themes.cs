@@ -240,6 +240,10 @@ public static partial class Themes
                 grid.HeaderHoverColor = c.SurfacePressed;
                 grid.HeaderTextColor = c.Text;
                 grid.SelectionColor = c.Selection;
+
+                // a check box column's boxes, as a CheckBox's
+                grid.CheckColor = c.Accent;
+                grid.CheckGlyphColor = c.TextOnAccent;
             })
 
             .For<TextBox>((box, c) =>

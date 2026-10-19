@@ -70,8 +70,13 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
         RegisterWindowClass();
 
-        int width = (int)_form.Size.Width;
-        int height = (int)_form.Size.Height;
+        // the size the window opens at keeps within the form's limits: the first
+        // WM_GETMINMAXINFO comes before WM_NCCREATE, when the window doesn't know its
+        // form yet, and the system can't hold CreateWindowEx's size to them
+        Size initial = _form.ClampToSizeLimits(_form.Size);
+
+        int width = (int)initial.Width;
+        int height = (int)initial.Height;
 
         int x, y;
 
@@ -134,6 +139,16 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
         _scale = NativeMethods.GetDpiForWindow(_handle) / 96f;
 
         PlaceAfterCreate(width, height);
+
+        // the moves during CreateWindowEx came before the scale was known: from here
+        // on the window reports its place and size to the form, starting now
+        _reportsBounds = true;
+        ReportBounds();
+
+        // a topmost form opens above the others; TopMost set later goes through
+        // SetTopMost from the form
+        if (_form.TopMost)
+            SetTopMost(true);
 
         // WM_SIZE during CreateWindowEx came before the surface existed,
         // so the first time it is initialized by hand
@@ -280,19 +295,26 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             title ?? string.Empty);
     }
 
+    /// <summary>Form.Position or Form.Size set while the window is open: the position
+    /// is in screen pixels already, the size is logical and measured as Form.Size is.</summary>
+    /// <remarks>Nothing called this until 0.17, and it took the size as pixels and
+    /// activated the window, flags 0 — the form now calls it, so it follows the
+    /// form's units and leaves the activation and the z-order alone.</remarks>
     public void SetBounds(Rectangle bounds)
     {
         if (_handle == 0)
             return;
+
+        (int extraWidth, int extraHeight) = FrameExtra();
 
         NativeMethods.SetWindowPos(
             _handle,
             0,
             (int)bounds.X,
             (int)bounds.Y,
-            (int)bounds.Width,
-            (int)bounds.Height,
-            0);
+            (int)MathF.Round(bounds.Width * _scale) + extraWidth,
+            (int)MathF.Round(bounds.Height * _scale) + extraHeight,
+            NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
     }
 
     public void SetWindowState(WindowState state)
@@ -551,6 +573,18 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             case NativeConstants.WM_KILLFOCUS:
                 _form.OnWindowFocusLost();
                 return 0;
+
+            // the form's MinimumSize and MaximumSize, read anew each time: dragging an
+            // edge, SetWindowPos and maximizing all ask
+            case NativeConstants.WM_GETMINMAXINFO:
+                OnGetMinMaxInfo(lParam);
+                return 0;
+
+            // every move and resize, the user's and the code's: the form's Position and
+            // Size follow. DefWindowProc still gets it — it sends WM_SIZE and WM_MOVE
+            case NativeConstants.WM_WINDOWPOSCHANGED:
+                ReportBounds();
+                return NativeMethods.DefWindowProc(hWnd, message, wParam, lParam);
 
             case NativeConstants.WM_DPICHANGED:
                 {

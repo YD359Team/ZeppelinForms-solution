@@ -18,7 +18,9 @@ public static class BrowserApp
     /// in the arguments.</param>
     /// <param name="font">The path to the font file — also its address on the server.
     /// null leaves Font.Default as is, and text will be drawn with the fallback
-    /// typeface: a browser has no fonts of its own for Skia.</param>
+    /// typeface: a browser has no fonts of its own for Skia. The characters the font
+    /// lacks — Hebrew, Arabic, CJK in a Latin font — come from <see cref="FontFallbacks"/>,
+    /// whose files are downloaded with it: add them before calling this.</param>
     /// <param name="preload">Other files that will be needed synchronously:
     /// pictures for Image.LoadAsset and anything else from disk.</param>
     /// <param name="fontFamily">The family name. By default it is taken
@@ -43,6 +45,11 @@ public static class BrowserApp
 
             if (preload is not null)
                 files.AddRange(preload);
+
+            // the fallback fonts are read when a character is missing from the font,
+            // synchronously, in the middle of drawing: they are downloaded up front too.
+            // A browser has no fonts of its own, so they are all there is beyond the one
+            files.AddRange(FontFallbacks.Paths);
 
             // downloaded before the platform is created: it registers the text
             // measurer, and that one goes for the font on the very first access

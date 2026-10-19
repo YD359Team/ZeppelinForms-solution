@@ -268,21 +268,9 @@ public class AutoCompleteBox : TextBox
     }
 
     /// <summary>Scroll the list so that a row Up or Down reached is in sight.</summary>
-    private static void KeepVisible(ListBox list, int index)
-    {
-        if (index >= list.Children.Count) return;
-
-        float top = 0;
-
-        for (int i = 0; i < index; i++)
-            top += list.Children[i].ActualSize.Height;
-
-        float bottom = top + list.Children[index].ActualSize.Height;
-        float visible = list.ActualSize.Height - list.Padding.Vertical - list.BorderWidth * 2;
-
-        if (top < list.ScrollY) list.ScrollTo(0, top);
-        else if (bottom > list.ScrollY + visible) list.ScrollTo(0, bottom - visible);
-    }
+    /// <remarks>The list does it itself now, virtualizing or not: summing the heights
+    /// of the children no longer finds a row once they aren't one per item.</remarks>
+    private static void KeepVisible(ListBox list, int index) => list.ScrollIntoView(index);
 
     /// <summary>Take a suggestion: its text goes into the field, the caret after it.</summary>
     private void Accept(int index)

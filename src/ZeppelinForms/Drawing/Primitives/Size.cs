@@ -17,6 +17,14 @@ public readonly record struct Size
         this.Height = height;
     }
 
+    /// <summary>A size with the width given and the height left to the layout:
+    /// <c>Size = Size.FromWidth(240)</c> instead of <c>new Size(240, float.NaN)</c>.</summary>
+    public static Size FromWidth(float width) => new(width, float.NaN);
+
+    /// <summary>A size with the height given and the width left to the layout:
+    /// a text box docked to the top keeps stretching across.</summary>
+    public static Size FromHeight(float height) => new(float.NaN, height);
+
     public static Size operator *(Size a, float multiplier) =>
         new(a.Width * multiplier, a.Height * multiplier);
 }

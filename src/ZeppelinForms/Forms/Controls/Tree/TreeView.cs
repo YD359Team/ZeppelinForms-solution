@@ -69,6 +69,9 @@ public class TreeView : DecoratedPanel, IInputElement
         set => _panel.ItemHeight = value;
     }
 
+    /// <summary>The rows scroll in the tree's own panel: the setting goes there.</summary>
+    protected override void OnScrollPastEndChanged() => _panel.ScrollPastEnd = ScrollPastEnd;
+
     /// <summary>How to get a node's caption. By default — ToString of the content.</summary>
     public Func<TreeNode, string>? ItemText
     {

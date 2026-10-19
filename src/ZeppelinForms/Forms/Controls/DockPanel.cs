@@ -81,6 +81,20 @@ public partial class DockPanel : DecoratedPanel
         return ResolveSize(content, availableSize);
     }
 
+    /// <summary>Whether the application set the child's alignment on an axis to
+    /// something other than Stretch — in code, a binding or a style — rather than
+    /// leaving the control's default.</summary>
+    private static bool ChoseAlignment(UIElement child, bool horizontal)
+    {
+        ValueSource source = child.GetValueSource(horizontal ? HorizontalAlignmentProperty : VerticalAlignmentProperty);
+
+        if (source is not (ValueSource.Local or ValueSource.Binding or ValueSource.Style)) return false;
+
+        return horizontal
+            ? child.HorizontalAlignment != HorizontalAlignment.Stretch
+            : child.VerticalAlignment != VerticalAlignment.Stretch;
+    }
+
     protected override void ArrangeContentOverride(Size contentSize)
     {
         var rect = new Rectangle(
@@ -119,7 +133,17 @@ public partial class DockPanel : DecoratedPanel
                 _ => rect,
             };
 
-            child.Arrange(slot);
+            // a side dock spans its slot along the edge even over an explicit size
+            // on that axis, as in WinForms: a text box of Size 200×30 docked to the
+            // top runs across the whole panel. The other axis keeps the explicit size.
+            // An alignment the application chose along the edge is kept: a row of
+            // buttons docked to the bottom with HorizontalAlignment.Right stays at the
+            // right — spanning it put a message box's buttons at the left
+            child.Arrange(
+                slot,
+                fill: false,
+                spanWidth: child.Docking is Dock.Top or Dock.Bottom && !ChoseAlignment(child, horizontal: true),
+                spanHeight: child.Docking is Dock.Left or Dock.Right && !ChoseAlignment(child, horizontal: false));
 
             // "eat" the used space out of the common rectangle
             rect = child.Docking switch

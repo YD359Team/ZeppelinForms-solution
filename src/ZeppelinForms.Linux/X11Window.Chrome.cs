@@ -53,7 +53,7 @@ internal sealed partial class X11Window
     private void ApplyChrome(bool mapped)
     {
         SetMotifHints();
-        SetSizeLimits();
+        ApplySizeHints(position: !mapped);
         SetWindowType();
         SetTransientFor();
         SetSkipTaskbar(mapped);
@@ -94,10 +94,22 @@ internal sealed partial class X11Window
         ]);
     }
 
+    /// <summary>WM_NORMAL_HINTS: the size limits the manager keeps the window within,
+    /// and where it is to open.</summary>
     /// <param name="physicalWidth">The size to fix the window at, in pixels — when it
     /// is being resized from code; otherwise the current one.</param>
     /// <param name="physicalHeight">See physicalWidth.</param>
-    internal void SetSizeLimits(int? physicalWidth = null, int? physicalHeight = null)
+    /// <param name="position">Ask for the window's place too: only before it is mapped —
+    /// the manager reads the place when it takes the window, and a stale place in
+    /// later hints would have nothing to do.</param>
+    /// <remarks>
+    /// A window that can't be resized is held at one size, minimum and maximum equal.
+    /// A resizable one gets the form's MinimumSize and MaximumSize; an axis with no
+    /// limit of its own is 1 for the minimum and the protocol's largest size for the
+    /// maximum, since X11 gives both axes of a limit together. Until 0.17 a resizable
+    /// window had no limits at all.
+    /// </remarks>
+    internal void ApplySizeHints(int? physicalWidth = null, int? physicalHeight = null, bool position = false)
     {
         var hints = new X11.XSizeHints();
 
@@ -114,10 +126,44 @@ internal sealed partial class X11Window
             hints.min_width = hints.max_width = width;
             hints.min_height = hints.max_height = height;
         }
+        else
+        {
+            Drawing.Primitives.Size minimum = _form.MinimumSize;
+            Drawing.Primitives.Size maximum = _form.MaximumSize;
+
+            if (!minimum.IsWidthAuto || !minimum.IsHeightAuto)
+            {
+                hints.flags |= X11.PMinSize;
+                hints.min_width = ToPhysical(minimum.Width, unlimited: 1);
+                hints.min_height = ToPhysical(minimum.Height, unlimited: 1);
+            }
+
+            if (!maximum.IsWidthAuto || !maximum.IsHeightAuto)
+            {
+                hints.flags |= X11.PMaxSize;
+                hints.max_width = ToPhysical(maximum.Width, unlimited: MaxProtocolSize);
+                hints.max_height = ToPhysical(maximum.Height, unlimited: MaxProtocolSize);
+            }
+        }
+
+        if (position && OpeningPosition() is (int x, int y))
+        {
+            // PPosition alone some managers ignore for a normal window; USPosition is
+            // what they all keep — the place is the application's explicit wish
+            hints.flags |= X11.USPosition | X11.PPosition;
+            hints.x = x;
+            hints.y = y;
+        }
 
         // no flags — no limits: a window made resizable again loses them
         X11.XSetWMNormalHints(_display, _window, ref hints);
     }
+
+    /// <summary>The largest width or height a window can have in the X protocol.</summary>
+    private const int MaxProtocolSize = short.MaxValue;
+
+    private int ToPhysical(float logical, int unlimited) =>
+        float.IsNaN(logical) ? unlimited : Math.Clamp((int)MathF.Round(logical * _scale), 1, MaxProtocolSize);
 
     private void SetWindowType()
     {
@@ -158,9 +204,18 @@ internal sealed partial class X11Window
 
         if (!mapped)
         {
-            // before mapping the manager takes the initial state from the property
-            if (skip)
-                ChangeLongs(netWmState, X11.XA_ATOM, [(long)skipTaskbar]);
+            // before mapping the manager takes the initial state from the property —
+            // the whole of it at once: the topmost place is written with the taskbar
+            // flag, or one would replace the other
+            nuint above = X11.XInternAtom(_display, "_NET_WM_STATE_ABOVE", false);
+
+            List<long> state = [];
+
+            if (skip) state.Add((long)skipTaskbar);
+            if (_form.TopMost) state.Add((long)above);
+
+            if (state.Count > 0)
+                ChangeLongs(netWmState, X11.XA_ATOM, [.. state]);
 
             return;
         }

@@ -174,14 +174,45 @@ public partial class Form : IDisposable
 
     /// <summary>The icon the window shows: its own, or the application's.</summary>
     internal Icon? EffectiveIcon => Icon ?? App.DefaultIcon;
-    public Point Position { get; set; }
+
+    /// <summary>Where the window's top-left corner is on the screen, in screen pixels —
+    /// the units <see cref="Displays"/> reports the screens in. On Linux it is the corner
+    /// of the client area: the frame is the window manager's. Used when the window opens
+    /// with <see cref="WindowStartupLocation.Manual"/>; afterwards it follows the window
+    /// — a move by the user updates it, and setting it moves an open window.</summary>
+    /// <remarks>Screen pixels rather than logical units: with screens of different
+    /// scales a logical point of the desktop has no single meaning.</remarks>
+    public Point Position
+    {
+        get => _position;
+        set
+        {
+            if (_position == value) return;
+
+            _position = value;
+            ApplyBounds();
+            OnLocationChanged(EventArgs.Empty);
+        }
+    }
+
+    private Point _position;
 
     /// <summary>The size of the window, frame included. <see cref="DefaultSize"/>
     /// until set: a form nobody sized opens as a usable window, not as a speck.</summary>
+    /// <remarks>In logical units. It follows the window as <see cref="Position"/> does:
+    /// the user's resize updates it, and setting it resizes an open window — until 0.17
+    /// it was read once, when the window was made.</remarks>
     public Size Size
     {
         get => _size ?? DefaultSize;
-        set => _size = value;
+        set
+        {
+            if (_size == value) return;
+
+            _size = value;
+            ApplyBounds();
+            OnSizeChanged(EventArgs.Empty);
+        }
     }
 
     private Size? _size;
@@ -194,14 +225,37 @@ public partial class Form : IDisposable
     /// unsized dialog to their own surface instead.</summary>
     internal bool IsSizeSet => _size is not null;
 
-    // TODO: add min\max size support
-    public Size MinimumSize { get; set; } = Size.Auto;
-    public Size MaximumSize { get; set; } = Size.Auto;
-
     /// <summary>The form is shown as a modal dialog.</summary>
     public bool IsDialog { get; private set; }
 
-    public Font? Font { get; set; }
+    /// <summary>The font of every element of the form that sets none of its own and
+    /// inherits none from an ancestor. Until set — <see cref="Font.Default"/>, the
+    /// theme's font, read live: a theme switch reaches a form that set no font.
+    /// Null resets it back to that.</summary>
+    /// <remarks>
+    /// The property used to be a bare field: it read null on a form nobody gave a
+    /// font, though its elements drew with Font.Default all along, and setting it on
+    /// an open form changed nothing on screen until something else asked for a layout.
+    /// </remarks>
+    [AllowNull]
+    public Font Font
+    {
+        get => _font ?? Font.Default;
+        set
+        {
+            if (Equals(_font, value)) return;
+
+            _font = value;
+
+            // no element's own property changed, only what the elements without a
+            // font of their own inherit — as with the text scale, the whole tree
+            // is measured again
+            InvalidateMeasureTree();
+            Invalidate();
+        }
+    }
+
+    private Font? _font;
 
     private WindowState _windowState = WindowState.Normal;
 

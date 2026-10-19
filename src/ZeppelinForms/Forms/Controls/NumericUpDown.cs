@@ -282,7 +282,7 @@ public partial class NumericUpDown : TextInputControl
         InvalidateVisual();
     }
 
-    private void CommitEdit()
+    internal void CommitEdit()
     {
         if (!_isEditing) return;
 

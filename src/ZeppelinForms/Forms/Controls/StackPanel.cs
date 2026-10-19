@@ -137,10 +137,16 @@ public class StackPanel : DecoratedPanel
                 if (child.IsVisible && child.FlexGrow > 0)
                     desiredMain += MainOf(child.DesiredSize) + MainMargin(child.Margin);
         }
-        else
+        else if (totalFlex > 0)
         {
+            // flexible children take the rest of a finite axis
             desiredMain += freeMain;
         }
+
+        // with none the stack asks for what its children need and no more. It used to
+        // add the free space in either case: a row of three buttons docked at the bottom
+        // of a message box asked for the whole width the box could have, and the box
+        // grew to its maximum with the buttons at one end of it
 
         Size content = IsVertical
             ? new Size(crossMax, desiredMain)

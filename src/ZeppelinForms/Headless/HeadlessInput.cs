@@ -80,10 +80,18 @@ public static class HeadlessInput
             IsPrimary = fingerId == 0,
         };
 
+    /// <summary>A whole chord: the key pressed and released with the modifiers held,
+    /// then the modifiers released too.</summary>
+    /// <remarks>The modifiers used to stay held in <see cref="Keyboard"/> after the chord:
+    /// a Ctrl+S in one test made the next test's click a Ctrl-click, and its wheel —
+    /// after a Shift chord — a sideways one.</remarks>
     public static void PressKey(Form form, Key key, KeyModifiers modifiers = KeyModifiers.None)
     {
         form.OnKeyDown(key, modifiers, false);
         form.OnKeyUp(key, modifiers);
+
+        if (modifiers != KeyModifiers.None)
+            Keyboard.Reset();
     }
 
     public static void TypeText(Form form, string text)

@@ -261,6 +261,56 @@ public sealed class SkiaGraphics : Graphics
         _canvas.SaveLayer(paint);
     }
 
+    public override void SaveLayer(float opacity, BlendMode blendMode)
+    {
+        if (blendMode == BlendMode.Normal)
+        {
+            SaveLayer(opacity);
+            return;
+        }
+
+        // the opacity and the mode on one paint: one layer, put over in the mode
+        // at that opacity when it is restored
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(255, 255, 255, (byte)Math.Clamp(opacity * 255f, 0, 255)),
+            BlendMode = ToSkia(blendMode),
+        };
+
+        _canvas.SaveLayer(paint);
+    }
+
+    private static SKBlendMode ToSkia(BlendMode mode) => mode switch
+    {
+        BlendMode.Multiply => SKBlendMode.Multiply,
+        BlendMode.Screen => SKBlendMode.Screen,
+        BlendMode.Overlay => SKBlendMode.Overlay,
+        BlendMode.Darken => SKBlendMode.Darken,
+        BlendMode.Lighten => SKBlendMode.Lighten,
+        BlendMode.ColorDodge => SKBlendMode.ColorDodge,
+        BlendMode.ColorBurn => SKBlendMode.ColorBurn,
+        BlendMode.HardLight => SKBlendMode.HardLight,
+        BlendMode.SoftLight => SKBlendMode.SoftLight,
+        BlendMode.Difference => SKBlendMode.Difference,
+        BlendMode.Exclusion => SKBlendMode.Exclusion,
+        BlendMode.Plus => SKBlendMode.Plus,
+        BlendMode.Hue => SKBlendMode.Hue,
+        BlendMode.Saturation => SKBlendMode.Saturation,
+        BlendMode.Color => SKBlendMode.Color,
+        BlendMode.Luminosity => SKBlendMode.Luminosity,
+        BlendMode.Source => SKBlendMode.Src,
+        BlendMode.Destination => SKBlendMode.Dst,
+        BlendMode.DestinationOver => SKBlendMode.DstOver,
+        BlendMode.SourceIn => SKBlendMode.SrcIn,
+        BlendMode.DestinationIn => SKBlendMode.DstIn,
+        BlendMode.SourceOut => SKBlendMode.SrcOut,
+        BlendMode.DestinationOut => SKBlendMode.DstOut,
+        BlendMode.SourceAtop => SKBlendMode.SrcATop,
+        BlendMode.DestinationAtop => SKBlendMode.DstATop,
+        BlendMode.Xor => SKBlendMode.Xor,
+        _ => SKBlendMode.SrcOver,
+    };
+
     public override void DrawShadow(Rectangle rect, BoxShadow shadow)
     {
         var color = new SKColor(shadow.Color.R, shadow.Color.G, shadow.Color.B, shadow.Color.A);
@@ -328,6 +378,12 @@ public sealed class SkiaGraphics : Graphics
         if (path is null) return;
 
         SKRect bounds = path.Bounds;
+
+        // a stroke reaches half its width past the path's own bounds, and it is scaled
+        // with the path: fitted by the bare bounds, a stroked glyph lost its edges — the
+        // top of a message box's question mark and the dot under it were cut off
+        if (strokeWidth > 0) bounds.Inflate(strokeWidth / 2f, strokeWidth / 2f);
+
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
 
         // fit the path into rect keeping the proportions

@@ -545,9 +545,51 @@ internal static class SkiaFontCache
         }
     }
 
+    /// <summary>The fallback files of <see cref="FontFallbacks"/> as last loaded: the
+    /// list they were loaded from, and a font of each to check glyphs with. Guarded by
+    /// <see cref="Sync"/>.</summary>
+    private static IReadOnlyList<string>? _fallbackPaths;
+    private static List<SKFont> _fallbackFonts = [];
+
+    /// <summary>Load the fallback files again if <see cref="FontFallbacks"/> changed since
+    /// they were last loaded, and drop the cached fallbacks then: a character drawn as a
+    /// box before the files were added is looked for again. A reference comparison —
+    /// the list is replaced whole on every change. Called under <see cref="Sync"/>.</summary>
+    private static void RefreshApplicationFallbacks()
+    {
+        IReadOnlyList<string> paths = FontFallbacks.Paths;
+
+        if (ReferenceEquals(paths, _fallbackPaths)) return;
+
+        _fallbackPaths = paths;
+        _fallbackFonts = [];
+
+        foreach (string path in paths)
+        {
+            // a file that can't be read is skipped rather than failing the text:
+            // the system's fallback, if any, is still there
+            if (SKTypeface.FromFile(path) is { } typeface)
+                _fallbackFonts.Add(new SKFont(typeface));
+        }
+
+        Fallbacks.Clear();
+    }
+
+    /// <summary>The first of the application's fallback files with a glyph for the
+    /// character; null — none has it. Called under <see cref="Sync"/>.</summary>
+    private static SKTypeface? FindInApplicationFallbacks(int codepoint)
+    {
+        foreach (SKFont fallback in _fallbackFonts)
+            if (fallback.ContainsGlyph(codepoint))
+                return fallback.Typeface;
+
+        return null;
+    }
+
     /// <summary>A font that has a glyph for the character: first the primary one,
-    /// then the system fallback. The result is cached — MatchCharacter creates a new
-    /// object every time and costs noticeably.</summary>
+    /// then the application's fallback files (<see cref="FontFallbacks"/>), then the
+    /// system fallback. The result is cached — MatchCharacter creates a new object
+    /// every time and costs noticeably.</summary>
     public static SKTypeface Resolve(Font font, int codepoint)
     {
         SKFont primary = Get(font);
@@ -565,10 +607,14 @@ internal static class SkiaFontCache
         // and create two fonts instead of one
         lock (Sync)
         {
+            // a list of fallback files changed since the last miss empties the cache
+            RefreshApplicationFallbacks();
+
             if (Fallbacks.TryGet(key, out FallbackResult? cached))
                 return cached!.Typeface ?? primary.Typeface;
 
-            SKTypeface? found = SKFontManager.Default.MatchCharacter(codepoint);
+            // the application's files first: in a browser they are the only fallback
+            SKTypeface? found = FindInApplicationFallbacks(codepoint) ?? SKFontManager.Default.MatchCharacter(codepoint);
 
             Fallbacks.Add(key, found is null ? FallbackResult.None : new FallbackResult(found));
 

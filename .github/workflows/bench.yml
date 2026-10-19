@@ -16,7 +16,13 @@ jobs:
           dotnet-version: '10.0.x'
 
       - run: sudo apt-get update && sudo apt-get install -y libfontconfig1
-
+  
+      # A shared runner's timings spread by tens of percent from run to run, and the
+      # pool mixes CPU generations: the same commit measured 2.7 and 4.1 ms on
+      # render.text-heavy. Time catches only gross regressions here (2x); allocations
+      # are deterministic and keep the strict tolerance.
+      # A platform without a baseline only reports; the results artifact of a run on
+      # master is what to commit as Baselines/baseline-linux.json
       - name: Прогон бенчмарков
         run: >
           dotnet run
@@ -24,6 +30,7 @@ jobs:
           --configuration Release
           --
           --check
+          --time-tolerance 1.0
           --json bench-results.json
 
       - name: Результаты

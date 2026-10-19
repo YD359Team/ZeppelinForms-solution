@@ -224,6 +224,11 @@ public partial class ListBox : ItemsControl, IInputElement
     {
         SetControlDefault(BackgroundProperty, Colors.White);
 
+        // containers only for the rows in sight (see ItemsControl.Virtualizing): rows of
+        // a list box are one height as a rule. A list of rows of different heights
+        // turns it off
+        IsVirtualizing = true;
+
         Items.CollectionChanged += OnItemsChanged;
         Children.CollectionChanged += OnContainersChanged;
     }
@@ -272,10 +277,9 @@ public partial class ListBox : ItemsControl, IInputElement
     {
         // the highlight is drawn before the children: the renderer calls Draw,
         // then walks Children. The hover goes first, under the selection
-        if (_hoveredIndex >= 0 && _hoveredIndex < Children.Count && !_selected.Contains(_hoveredIndex))
+        // a row out of sight in a virtualizing list has no container, and nothing to draw
+        if (!_selected.Contains(_hoveredIndex) && ContainerFromIndex(_hoveredIndex) is { } hovered)
         {
-            UIElement hovered = Children[_hoveredIndex];
-
             g.FillRectangle(
                 new Rectangle(
                     new Point(ContentBounds.X, hovered.Position.Y),
@@ -283,11 +287,11 @@ public partial class ListBox : ItemsControl, IInputElement
                 HoverColor);
         }
 
-        foreach (int index in _selected)
+        // the rows there are, not every selected index: after Select All in a long
+        // list the selection is far larger than what is in sight
+        foreach ((int index, UIElement container) in RealizedContainers)
         {
-            if (index >= Children.Count) continue;
-
-            UIElement container = Children[index];
+            if (!_selected.Contains(index)) continue;
 
             g.FillRectangle(
                 new Rectangle(
@@ -333,12 +337,12 @@ public partial class ListBox : ItemsControl, IInputElement
     {
         float localY = absolute.Y - GetAbsolutePosition().Y;
 
-        for (int i = 0; i < Children.Count; i++)
+        // by the rows there are: in a virtualizing list a child's index in Children
+        // is not its item's index
+        foreach ((int index, UIElement child) in RealizedContainers)
         {
-            UIElement child = Children[i];
-
             if (localY >= child.Position.Y && localY < child.Position.Y + child.ActualSize.Height)
-                return i;
+                return index;
         }
 
         return -1;
@@ -369,6 +373,10 @@ public partial class ListBox : ItemsControl, IInputElement
                 SelectRange(target);
             else
                 SelectOnly(target);
+
+            // the row the keys reached comes into sight: End in a long list used to
+            // select a row nobody could see
+            ScrollIntoView(target);
 
             e.Handled = true;
             return;

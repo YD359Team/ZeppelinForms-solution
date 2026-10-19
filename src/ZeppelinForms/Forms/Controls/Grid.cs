@@ -31,14 +31,23 @@ public class Grid : DecoratedPanel
     public List<GridLength> RowDefinitions { get; private set; } = [];
     public List<GridLength> ColumnDefinitions { get; private set; } = [];
 
+    /// <summary>One star track for an axis with none defined, as in WPF: a grid
+    /// without Rows or Columns is one cell, its children stacked in it. Without it
+    /// every child got a cell of zero and nothing showed — a picture with shapes laid
+    /// over it in a grid of no definitions.</summary>
+    private static readonly List<GridLength> SingleTrack = [GridLength.Star()];
+
+    private static List<GridLength> Tracks(List<GridLength> definitions) =>
+        definitions.Count > 0 ? definitions : SingleTrack;
+
     protected override Size MeasureContentOverride(Size availableSize)
     {
         var content = new Size(
             Math.Max(0, availableSize.Width - Padding.Horizontal),
             Math.Max(0, availableSize.Height - Padding.Vertical));
 
-        _colWidths = ResolveTracks(ColumnDefinitions, content.Width, horizontal: true);
-        _rowHeights = ResolveTracks(RowDefinitions, content.Height, horizontal: false);
+        _colWidths = ResolveTracks(Tracks(ColumnDefinitions), content.Width, horizontal: true);
+        _rowHeights = ResolveTracks(Tracks(RowDefinitions), content.Height, horizontal: false);
 
         foreach (UIElement child in Children)
         {
@@ -64,8 +73,8 @@ public class Grid : DecoratedPanel
                 Math.Max(0, contentSize.Width - Padding.Horizontal),
                 Math.Max(0, contentSize.Height - Padding.Vertical)));
 
-        float[] colWidths = RedistributeStars(_colWidths, ColumnDefinitions, content.Width);
-        float[] rowHeights = RedistributeStars(_rowHeights, RowDefinitions, content.Height);
+        float[] colWidths = RedistributeStars(_colWidths, Tracks(ColumnDefinitions), content.Width);
+        float[] rowHeights = RedistributeStars(_rowHeights, Tracks(RowDefinitions), content.Height);
 
         foreach (UIElement child in Children)
         {
