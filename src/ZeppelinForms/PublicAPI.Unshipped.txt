@@ -82,3 +82,60 @@ ZeppelinForms.Forms.Controls.Base.ItemsControl.IndexFromContainer(ZeppelinForms.
 ZeppelinForms.Forms.Controls.Base.ItemsControl.ScrollIntoView(int index) -> void
 override ZeppelinForms.Forms.Controls.Base.ItemsControl.ScrollPastEndRow.get -> float
 override ZeppelinForms.Forms.Controls.ListBox.ArrangeContentOverride(ZeppelinForms.Drawing.Primitives.Size contentSize) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn.DataGridViewColumn(System.Func<object!, object?>! value) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.Comparer.get -> System.Collections.Generic.IComparer<TValue>?
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.Comparer.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.DataGridViewColumn(System.Func<TItem, TValue>! valueOf) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.Format.get -> System.Func<TValue, string!>?
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.Format.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.SetValue.get -> System.Action<TItem, TValue>?
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.SetValue.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.ValueOf.get -> System.Func<TItem, TValue>!
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewSelectionUnit
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewSelectionUnit.Cell = 1 -> ZeppelinForms.Forms.Controls.DataGrid.DataGridViewSelectionUnit
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewSelectionUnit.FullColumn = 2 -> ZeppelinForms.Forms.Controls.DataGrid.DataGridViewSelectionUnit
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewSelectionUnit.FullRow = 0 -> ZeppelinForms.Forms.Controls.DataGrid.DataGridViewSelectionUnit
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.Column.get -> int
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.Column.init -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.DataGridViewCellIndex() -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.DataGridViewCellIndex(int Row, int Column) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.Deconstruct(out int Row, out int Column) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.Equals(ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex other) -> bool
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.Row.get -> int
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.Row.init -> void
+override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.GetHashCode() -> int
+static ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.operator !=(ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex left, ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex right) -> bool
+static ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.operator ==(ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex left, ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex right) -> bool
+~override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.Equals(object obj) -> bool
+~override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex.ToString() -> string
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.CellText(int row, int column) -> string!
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.CellValue(int row, int column) -> object?
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.ClearSelection() -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.CopyHeaders.get -> bool
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.CopyHeaders.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.CopySelection() -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.CurrentColumnIndex.get -> int
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.CurrentColumnIndex.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.GetSelectionText() -> string!
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.IsCellSelected(int row, int column) -> bool
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.IsColumnSelected(int column) -> bool
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.IsRowSelected(int row) -> bool
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.RowItem<T>(int row) -> T
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.ScrollIntoView(int rowIndex, int columnIndex) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SelectAll() -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SelectedCells.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellIndex>!
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SelectedColumns.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn!>!
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SelectedIndices.get -> System.Collections.Generic.IReadOnlyList<int>!
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SelectedItems.get -> System.Collections.Generic.IReadOnlyList<object!>!
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SelectionMode.get -> ZeppelinForms.Forms.Enums.SelectionMode
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SelectionMode.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SelectionUnit.get -> ZeppelinForms.Forms.Controls.DataGrid.DataGridViewSelectionUnit
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SelectionUnit.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SetCellSelected(int row, int column, bool selected) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SetColumnSelected(int column, bool selected) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.SetRowSelected(int row, bool selected) -> void
+override ZeppelinForms.Accessibility.Peers.DataGridPeer.ControlStates.get -> ZeppelinForms.Accessibility.AccessibilityStates
+override ZeppelinForms.Accessibility.Peers.DataGridCellPeer.Actions.get -> ZeppelinForms.Accessibility.AccessibilityActions
+override ZeppelinForms.Accessibility.Peers.DataGridCellPeer.Select() -> bool

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
@@ -54,7 +54,8 @@ internal static class DataPage
             Columns =
             {
                 // fixed, not Auto: the row number is short and predictable,
-                // and Auto would be measured again on every scroll
+                // and Auto would be measured again on every scroll. An untyped
+                // column: the record comes as an object and is cast
                 new DataGridViewColumn
                 {
                     Header = "#",
@@ -63,43 +64,40 @@ internal static class DataPage
                     CanSort = false,
                     Value = item => Array.IndexOf(Samples.Games, (Game)item) + 1,
                 },
-                new DataGridViewColumn
+                // the same columns typed: the record and the value come as they are,
+                // without casts, and an int or a float isn't boxed for every cell
+                new DataGridViewColumn<Game, string>(game => game.Title)
                 {
                     Header = "Game",
                     Width = GridLength.Star(2),
-                    Value = item => ((Game)item).Title,
                 },
-                new DataGridViewColumn
+                new DataGridViewColumn<Game, string>(game => game.Developer)
                 {
                     Header = "Developer",
                     Width = GridLength.Star(2),
-                    Value = item => ((Game)item).Developer,
                 },
-                new DataGridViewColumn
+                new DataGridViewColumn<Game, int>(game => game.Year)
                 {
                     Header = "Year",
                     Width = GridLength.Fixed(60),
                     Align = HorizontalContentAlignment.Center,
-                    Value = item => ((Game)item).Year,
                     // without a format an int would print as "2 004" in cultures
                     // with a group separator
-                    Format = value => ((int)value!).ToString(CultureInfo.InvariantCulture),
+                    Format = year => year.ToString(CultureInfo.InvariantCulture),
                 },
-                new DataGridViewColumn
+                new DataGridViewColumn<Game, float>(game => game.Rating)
                 {
                     Header = "Rating",
                     Width = GridLength.Fixed(70),
                     Align = HorizontalContentAlignment.Right,
-                    Value = item => ((Game)item).Rating,
-                    Format = value => ((float)value!).ToString("0.0", CultureInfo.CurrentCulture),
+                    Format = rating => rating.ToString("0.0", CultureInfo.CurrentCulture),
                 },
-                new DataGridViewColumn
+                new DataGridViewColumn<Game, bool>(game => game.Completed)
                 {
                     Header = "Completed",
                     Width = GridLength.Fixed(90),
                     Align = HorizontalContentAlignment.Center,
-                    Value = item => ((Game)item).Completed,
-                    Format = value => (bool)value! ? "Yes" : "No",
+                    Format = completed => completed ? "Yes" : "No",
                 },
             },
         };
@@ -107,9 +105,21 @@ internal static class DataPage
         grid.Items.AddRange(Samples.Games);
 
         grid.SelectionChanged += (_, item) =>
-            selection.Text = item is Game game
-                ? $"{game.Title} — {game.Developer}, {game.Year}"
-                : "Select a row";
+            selection.Text = grid.SelectionUnit switch
+            {
+                DataGridViewSelectionUnit.Cell => $"{grid.SelectedCells.Count} cell(s) selected",
+                DataGridViewSelectionUnit.FullColumn => $"{grid.SelectedColumns.Count} column(s) selected",
+                _ when grid.SelectedIndices.Count > 1 => $"{grid.SelectedIndices.Count} games selected",
+                _ => item is Game game ? $"{game.Title} — {game.Developer}, {game.Year}" : "Select a row",
+            };
+
+        // what a click selects and how many: Ctrl+click toggles, Shift+click extends,
+        // Ctrl+A selects all and Ctrl+C copies the selection as a table
+        var unit = new ComboBox { Items = { "Rows", "Cells", "Columns" }, SelectedIndex = 0 };
+        unit.SelectionChanged += (_, _) => grid.SelectionUnit = (DataGridViewSelectionUnit)Math.Max(0, unit.SelectedIndex);
+
+        var mode = new ComboBox { Items = { "Single", "Multiple", "Extended" }, SelectedIndex = 0 };
+        mode.SelectionChanged += (_, _) => grid.SelectionMode = (SelectionMode)Math.Max(0, mode.SelectedIndex);
 
         Label sorted = Demo.Note("Click a header to sort, again to reverse");
         grid.SortChanged += (_, _) => sorted.Text = "Sorted: the selection stays on its game";
@@ -138,10 +148,10 @@ internal static class DataPage
             Spacing = 10,
             CrossAxisAlignment = CrossAxisAlignment.Stretch,
         };
-        gridDemo.Children.AddRange([grid, Demo.Row(sortable, resizable, gridStripes, dimUnfinished), selection, sorted]);
+        gridDemo.Children.AddRange([grid, Demo.Row(sortable, resizable, gridStripes, dimUnfinished), Demo.Row(unit, mode), selection, sorted]);
 
         return Demo.Page("Grids and tables", "A table of strings to show, a data grid over objects to work with.",
             Demo.Section("Table", Demo.Column(table, Demo.Row(lines, stripes)), "Table lays out strings; its columns are Auto, Fixed or Star like a Grid's"),
-            Demo.Section("Data grid", gridDemo, "Each column reads its value from the object and formats it; the arrows, Home and End move the selection"));
+            Demo.Section("Data grid", gridDemo, "Each column reads its value from the object and formats it; rows, cells or columns are selected one at a time or many, with Ctrl and Shift"));
     }
 }

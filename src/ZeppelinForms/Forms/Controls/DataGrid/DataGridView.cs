@@ -111,13 +111,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         SetControlDefault(VerticalAlignmentProperty, VerticalAlignment.Stretch);
     }
 
-    /// <remarks>
-    /// The order and the selection are rebuilt from the record, not from the old
-    /// index. Previously ApplySort read SelectedItem here — through the old order,
-    /// whose indices no longer matched Items — and removing a row from a sorted
-    /// table could throw ArgumentOutOfRangeException. Without sorting the selection
-    /// quietly moved to a neighbouring record.
-    /// </remarks>
+    /// <remarks>See <see cref="RestoreSelection"/>: the selection follows its records.</remarks>
     private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         // the records that tell about their changes are listened to while they are here,
@@ -129,8 +123,8 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         if (SortColumnIndex >= 0) BuildOrder();
         else _order = null;
 
-        // the selected record may have moved or disappeared together with the data
-        RestoreSelection(_selectedRecord);
+        // the selected records may have moved or disappeared together with the data
+        RestoreSelection(e);
 
         // EnsureLayout will clamp the offset, calling for layout is enough here
         Invalidate();
@@ -221,28 +215,6 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     public partial Color ScrollThumbColor { get; set; }
     private static Color ScrollThumbColorDefault => new(120, 0, 0, 0);
 
-    public int SelectedIndex
-    {
-        get;
-        set
-        {
-            int clamped = value < 0 || value >= Items.Count ? -1 : value;
-
-            // the record is remembered on every assignment, even a repeated one:
-            // it is what the selection is restored by after the data changes
-            _selectedRecord = clamped >= 0 ? RowItem(clamped) : null;
-
-            if (field == clamped) return;
-
-            field = clamped;
-
-            SelectionChanged?.Invoke(this, SelectedItem);
-            InvalidateVisual();
-        }
-    } = -1;
-
-    public object? SelectedItem => SelectedIndex >= 0 ? RowItem(SelectedIndex) : null;
-
     /// <summary>The data of a row by its place on screen. With sorting this
     /// is not the same as Items[row].</summary>
     public object RowItem(int row) => Items[_order is null ? row : _order[row]];
@@ -297,7 +269,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
         // the selection holds on to the data record, not to its place on screen:
         // after sorting the same record must stay selected
-        RestoreSelection(_selectedRecord);
+        RestoreSelection(null);
 
         InvalidateVisual();
     }
@@ -311,8 +283,8 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             return;
         }
 
+        // the column compares: a typed one without boxing its values
         DataGridViewColumn column = Columns[SortColumnIndex];
-        IComparer<object?> comparer = column.Comparer ?? Comparer<object?>.Default;
 
         var order = new List<int>(Items.Count);
 
@@ -320,7 +292,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
         order.Sort((left, right) =>
         {
-            int result = comparer.Compare(column.Value(Items[left]), column.Value(Items[right]));
+            int result = column.CompareRows(Items[left], Items[right]);
 
             // List.Sort is unstable: without this, equal values swap places
             // from call to call, and rows jump before the eyes
@@ -331,27 +303,6 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
         _order = order;
     }
-
-    private void RestoreSelection(object? selected)
-    {
-        if (selected is null)
-        {
-            SelectedIndex = -1;
-            return;
-        }
-
-        for (int row = 0; row < Items.Count; row++)
-        {
-            if (!ReferenceEquals(RowItem(row), selected)) continue;
-
-            SelectedIndex = row;
-            return;
-        }
-
-        SelectedIndex = -1;
-    }
-
-    public event EventHandler<object?>? SelectionChanged;
 
     // ===== geometry =====
 
@@ -597,6 +548,36 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         else if (bottom > _scrollY + BodyBounds.Height) ScrollTo(_scrollX, bottom - BodyBounds.Height);
     }
 
+    /// <summary>Bring a cell into the visible part: its row, and its column sideways.
+    /// A row of −1 scrolls only sideways.</summary>
+    public void ScrollIntoView(int rowIndex, int columnIndex)
+    {
+        ScrollIntoView(rowIndex);
+
+        if (columnIndex < 0 || columnIndex >= Columns.Count) return;
+
+        EnsureLayout();
+
+        float left = ColumnLeft(columnIndex);
+        float right = left + _widths[columnIndex];
+        float room = BodyBounds.Width;
+
+        // a column wider than the body shows its start
+        if (left < _scrollX || right - left > room) ScrollTo(left, _scrollY);
+        else if (right > _scrollX + room) ScrollTo(right - room, _scrollY);
+    }
+
+    /// <summary>Where a column starts, counted from the first one, unscrolled.</summary>
+    private float ColumnLeft(int columnIndex)
+    {
+        float left = 0;
+
+        for (int col = 0; col < columnIndex && col < _widths.Count; col++)
+            left += _widths[col];
+
+        return left;
+    }
+
     UIElement ITouchScrollTarget.Element => this;
 
     bool ITouchScrollTarget.CanPanHorizontally
@@ -753,12 +734,18 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     /// a sort that won't happen.</summary>
     private int SortableColumnAt(Point local)
     {
-        if (!CanSortByHeaderClick) return -1;
+        // selecting columns, a click on a header selects it instead
+        if (!CanSortByHeaderClick || SelectionUnit == DataGridViewSelectionUnit.FullColumn) return -1;
 
         int column = ColumnAt(local);
 
         return column >= 0 && Columns[column].CanSort ? column : -1;
     }
+
+    /// <summary>The column whose header does something on a click — sorts, or is
+    /// selected; −1 — none.</summary>
+    private int ActionableColumnAt(Point local) =>
+        SelectionUnit == DataGridViewSelectionUnit.FullColumn ? ColumnAt(local) : SortableColumnAt(local);
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
     {
@@ -828,6 +815,19 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             // the click that dragged a boundary doesn't count as sorting
             if (_suppressHeaderClick) return;
 
+            if (SelectionUnit == DataGridViewSelectionUnit.FullColumn)
+            {
+                int selected = ColumnAt(local);
+
+                if (selected >= 0)
+                {
+                    SelectAt(SelectedIndex, selected, GestureOfClick());
+                    e.Handled = true;
+                }
+
+                return;
+            }
+
             int column = SortableColumnAt(local);
 
             if (column >= 0)
@@ -842,9 +842,24 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         int row = RowAt(e.Location);
         if (row < 0) return;
 
-        SelectedIndex = row;
+        int cellColumn = ColumnAt(local);
+
+        // past the last column there is a row, but no cell and no column
+        if (cellColumn < 0 && SelectionUnit != DataGridViewSelectionUnit.FullRow) return;
+
+        SelectAt(row, cellColumn >= 0 ? cellColumn : CurrentColumnIndex, GestureOfClick());
         e.Handled = true;
     }
+
+    /// <summary>How a click changes the selection: by the mode, and by Shift and Ctrl
+    /// held — the click carries no modifiers of its own.</summary>
+    private SelectGesture GestureOfClick() => SelectionMode switch
+    {
+        SelectionMode.Multiple => SelectGesture.Toggle,
+        SelectionMode.Extended when Keyboard.IsShiftDown => SelectGesture.Range,
+        SelectionMode.Extended when Keyboard.IsControlDown => SelectGesture.Toggle,
+        _ => SelectGesture.Only,
+    };
 
     protected override void OnMouseMove(MouseMoveEventArgs e)
     {
@@ -869,7 +884,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         // a header cell lights up only when a click on it would sort: the highlight
         // promises an action, and a column that can't sort has none. Not on
         // a resize edge either — a click there resizes rather than sorts
-        int header = !onEdge && IsOverHeader(local) ? SortableColumnAt(local) : -1;
+        int header = !onEdge && IsOverHeader(local) ? ActionableColumnAt(local) : -1;
         int row = RowAt(e.Location);
 
         if (row == _hoveredRow && header == _hoveredHeader) return;
@@ -1018,6 +1033,8 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     private void DrawRows(Graphics g, Rectangle body, int first, int last, Font font)
     {
+        bool byRow = SelectionUnit == DataGridViewSelectionUnit.FullRow;
+
         g.Save();
         g.ClipRect(body);
 
@@ -1031,7 +1048,11 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             // the row's own look: its record's style, over the stripe of every other row
             DataGridViewRowStyle? style = RowStyle?.Invoke(item);
 
-            if (row == SelectedIndex)
+            // selecting rows, the row is the selection; selecting cells or columns,
+            // the row is drawn as any other, and the selected cells over it
+            bool rowSelected = byRow && _selectedRows.Contains(item);
+
+            if (rowSelected)
             {
                 g.FillRectangle(rowRect, SelectionColor);
             }
@@ -1049,8 +1070,9 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             Font rowFont = style?.Font ?? font;
 
             // the keyboard's row: an outline inside the band, over the selection
-            // fill, while focus is visible
-            if (row == SelectedIndex && IsFocusVisible)
+            // fill, while focus is visible. Selecting cells — around the lead cell,
+            // drawn with the cells below
+            if (byRow && row == SelectedIndex && IsFocusVisible)
             {
                 var outline = new Rectangle(
                     new Point(body.X + 1f, top + 1f),
@@ -1062,7 +1084,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
             // the selected row's text in its own color where the theme pairs one
             // with the selection fill — high contrast does
             Color text =
-                row == SelectedIndex && SelectedTextColor.A > 0 ? SelectedTextColor :
+                rowSelected && SelectedTextColor.A > 0 ? SelectedTextColor :
                 style is { TextColor.A: > 0 } ? style.TextColor :
                 TextColor;
 
@@ -1088,7 +1110,31 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
                         Math.Max(0, width - CellPadding.Horizontal),
                         Math.Max(0, RowHeight - CellPadding.Vertical)));
 
-                g.DrawText(Columns[col].TextOf(item), cell, text, rowFont,
+                Color cellText = text;
+
+                if (!byRow)
+                {
+                    var band = new Rectangle(new Point(x, top), new Size(width, RowHeight));
+
+                    if (IsCellSelected(row, col))
+                    {
+                        g.FillRectangle(band, SelectionColor);
+
+                        if (SelectedTextColor.A > 0) cellText = SelectedTextColor;
+                    }
+
+                    // the keyboard's cell: an outline inside it while focus is visible
+                    if (row == SelectedIndex && col == CurrentColumnIndex && IsFocusVisible)
+                    {
+                        g.DrawRectangle(
+                            new Rectangle(
+                                new Point(x + 1f, top + 1f),
+                                new Size(Math.Max(0, width - 2f), Math.Max(0, RowHeight - 2f))),
+                            TextColor, 1f);
+                    }
+                }
+
+                g.DrawText(Columns[col].TextOf(item), cell, cellText, rowFont,
                     Columns[col].Align, VerticalContentAlignment.Center);
 
                 x += width;
@@ -1132,11 +1178,27 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
                 new Point(x + CellPadding.Left, content.Y),
                 new Size(Math.Max(0, _widths[col] - CellPadding.Horizontal), HeaderHeight));
 
+            var headerCell = new Rectangle(new Point(x, content.Y), new Size(_widths[col], HeaderHeight));
+
             // the whole column width, not the padded cell: the click area is the column
             if (col == _hoveredHeader)
-                g.FillRectangle(
-                    new Rectangle(new Point(x, content.Y), new Size(_widths[col], HeaderHeight)),
-                    HeaderHoverColor);
+                g.FillRectangle(headerCell, HeaderHoverColor);
+
+            // a selected column is marked in its header too: its cells may all be
+            // scrolled out of sight
+            if (IsColumnSelected(col))
+                g.FillRectangle(headerCell, SelectionColor);
+
+            // selecting columns with no lead row, the keyboard is on a header
+            if (SelectionUnit == DataGridViewSelectionUnit.FullColumn && SelectedIndex < 0 &&
+                col == CurrentColumnIndex && IsFocusVisible)
+            {
+                g.DrawRectangle(
+                    new Rectangle(
+                        new Point(x + 1f, content.Y + 1f),
+                        new Size(Math.Max(0, _widths[col] - 2f), Math.Max(0, HeaderHeight - 2f))),
+                    HeaderTextColor, 1f);
+            }
 
             if (col == SortColumnIndex) DrawSortMarker(g, cell);
 

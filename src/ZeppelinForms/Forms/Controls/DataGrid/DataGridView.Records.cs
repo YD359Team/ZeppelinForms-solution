@@ -55,7 +55,7 @@ public partial class DataGridView
         if (SortColumnIndex >= 0)
         {
             BuildOrder();
-            RestoreSelection(_selectedRecord);
+            RestoreSelection(null);
         }
 
         // Auto widths are measured from the values on every layout

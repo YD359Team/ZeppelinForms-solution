@@ -1,10 +1,30 @@
-﻿using ZeppelinForms.Forms.Enums;
+﻿using System.Diagnostics.CodeAnalysis;
+using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Forms.Controls.DataGrid;
 
 /// <summary>A grid column: the header, the width and the way to get to the value.</summary>
-public sealed class DataGridViewColumn
+/// <remarks>
+/// The value is reached through an object: any record, any value, a cast in the
+/// delegate. <see cref="DataGridViewColumn{TItem, TValue}"/> is the same column
+/// typed — no casts in the delegates, and no boxing of a value type in the cells
+/// and in sorting. Both go into the same <see cref="DataGridView.Columns"/>.
+/// </remarks>
+public class DataGridViewColumn
 {
+    public DataGridViewColumn()
+    {
+    }
+
+    /// <summary>For a typed column: the value is reached through its own delegate.</summary>
+    [SetsRequiredMembers]
+    protected DataGridViewColumn(Func<object, object?> value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        Value = value;
+    }
+
     public string? Header { get; set; }
 
     /// <summary>Fixed — a width in logical units, star — a share of the remainder,
@@ -40,10 +60,15 @@ public sealed class DataGridViewColumn
     /// <summary>The comparison for sorting. Null — Comparer.Default by value.</summary>
     public IComparer<object?>? Comparer { get; set; }
 
-    internal string TextOf(object item)
+    /// <summary>The text of the cell in a row: what is drawn, read out and copied.</summary>
+    internal virtual string TextOf(object item)
     {
         object? value = Value(item);
 
         return Format is not null ? Format(value) : value?.ToString() ?? string.Empty;
     }
+
+    /// <summary>The order of two rows by this column, as sorting sees it.</summary>
+    internal virtual int CompareRows(object left, object right) =>
+        (Comparer ?? Comparer<object?>.Default).Compare(Value(left), Value(right));
 }

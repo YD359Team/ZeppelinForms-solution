@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls.DataGrid;
+using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 
 namespace ZeppelinForms.Accessibility.Peers;
@@ -37,6 +38,11 @@ public class DataGridPeer : UIElementPeer
 
     protected override AccessibilityRole DefaultRole => AccessibilityRole.Table;
 
+    protected override AccessibilityStates ControlStates =>
+        _grid.SelectionMode == SelectionMode.Single
+            ? AccessibilityStates.None
+            : AccessibilityStates.MultiSelectable;
+
     public override IReadOnlyList<AccessibilityPeer> Children
     {
         get
@@ -52,9 +58,23 @@ public class DataGridPeer : UIElementPeer
         }
     }
 
-    /// <summary>The selected row, while the grid has the focus.</summary>
-    public override AccessibilityPeer? FocusedDescendant =>
-        IsFocused(_grid) && _grid.SelectedIndex >= 0 ? RowPeer(_grid.SelectedIndex) : null;
+    /// <summary>The lead row, while the grid has the focus — or, selecting cells or
+    /// columns, the lead cell in it.</summary>
+    public override AccessibilityPeer? FocusedDescendant
+    {
+        get
+        {
+            if (!IsFocused(_grid) || _grid.SelectedIndex < 0) return null;
+
+            DataGridRowPeer row = RowPeer(_grid.SelectedIndex);
+
+            if (_grid.SelectionUnit == DataGridViewSelectionUnit.FullRow) return row;
+
+            int column = _grid.CurrentColumnIndex;
+
+            return column >= 0 && column < row.Children.Count ? row.Children[column] : row;
+        }
+    }
 
     /// <summary>Whether the grid has the keyboard focus; its current row is then
     /// reported as the focus.</summary>
@@ -97,13 +117,16 @@ public class DataGridRowPeer : AccessibilityPeer
     {
         get
         {
+            // selecting cells or columns, the row is not what is selected: its cells are
+            if (Grid.SelectionUnit != DataGridViewSelectionUnit.FullRow)
+                return Grid.IsEffectivelyEnabled ? AccessibilityStates.None : AccessibilityStates.Disabled;
+
             AccessibilityStates states = AccessibilityStates.Selectable;
 
-            if (Grid.SelectedIndex == _row)
-            {
-                states |= AccessibilityStates.Selected;
-                if (DataGridPeer.IsFocused(Grid)) states |= AccessibilityStates.Focused;
-            }
+            if (Grid.IsRowSelected(_row)) states |= AccessibilityStates.Selected;
+
+            if (Grid.SelectedIndex == _row && DataGridPeer.IsFocused(Grid))
+                states |= AccessibilityStates.Focused;
 
             if (!Grid.IsEffectivelyEnabled) states |= AccessibilityStates.Disabled;
 
@@ -112,7 +135,9 @@ public class DataGridRowPeer : AccessibilityPeer
     }
 
     public override AccessibilityActions Actions =>
-        AccessibilityActions.Select | AccessibilityActions.ScrollIntoView;
+        Grid.SelectionUnit == DataGridViewSelectionUnit.FullRow
+            ? AccessibilityActions.Select | AccessibilityActions.ScrollIntoView
+            : AccessibilityActions.ScrollIntoView;
 
     /// <summary>One-based among the data rows: the header row is not counted.</summary>
     public override SetPosition? Position => new(_row + 1, Grid.Items.Count);
@@ -169,8 +194,42 @@ public class DataGridCellPeer : AccessibilityPeer
 
     public override string? Value => Name;
 
-    public override AccessibilityStates States =>
-        Grid.IsEffectivelyEnabled ? AccessibilityStates.ReadOnly : AccessibilityStates.ReadOnly | AccessibilityStates.Disabled;
+    public override AccessibilityStates States
+    {
+        get
+        {
+            AccessibilityStates states = AccessibilityStates.ReadOnly;
+
+            if (!Grid.IsEffectivelyEnabled) states |= AccessibilityStates.Disabled;
+
+            // selecting rows, the row tells; selecting cells or columns, the cell does
+            if (Grid.SelectionUnit != DataGridViewSelectionUnit.FullRow)
+            {
+                states |= AccessibilityStates.Selectable;
+
+                if (Grid.IsCellSelected(_rowIndex, _column)) states |= AccessibilityStates.Selected;
+
+                if (Grid.SelectedIndex == _rowIndex && Grid.CurrentColumnIndex == _column && DataGridPeer.IsFocused(Grid))
+                    states |= AccessibilityStates.Focused;
+            }
+
+            return states;
+        }
+    }
+
+    public override AccessibilityActions Actions =>
+        Grid.SelectionUnit == DataGridViewSelectionUnit.FullRow ? AccessibilityActions.None : AccessibilityActions.Select;
+
+    public override bool Select()
+    {
+        if (!Grid.IsEffectivelyEnabled || _rowIndex >= Grid.Items.Count || _column >= Grid.Columns.Count ||
+            Grid.SelectionUnit == DataGridViewSelectionUnit.FullRow)
+            return false;
+
+        Grid.SelectedIndex = _rowIndex;
+        Grid.CurrentColumnIndex = _column;
+        return true;
+    }
 
     /// <summary>The column within the row: "column 2 of 4".</summary>
     public override SetPosition? Position => new(_column + 1, Grid.Columns.Count);
