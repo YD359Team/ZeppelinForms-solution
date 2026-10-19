@@ -72,6 +72,24 @@ public partial class TextBox
     public partial Color ScrollThumbColor { get; set; }
     private static Color ScrollThumbColorDefault => new(120, 0, 0, 0);
 
+    /// <summary>Scroll a multi-line field on past its last line, as a code editor does:
+    /// down until the last line stands at the top. False by default.</summary>
+    public bool ScrollPastEnd
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    }
+
+    /// <summary>How far past the last line the field scrolls: its height but a line.</summary>
+    private float PastEndExtent(Rectangle area) =>
+        ScrollPastEnd && IsMultiline ? Math.Max(0, area.Height - LineHeight) : 0;
+
     /// <summary>How far the text is scrolled down, in logical units.</summary>
     public float VerticalOffset => _verticalOffset;
 
@@ -121,7 +139,7 @@ public partial class TextBox
             if (!IsMultiline) return 0;
 
             Rectangle area = TextBounds;
-            return Math.Max(0, Rows(area.Width).Count * LineHeight - area.Height);
+            return Math.Max(0, Rows(area.Width).Count * LineHeight - area.Height) + PastEndExtent(area);
         }
     }
 
@@ -252,7 +270,8 @@ public partial class TextBox
             Rectangle bar = VerticalBarRect;
             Rectangle area = TextBounds;
 
-            float content = Rows(area.Width).Count * LineHeight;
+            // the room past the last line counts as content, as a panel's does
+            float content = Rows(area.Width).Count * LineHeight + PastEndExtent(area);
             return Thumb(bar.Height, area.Height, content, _verticalOffset, MaxVerticalOffset);
         }
     }

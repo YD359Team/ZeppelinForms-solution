@@ -172,9 +172,10 @@ public partial class CheckedListBox : ListBox
         // the border in DrawOverlay
         base.DrawContent(g);
 
-        for (int i = 0; i < Children.Count; i++)
+        // the rows there are: in a virtualizing list only those in sight
+        foreach ((int i, UIElement container) in RealizedContainers)
         {
-            Rectangle box = BoxRect(Children[i]);
+            Rectangle box = BoxRect(container);
             bool isChecked = _checked.Contains(i);
 
             g.FillRoundRectangle(box, new CornerRadius(3f), isChecked ? CheckColor : BoxBackground);
@@ -199,10 +200,8 @@ public partial class CheckedListBox : ListBox
         float localX = e.Location.X - abs.X;
         float localY = e.Location.Y - abs.Y;
 
-        for (int i = 0; i < Children.Count; i++)
+        foreach ((int i, UIElement container) in RealizedContainers)
         {
-            UIElement container = Children[i];
-
             if (localY < container.Position.Y ||
                 localY >= container.Position.Y + container.ActualSize.Height)
             {

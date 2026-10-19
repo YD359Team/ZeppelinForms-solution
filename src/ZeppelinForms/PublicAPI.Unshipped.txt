@@ -63,3 +63,22 @@ static ZeppelinForms.Drawing.FontFallbacks.Add(string! path) -> void
 static ZeppelinForms.Drawing.FontFallbacks.Clear() -> void
 static ZeppelinForms.Drawing.FontFallbacks.Paths.get -> System.Collections.Generic.IReadOnlyList<string!>!
 ZeppelinForms.Drawing.FontFallbacks
+override ZeppelinForms.Forms.Controls.Tree.TreeView.OnScrollPastEndChanged() -> void
+override ZeppelinForms.Forms.Controls.VirtualizingStackPanel.ScrollPastEndRow.get -> float
+virtual ZeppelinForms.Forms.Controls.Base.PanelControl.OnScrollPastEndChanged() -> void
+virtual ZeppelinForms.Forms.Controls.Base.PanelControl.ScrollPastEndRow.get -> float
+ZeppelinForms.Forms.Controls.Base.PanelControl.ScrollPastEnd.get -> bool
+ZeppelinForms.Forms.Controls.Base.PanelControl.ScrollPastEnd.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.ScrollPastEnd.get -> bool
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.ScrollPastEnd.set -> void
+ZeppelinForms.Forms.Controls.Text.TextBox.ScrollPastEnd.get -> bool
+ZeppelinForms.Forms.Controls.Text.TextBox.ScrollPastEnd.set -> void
+ZeppelinForms.Forms.Controls.Base.ItemsControl.IsVirtualizing.get -> bool
+ZeppelinForms.Forms.Controls.Base.ItemsControl.IsVirtualizing.set -> void
+ZeppelinForms.Forms.Controls.Base.ItemsControl.ItemHeight.get -> float
+ZeppelinForms.Forms.Controls.Base.ItemsControl.ItemHeight.set -> void
+ZeppelinForms.Forms.Controls.Base.ItemsControl.ContainerFromIndex(int index) -> ZeppelinForms.Forms.Controls.Base.UIElement?
+ZeppelinForms.Forms.Controls.Base.ItemsControl.IndexFromContainer(ZeppelinForms.Forms.Controls.Base.UIElement! container) -> int
+ZeppelinForms.Forms.Controls.Base.ItemsControl.ScrollIntoView(int index) -> void
+override ZeppelinForms.Forms.Controls.Base.ItemsControl.ScrollPastEndRow.get -> float
+override ZeppelinForms.Forms.Controls.ListBox.ArrangeContentOverride(ZeppelinForms.Drawing.Primitives.Size contentSize) -> void

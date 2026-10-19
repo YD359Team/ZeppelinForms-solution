@@ -14,14 +14,33 @@ namespace ZeppelinForms.Forms.Controls.Base;
 /// <summary>
 /// A panel whose Children are generated from the Items data collection.
 /// </summary>
-public class ItemsControl : DecoratedPanel
+public partial class ItemsControl : DecoratedPanel
 {
     private float _contentHeight;
 
     public ObservableCollection<object> Items { get; } = [];
 
     /// <summary>How to turn a data item into a control. If null, ToString() is used.</summary>
-    public Func<object, UIElement>? ItemTemplate { get; set; }
+    public Func<object, UIElement>? ItemTemplate
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // a virtualizing list makes its containers as rows scroll in: the ones of
+            // the previous template don't fit the new one, nor does a pool of labels
+            if (IsVirtualizing)
+            {
+                Realizer.RecycleAll();
+                Realizer.ClearPool();
+                Realizer.Invalidate();
+                Invalidate();
+            }
+        }
+    }
 
     public ItemsControl()
     {
@@ -32,6 +51,15 @@ public class ItemsControl : DecoratedPanel
 
     private void Items_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        // a virtualizing list keeps no container per item: the range is rebuilt at the
+        // next layout, the containers of the items still in sight kept
+        if (IsVirtualizing)
+        {
+            Realizer.Invalidate();
+            Invalidate();
+            return;
+        }
+
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
@@ -163,6 +191,8 @@ public class ItemsControl : DecoratedPanel
 
     protected override Size MeasureContentOverride(Size availableSize)
     {
+        if (IsVirtualizing) return MeasureVirtualized(availableSize);
+
         var inner = new Size(
             Math.Max(0, availableSize.Width - Padding.Horizontal),
             Math.Max(0, availableSize.Height - Padding.Vertical));
@@ -187,6 +217,12 @@ public class ItemsControl : DecoratedPanel
 
     protected override void ArrangeContentOverride(Size contentSize)
     {
+        if (IsVirtualizing)
+        {
+            ArrangeVirtualized(contentSize);
+            return;
+        }
+
         var content = new Rectangle(
             new Point(Padding.Left, Padding.Top),
             new Size(

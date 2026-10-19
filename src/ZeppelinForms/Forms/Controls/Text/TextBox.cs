@@ -1574,8 +1574,10 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
                 _verticalOffset = caretY;
         }
 
-        // don't scroll below the last line
-        _verticalOffset = Math.Clamp(_verticalOffset, 0, Math.Max(0, lineCount * lineHeight - content.Height));
+        // don't scroll below the last line — or, with ScrollPastEnd, below the last
+        // line standing at the top
+        _verticalOffset = Math.Clamp(_verticalOffset, 0,
+            Math.Max(0, lineCount * lineHeight - content.Height) + PastEndExtent(content));
     }
 
     protected override Size MeasureOverride(Size availableSize)

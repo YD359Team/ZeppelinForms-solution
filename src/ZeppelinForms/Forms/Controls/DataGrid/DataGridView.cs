@@ -391,7 +391,26 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     private float MaxScrollX => Overflow(TotalWidth, BodyBounds.Width);
 
-    private float MaxScrollY => Overflow(TotalHeight, BodyBounds.Height);
+    private float MaxScrollY => Overflow(TotalHeight, BodyBounds.Height) + PastEndExtent;
+
+    /// <summary>Scroll on past the last row, as an editor scrolls past its last line:
+    /// down until the last row stands under the header. False by default.</summary>
+    public bool ScrollPastEnd
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            // turned off at a scroll past the old end: back within the rows
+            ScrollTo(_scrollX, _scrollY);
+        }
+    }
+
+    /// <summary>How far past the last row the grid scrolls: the body's height but a row.</summary>
+    private float PastEndExtent => ScrollPastEnd ? Math.Max(0, BodyBounds.Height - RowHeight) : 0;
 
     /// <summary>How far the content reaches past the room it has; a hair of float
     /// error is none — see <see cref="OverflowTolerance"/>.</summary>
@@ -901,7 +920,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     /// <summary>The thumb along the vertical track. One computation for drawing and
     /// for hit testing: otherwise the thumb is drawn in one place and grabbed in another.</summary>
-    private (float Position, float Length) VerticalThumb => Thumb(VerticalTrack.Height, TotalHeight, _scrollY, MaxScrollY);
+    private (float Position, float Length) VerticalThumb => Thumb(VerticalTrack.Height, TotalHeight + PastEndExtent, _scrollY, MaxScrollY);
 
     private (float Position, float Length) HorizontalThumb => Thumb(HorizontalTrack.Width, TotalWidth, _scrollX, MaxScrollX);
 

@@ -36,9 +36,9 @@ public class ListPeer : UIElementPeer, IAccessibilityChildFactory
 
     /// <summary>The lead selected row, while the list has the focus.</summary>
     public override AccessibilityPeer? FocusedDescendant =>
-        _items is ListBox { IsFocused: true, SelectedIndex: >= 0 } list &&
-        list.SelectedIndex < list.Children.Count
-            ? list.Children[list.SelectedIndex].GetAccessibilityPeer()
+        // the row's container — none while it is out of sight in a virtualizing list
+        _items is ListBox { IsFocused: true, SelectedIndex: >= 0 } list
+            ? list.ContainerFromIndex(list.SelectedIndex)?.GetAccessibilityPeer()
             : null;
 
     AccessibilityPeer? IAccessibilityChildFactory.CreatePeerForChild(UIElement child) =>
@@ -56,11 +56,13 @@ public class ListItemPeer : UIElementPeer
 
     protected override bool NameFromContent => true;
 
-    /// <summary>The row's index: rows are the list's children, one per item.</summary>
-    private int Index => _list.Children.IndexOf(Owner);
+    /// <summary>The row's index among the items. Not its index in the children: a
+    /// virtualizing list has children only for the rows in sight.</summary>
+    private int Index => _list.IndexFromContainer(Owner);
 
+    /// <summary>"Item 5 of 10 000": of all the items, not of the rows in sight.</summary>
     public override SetPosition? Position =>
-        Index is >= 0 and var index ? new SetPosition(index + 1, _list.Children.Count) : null;
+        Index is >= 0 and var index ? new SetPosition(index + 1, _list.Items.Count) : null;
 
     protected override AccessibilityStates ControlStates
     {

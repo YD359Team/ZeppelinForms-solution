@@ -14,6 +14,7 @@ public class Program
         // boxes. Noto fills in (SIL Open Font License, see fonts/OFL.txt)
         FontFallbacks.Add("/fonts/NotoSansHebrew-Regular.ttf");
         FontFallbacks.Add("/fonts/NotoSansArabic-Regular.ttf");
+        FontFallbacks.Add("/fonts/NotoSansJP-Regular.ttf"); // a new one: CJK, for example
 
         return BrowserApp.RunAsync(
             () => new ExampleMainForm(),

@@ -295,7 +295,7 @@ public class AccessibilityTreeTests
         var label = new Label { Text = "Row" };
         var panel = new StackPanel();
         panel.Children.Add(label);
-        CreateForm(panel);
+        Form form = CreateForm(panel);
 
         Assert.Equal(AccessibilityRole.Text, PeerOf(label).Role);
 
@@ -303,6 +303,9 @@ public class AccessibilityTreeTests
         panel.Children.Remove(label);
         panel.Children.Add(list);
         list.Items.Add("anything");
+
+        // a virtualizing list makes the containers of the rows in sight at layout
+        form.UpdateLayout();
 
         Assert.Equal(AccessibilityRole.ListItem, PeerOf(label).Role);
     }
