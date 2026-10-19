@@ -16,6 +16,20 @@ jobs:
           dotnet-version: '10.0.x'
 
       - run: sudo apt-get update && sudo apt-get install -y libfontconfig1
+  
+      # A shared runner's timings spread by tens of percent from run to run: the time
+      # tolerance is wider here than on a quiet machine, allocations keep the strict one.
+      # A platform without a baseline only reports; the results artifact of a run on
+      # master is what to commit as Baselines/baseline-linux.json
+      - name: Прогон бенчмарков
+        run: >
+          dotnet run
+          --project "bench/ZeppelinForms.Benchmarks/ZeppelinForms.Benchmarks.csproj"
+          --configuration Release
+          --
+          --check
+          --time-tolerance 0.5
+          --json bench-results.json
 
       - name: Прогон бенчмарков
         run: >
