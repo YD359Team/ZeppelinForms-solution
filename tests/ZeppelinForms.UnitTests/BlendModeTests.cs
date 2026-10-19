@@ -130,8 +130,8 @@ public class BlendModeTests
         var g = new LayerRecorder();
         var image = new Image(1, 1, new byte[4]);
 
-        g.DrawImage(new Rectangle(0, 0, 10, 10), image, BlendMode.Multiply);
-        g.DrawImage(new Rectangle(0, 0, 10, 10), image, BlendMode.Normal);
+        g.DrawBlendedImage(new Rectangle(0, 0, 10, 10), image, BlendMode.Multiply);
+        g.DrawBlendedImage(new Rectangle(0, 0, 10, 10), image, BlendMode.Normal);
 
         Assert.Equal([(1f, BlendMode.Multiply)], g.BlendLayers);
         Assert.Equal(0, g.Depth);

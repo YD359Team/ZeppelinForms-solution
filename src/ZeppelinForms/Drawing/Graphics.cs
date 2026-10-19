@@ -188,7 +188,10 @@ public abstract class Graphics
 
     /// <summary>Draw a picture over what is drawn under it in a blend mode — as
     /// Avalonia's <c>BitmapBlendingMode</c> does for a bitmap.</summary>
-    public virtual void DrawImage(
+    /// <remarks>A name of its own rather than an overload of DrawImage: two overloads
+    /// with optional parameters are ambiguous to callers compiled against either
+    /// (RS0026).</remarks>
+    public virtual void DrawBlendedImage(
         Rectangle rect, Image image, BlendMode blendMode,
         ImageFlip flip = ImageFlip.None,
         ImageLayout layout = ImageLayout.Stretch)

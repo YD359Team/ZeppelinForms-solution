@@ -296,4 +296,5 @@ ZeppelinForms.Forms.Controls.Base.UIElement.BlendMode.get -> ZeppelinForms.Drawi
 ZeppelinForms.Forms.Controls.Base.UIElement.BlendMode.set -> void
 static readonly ZeppelinForms.Forms.Controls.Base.UIElement.BlendModeProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.BlendMode>!
 virtual ZeppelinForms.Drawing.Graphics.SaveLayer(float opacity, ZeppelinForms.Drawing.BlendMode blendMode) -> void
-virtual ZeppelinForms.Drawing.Graphics.DrawImage(ZeppelinForms.Drawing.Primitives.Rectangle rect, ZeppelinForms.Drawing.Imaging.Image! image, ZeppelinForms.Drawing.BlendMode blendMode, ZeppelinForms.Drawing.Imaging.ImageFlip flip = ZeppelinForms.Drawing.Imaging.ImageFlip.None, ZeppelinForms.Drawing.Imaging.ImageLayout layout = ZeppelinForms.Drawing.Imaging.ImageLayout.Stretch) -> void
+virtual ZeppelinForms.Drawing.Graphics.DrawBlendedImage(ZeppelinForms.Drawing.Primitives.Rectangle rect, ZeppelinForms.Drawing.Imaging.Image! image, ZeppelinForms.Drawing.BlendMode blendMode, ZeppelinForms.Drawing.Imaging.ImageFlip flip = ZeppelinForms.Drawing.Imaging.ImageFlip.None, ZeppelinForms.Drawing.Imaging.ImageLayout layout = ZeppelinForms.Drawing.Imaging.ImageLayout.Stretch) -> void
+
