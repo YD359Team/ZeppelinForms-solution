@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using ZeppelinForms.Forms.Controls.Base;
 
 namespace ZeppelinForms.Forms.Controls.DataGrid;
@@ -18,8 +19,12 @@ namespace ZeppelinForms.Forms.Controls.DataGrid;
 public class DataGridViewCheckedListColumn<TItem, TOption> : DataGridViewColumn<TItem, IReadOnlyList<TOption>>
 {
     /// <param name="valueOf">How to get the checked options of a record.</param>
+    /// <param name="valueOfExpression">The text of <paramref name="valueOf"/>, filled
+    /// in by the compiler: the header, when the lambda reads one member.</param>
     [SetsRequiredMembers]
-    public DataGridViewCheckedListColumn(Func<TItem, IReadOnlyList<TOption>> valueOf) : base(valueOf)
+    public DataGridViewCheckedListColumn(Func<TItem, IReadOnlyList<TOption>> valueOf,
+        [CallerArgumentExpression(nameof(valueOf))] string? valueOfExpression = null)
+        : base(valueOf, valueOfExpression)
     {
         CanSort = false;
         Format = options => string.Join(", ", (options ?? []).Select(TextOfOption));

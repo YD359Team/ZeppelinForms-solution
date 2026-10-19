@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using ZeppelinForms.Forms.Controls.Base;
 
 namespace ZeppelinForms.Forms.Controls.DataGrid;
@@ -13,8 +14,12 @@ namespace ZeppelinForms.Forms.Controls.DataGrid;
 public class DataGridViewComboBoxColumn<TItem, TValue> : DataGridViewColumn<TItem, TValue>
 {
     /// <param name="valueOf">How to get the value out of a record.</param>
+    /// <param name="valueOfExpression">The text of <paramref name="valueOf"/>, filled
+    /// in by the compiler: the header, when the lambda reads one member.</param>
     [SetsRequiredMembers]
-    public DataGridViewComboBoxColumn(Func<TItem, TValue> valueOf) : base(valueOf)
+    public DataGridViewComboBoxColumn(Func<TItem, TValue> valueOf,
+        [CallerArgumentExpression(nameof(valueOf))] string? valueOfExpression = null)
+        : base(valueOf, valueOfExpression)
     {
     }
 

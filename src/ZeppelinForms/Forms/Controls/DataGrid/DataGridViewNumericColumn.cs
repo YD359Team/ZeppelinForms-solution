@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Numerics;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -15,8 +16,12 @@ public class DataGridViewNumericColumn<TItem, TValue> : DataGridViewColumn<TItem
     where TValue : struct, INumber<TValue>, IMinMaxValue<TValue>
 {
     /// <param name="valueOf">How to get the number out of a record.</param>
+    /// <param name="valueOfExpression">The text of <paramref name="valueOf"/>, filled
+    /// in by the compiler: the header, when the lambda reads one member.</param>
     [SetsRequiredMembers]
-    public DataGridViewNumericColumn(Func<TItem, TValue> valueOf) : base(valueOf)
+    public DataGridViewNumericColumn(Func<TItem, TValue> valueOf,
+        [CallerArgumentExpression(nameof(valueOf))] string? valueOfExpression = null)
+        : base(valueOf, valueOfExpression)
     {
         Align = HorizontalContentAlignment.Right;
     }

@@ -93,4 +93,42 @@ public class DataGridTypedColumnTests
 
         Assert.Equal(2000, games[record]);
     }
+
+    [Fact]
+    public void AColumnReadingOneMemberIsHeadedByIt()
+    {
+        var column = new DataGridViewColumn<Game, int>(game => game.Year);
+        var check = new DataGridViewCheckBoxColumn<Game>(static g => g.Year > 2000);
+        var named = new DataGridViewColumn<Game, string>(game => game.Title) { Header = "Название" };
+
+        Assert.Equal("Year", column.Header);
+        Assert.Null(check.Header);
+        Assert.Equal("Название", named.Header);
+    }
+
+    [Fact]
+    public void AFailingColumnIsNamedInTheException()
+    {
+        var grid = new DataGridView
+        {
+            Columns =
+            {
+                // the usual mistake: a cast to the wrong record type
+                new DataGridViewColumn { Header = "Broken", Value = item => ((Note)item).Text },
+            },
+            Size = new ZeppelinForms.Drawing.Primitives.Size(300, 200),
+        };
+
+        grid.Items.Add(new Game("A", 1998));
+
+        var form = new ZeppelinForms.Forms.Form { Size = new ZeppelinForms.Drawing.Primitives.Size(400, 300), Content = grid };
+        new ZeppelinForms.Headless.HeadlessPlatform().CreateWindow(form);
+        form.UpdateLayout();
+
+        var exception = Assert.ThrowsAny<InvalidOperationException>(() => grid.Draw(new ZeppelinForms.Headless.HeadlessGraphics()));
+
+        Assert.Contains("\"Broken\"", exception.Message);
+        Assert.Contains(nameof(Game), exception.Message);
+        Assert.IsType<InvalidCastException>(exception.InnerException);
+    }
 }

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -16,8 +17,12 @@ namespace ZeppelinForms.Forms.Controls.DataGrid;
 public class DataGridViewCheckBoxColumn<TItem> : DataGridViewColumn<TItem, bool>
 {
     /// <param name="valueOf">How to get the value out of a record.</param>
+    /// <param name="valueOfExpression">The text of <paramref name="valueOf"/>, filled
+    /// in by the compiler: the header, when the lambda reads one member.</param>
     [SetsRequiredMembers]
-    public DataGridViewCheckBoxColumn(Func<TItem, bool> valueOf) : base(valueOf)
+    public DataGridViewCheckBoxColumn(Func<TItem, bool> valueOf,
+        [CallerArgumentExpression(nameof(valueOf))] string? valueOfExpression = null)
+        : base(valueOf, valueOfExpression)
     {
         Align = HorizontalContentAlignment.Center;
         Width = GridLength.Fixed(70);

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
@@ -15,8 +16,12 @@ namespace ZeppelinForms.Forms.Controls.DataGrid;
 public class DataGridViewImageColumn<TItem> : DataGridViewColumn<TItem, Image?>
 {
     /// <param name="valueOf">How to get the picture of a record; null — none.</param>
+    /// <param name="valueOfExpression">The text of <paramref name="valueOf"/>, filled
+    /// in by the compiler: the header, when the lambda reads one member.</param>
     [SetsRequiredMembers]
-    public DataGridViewImageColumn(Func<TItem, Image?> valueOf) : base(valueOf)
+    public DataGridViewImageColumn(Func<TItem, Image?> valueOf,
+        [CallerArgumentExpression(nameof(valueOf))] string? valueOfExpression = null)
+        : base(valueOf, valueOfExpression)
     {
         CanSort = false;
         ReadOnly = true;

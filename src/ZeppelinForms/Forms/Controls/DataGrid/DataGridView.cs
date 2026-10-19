@@ -308,7 +308,16 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
         order.Sort((left, right) =>
         {
-            int result = column.CompareRows(Items[left], Items[right]);
+            int result;
+
+            try
+            {
+                result = column.CompareRows(Items[left], Items[right]);
+            }
+            catch (Exception exception) when (exception is not CellFailedException)
+            {
+                throw CellFailed(SortColumnIndex, Items[left], exception);
+            }
 
             // List.Sort is unstable: without this, equal values swap places
             // from call to call, and rows jump before the eyes
@@ -318,6 +327,21 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         });
 
         _order = order;
+    }
+
+    /// <summary>A column's delegate threw on a record: the exception says which column
+    /// and which kind of record, rather than a bare InvalidCastException from the middle
+    /// of a frame — a cast in an untyped column to the wrong record type is the usual one.</summary>
+    private sealed class CellFailedException(string message, Exception inner)
+        : InvalidOperationException(message, inner);
+
+    private CellFailedException CellFailed(int column, object item, Exception exception)
+    {
+        string name = Columns[column].Header is { Length: > 0 } header ? $"\"{header}\"" : $"#{column}";
+
+        return new CellFailedException(
+            $"The column {name} of the DataGridView failed on a record of type {item.GetType().Name}: {exception.Message}",
+            exception);
     }
 
     // ===== geometry =====
@@ -1179,8 +1203,15 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
                 }
 
                 // the column draws its cell: text, a check box, a picture
-                Columns[col].DrawCell(g, cell, item,
-                    new DataGridViewCellPaint(this, cellText, rowFont, rowSelected || (!byRow && IsCellSelected(row, col))));
+                try
+                {
+                    Columns[col].DrawCell(g, cell, item,
+                        new DataGridViewCellPaint(this, cellText, rowFont, rowSelected || (!byRow && IsCellSelected(row, col))));
+                }
+                catch (Exception exception) when (exception is not CellFailedException)
+                {
+                    throw CellFailed(col, item, exception);
+                }
 
                 x += width;
             }

@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace ZeppelinForms.Forms.Controls.DataGrid;
 
@@ -33,7 +35,7 @@ namespace ZeppelinForms.Forms.Controls.DataGrid;
 /// }
 /// </code>
 /// </example>
-public class DataGridViewColumn<TItem, TValue> : DataGridViewColumn
+public partial class DataGridViewColumn<TItem, TValue> : DataGridViewColumn
 {
     // the untyped delegates handed to the base column: one set from outside is
     // told apart from these, and is then the one that counts
@@ -42,12 +44,37 @@ public class DataGridViewColumn<TItem, TValue> : DataGridViewColumn
     private Action<object, object?>? _typedSetValue;
 
     /// <param name="valueOf">How to get the value out of a record.</param>
+    /// <param name="valueOfExpression">The text of <paramref name="valueOf"/>, filled
+    /// in by the compiler: the header, when the lambda reads one member.</param>
+    /// <remarks>
+    /// <c>new DataGridViewColumn&lt;Process, long&gt;(process => process.WorkingSet64)</c>
+    /// is headed "WorkingSet64" until <see cref="DataGridViewColumn.Header"/> is set — the
+    /// way a WinForms grid heads the columns it makes from properties. A lambda that does
+    /// more than read a member leaves the header empty.
+    /// </remarks>
     [SetsRequiredMembers]
-    public DataGridViewColumn(Func<TItem, TValue> valueOf)
+    public DataGridViewColumn(
+        Func<TItem, TValue> valueOf,
+        [CallerArgumentExpression(nameof(valueOf))] string? valueOfExpression = null)
         : base(item => item is TItem record ? valueOf(record) : null)
     {
         ValueOf = valueOf;
+        Header = MemberNameOf(valueOfExpression);
     }
+
+    /// <summary>"x => x.Name" → "Name"; anything more than reading one member of the
+    /// parameter → null.</summary>
+    internal static string? MemberNameOf(string? expression)
+    {
+        if (expression is null) return null;
+
+        Match match = MemberAccess().Match(expression);
+
+        return match.Success ? match.Groups["member"].Value : null;
+    }
+
+    [GeneratedRegex(@"^\s*(static\s+)?\(?\s*(?<parameter>@?\w+)\s*\)?\s*=>\s*\k<parameter>\s*\.\s*(?<member>\w+)\s*$")]
+    private static partial Regex MemberAccess();
 
     /// <summary>How to get the value out of a record, typed. The untyped
     /// <see cref="DataGridViewColumn.Value"/> is this one, boxed.</summary>

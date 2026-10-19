@@ -86,7 +86,7 @@ ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn.DataGridViewColumn(Syst
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.Comparer.get -> System.Collections.Generic.IComparer<TValue>?
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.Comparer.set -> void
-ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.DataGridViewColumn(System.Func<TItem, TValue>! valueOf) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.DataGridViewColumn(System.Func<TItem, TValue>! valueOf, string? valueOfExpression = null) -> void
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.Format.get -> System.Func<TValue, string!>?
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.Format.set -> void
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.SetValue.get -> System.Action<TItem, TValue>?
@@ -152,30 +152,30 @@ ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn<TItem, TValue>.Parse.se
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckBoxColumn<TItem>
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckBoxColumn<TItem>.BoxSize.get -> float
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckBoxColumn<TItem>.BoxSize.set -> void
-ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckBoxColumn<TItem>.DataGridViewCheckBoxColumn(System.Func<TItem, bool>! valueOf) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckBoxColumn<TItem>.DataGridViewCheckBoxColumn(System.Func<TItem, bool>! valueOf, string? valueOfExpression = null) -> void
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckBoxColumn<TItem>.CreateEditor(object! item, string? typedText) -> ZeppelinForms.Forms.Controls.Base.UIElement?
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckBoxColumn<TItem>.DrawCell(ZeppelinForms.Drawing.Graphics! g, ZeppelinForms.Drawing.Primitives.Rectangle bounds, object! item, ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellPaint paint) -> void
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckBoxColumn<TItem>.TryActivate(object! item, out object? value) -> bool
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewImageColumn<TItem>
-ZeppelinForms.Forms.Controls.DataGrid.DataGridViewImageColumn<TItem>.DataGridViewImageColumn(System.Func<TItem, ZeppelinForms.Drawing.Imaging.Image?>! valueOf) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewImageColumn<TItem>.DataGridViewImageColumn(System.Func<TItem, ZeppelinForms.Drawing.Imaging.Image?>! valueOf, string? valueOfExpression = null) -> void
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewImageColumn<TItem>.Layout.get -> ZeppelinForms.Drawing.Imaging.ImageLayout
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewImageColumn<TItem>.Layout.set -> void
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewImageColumn<TItem>.CreateEditor(object! item, string? typedText) -> ZeppelinForms.Forms.Controls.Base.UIElement?
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewImageColumn<TItem>.DrawCell(ZeppelinForms.Drawing.Graphics! g, ZeppelinForms.Drawing.Primitives.Rectangle bounds, object! item, ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellPaint paint) -> void
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewDateTimeColumn<TItem>
-ZeppelinForms.Forms.Controls.DataGrid.DataGridViewDateTimeColumn<TItem>.DataGridViewDateTimeColumn(System.Func<TItem, System.DateTime>! valueOf) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewDateTimeColumn<TItem>.DataGridViewDateTimeColumn(System.Func<TItem, System.DateTime>! valueOf, string? valueOfExpression = null) -> void
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewDateTimeColumn<TItem>.DateFormat.get -> string?
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewDateTimeColumn<TItem>.DateFormat.set -> void
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewDateTimeColumn<TItem>.CreateEditor(object! item, string? typedText) -> ZeppelinForms.Forms.Controls.Base.UIElement?
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewDateTimeColumn<TItem>.TryGetEditedValue(ZeppelinForms.Forms.Controls.Base.UIElement! editor, object! item, out object? value) -> bool
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewComboBoxColumn<TItem, TValue>
-ZeppelinForms.Forms.Controls.DataGrid.DataGridViewComboBoxColumn<TItem, TValue>.DataGridViewComboBoxColumn(System.Func<TItem, TValue>! valueOf) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewComboBoxColumn<TItem, TValue>.DataGridViewComboBoxColumn(System.Func<TItem, TValue>! valueOf, string? valueOfExpression = null) -> void
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewComboBoxColumn<TItem, TValue>.Values.get -> System.Collections.Generic.List<TValue>!
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewComboBoxColumn<TItem, TValue>.Values.init -> void
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewComboBoxColumn<TItem, TValue>.CreateEditor(object! item, string? typedText) -> ZeppelinForms.Forms.Controls.Base.UIElement?
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewComboBoxColumn<TItem, TValue>.TryGetEditedValue(ZeppelinForms.Forms.Controls.Base.UIElement! editor, object! item, out object? value) -> bool
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewNumericColumn<TItem, TValue>
-ZeppelinForms.Forms.Controls.DataGrid.DataGridViewNumericColumn<TItem, TValue>.DataGridViewNumericColumn(System.Func<TItem, TValue>! valueOf) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewNumericColumn<TItem, TValue>.DataGridViewNumericColumn(System.Func<TItem, TValue>! valueOf, string? valueOfExpression = null) -> void
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewNumericColumn<TItem, TValue>.DecimalPlaces.get -> int
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewNumericColumn<TItem, TValue>.DecimalPlaces.set -> void
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewNumericColumn<TItem, TValue>.Maximum.get -> TValue
@@ -187,7 +187,7 @@ ZeppelinForms.Forms.Controls.DataGrid.DataGridViewNumericColumn<TItem, TValue>.S
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewNumericColumn<TItem, TValue>.CreateEditor(object! item, string? typedText) -> ZeppelinForms.Forms.Controls.Base.UIElement?
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridViewNumericColumn<TItem, TValue>.TryGetEditedValue(ZeppelinForms.Forms.Controls.Base.UIElement! editor, object! item, out object? value) -> bool
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckedListColumn<TItem, TOption>
-ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckedListColumn<TItem, TOption>.DataGridViewCheckedListColumn(System.Func<TItem, System.Collections.Generic.IReadOnlyList<TOption>!>! valueOf) -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckedListColumn<TItem, TOption>.DataGridViewCheckedListColumn(System.Func<TItem, System.Collections.Generic.IReadOnlyList<TOption>!>! valueOf, string? valueOfExpression = null) -> void
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckedListColumn<TItem, TOption>.OptionText.get -> System.Func<TOption, string!>?
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckedListColumn<TItem, TOption>.OptionText.set -> void
 ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCheckedListColumn<TItem, TOption>.Options.get -> System.Collections.Generic.List<TOption>!

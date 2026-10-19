@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 
@@ -10,8 +11,12 @@ namespace ZeppelinForms.Forms.Controls.DataGrid;
 public class DataGridViewDateTimeColumn<TItem> : DataGridViewColumn<TItem, DateTime>
 {
     /// <param name="valueOf">How to get the date out of a record.</param>
+    /// <param name="valueOfExpression">The text of <paramref name="valueOf"/>, filled
+    /// in by the compiler: the header, when the lambda reads one member.</param>
     [SetsRequiredMembers]
-    public DataGridViewDateTimeColumn(Func<TItem, DateTime> valueOf) : base(valueOf)
+    public DataGridViewDateTimeColumn(Func<TItem, DateTime> valueOf,
+        [CallerArgumentExpression(nameof(valueOf))] string? valueOfExpression = null)
+        : base(valueOf, valueOfExpression)
     {
         Align = HorizontalContentAlignment.Center;
 
