@@ -264,3 +264,36 @@ ZeppelinForms.Forms.Controls.ComboBox.DataSource.set -> void
 ZeppelinForms.Forms.Controls.ComboBox.RefreshDataSource() -> void
 override ZeppelinForms.Forms.Controls.ComboBox.OnAttached() -> void
 override ZeppelinForms.Forms.Controls.ComboBox.OnDetached() -> void
+ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Normal = 0 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Multiply = 1 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Screen = 2 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Overlay = 3 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Darken = 4 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Lighten = 5 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.ColorDodge = 6 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.ColorBurn = 7 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.HardLight = 8 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.SoftLight = 9 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Difference = 10 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Exclusion = 11 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Plus = 12 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Hue = 13 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Saturation = 14 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Color = 15 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Luminosity = 16 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Source = 17 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Destination = 18 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.DestinationOver = 19 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.SourceIn = 20 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.DestinationIn = 21 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.SourceOut = 22 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.DestinationOut = 23 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.SourceAtop = 24 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.DestinationAtop = 25 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Drawing.BlendMode.Xor = 26 -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Forms.Controls.Base.UIElement.BlendMode.get -> ZeppelinForms.Drawing.BlendMode
+ZeppelinForms.Forms.Controls.Base.UIElement.BlendMode.set -> void
+static readonly ZeppelinForms.Forms.Controls.Base.UIElement.BlendModeProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.BlendMode>!
+virtual ZeppelinForms.Drawing.Graphics.SaveLayer(float opacity, ZeppelinForms.Drawing.BlendMode blendMode) -> void
+virtual ZeppelinForms.Drawing.Graphics.DrawImage(ZeppelinForms.Drawing.Primitives.Rectangle rect, ZeppelinForms.Drawing.Imaging.Image! image, ZeppelinForms.Drawing.BlendMode blendMode, ZeppelinForms.Drawing.Imaging.ImageFlip flip = ZeppelinForms.Drawing.Imaging.ImageFlip.None, ZeppelinForms.Drawing.Imaging.ImageLayout layout = ZeppelinForms.Drawing.Imaging.ImageLayout.Stretch) -> void

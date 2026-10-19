@@ -1331,6 +1331,18 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     public partial float Opacity { get; set; }
     private static float OpacityDefault => 1f;
 
+    /// <summary>How the element, with its descendants, is put over what is drawn under
+    /// it: Normal — over it; Multiply, Screen, Overlay… — blended with it, as
+    /// Avalonia's BitmapBlendingMode and CSS mix-blend-mode do.</summary>
+    /// <remarks>
+    /// Any mode but Normal draws the element into a layer of its own — a cost of its
+    /// own, like an opacity below 1. What it blends with ends at the nearest ancestor
+    /// with a layer: see <see cref="Drawing.BlendMode"/>. It doesn't affect layout or
+    /// hit testing: a cut-out element still takes its clicks.
+    /// </remarks>
+    [Styled(Category = "Appearance")]
+    public partial BlendMode BlendMode { get; set; }
+
     // ===== localization =====
 
     /// <summary>Texts of this element given as keys rather than strings.

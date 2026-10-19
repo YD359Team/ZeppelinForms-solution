@@ -180,4 +180,30 @@ public abstract class Graphics
     /// <summary>Starts a layer with opacity: everything drawn until Restore() blends as a single whole.</summary>
     public abstract void SaveLayer(float opacity);
 
+    /// <summary>Begin a layer that is put over what is drawn under it in a blend mode,
+    /// at an opacity, when its <see cref="Restore"/> comes.</summary>
+    /// <remarks>A backend without blend modes keeps to the opacity: the element is
+    /// drawn as with <see cref="BlendMode.Normal"/>, rather than not at all.</remarks>
+    public virtual void SaveLayer(float opacity, BlendMode blendMode) => SaveLayer(opacity);
+
+    /// <summary>Draw a picture over what is drawn under it in a blend mode — as
+    /// Avalonia's <c>BitmapBlendingMode</c> does for a bitmap.</summary>
+    public virtual void DrawImage(
+        Rectangle rect, Image image, BlendMode blendMode,
+        ImageFlip flip = ImageFlip.None,
+        ImageLayout layout = ImageLayout.Stretch)
+    {
+        if (blendMode == BlendMode.Normal)
+        {
+            DrawImage(rect, image, flip, layout);
+            return;
+        }
+
+        // the picture alone in a layer, and the layer put over in the mode: a mode set
+        // on the picture's own paint would also blend its transparent margins
+        SaveLayer(1f, blendMode);
+        DrawImage(rect, image, flip, layout);
+        Restore();
+    }
+
 }

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ZeppelinForms;
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing;
@@ -21,6 +21,7 @@ internal static class EffectsPage
             Demo.Section("Tune them", Tuning(), "Effects are a chain on element.Effects; each is replaced as the sliders move"),
             Demo.Section("Shadows", Shadows(), "BoxShadow is a property, so a style sheet or a transition can set it"),
             Demo.Section("Opacity", Opacity()),
+            Demo.Section("Blend modes", Blending(), "BlendMode puts an element over what is under it as Avalonia's BitmapBlendingMode and CSS mix-blend-mode do"),
             Demo.Section("Glitch", Glitch(), "element.Glitch() and element.StopGlitch()"));
 
     private static UIElement Gallery()
@@ -255,6 +256,59 @@ internal static class EffectsPage
         };
 
         return Demo.Row(card, opacity, value);
+    }
+
+    private static UIElement Blending()
+    {
+        var backdrop = new PictureBox
+        {
+            Layout = ZeppelinForms.Drawing.Imaging.ImageLayout.Stretch,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        };
+        backdrop.LoadAsset("Laughing.png");
+
+        // three colored circles over the picture, each put over it in the mode picked
+        Panel Circle(Color color, float x, float y) => new()
+        {
+            Size = new(140, 140),
+            CornerRadius = new(70),
+            Background = color,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new(x, y, 0, 0),
+        };
+
+        Panel[] circles =
+        [
+            Circle(new Color(255, 0xE5, 0x39, 0x35), 40, 30),
+            Circle(new Color(255, 0x1E, 0x88, 0xE5), 130, 30),
+            Circle(new Color(255, 0xFD, 0xD8, 0x35), 85, 110),
+        ];
+
+        var stage = new Grid { Size = new(float.NaN, 300), CornerRadius = new(8) };
+        stage.Children.Add(backdrop);
+
+        foreach (Panel circle in circles)
+            stage.Children.Add(circle);
+
+        var mode = new ComboBox { Size = new(160, float.NaN) };
+
+        foreach (BlendMode each in Enum.GetValues<BlendMode>())
+            mode.Items.Add(each);
+
+        mode.SelectedIndex = (int)BlendMode.Multiply;
+
+        void Apply()
+        {
+            foreach (Panel circle in circles)
+                circle.BlendMode = mode.SelectedItem is BlendMode picked ? picked : BlendMode.Normal;
+        }
+
+        mode.SelectionChanged += (_, _) => Apply();
+        Apply();
+
+        return Demo.Column(Demo.Row(new Label { Text = "Mode:" }, mode), stage);
     }
 
     private static UIElement Glitch()
