@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using ZeppelinForms.Core.Text;
+using ZeppelinForms.Data;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -88,7 +89,9 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     /// <summary>Data rows. The type of the items is arbitrary — the columns know
     /// what to take out of them.</summary>
-    public ObservableCollection<object> Items { get; } = [];
+    /// <remarks>With <see cref="DataSource"/> set, a mirror of it that only the source
+    /// changes: adding to it throws.</remarks>
+    public ObservableCollection<object> Items { get; } = new ItemCollection();
 
     /// <summary>Whether the table scrolls with a finger and a pen. Never with the mouse:
     /// on the desktop dragging with the mouse selects, and scrolling belongs to the wheel.</summary>

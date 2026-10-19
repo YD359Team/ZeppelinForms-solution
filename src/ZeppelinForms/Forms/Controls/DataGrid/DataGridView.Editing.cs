@@ -387,6 +387,9 @@ public partial class DataGridView
         // the overlay stays in the form the grid left: it goes with it
         CancelEdit();
 
+        // a source that outlives the window must not hold it through its events
+        _dataSource?.OnDetached();
+
         base.OnDetached();
     }
 }

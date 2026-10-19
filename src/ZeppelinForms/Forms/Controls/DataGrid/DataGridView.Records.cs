@@ -125,5 +125,8 @@ public partial class DataGridView
         base.OnAttached();
 
         _form = FindForm();
+
+        // the source is listened to only while the grid is in a form
+        _dataSource?.OnAttached();
     }
 }

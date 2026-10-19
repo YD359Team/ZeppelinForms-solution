@@ -238,3 +238,29 @@ override ZeppelinForms.Forms.Controls.DataGrid.DataGridView.OnDoubleClick(Zeppel
 override ZeppelinForms.Forms.Controls.DataGrid.DataGridView.OnTextInput(char c) -> void
 static readonly ZeppelinForms.Forms.Controls.DataGrid.DataGridView.CheckColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 static readonly ZeppelinForms.Forms.Controls.DataGrid.DataGridView.CheckGlyphColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+ZeppelinForms.Data.DataSource<T>
+ZeppelinForms.Data.DataSource<T>.CollectionChanged -> System.Collections.Specialized.NotifyCollectionChangedEventHandler?
+ZeppelinForms.Data.DataSource<T>.Comparer.get -> System.Collections.Generic.IComparer<T>?
+ZeppelinForms.Data.DataSource<T>.Comparer.set -> void
+ZeppelinForms.Data.DataSource<T>.Count.get -> int
+ZeppelinForms.Data.DataSource<T>.DataSource(System.Collections.Generic.IEnumerable<T>! source) -> void
+ZeppelinForms.Data.DataSource<T>.Dispose() -> void
+ZeppelinForms.Data.DataSource<T>.Filter.get -> System.Func<T, bool>?
+ZeppelinForms.Data.DataSource<T>.Filter.set -> void
+ZeppelinForms.Data.DataSource<T>.GetEnumerator() -> System.Collections.Generic.IEnumerator<T>!
+ZeppelinForms.Data.DataSource<T>.Refresh() -> void
+ZeppelinForms.Data.DataSource<T>.Source.get -> System.Collections.Generic.IEnumerable<T>!
+ZeppelinForms.Data.DataSource<T>.this[int index].get -> T
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.DataSource.get -> System.Collections.IEnumerable?
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.DataSource.set -> void
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.RefreshDataSource() -> void
+ZeppelinForms.Forms.Controls.Base.ItemsControl.DataSource.get -> System.Collections.IEnumerable?
+ZeppelinForms.Forms.Controls.Base.ItemsControl.DataSource.set -> void
+ZeppelinForms.Forms.Controls.Base.ItemsControl.RefreshDataSource() -> void
+override ZeppelinForms.Forms.Controls.Base.ItemsControl.OnAttached() -> void
+override ZeppelinForms.Forms.Controls.Base.ItemsControl.OnDetached() -> void
+ZeppelinForms.Forms.Controls.ComboBox.DataSource.get -> System.Collections.IEnumerable?
+ZeppelinForms.Forms.Controls.ComboBox.DataSource.set -> void
+ZeppelinForms.Forms.Controls.ComboBox.RefreshDataSource() -> void
+override ZeppelinForms.Forms.Controls.ComboBox.OnAttached() -> void
+override ZeppelinForms.Forms.Controls.ComboBox.OnDetached() -> void

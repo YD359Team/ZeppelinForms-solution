@@ -1,5 +1,7 @@
-﻿using System.Globalization;
+﻿using System.Collections.ObjectModel;
+using System.Globalization;
 using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Data;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
@@ -153,7 +155,7 @@ internal static class DataPage
         return Demo.Page("Grids and tables", "A table of strings to show, a data grid over objects to work with.",
             Demo.Section("Table", Demo.Column(table, Demo.Row(lines, stripes)), "Table lays out strings; its columns are Auto, Fixed or Star like a Grid's"),
             Demo.Section("Data grid", gridDemo, "Each column reads its value from the object and formats it; rows, cells or columns are selected one at a time or many, with Ctrl and Shift"),
-            Demo.Section("Editing", CreateEditableGrid(), "A column with SetValue is edited: F2, a double click or typing opens the editor of its kind, Enter and Tab commit, Escape cancels; a check box toggles with a click"));
+            Demo.Section("Editing", CreateEditableGrid(), "Rows from a DataSource view of an ObservableCollection, filtered as you type. A column with SetValue is edited: F2, a double click or typing opens the editor of its kind, Enter and Tab commit, Escape cancels; a check box toggles with a click"));
     }
 
     private enum Priority { Low, Normal, High }
@@ -219,13 +221,28 @@ internal static class DataPage
             },
         };
 
-        grid.Items.AddRange(
-        [
-            new Chore { Title = "Water the plants", Priority = Priority.Low, Hours = 1, Tags = ["home"] },
-            new Chore { Title = "Write the release notes", Priority = Priority.High, Due = DateTime.Today.AddDays(2), Hours = 3, Tags = ["work"] },
-            new Chore { Title = "Buy a new keyboard", Due = DateTime.Today.AddDays(7), Hours = 2, Tags = ["errand"] },
-            new Chore { Title = "Fix the leaking tap", Priority = Priority.High, Hours = 2, Tags = ["home", "urgent"], Done = true },
-        ]);
+        // the grid shows a view of the collection rather than rows put in by hand:
+        // a chore added to the collection shows, and the search box filters the view
+        var chores = new ObservableCollection<Chore>
+        {
+            new() { Title = "Water the plants", Priority = Priority.Low, Hours = 1, Tags = ["home"] },
+            new() { Title = "Write the release notes", Priority = Priority.High, Due = DateTime.Today.AddDays(2), Hours = 3, Tags = ["work"] },
+            new() { Title = "Buy a new keyboard", Due = DateTime.Today.AddDays(7), Hours = 2, Tags = ["errand"] },
+            new() { Title = "Fix the leaking tap", Priority = Priority.High, Hours = 2, Tags = ["home", "urgent"], Done = true },
+        };
+
+        var view = new DataSource<Chore>(chores);
+        grid.DataSource = view;
+
+        var search = new TextBox { Size = new(220, float.NaN) };
+        search.TextChanged += (_, _) =>
+        {
+            string text = search.Text ?? string.Empty;
+            view.Filter = text.Length == 0 ? null : chore => chore.Title.Contains(text, StringComparison.CurrentCultureIgnoreCase);
+        };
+
+        var add = new Button { Text = "Add a chore" };
+        add.Click += (_, _) => chores.Add(new Chore { Title = $"Chore {chores.Count + 1}" });
 
         Label changed = Demo.Note("Edit a cell");
         grid.CellValueChanged += (_, e) =>
@@ -240,6 +257,6 @@ internal static class DataPage
         var readOnly = new ToggleSwitch { Text = "Read-only" };
         readOnly.Toggled += (_, _) => grid.ReadOnly = readOnly.IsOn;
 
-        return Demo.Column(grid, Demo.Row(readOnly), changed);
+        return Demo.Column(Demo.Row(new Label { Text = "Filter:" }, search, add), grid, Demo.Row(readOnly), changed);
     }
 }

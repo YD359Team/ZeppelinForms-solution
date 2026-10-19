@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Text;
+using ZeppelinForms.Data;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Text;
@@ -18,7 +19,9 @@ public partial class ItemsControl : DecoratedPanel
 {
     private float _contentHeight;
 
-    public ObservableCollection<object> Items { get; } = [];
+    /// <summary>The data items. With <see cref="DataSource"/> set, a mirror of it that
+    /// only the source changes: adding to it throws.</summary>
+    public ObservableCollection<object> Items { get; } = new ItemCollection();
 
     /// <summary>How to turn a data item into a control. If null, ToString() is used.</summary>
     public Func<object, UIElement>? ItemTemplate
