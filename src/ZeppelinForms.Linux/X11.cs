@@ -107,9 +107,12 @@ internal static class X11
     /// <summary>Held keys repeat as presses alone, with no release between them: auto-repeat
     /// can be told from typing. False in <paramref name="supported"/> — the server can't,
     /// and repeats keep coming as release+press pairs.</summary>
+    /// <remarks>Xlib's Bool is a C int: UnmanagedType.Bool, the 4-byte boolean. I4 isn't
+    /// a boolean marshalling at all — the call threw MarshalDirectiveException, and the
+    /// platform failed to start.</remarks>
     [DllImport(Lib)]
-    [return: MarshalAs(UnmanagedType.I4)]
-    public static extern bool XkbSetDetectableAutoRepeat(nint display, [MarshalAs(UnmanagedType.I4)] bool detectable, [MarshalAs(UnmanagedType.I4)] out bool supported);
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool XkbSetDetectableAutoRepeat(nint display, [MarshalAs(UnmanagedType.Bool)] bool detectable, [MarshalAs(UnmanagedType.Bool)] out bool supported);
 
     [DllImport(Lib)] public static extern nuint XInternAtom(nint display, string name, bool onlyIfExists);
     [DllImport(Lib)] public static extern int XSetWMProtocols(nint display, nuint window, nuint[] protocols, int count);
