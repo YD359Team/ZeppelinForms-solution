@@ -64,3 +64,5 @@ ZeppelinForms.Headless.HeadlessGraphicsBackend.CreatePixelSurface(ZeppelinForms.
 ZeppelinForms.Headless.HeadlessGraphicsBackend.Name.get -> string!
 ZeppelinForms.Headless.HeadlessGraphicsBackend.Register() -> void
 static ZeppelinForms.Headless.HeadlessGraphicsBackend.Instance.get -> ZeppelinForms.Headless.HeadlessGraphicsBackend!
+ZeppelinForms.Forms.Controls.Text.TextBox.AllowCaretPastLineEnd.get -> bool
+ZeppelinForms.Forms.Controls.Text.TextBox.AllowCaretPastLineEnd.set -> void

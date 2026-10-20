@@ -117,12 +117,14 @@ public partial class TextBox
 
     /// <summary>What the caret was followed for last: its index, the rows and the size
     /// of the text area. The caret is followed again only when one of them changes.</summary>
-    private (int Caret, object? Rows, Size Area) _followed;
+    private (int Caret, int VirtualSpaces, object? Rows, Size Area) _followed;
 
     /// <summary>Whether the caret is to be brought into view this frame.</summary>
-    private bool TakeCaretFollow(int caret, IReadOnlyList<TextRow> rows, Rectangle area)
+    /// <param name="virtualSpaces">The caret past its line's end: a step there is a move
+    /// of the caret as much as a step in the text (see TextBox.VirtualSpace).</param>
+    private bool TakeCaretFollow(int caret, int virtualSpaces, IReadOnlyList<TextRow> rows, Rectangle area)
     {
-        var now = (caret, (object?)rows, area.Size);
+        var now = (caret, virtualSpaces, (object?)rows, area.Size);
 
         if (_followed == now) return false;
 
