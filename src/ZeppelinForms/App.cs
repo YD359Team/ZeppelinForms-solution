@@ -242,6 +242,11 @@ public partial class App
         _platform = platform;
     }
 
+    /// <summary>What the platform the application runs on can do: ask before relying
+    /// on it — <see cref="PlatformCapabilities.WindowPositioning"/> before placing a
+    /// window by <see cref="Form.Position"/>.</summary>
+    public PlatformCapabilities Capabilities => _platform.Capabilities;
+
     public void Run()
     {
         // App.Icon used to go nowhere: the main form took the logo regardless

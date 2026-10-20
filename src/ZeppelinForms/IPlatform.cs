@@ -12,4 +12,9 @@ public interface IPlatform
     void Start();
 
     void Exit();
+
+
+    /// <summary>What this platform can do beyond the minimum. None by default: a
+    /// platform of an external package that says nothing promises nothing.</summary>
+    PlatformCapabilities Capabilities => PlatformCapabilities.None;
 }

@@ -156,6 +156,11 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
 
     public void CenterOnScreen() => CenterOnScreenCount++;
 
+
+    /// <summary>Whether the window lets itself be placed. False plays a Wayland window:
+    /// for tests of what refuses a position there. True by default.</summary>
+    public bool SupportsPositioning { get; set; } = true;
+
     /// <summary>Frames don't run by themselves in headless: nothing ticks
     /// unless a test calls Tick. The step of such a frame is still taken from
     /// the stopwatch, as on any platform; for an exact step tests use

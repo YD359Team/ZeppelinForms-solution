@@ -189,6 +189,13 @@ public partial class Form : IDisposable
         {
             if (_position == value) return;
 
+            // asked of the window before the value is taken: a refused move leaves
+            // the form where it was
+            if (DesktopWindow is { SupportsPositioning: false })
+                throw new PlatformNotSupportedException(
+                    "This platform doesn't let a window place itself: on Wayland the compositor " +
+                    "decides where windows go. Check App.Capabilities for WindowPositioning first.");
+
             _position = value;
             ApplyBounds();
             OnLocationChanged(EventArgs.Empty);

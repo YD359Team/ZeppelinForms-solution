@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ZeppelinForms.Linux.Wayland;
 
@@ -92,6 +91,11 @@ internal abstract unsafe class WlProxy
 
         if (_self.IsAllocated) _self.Free();
     }
+
+    /// <summary>Forget an object the protocol gives no destructor request: a frame
+    /// callback of a surface destroyed before the callback was done. Its events, if
+    /// any still come, are dropped by libwayland.</summary>
+    public void Abandon() => DestroyProxy();
 
     private void ThrowIfDestroyed()
     {

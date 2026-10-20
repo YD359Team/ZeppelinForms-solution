@@ -42,6 +42,10 @@ public partial class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMot
     /// <summary>What the windows draw with.</summary>
     public IGraphicsBackend Graphics { get; }
 
+
+    /// <summary>A Win32 window places itself.</summary>
+    public PlatformCapabilities Capabilities => PlatformCapabilities.WindowPositioning;
+
     public bool PrefersReducedMotion => _reducedMotion;
 
     public event EventHandler? Changed;

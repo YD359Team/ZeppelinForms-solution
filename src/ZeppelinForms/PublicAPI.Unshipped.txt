@@ -66,3 +66,12 @@ ZeppelinForms.Headless.HeadlessGraphicsBackend.Register() -> void
 static ZeppelinForms.Headless.HeadlessGraphicsBackend.Instance.get -> ZeppelinForms.Headless.HeadlessGraphicsBackend!
 ZeppelinForms.Forms.Controls.Text.TextBox.AllowCaretPastLineEnd.get -> bool
 ZeppelinForms.Forms.Controls.Text.TextBox.AllowCaretPastLineEnd.set -> void
+ZeppelinForms.PlatformCapabilities
+ZeppelinForms.PlatformCapabilities.None = 0 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.PlatformCapabilities.WindowPositioning = 1 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.IPlatform.Capabilities.get -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.IDesktopWindow.SupportsPositioning.get -> bool
+ZeppelinForms.App.Capabilities.get -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.Headless.HeadlessPlatform.Capabilities.get -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.Headless.HeadlessWindow.SupportsPositioning.get -> bool
+ZeppelinForms.Headless.HeadlessWindow.SupportsPositioning.set -> void

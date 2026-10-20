@@ -46,4 +46,10 @@ public interface IDesktopWindow
 
     /// <summary>Move the window to the middle of the working area of the screen it is on.</summary>
     void CenterOnScreen() { }
+
+
+    /// <summary>The window can be placed by the application: false where the compositor
+    /// alone decides — Wayland. The form then refuses <c>Form.Position</c> before
+    /// asking the window anything.</summary>
+    bool SupportsPositioning => true;
 }
