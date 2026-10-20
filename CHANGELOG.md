@@ -1,6 +1,6 @@
 # Changes
 
-## [0.17.0] - Victoria Falls
+## [0.17.1] - Victoria Falls
 
 ![Victoria Falls](assets/Logo-0.17.0.jpg)
 

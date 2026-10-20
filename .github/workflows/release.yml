@@ -46,6 +46,14 @@ jobs:
             found && /^## \[/ { exit }
             found { print }
           ' CHANGELOG.md > release-notes.md
+          
+          # no section for the version: the tag is on a commit without it — 0.17.0 was
+          # tagged on a master that didn't have the release merged yet, and shipped
+          # the code of 0.16.3 with empty notes. Better no release than a wrong one
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::CHANGELOG.md at ${GITHUB_SHA} has no section for $VERSION: is the tag on the right commit?"
+            exit 1
+          fi
 
           # ссылка на полный список изменений внизу описания
           echo "" >> release-notes.md
