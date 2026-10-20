@@ -111,12 +111,9 @@ public static class ZfText
     public static readonly TextKey NextImage = new("zf.gallery.next", "Next image");
     public static readonly TextKey CloseViewer = new("zf.gallery.close", "Close");
 
-    public static readonly TextKey CloseViewer = new("zf.gallery.close", "Close");
-
     // ===== ColorPicker =====
 
     /// <summary>The tooltip and the name of the eyedropper button, and the name of
     /// the overlay it puts over the form while picking.</summary>
     public static readonly TextKey PickColor = new("zf.colorpicker.pick", "Pick a color from the window");
-}
 }
