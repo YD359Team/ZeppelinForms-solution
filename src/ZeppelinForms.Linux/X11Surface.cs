@@ -7,7 +7,7 @@ namespace ZeppelinForms.Linux;
 
 /// <summary>An XImage over a buffer of ours: the graphics backend draws into the buffer
 /// on the CPU, XPutImage puts it — or only its changed part — onto the window.</summary>
-internal sealed class X11Surface : IDisposable
+internal sealed class X11Surface : IX11Surface
 {
     private const int ZPixmap = 2;
 

@@ -82,6 +82,8 @@ internal static class X11
     [DllImport(Lib)] public static extern nuint XRootWindow(nint display, int screen);
     [DllImport(Lib)] public static extern nuint XWhitePixel(nint display, int screen);
     [DllImport(Lib)] public static extern nint XDefaultVisual(nint display, int screen);
+    /// <summary>The id of a visual: what EGL's configs name as their native visual.</summary>
+    [DllImport(Lib)] public static extern nuint XVisualIDFromVisual(nint visual);
     [DllImport(Lib)] public static extern int XDefaultDepth(nint display, int screen);
     [DllImport(Lib)] public static extern nint XDefaultGC(nint display, int screen);
 

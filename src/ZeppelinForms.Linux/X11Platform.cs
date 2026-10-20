@@ -19,13 +19,43 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
     /// <summary>What the windows draw with.</summary>
     public IGraphicsBackend Graphics { get; }
 
+    private EglDisplay? _eglDisplay;
+    private bool _eglTried;
+
+    /// <summary>EGL over this connection, made on the first window's request; null
+    /// when the machine has none or it won't initialize — then the windows draw in
+    /// memory, as before 0.18.</summary>
+    internal EglDisplay? EglDisplay
+    {
+        get
+        {
+            if (_eglTried) return _eglDisplay;
+
+            _eglTried = true;
+
+            try
+            {
+                _eglDisplay = EglDisplay.ForX11(Display);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"EGL is unavailable ({ex.Message}): the windows draw in memory");
+            }
+
+            return _eglDisplay;
+        }
+    }
+
     /// <summary>The platform drawing with Skia.</summary>
     public X11Platform() : this(Skia.SkiaGraphicsBackend.Instance)
     {
     }
 
     /// <summary>The platform drawing with <paramref name="graphics"/>: its services are
-    /// registered here, and every window draws through its surfaces.</summary>
+    /// registered here, and every window draws through its surfaces — on the GPU
+    /// through EGL and OpenGL ES where the machine has them, into an XImage otherwise.</summary>
+    /// <remarks>ZF_RENDERING=software in the environment keeps every window in memory
+    /// even where EGL works: for a driver that draws wrong.</remarks>
     public X11Platform(IGraphicsBackend graphics)
     {
         ArgumentNullException.ThrowIfNull(graphics);

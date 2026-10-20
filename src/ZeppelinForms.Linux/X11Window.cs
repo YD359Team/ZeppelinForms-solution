@@ -18,7 +18,7 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
     private nint _display;
     private nuint _window;
     private nint _gc;
-    private X11Surface? _surface;
+    private IX11Surface? _surface;
 
     private nuint _wmDeleteWindow;
     private nuint _invokeAtom;
@@ -141,11 +141,17 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
 
         _gc = X11.XDefaultGC(_display, screen);
 
-        _surface = new X11Surface(
-            _display, _window, _gc,
+        // on the GPU through EGL where it works, an XImage in memory otherwise
+        _surface = X11SurfaceFactory.Create(
+            _platform, _window, _gc,
             X11.XDefaultVisual(_display, screen),
             (uint)X11.XDefaultDepth(_display, screen),
             _platform.Graphics);
+
+        // the size the window was made with, now that there is a surface to give it to:
+        // without a window manager — Xvfb, a kiosk — no ConfigureNotify follows the
+        // mapping, the surface never got a size, and nothing was ever drawn
+        ApplySize((int)width, (int)height);
 
         X11.XStoreName(_display, _window, _form.Title ?? string.Empty);
 
@@ -313,8 +319,11 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
 
         if (_surface?.BeginFrame() is { } g)
         {
-            FormRenderer.Render(_form, g, _scale, dirty);
-            _surface.EndFrame(dirty is { } d ? ToPhysical(d) : null);
+            // after a swap the back buffer is undefined: a GL frame is always whole
+            Rectangle? clip = _surface.SupportsPartialRedraw ? dirty : null;
+
+            FormRenderer.Render(_form, g, _scale, clip);
+            _surface.EndFrame(clip is { } d ? ToPhysical(d) : null);
         }
 
         _form.TakeDirtyRegion();
@@ -440,6 +449,13 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
 
         _form.OnWindowMoved(new Point(left, top));
 
+        ApplySize(width, height);
+    }
+
+    /// <summary>The window is this size in pixels: the surface, the form's client area
+    /// and its layout follow, and a frame is asked for.</summary>
+    private void ApplySize(int width, int height)
+    {
         // ConfigureNotify comes for moves as well. A move used to cost a full layout
         // and a synchronous frame; a window that only moved changes nothing inside
         if (width == _physicalWidth && height == _physicalHeight) return;
