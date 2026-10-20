@@ -1,1 +1,8 @@
 #nullable enable
+virtual ZeppelinForms.Drawing.Graphics.DrawBezier(ZeppelinForms.Drawing.Primitives.Point start, ZeppelinForms.Drawing.Primitives.Point control1, ZeppelinForms.Drawing.Primitives.Point control2, ZeppelinForms.Drawing.Primitives.Point end, ZeppelinForms.Drawing.Primitives.Color color, float width) -> void
+virtual ZeppelinForms.Drawing.Graphics.DrawBeziers(System.ReadOnlySpan<ZeppelinForms.Drawing.Primitives.Point> points, ZeppelinForms.Drawing.Primitives.Color color, float width) -> void
+ZeppelinForms.Forms.Controls.ColorPicker.ShowEyedropper.get -> bool
+ZeppelinForms.Forms.Controls.ColorPicker.ShowEyedropper.set -> void
+ZeppelinForms.Forms.Controls.ColorPicker.ShowSpectrum.get -> bool
+ZeppelinForms.Forms.Controls.ColorPicker.ShowSpectrum.set -> void
+static readonly ZeppelinForms.Core.Globalization.ZfText.PickColor -> ZeppelinForms.Core.Globalization.TextKey!

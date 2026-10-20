@@ -73,5 +73,7 @@ internal sealed class ZfRussianStrings : StringTable
         Add(ZfText.PreviousImage, "Предыдущее изображение");
         Add(ZfText.NextImage, "Следующее изображение");
         Add(ZfText.CloseViewer, "Закрыть");
+
+        Add(ZfText.PickColor, "Взять цвет с окна");
     }
 }
