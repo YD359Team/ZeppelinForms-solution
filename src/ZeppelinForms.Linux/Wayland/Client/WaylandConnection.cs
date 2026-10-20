@@ -9,9 +9,9 @@ internal sealed class WaylandConnection : IDisposable
 {
     static WaylandConnection()
     {
-        // every table before the first request: the types of one point at another's
-        WaylandProtocol.Define();
-        XdgShellProtocol.Define();
+        // every table before the first request: the types of one point at another's;
+        // the scanner lists the protocols, so a new one needs no line here
+        WaylandProtocols.DefineAll();
     }
 
     private WaylandConnection(nint handle)

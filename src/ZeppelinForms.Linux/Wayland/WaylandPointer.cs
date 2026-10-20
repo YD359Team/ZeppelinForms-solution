@@ -9,7 +9,8 @@ namespace ZeppelinForms.Linux.Wayland;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The coordinates are the surface's own, logical — what the form works in. While a button
+/// The coordinates are the surface's own, logical: the window gives them to the frame it
+/// draws or to the form, see <see cref="WaylandWindow.OnPointerMotion"/>. While a button
 /// is held the compositor keeps sending the pointer to the window it was pressed in, even
 /// outside it: Wayland's capture is implicit.
 /// </para>
@@ -71,10 +72,6 @@ internal sealed class WaylandPointer : IDisposable
         pointer.Frame += OnFrame;
     }
 
-    /// <summary>The serial of the last button press: what xdg_toplevel.move and resize
-    /// are asked with.</summary>
-    public uint LastPressSerial { get; private set; }
-
     /// <summary>The pointer's events come in frames from version 5; before, each event is
     /// a frame of its own.</summary>
     private bool HasFrames => _pointer.Version >= 5;
@@ -90,20 +87,20 @@ internal sealed class WaylandPointer : IDisposable
         if (_focus is not null)
         {
             ApplyCursor(_focus);
-            _focus.Form.OnPointerMove(_position, _seat.Modifiers);
+            _focus.OnPointerMotion(_position, _seat.Modifiers);
         }
     }
 
     private void OnLeave(uint serial, WlSurface? surface)
     {
-        _focus?.Form.OnPointerLeaveWindow();
+        _focus?.OnPointerLeave();
         _focus = null;
     }
 
     private void OnMotion(uint time, double x, double y)
     {
         _position = new Point((float)x, (float)y);
-        _focus?.Form.OnPointerMove(_position, _seat.Modifiers);
+        _focus?.OnPointerMotion(_position, _seat.Modifiers);
     }
 
     private void OnButton(uint serial, uint time, uint button, uint state)
@@ -120,22 +117,8 @@ internal sealed class WaylandPointer : IDisposable
 
         if (which is not { } mouseButton) return;
 
-        if (state == (uint)WlPointer.ButtonState.Pressed)
-        {
-            // modality by dropping input, as on X11
-            if (!window.IsInputEnabled) return;
-
-            LastPressSerial = serial;
-            window.Form.OnPointerDown(_position, mouseButton, _seat.Modifiers);
-        }
-        else
-        {
-            window.Form.OnPointerUp(_position, mouseButton, _seat.Modifiers);
-
-            // the menu on the release, as on X11
-            if (mouseButton == MouseButton.Right)
-                window.Form.OnContextMenu(_position);
-        }
+        // the serial goes along: a press on the frame moves or resizes the window by it
+        window.OnPointerButton(mouseButton, state == (uint)WlPointer.ButtonState.Pressed, serial, _seat.Modifiers);
     }
 
     private void OnAxis(uint time, uint axis, double value)
@@ -196,11 +179,11 @@ internal sealed class WaylandPointer : IDisposable
         _continuousHorizontal = 0;
         _hasDiscrete = false;
 
-        if ((vertical != 0 || horizontal != 0) && _focus is { IsAlive: true, IsInputEnabled: true } window)
+        if ((vertical != 0 || horizontal != 0) && _focus is { IsAlive: true } window)
         {
             // Wayland's positive is down and right; the form's wheel is Windows': up
             // is positive, and right is positive for the horizontal one, as on X11
-            window.Form.OnMouseWheel(_position, -vertical, horizontal);
+            window.OnPointerWheel(-vertical, horizontal);
         }
     }
 
@@ -212,9 +195,9 @@ internal sealed class WaylandPointer : IDisposable
 
     private void ApplyCursor(WaylandWindow window)
     {
-        WaylandCursorImage? image = window.CursorPicture is { } picture
+        WaylandCursorImage? image = window.EffectiveCursorPicture is { } picture
             ? _platform.Cursors.Get(picture)
-            : _platform.Cursors.Get(window.CursorKind, window.BufferScale);
+            : _platform.Cursors.Get(window.EffectiveCursorKind, window.BufferScale);
 
         // no theme at all: the compositor's own cursor, whatever it shows
         if (image is not { } cursor) return;

@@ -53,6 +53,18 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
     internal WlShm Shm { get; }
     internal XdgWmBase WmBase { get; }
 
+    /// <summary>Set to "client" to have every window draw its own frame even where the
+    /// compositor would draw one — as GTK_CSD=1 does for GTK.</summary>
+    public const string DecorationsVariable = "ZF_WAYLAND_DECORATIONS";
+
+    internal static bool ClientDecorationsForced => string.Equals(
+        Environment.GetEnvironmentVariable(DecorationsVariable), "client", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>xdg-decoration: the compositor draws the windows' frames when asked —
+    /// KDE, Sway, Hyprland. Null where it never does — GNOME —, and the windows draw
+    /// their own.</summary>
+    internal ZxdgDecorationManagerV1? DecorationManager { get; private set; }
+
     /// <summary>The screens the compositor announced, by their global name.</summary>
     internal IReadOnlyCollection<WaylandOutput> Outputs => _outputs.Values;
 
@@ -130,6 +142,10 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
 
                 case "xdg_wm_base":
                     wmBase = Bind<XdgWmBase>(name, version);
+                    break;
+
+                case "zxdg_decoration_manager_v1":
+                    DecorationManager = Bind<ZxdgDecorationManagerV1>(name, version);
                     break;
 
                 case "wl_seat" when _seat is null:

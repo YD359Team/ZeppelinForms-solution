@@ -3,6 +3,7 @@ using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Linux.Wayland;
@@ -25,6 +26,12 @@ namespace ZeppelinForms.Linux.Wayland;
 /// <para>
 /// Sizes are logical — Wayland's surface coordinates are —, and the buffer is the size
 /// times the integer buffer scale of the screens the window is on.
+/// </para>
+/// <para>
+/// The frame is the compositor's where it draws one — asked through xdg-decoration — and
+/// the window's own otherwise, see <see cref="WaylandDecoration"/>: the surface is then
+/// larger than the form, and the pointer's events are the frame's or the form's by where
+/// they fall.
 /// </para>
 /// </remarks>
 internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
@@ -66,6 +73,38 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
 
     private int _scale = 1;
 
+    // the frame: the compositor's when it agreed to draw one, the window's own otherwise
+    private ZxdgToplevelDecorationV1? _serverDecoration;
+    private bool _serverSide;
+    private bool _pendingServerSide;
+    private readonly WaylandDecoration _decoration = new();
+
+    // the states of the last configure applied
+    private bool _maximized;
+    private bool _pendingTiled;
+    private bool _tiled;
+
+    // what the compositor lets a window ask for; all, until it says otherwise (xdg-shell 5)
+    private bool _canMinimize = true;
+    private bool _canMaximize = true;
+
+    /// <summary>The window geometry last told the compositor.</summary>
+    private Rectangle _geometry;
+
+    // the pointer over the surface: where, and whose its press is — a press stays with
+    // the form or the frame it began in until its buttons are up, as Wayland's grab does
+    private enum PressTarget { None, Form, Frame }
+
+    private Point _pointerAt;
+    private PressTarget _pressTarget;
+    private int _formButtonsDown;
+    private bool _formHasPointer;
+    private CursorKind? _frameCursor;
+
+    // the caption's last click, for a double click that maximizes
+    private long _lastCaptionClickMs;
+    private Point _lastCaptionClickAt;
+
     public WaylandWindow(WaylandPlatform platform, Form form)
     {
         _platform = platform;
@@ -88,10 +127,22 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
     /// loaded at it too.</summary>
     internal int BufferScale => _scale;
 
-    /// <summary>The cursor over the window: a kind of the theme, or a picture.</summary>
+    /// <summary>The cursor the form set: a kind of the theme, or a picture.</summary>
     internal CursorKind CursorKind { get; private set; } = CursorKind.Default;
 
     internal CursorImage? CursorPicture { get; private set; }
+
+    /// <summary>The cursor shown now: the frame's over the frame — the resize arrows —,
+    /// the form's over the form.</summary>
+    internal CursorKind EffectiveCursorKind => _frameCursor ?? CursorKind;
+
+    internal CursorImage? EffectiveCursorPicture => _frameCursor is null ? CursorPicture : null;
+
+    /// <summary>The window draws its own frame: there is one to draw, and the compositor
+    /// draws none.</summary>
+    private bool DrawsFrame => _form.FormBorderStyle != FormBorderStyle.None && !_serverSide;
+
+    private WaylandDecoration? DrawnFrame => DrawsFrame ? _decoration : null;
 
     internal bool IsInputEnabled { get; private set; } = true;
 
@@ -128,8 +179,23 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
         _toplevel.Configure += OnToplevelConfigure;
         _toplevel.Close += OnCloseRequested;
 
+        _toplevel.WmCapabilities += OnWmCapabilities;
+
         _toplevel.SetTitle(_form.Title ?? string.Empty);
         _toplevel.SetAppId(AppId);
+
+        // the compositor is asked to draw the frame; its answer comes with the first
+        // configure, and until then the window counts on drawing its own
+        if (_platform.DecorationManager is { } manager && !WaylandPlatform.ClientDecorationsForced)
+        {
+            _serverDecoration = manager.GetToplevelDecoration(_toplevel);
+            _serverDecoration.Configure += mode =>
+                _pendingServerSide = mode == (uint)ZxdgToplevelDecorationV1.Mode.ServerSide;
+
+            RequestDecorationMode();
+        }
+
+        SyncFrame();
 
         // an owned form — a dialog — is the owner's child: the compositor keeps it above
         // the owner and, as a rule, puts it over the owner's middle. This is all of
@@ -176,6 +242,10 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
         _frameCallback?.Abandon();
         _frameCallback = null;
 
+        // the decoration before its toplevel, as the protocol asks
+        _serverDecoration?.Destroy();
+        _serverDecoration = null;
+
         // the role before the surface, the surface before its buffers: a buffer the
         // compositor still shows is let go of with the surface
         _toplevel?.Destroy();
@@ -208,6 +278,7 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
         _pendingHeight = height;
         _pendingMaximized = false;
         _pendingActivated = false;
+        _pendingTiled = false;
 
         // an array of uint32 xdg_toplevel.state values
         for (int i = 0; i + 4 <= states.Length; i += 4)
@@ -222,6 +293,13 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
                 case XdgToplevel.State.Activated:
                     _pendingActivated = true;
                     break;
+
+                case XdgToplevel.State.TiledLeft:
+                case XdgToplevel.State.TiledRight:
+                case XdgToplevel.State.TiledTop:
+                case XdgToplevel.State.TiledBottom:
+                    _pendingTiled = true;
+                    break;
             }
         }
     }
@@ -235,11 +313,29 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
         _configured = true;
         _configureUnanswered = true;
 
+        // the frame first: whose it is and how it looks decide what of the size is the form's
+        bool frameWasDrawn = DrawsFrame;
+
+        _serverSide = _pendingServerSide;
+        _maximized = _pendingMaximized;
+        _tiled = _pendingTiled;
+        _decoration.IsActive = _pendingActivated;
+
+        SyncFrame();
+
+        // the limits are the window's, title bar included: they move when the frame changes hands
+        if (frameWasDrawn != DrawsFrame)
+            ApplySizeLimits(_form.MinimumSize, _form.MaximumSize);
+
         if (_pendingWidth > 0 && _pendingHeight > 0)
         {
+            // the size is the window geometry's: the title bar the window draws is in it
+            float caption = DrawnFrame?.Caption ?? 0f;
+            int height = Math.Max(1, _pendingHeight - (int)caption);
+
             Size size = _pendingMaximized
-                ? new Size(_pendingWidth, _pendingHeight)       // a maximized window fills what it is given
-                : _form.ClampToSizeLimits(new Size(_pendingWidth, _pendingHeight));
+                ? new Size(_pendingWidth, height)       // a maximized window fills what it is given
+                : _form.ClampToSizeLimits(new Size(_pendingWidth, height));
 
             ApplySize((int)size.Width, (int)size.Height);
         }
@@ -346,8 +442,14 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
         // reset before drawing: drawing may ask for the next frame — an animation does
         _paintRequested = false;
 
-        int width = _width * _scale;
-        int height = _height * _scale;
+        WaylandDecoration? frame = DrawnFrame;
+        var client = new Size(_width, _height);
+
+        // the surface is the form, or the form in the frame the window draws round it
+        Size surfaceSize = frame?.SurfaceSize(client) ?? client;
+
+        int width = (int)surfaceSize.Width * _scale;
+        int height = (int)surfaceSize.Height * _scale;
 
         if (_buffers!.BeginFrame(width, height) is not { } g)
         {
@@ -355,11 +457,36 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
             return;
         }
 
-        FormRenderer.Render(_form, g, _scale);
+        if (frame is not null)
+        {
+            // the band round the window is see-through but for its shadow
+            g.Clear(Colors.Transparent);
+
+            g.Save();
+            g.Scale(_scale, _scale);
+            frame.Draw(g, client);
+            g.Restore();
+
+            FormRenderer.Render(_form, g, _scale, clip: null, clearBackground: false, origin: frame.ContentOrigin);
+        }
+        else
+        {
+            FormRenderer.Render(_form, g, _scale);
+        }
 
         _form.TakeDirtyRegion();
 
         WlSurface surface = _surface!;
+
+        // where the window proper is on the surface: the compositor places, snaps and
+        // maximizes by it, the band left out
+        Rectangle geometry = frame?.Geometry(client) ?? new Rectangle(0, 0, _width, _height);
+
+        if (geometry != _geometry)
+        {
+            _xdgSurface!.SetWindowGeometry((int)geometry.X, (int)geometry.Y, (int)geometry.Width, (int)geometry.Height);
+            _geometry = geometry;
+        }
 
         // buffer_scale from version 3: the compositor is bound at 6 where it can, and
         // older ones are still spoken to
@@ -380,7 +507,301 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
 
     public void Invoke(Action action) => _platform.Invoke(action);
 
-    public void SetTitle(string? title) => _toplevel?.SetTitle(title ?? string.Empty);
+    public void SetTitle(string? title)
+    {
+        _toplevel?.SetTitle(title ?? string.Empty);
+
+        _decoration.Title = title ?? string.Empty;
+        if (DrawsFrame) Invalidate(null);
+    }
+
+    /// <summary>The frame the window draws takes the form's title bar: dark or light, and
+    /// its colors. The compositor's frame takes none of it — Wayland has no way to ask.</summary>
+    public void SetTitleBarAppearance(bool isDark, Color? background, Color? foreground)
+    {
+        _decoration.IsDark = isDark;
+        _decoration.Background = background;
+        _decoration.Foreground = foreground;
+
+        if (DrawsFrame) Invalidate(null);
+    }
+
+    /// <summary>FormBorderStyle, ControlBox, CanMinimize, CanMaximize or CanResize changed:
+    /// the compositor is asked anew whose frame it is, and the window's own is rebuilt.</summary>
+    public void UpdateChrome()
+    {
+        if (_toplevel is null) return;
+
+        bool frameWasDrawn = DrawsFrame;
+
+        RequestDecorationMode();
+        SyncFrame();
+
+        if (frameWasDrawn != DrawsFrame)
+            ApplySizeLimits(_form.MinimumSize, _form.MaximumSize);
+
+        Invalidate(null);
+    }
+
+    /// <summary>The compositor's frame for a window that has one; none — the window's own,
+    /// which it then doesn't draw — for <see cref="FormBorderStyle.None"/>.</summary>
+    private void RequestDecorationMode() =>
+        _serverDecoration?.SetMode(_form.FormBorderStyle == FormBorderStyle.None
+            ? (uint)ZxdgToplevelDecorationV1.Mode.ClientSide
+            : (uint)ZxdgToplevelDecorationV1.Mode.ServerSide);
+
+    /// <summary>The frame the window draws, from the form and the window's state.</summary>
+    private void SyncFrame()
+    {
+        _decoration.Title = _form.Title ?? string.Empty;
+        _decoration.IsMaximized = _maximized;
+        _decoration.FillsPlace = _maximized || _tiled;
+        _decoration.IsToolWindow = _form.IsToolWindow;
+        _decoration.IsResizable = _form.IsResizable;
+        _decoration.HasClose = _form.ControlBox;
+        _decoration.HasMinimize = _form.HasMinimizeBox && _canMinimize;
+        _decoration.HasMaximize = _form.HasMaximizeBox && _form.IsResizable && _canMaximize;
+    }
+
+    /// <summary>What the compositor lets a window ask for: a button it would ignore is not shown.</summary>
+    private void OnWmCapabilities(byte[] capabilities)
+    {
+        _canMinimize = false;
+        _canMaximize = false;
+
+        for (int i = 0; i + 4 <= capabilities.Length; i += 4)
+        {
+            switch ((XdgToplevel.WmCapabilitiesKind)BitConverter.ToUInt32(capabilities, i))
+            {
+                case XdgToplevel.WmCapabilitiesKind.Minimize:
+                    _canMinimize = true;
+                    break;
+
+                case XdgToplevel.WmCapabilitiesKind.Maximize:
+                    _canMaximize = true;
+                    break;
+            }
+        }
+    }
+
+    // ---- the pointer, in the surface's coordinates: the frame's or the form's ----
+
+    /// <summary>A point of the surface in the form's coordinates.</summary>
+    private Point ToForm(Point surfacePoint) =>
+        DrawnFrame is { } frame
+            ? new Point(surfacePoint.X - frame.ContentOrigin.X, surfacePoint.Y - frame.ContentOrigin.Y)
+            : surfacePoint;
+
+    private DecorationPart PartAt(Point surfacePoint) =>
+        DrawnFrame?.HitTest(surfacePoint, new Size(_width, _height)) ?? DecorationPart.Client;
+
+    internal void OnPointerMotion(Point at, KeyModifiers modifiers)
+    {
+        _pointerAt = at;
+        DecorationPart part = PartAt(at);
+
+        // a press keeps the pointer where it began; without one, the part under it decides
+        if (_pressTarget == PressTarget.Form || (_pressTarget == PressTarget.None && part == DecorationPart.Client))
+        {
+            if (_decoration.SetHover(DecorationPart.None)) Invalidate(null);
+
+            SetFrameCursor(null);
+
+            _formHasPointer = true;
+            _form.OnPointerMove(ToForm(at), modifiers);
+
+            return;
+        }
+
+        LeaveForm();
+
+        if (_decoration.SetHover(part)) Invalidate(null);
+
+        SetFrameCursor(WaylandDecoration.CursorFor(part));
+    }
+
+    internal void OnPointerLeave()
+    {
+        LeaveForm();
+
+        if (_decoration.SetHover(DecorationPart.None)) Invalidate(null);
+        if (_decoration.SetPressed(DecorationPart.None)) Invalidate(null);
+
+        // a leave with buttons down is the compositor's grab — a move, a resize, a menu:
+        // their releases won't come here
+        _pressTarget = PressTarget.None;
+        _formButtonsDown = 0;
+        _frameCursor = null;
+    }
+
+    private void LeaveForm()
+    {
+        if (!_formHasPointer) return;
+
+        _formHasPointer = false;
+        _form.OnPointerLeaveWindow();
+    }
+
+    internal void OnPointerButton(MouseButton button, bool pressed, uint serial, KeyModifiers modifiers)
+    {
+        Point at = _pointerAt;
+        DecorationPart part = PartAt(at);
+
+        if (pressed)
+        {
+            // modality by dropping input, as on X11: the owner of an open dialog is deaf,
+            // its frame included
+            if (!IsInputEnabled) return;
+
+            if (_pressTarget == PressTarget.Form || (_pressTarget == PressTarget.None && part == DecorationPart.Client))
+            {
+                _pressTarget = PressTarget.Form;
+                _formButtonsDown++;
+
+                _form.OnPointerDown(ToForm(at), button, modifiers);
+                return;
+            }
+
+            if (_pressTarget == PressTarget.None)
+                PressFrame(part, button, serial, at);
+
+            return;
+        }
+
+        if (_pressTarget == PressTarget.Form)
+        {
+            Point formPoint = ToForm(at);
+
+            _form.OnPointerUp(formPoint, button, modifiers);
+
+            // the menu on the release, as on X11
+            if (button == MouseButton.Right)
+                _form.OnContextMenu(formPoint);
+
+            if (--_formButtonsDown <= 0)
+            {
+                _formButtonsDown = 0;
+                _pressTarget = PressTarget.None;
+            }
+
+            return;
+        }
+
+        if (_pressTarget == PressTarget.Frame)
+        {
+            DecorationPart held = _decoration.Pressed;
+
+            if (_decoration.SetPressed(DecorationPart.None)) Invalidate(null);
+            _pressTarget = PressTarget.None;
+
+            // a button acts when it is let go over itself, as everywhere
+            if (held == part) ActivateButton(part);
+        }
+    }
+
+    internal void OnPointerWheel(int vertical, int horizontal)
+    {
+        if (!IsInputEnabled) return;
+
+        // the frame takes no wheel; a press keeps it with the form
+        if (_pressTarget == PressTarget.Form || PartAt(_pointerAt) == DecorationPart.Client)
+            _form.OnMouseWheel(ToForm(_pointerAt), vertical, horizontal);
+    }
+
+    private void PressFrame(DecorationPart part, MouseButton button, uint serial, Point at)
+    {
+        WlSeat? seat = _platform.Seat?.Proxy;
+        if (seat is null || _toplevel is null) return;
+
+        if (part == DecorationPart.Caption)
+        {
+            switch (button)
+            {
+                case MouseButton.Left:
+                    {
+                        long now = Environment.TickCount64;
+
+                        bool isDouble = now - _lastCaptionClickMs < 400
+                            && MathF.Abs(at.X - _lastCaptionClickAt.X) < 4
+                            && MathF.Abs(at.Y - _lastCaptionClickAt.Y) < 4;
+
+                        if (isDouble)
+                        {
+                            _lastCaptionClickMs = 0;
+                            ToggleMaximized();
+                            return;
+                        }
+
+                        _lastCaptionClickMs = now;
+                        _lastCaptionClickAt = at;
+
+                        // the compositor moves the window: the drag is its from here on
+                        _toplevel.Move(seat, serial);
+                        return;
+                    }
+
+                case MouseButton.Right:
+                    {
+                        // the compositor's own window menu, at the point in window geometry
+                        float band = _decoration.Band;
+                        _toplevel.ShowWindowMenu(seat, serial, (int)(at.X - band), (int)(at.Y - band));
+                        return;
+                    }
+            }
+
+            return;
+        }
+
+        if (WaylandDecoration.IsButton(part))
+        {
+            if (button != MouseButton.Left) return;
+
+            _pressTarget = PressTarget.Frame;
+            if (_decoration.SetPressed(part)) Invalidate(null);
+
+            return;
+        }
+
+        if (button == MouseButton.Left && WaylandDecoration.EdgeOf(part) is { } edge)
+            _toplevel.Resize(seat, serial, (uint)edge);
+    }
+
+    private void ActivateButton(DecorationPart part)
+    {
+        switch (part)
+        {
+            case DecorationPart.Minimize:
+                _toplevel?.SetMinimized();
+
+                // the compositor never says a window is minimized: the form is told here
+                _form.SetWindowStateFromPlatform(WindowState.Minimized);
+                break;
+
+            case DecorationPart.Maximize:
+                ToggleMaximized();
+                break;
+
+            case DecorationPart.Close:
+                OnCloseRequested();
+                break;
+        }
+    }
+
+    private void ToggleMaximized()
+    {
+        if (_toplevel is null || !_decoration.HasMaximize) return;
+
+        if (_maximized) _toplevel.UnsetMaximized();
+        else _toplevel.SetMaximized();
+    }
+
+    private void SetFrameCursor(CursorKind? cursor)
+    {
+        if (_frameCursor == cursor) return;
+
+        _frameCursor = cursor;
+        _platform.Seat?.Pointer?.CursorChanged(this);
+    }
 
     /// <summary>The size of <paramref name="bounds"/>: a client of Wayland chooses its own
     /// size. The position is refused by Form.Position before it comes here, and a size
@@ -410,12 +831,16 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
 
     private void ApplySizeLimits(Size minimum, Size maximum)
     {
-        // 0 — no limit, as NaN is for the form
-        _toplevel!.SetMinSize(Limit(minimum.Width), Limit(minimum.Height));
-        _toplevel.SetMaxSize(Limit(maximum.Width), Limit(maximum.Height));
+        // the compositor's limits are the window geometry's: the title bar the window
+        // draws is added to the form's
+        float caption = DrawnFrame?.Caption ?? 0f;
 
-        static int Limit(float value) =>
-            float.IsNaN(value) || float.IsInfinity(value) || value <= 0 ? 0 : (int)MathF.Ceiling(value);
+        // 0 — no limit, as NaN is for the form
+        _toplevel!.SetMinSize(Limit(minimum.Width, 0), Limit(minimum.Height, caption));
+        _toplevel.SetMaxSize(Limit(maximum.Width, 0), Limit(maximum.Height, caption));
+
+        static int Limit(float value, float extra) =>
+            float.IsNaN(value) || float.IsInfinity(value) || value <= 0 ? 0 : (int)MathF.Ceiling(value + extra);
     }
 
     public void SetWindowState(WindowState state)
