@@ -386,7 +386,7 @@ internal static class X11
     [DllImport(Lib)] public static extern nuint XCreateFontCursor(nint display, uint shape);
     [DllImport(Lib)] public static extern int XDefineCursor(nint display, nuint window, nuint cursor);
 
-    private const string RandrLib = "libXrandr.so.2";
+    internal const string RandrLib = "libXrandr.so.2";
 
     [DllImport(RandrLib)] public static extern nint XRRGetScreenResourcesCurrent(nint display, nuint window);
     [DllImport(RandrLib)] public static extern void XRRFreeScreenResources(nint resources);
