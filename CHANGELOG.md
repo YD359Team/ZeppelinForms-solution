@@ -1,5 +1,9 @@
 # Changes
 
+## [0.18.0] - Terra Incognita
+TODO: img
+
+
 ## [0.17.1] - Victoria Falls
 
 ![Victoria Falls](assets/Logo-0.17.0.jpg)
