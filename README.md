@@ -642,6 +642,30 @@ Run-to-run spread on a desktop machine reaches tens of percent, so a single run
 proves nothing: take the median of three, and record a baseline only from a quiet
 machine. Current numbers are in the release entry in `CHANGELOG.md`.
 
+### ✈️ Platform Verification
+
+The following environments have been used for manual testing and validation.
+
+**Windows**
+- Windows 11 Pro 26H2
+
+**Linux (X11)**
+- Debian under WSL2
+- Ubuntu 26.04.1 LTS (x86-64, VirtualBox)
+
+**WebAssembly (WASM)**
+- Yandex Browser (desktop)
+- Yandex Browser (mobile)
+- Brave (mobile)
+
+**Android**
+- Android Emulator (Pixel device profile, Visual Studio)
+
+**Continuous Integration**
+
+- See the CI workflow configuration for the operating systems and environments used in automated builds and tests.
+
+
 ---
 
 ZeppelinForms. Fully free. For everyone.
