@@ -1,8 +1,8 @@
-﻿using SkiaSharp;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ZeppelinForms.Core;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls.Tools;
@@ -29,7 +29,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
     private nint _largeIcon;
     private nint _smallIcon;
 
-    private IWin32SkiaSurface? _skiaSurface;
+    private IWin32Surface? _surface;
 
     private bool _trackingMouse;
 
@@ -135,7 +135,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                 Marshal.GetLastWin32Error());
         }
 
-        _skiaSurface = Win32SkiaSurfaceFactory.Create(_handle);
+        _surface = Win32SurfaceFactory.Create(_handle, _platform.Graphics);
         _scale = NativeMethods.GetDpiForWindow(_handle) / 96f;
 
         PlaceAfterCreate(width, height);
@@ -159,7 +159,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
             if (clientWidth > 0 && clientHeight > 0)
             {
-                _skiaSurface.Resize(clientWidth, clientHeight);
+                _surface.Resize(clientWidth, clientHeight);
                 _form.ClientSize = new Size(clientWidth / _scale, clientHeight / _scale);
                 _form.PerformLayout();
             }
@@ -373,7 +373,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
         // A fully opaque window must NOT be layered: in that mode Windows composites
         // the window separately and ignores direct output into the DC, which is how
-        // Skia draws — the window would end up empty.
+        // the graphics backend draws — the window would end up empty.
         if (opacity >= 1f)
         {
             if (isLayered)
@@ -510,8 +510,8 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             case NativeConstants.WM_NCDESTROY:
                 {
                     DestroyIcons();
-                    _skiaSurface?.Dispose();
-                    _skiaSurface = null;
+                    _surface?.Dispose();
+                    _surface = null;
 
                     nint result = NativeMethods.DefWindowProc(
                         hWnd, message, wParam, lParam);
@@ -541,7 +541,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                     int width = (int)(lParam.ToInt64() & 0xFFFF);
                     int height = (int)((lParam.ToInt64() >> 16) & 0xFFFF);
 
-                    _skiaSurface?.Resize(width, height);
+                    _surface?.Resize(width, height);
 
                     _form.ClientSize = new Size(width / _scale, height / _scale);
                     _form.PerformLayout();
@@ -609,7 +609,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                 }
 
             case NativeConstants.WM_ERASEBKGND:
-                // Skia clears the canvas itself in Render() — Windows must not wipe
+                // the backend clears the canvas itself in FormRenderer.Render() — Windows must not wipe
                 // the background with the system brush between a resize and our
                 // WM_PAINT (otherwise there is flicker, as the WinForms side has
                 // already been through).
@@ -621,11 +621,11 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
                     try
                     {
-                        if (_skiaSurface?.BeginFrame() is SKSurface surface)
+                        if (_surface?.BeginFrame() is { } g)
                         {
                             // a GL surface contains garbage after SwapBuffers,
                             // a partial redraw is impossible for it
-                            Rectangle? clip = _skiaSurface.SupportsPartialRedraw
+                            Rectangle? clip = _surface.SupportsPartialRedraw
                                 ? new Rectangle(
                                     new Point(ps.rcPaint.Left / _scale, ps.rcPaint.Top / _scale),
                                     new Size(
@@ -633,8 +633,8 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                                         (ps.rcPaint.Bottom - ps.rcPaint.Top) / _scale))
                                 : null;
 
-                            Skia.SkiaRenderer.Render(_form, surface.Canvas, _scale, clip);
-                            _skiaSurface.EndFrame();
+                            FormRenderer.Render(_form, g, _scale, clip);
+                            _surface.EndFrame();
                         }
 
                         _form.TakeDirtyRegion();

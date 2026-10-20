@@ -1,5 +1,6 @@
 ﻿using ZeppelinForms.Animation;
 using ZeppelinForms.Forms;
+using ZeppelinForms.Drawing;
 
 namespace ZeppelinForms.Windows;
 
@@ -8,13 +9,23 @@ public partial class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMot
     private int _windowCount = 0;
     private bool _reducedMotion;
 
-    public WindowsPlatform()
+    /// <summary>The platform drawing with Skia.</summary>
+    public WindowsPlatform() : this(ZeppelinForms.Skia.SkiaGraphicsBackend.Instance)
     {
+    }
+
+    /// <summary>The platform drawing with <paramref name="graphics"/>: its services are
+    /// registered here, and every window draws through its surfaces — on the GPU when
+    /// the backend and WGL allow it, into a DIB section otherwise.</summary>
+    public WindowsPlatform(IGraphicsBackend graphics)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+
+        Graphics = graphics;
+
         NativeMethods.SetProcessDpiAwarenessContext(NativeConstants.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
-        ZeppelinForms.Skia.SkiaImageDecoder.Register();
-        ZeppelinForms.Skia.SkiaTextMeasurer.Register();
-        ZeppelinForms.Skia.SkiaOffscreenRenderer.Register();
+        graphics.Register();
         Win32Clipboard.Register();
 
         // without it Displays returned the built-in 1920×1080 stand-in at 96 DPI
@@ -27,6 +38,9 @@ public partial class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMot
 
         InitAppearance();
     }
+
+    /// <summary>What the windows draw with.</summary>
+    public IGraphicsBackend Graphics { get; }
 
     public bool PrefersReducedMotion => _reducedMotion;
 

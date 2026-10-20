@@ -222,6 +222,9 @@ public sealed class SkiaGraphics : Graphics
         return Centered(rect, w * scale, h * scale);
     }
 
+    public override void Clear(Color color) =>
+    _canvas.Clear(new SKColor(color.R, color.G, color.B, color.A));
+
     public override void FillRectangle(Rectangle rect, Color color)
     {
         SKPaint paint = FillPaint(color);

@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using ZeppelinForms.Core;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
@@ -15,8 +16,22 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
 
     internal nint Display { get; private set; }
 
-    public X11Platform()
+    /// <summary>What the windows draw with.</summary>
+    public IGraphicsBackend Graphics { get; }
+
+    /// <summary>The platform drawing with Skia.</summary>
+    public X11Platform() : this(Skia.SkiaGraphicsBackend.Instance)
     {
+    }
+
+    /// <summary>The platform drawing with <paramref name="graphics"/>: its services are
+    /// registered here, and every window draws through its surfaces.</summary>
+    public X11Platform(IGraphicsBackend graphics)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+
+        Graphics = graphics;
+
         Display = X11.XOpenDisplay(0);
 
         if (Display == 0)
@@ -32,9 +47,7 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
 
         _inputMethod = OpenInputMethod(Display);
 
-        Skia.SkiaImageDecoder.Register();
-        Skia.SkiaTextMeasurer.Register();
-        Skia.SkiaOffscreenRenderer.Register();
+        graphics.Register();
 
         InitAppearance();
     }

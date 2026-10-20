@@ -1,8 +1,8 @@
-﻿using SkiaSharp;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
@@ -18,7 +18,7 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
     private nint _display;
     private nuint _window;
     private nint _gc;
-    private X11SkiaSurface? _surface;
+    private X11Surface? _surface;
 
     private nuint _wmDeleteWindow;
     private nuint _invokeAtom;
@@ -141,10 +141,11 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
 
         _gc = X11.XDefaultGC(_display, screen);
 
-        _surface = new X11SkiaSurface(
+        _surface = new X11Surface(
             _display, _window, _gc,
             X11.XDefaultVisual(_display, screen),
-            (uint)X11.XDefaultDepth(_display, screen));
+            (uint)X11.XDefaultDepth(_display, screen),
+            _platform.Graphics);
 
         X11.XStoreName(_display, _window, _form.Title ?? string.Empty);
 
@@ -310,9 +311,9 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
         _fullRepaint = false;
         _pendingDirty = null;
 
-        if (_surface?.BeginFrame() is SKSurface skSurface)
+        if (_surface?.BeginFrame() is { } g)
         {
-            Skia.SkiaRenderer.Render(_form, skSurface.Canvas, _scale, dirty);
+            FormRenderer.Render(_form, g, _scale, dirty);
             _surface.EndFrame(dirty is { } d ? ToPhysical(d) : null);
         }
 

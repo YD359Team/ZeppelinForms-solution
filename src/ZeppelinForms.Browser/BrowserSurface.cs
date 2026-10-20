@@ -1,18 +1,19 @@
 ﻿using System.Runtime.InteropServices;
-using SkiaSharp;
+using ZeppelinForms.Core;
+using ZeppelinForms.Drawing;
 
 namespace ZeppelinForms.Browser;
 
 /// <summary>
-/// A frame is drawn by Skia into an unmanaged buffer, then goes onto the canvas
+/// A frame is drawn by the graphics backend into an unmanaged buffer, then goes onto the canvas
 /// whole through putImageData. Partial redraw is not supported: ImageData in
 /// a browser is transferred as a full frame anyway, and the gain would be only
 /// on putImageData itself, not on the transfer.
 /// </summary>
-internal sealed class BrowserSkiaSurface : IDisposable
+internal sealed class BrowserSurface(IGraphicsBackend graphics) : IDisposable
 {
     private nint _pixels;
-    private SKSurface? _surface;
+    private IRenderSurface? _surface;
 
     private int _width;
     private int _height;
@@ -36,17 +37,19 @@ internal sealed class BrowserSkiaSurface : IDisposable
         // Rgba8888, not Bgra: ImageData in a browser stores bytes in RGBA order.
         // Premul equals Unpremul for an opaque frame, while an Unpremul raster
         // surface is not supported by Skia everywhere
-        var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
-        _surface = SKSurface.Create(info, _pixels, stride);
+        _surface = graphics.CreatePixelSurface(
+            new PixelBuffer(_pixels, width, height, stride, PixelFormat.Rgba8888))
+            ?? throw new ZfPlatformException(
+                $"The {graphics.Name} backend draws on the GPU only, and the browser has no WebGL surface yet.");
     }
 
-    public SKSurface? BeginFrame() => _surface;
+    public Graphics? BeginFrame() => _surface?.BeginFrame();
 
     public unsafe void EndFrame()
     {
         if (_surface is null || _pixels == 0) return;
 
-        _surface.Canvas.Flush();
+        _surface.EndFrame();
 
         var pixels = new Span<byte>((void*)_pixels, _width * 4 * _height);
         Interop.Present(pixels, _width, _height);

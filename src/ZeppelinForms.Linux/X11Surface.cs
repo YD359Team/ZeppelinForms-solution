@@ -1,10 +1,13 @@
-﻿using SkiaSharp;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
+using ZeppelinForms.Core;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Linux;
 
-internal sealed class X11SkiaSurface : IDisposable
+/// <summary>An XImage over a buffer of ours: the graphics backend draws into the buffer
+/// on the CPU, XPutImage puts it — or only its changed part — onto the window.</summary>
+internal sealed class X11Surface : IDisposable
 {
     private const int ZPixmap = 2;
 
@@ -13,21 +16,23 @@ internal sealed class X11SkiaSurface : IDisposable
     private readonly nint _gc;
     private readonly nint _visual;
     private readonly uint _depth;
+    private readonly IGraphicsBackend _graphics;
 
     private nint _pixels;
     private nint _image;
-    private SKSurface? _surface;
+    private IRenderSurface? _surface;
 
     private int _width;
     private int _height;
 
-    public X11SkiaSurface(nint display, nuint window, nint gc, nint visual, uint depth)
+    public X11Surface(nint display, nuint window, nint gc, nint visual, uint depth, IGraphicsBackend graphics)
     {
         _display = display;
         _window = window;
         _gc = gc;
         _visual = visual;
         _depth = depth;
+        _graphics = graphics;
     }
 
     public void Resize(int width, int height)
@@ -50,17 +55,20 @@ internal sealed class X11SkiaSurface : IDisposable
             _display, _visual, _depth, ZPixmap, 0,
             _pixels, (uint)width, (uint)height, 32, stride);
 
-        var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
-        _surface = SKSurface.Create(info, _pixels, stride);
+        // a ZPixmap of depth 24/32 on a little-endian server: blue, green, red
+        _surface = _graphics.CreatePixelSurface(
+            new PixelBuffer(_pixels, width, height, stride, PixelFormat.Bgra8888))
+            ?? throw new ZfPlatformException(
+                $"The {_graphics.Name} backend draws on the GPU only, and X11 here has no GL surface yet.");
     }
 
-    public SKSurface? BeginFrame() => _surface;
+    public Graphics? BeginFrame() => _surface?.BeginFrame();
 
     public void EndFrame()
     {
         if (_surface is null || _image == 0) return;
 
-        _surface.Canvas.Flush();
+        _surface.EndFrame();
 
         X11.XPutImage(_display, _window, _gc, _image, 0, 0, 0, 0, (uint)_width, (uint)_height);
         X11.XFlush(_display);
@@ -100,7 +108,7 @@ internal sealed class X11SkiaSurface : IDisposable
     {
         if (_surface is null || _image == 0) return;
 
-        _surface.Canvas.Flush();
+        _surface.EndFrame();
 
         if (dirty is { } rect)
         {

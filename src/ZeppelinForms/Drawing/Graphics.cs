@@ -24,6 +24,13 @@ public abstract class Graphics
     /// the paragraph level; Hebrew and Arabic run right to left in either.</summary>
     public FlowDirection TextDirection { get; set; }
 
+    /// <summary>Replace everything inside the current clip with a color — its alpha
+    /// included, not blended over what was there.</summary>
+    /// <remarks>A backend without a clear of its own fills a rectangle far larger than
+    /// any canvas: the same for an opaque color, which is what a form's background is.</remarks>
+    public virtual void Clear(Color color) =>
+        FillRectangle(new Rectangle(-1e6f, -1e6f, 2e6f, 2e6f), color);
+
     public abstract void DrawImage(
         Rectangle rect, Image image,
         ImageFlip flip = ImageFlip.None,

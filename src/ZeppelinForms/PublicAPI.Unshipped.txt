@@ -6,3 +6,61 @@ ZeppelinForms.Forms.Controls.ColorPicker.ShowEyedropper.set -> void
 ZeppelinForms.Forms.Controls.ColorPicker.ShowSpectrum.get -> bool
 ZeppelinForms.Forms.Controls.ColorPicker.ShowSpectrum.set -> void
 static readonly ZeppelinForms.Core.Globalization.ZfText.PickColor -> ZeppelinForms.Core.Globalization.TextKey!
+virtual ZeppelinForms.Drawing.Graphics.Clear(ZeppelinForms.Drawing.Primitives.Color color) -> void
+ZeppelinForms.Drawing.FormRenderer
+static ZeppelinForms.Drawing.FormRenderer.Render(ZeppelinForms.Forms.Form! form, ZeppelinForms.Drawing.Graphics! g, float scale = 1, ZeppelinForms.Drawing.Primitives.Rectangle? clip = null, bool clearBackground = true, ZeppelinForms.Drawing.Primitives.Point origin = default(ZeppelinForms.Drawing.Primitives.Point)) -> void
+ZeppelinForms.Drawing.IGraphicsBackend
+ZeppelinForms.Drawing.IGraphicsBackend.CreateGlSurface(ZeppelinForms.Drawing.GlTarget! target) -> ZeppelinForms.Drawing.IGlSurface?
+ZeppelinForms.Drawing.IGraphicsBackend.CreatePixelSurface(ZeppelinForms.Drawing.PixelBuffer buffer) -> ZeppelinForms.Drawing.IRenderSurface?
+ZeppelinForms.Drawing.IGraphicsBackend.Name.get -> string!
+ZeppelinForms.Drawing.IGraphicsBackend.Register() -> void
+ZeppelinForms.Drawing.IRenderSurface
+ZeppelinForms.Drawing.IRenderSurface.BeginFrame() -> ZeppelinForms.Drawing.Graphics!
+ZeppelinForms.Drawing.IRenderSurface.EndFrame() -> void
+ZeppelinForms.Drawing.IGlSurface
+ZeppelinForms.Drawing.IGlSurface.Resize(int width, int height) -> void
+ZeppelinForms.Drawing.PixelFormat
+ZeppelinForms.Drawing.PixelFormat.Bgra8888 = 0 -> ZeppelinForms.Drawing.PixelFormat
+ZeppelinForms.Drawing.PixelFormat.Rgba8888 = 1 -> ZeppelinForms.Drawing.PixelFormat
+ZeppelinForms.Drawing.PixelBuffer
+ZeppelinForms.Drawing.PixelBuffer.Deconstruct(out nint Pixels, out int Width, out int Height, out int Stride, out ZeppelinForms.Drawing.PixelFormat Format) -> void
+ZeppelinForms.Drawing.PixelBuffer.Equals(ZeppelinForms.Drawing.PixelBuffer other) -> bool
+ZeppelinForms.Drawing.PixelBuffer.Format.get -> ZeppelinForms.Drawing.PixelFormat
+ZeppelinForms.Drawing.PixelBuffer.Format.init -> void
+ZeppelinForms.Drawing.PixelBuffer.Height.get -> int
+ZeppelinForms.Drawing.PixelBuffer.Height.init -> void
+ZeppelinForms.Drawing.PixelBuffer.PixelBuffer() -> void
+ZeppelinForms.Drawing.PixelBuffer.PixelBuffer(nint Pixels, int Width, int Height, int Stride, ZeppelinForms.Drawing.PixelFormat Format) -> void
+ZeppelinForms.Drawing.PixelBuffer.Pixels.get -> nint
+ZeppelinForms.Drawing.PixelBuffer.Pixels.init -> void
+ZeppelinForms.Drawing.PixelBuffer.Stride.get -> int
+ZeppelinForms.Drawing.PixelBuffer.Stride.init -> void
+ZeppelinForms.Drawing.PixelBuffer.Width.get -> int
+ZeppelinForms.Drawing.PixelBuffer.Width.init -> void
+override ZeppelinForms.Drawing.PixelBuffer.GetHashCode() -> int
+static ZeppelinForms.Drawing.PixelBuffer.operator !=(ZeppelinForms.Drawing.PixelBuffer left, ZeppelinForms.Drawing.PixelBuffer right) -> bool
+static ZeppelinForms.Drawing.PixelBuffer.operator ==(ZeppelinForms.Drawing.PixelBuffer left, ZeppelinForms.Drawing.PixelBuffer right) -> bool
+~override ZeppelinForms.Drawing.PixelBuffer.Equals(object obj) -> bool
+~override ZeppelinForms.Drawing.PixelBuffer.ToString() -> string
+ZeppelinForms.Drawing.GlTarget
+ZeppelinForms.Drawing.GlTarget.GlTarget() -> void
+ZeppelinForms.Drawing.GlTarget.Framebuffer.get -> uint
+ZeppelinForms.Drawing.GlTarget.Framebuffer.init -> void
+ZeppelinForms.Drawing.GlTarget.GetProcAddress.get -> System.Func<string!, nint>?
+ZeppelinForms.Drawing.GlTarget.GetProcAddress.init -> void
+ZeppelinForms.Drawing.GlTarget.Height.get -> int
+ZeppelinForms.Drawing.GlTarget.Height.init -> void
+ZeppelinForms.Drawing.GlTarget.IsGles.get -> bool
+ZeppelinForms.Drawing.GlTarget.IsGles.init -> void
+ZeppelinForms.Drawing.GlTarget.SampleCount.get -> int
+ZeppelinForms.Drawing.GlTarget.SampleCount.init -> void
+ZeppelinForms.Drawing.GlTarget.StencilBits.get -> int
+ZeppelinForms.Drawing.GlTarget.StencilBits.init -> void
+ZeppelinForms.Drawing.GlTarget.Width.get -> int
+ZeppelinForms.Drawing.GlTarget.Width.init -> void
+ZeppelinForms.Headless.HeadlessGraphicsBackend
+ZeppelinForms.Headless.HeadlessGraphicsBackend.CreateGlSurface(ZeppelinForms.Drawing.GlTarget! target) -> ZeppelinForms.Drawing.IGlSurface?
+ZeppelinForms.Headless.HeadlessGraphicsBackend.CreatePixelSurface(ZeppelinForms.Drawing.PixelBuffer buffer) -> ZeppelinForms.Drawing.IRenderSurface?
+ZeppelinForms.Headless.HeadlessGraphicsBackend.Name.get -> string!
+ZeppelinForms.Headless.HeadlessGraphicsBackend.Register() -> void
+static ZeppelinForms.Headless.HeadlessGraphicsBackend.Instance.get -> ZeppelinForms.Headless.HeadlessGraphicsBackend!

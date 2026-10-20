@@ -1,37 +1,37 @@
-﻿using SkiaSharp;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using ZeppelinForms.Core;
+using ZeppelinForms.Drawing;
 
 namespace ZeppelinForms.Windows.Rendering;
 
-internal sealed class GlSkiaSurface : IWin32SkiaSurface
+/// <summary>A WGL context on the window, and the backend's GL surface drawing into its
+/// framebuffer. The context is the platform's: made current here before every call
+/// into the backend, swapped here after every frame.</summary>
+internal sealed class Win32GlSurface : IWin32Surface
 {
-    private const uint GL_RGBA8 = 0x8058;
-
     private readonly nint _hWnd;
     private readonly nint _hdc;
     private readonly nint _glContext;
-    private readonly GRContext _grContext;
+    private readonly IGlSurface _surface;
 
-    private SKSurface? _surface;
-    private GRBackendRenderTarget? _renderTarget;
-
-    private int _width;
-    private int _height;
+    /// <summary>The backend's surface has a size: until the first resize there is
+    /// no render target to draw into.</summary>
+    private bool _sized;
 
     public bool SupportsPartialRedraw => false;
 
-    private GlSkiaSurface(nint hWnd, nint hdc, nint glContext, GRContext grContext)
+    private Win32GlSurface(nint hWnd, nint hdc, nint glContext, IGlSurface surface)
     {
         _hWnd = hWnd;
         _hdc = hdc;
         _glContext = glContext;
-        _grContext = grContext;
+        _surface = surface;
     }
 
-    // Throws if the GPU context didn't come up —
-    // Win32SkiaSurfaceFactory catches that and falls back to software.
-    public static GlSkiaSurface Create(nint hWnd)
+    /// <summary>The surface, or null when the backend doesn't draw with GL.</summary>
+    /// <exception cref="ZfPlatformException">The GPU context didn't come up —
+    /// Win32SurfaceFactory catches that and falls back to software.</exception>
+    public static Win32GlSurface? Create(nint hWnd, IGraphicsBackend graphics)
     {
         nint hdc = NativeMethods.GetDC(hWnd);
 
@@ -84,25 +84,38 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
                 setSwapInterval(0);
             }
 
-            using GRGlInterface glInterface = GRGlInterface.Create()
-                ?? throw new ZfPlatformException("Could not create GRGlInterface.");
+            // the size comes with the first WM_SIZE; the loader stays the backend's
+            // own, as Skia's default interface finds WGL's functions by itself
+            IGlSurface? surface = graphics.CreateGlSurface(new GlTarget
+            {
+                Width = 0,
+                Height = 0,
+                IsGles = false,
+                StencilBits = 8,
+            });
 
-            GRContext grContext = GRContext.CreateGl(glInterface)
-                ?? throw new ZfPlatformException("Could not create GRContext.");
-            grContext.SetResourceCacheLimit(32 * 1024 * 1024);
+            if (surface is null)
+            {
+                Release(hWnd, hdc, glContext);
+                return null;
+            }
 
-            return new GlSkiaSurface(hWnd, hdc, glContext, grContext);
+            return new Win32GlSurface(hWnd, hdc, glContext, surface);
         }
         catch
         {
             // the factory falls back to software on this same window: the context
             // must not stay current and alive, nor the DC held
-            NativeMethods.wglMakeCurrent(0, 0);
-            NativeMethods.wglDeleteContext(glContext);
-            NativeMethods.ReleaseDC(hWnd, hdc);
-
+            Release(hWnd, hdc, glContext);
             throw;
         }
+    }
+
+    private static void Release(nint hWnd, nint hdc, nint glContext)
+    {
+        NativeMethods.wglMakeCurrent(0, 0);
+        NativeMethods.wglDeleteContext(glContext);
+        NativeMethods.ReleaseDC(hWnd, hdc);
     }
 
     public void Resize(int width, int height)
@@ -110,48 +123,34 @@ internal sealed class GlSkiaSurface : IWin32SkiaSurface
         if (width <= 0 || height <= 0)
             return;
 
-        if (width == _width && height == _height && _surface is not null)
-            return;
-
-        _surface?.Dispose();
-        _renderTarget?.Dispose();
-
         NativeMethods.wglMakeCurrent(_hdc, _glContext);
 
-        var glInfo = new GRGlFramebufferInfo(0, GL_RGBA8);
-
-        _renderTarget = new GRBackendRenderTarget(width, height, 0, 8, glInfo);
-
-        _surface = SKSurface.Create(
-            _grContext, _renderTarget, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888);
-
-        _width = width;
-        _height = height;
+        _surface.Resize(width, height);
+        _sized = true;
     }
 
-    public SKSurface? BeginFrame()
+    public Graphics? BeginFrame()
     {
+        if (!_sized) return null;
+
         NativeMethods.wglMakeCurrent(_hdc, _glContext);
-        return _surface;
+        return _surface.BeginFrame();
     }
 
     public void EndFrame()
     {
-        _surface!.Canvas.Flush();
-        _grContext.Flush();
+        _surface.EndFrame();
 
         NativeMethods.SwapBuffers(_hdc);
     }
 
     public void Dispose()
     {
-        _surface?.Dispose();
-        _renderTarget?.Dispose();
-        _grContext.Dispose();
+        // the backend's GPU resources are freed in their own context
+        NativeMethods.wglMakeCurrent(_hdc, _glContext);
+        _surface.Dispose();
 
-        NativeMethods.wglMakeCurrent(0, 0);
-        NativeMethods.wglDeleteContext(_glContext);
-        NativeMethods.ReleaseDC(_hWnd, _hdc);
+        Release(_hWnd, _hdc, _glContext);
     }
 
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
