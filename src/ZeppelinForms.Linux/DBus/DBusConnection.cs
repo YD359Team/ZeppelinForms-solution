@@ -106,7 +106,9 @@ internal sealed class DBusConnection : IDisposable
                 string key = pair[..equals];
                 string value = Uri.UnescapeDataString(pair[(equals + 1)..]);
 
-                if (key == "path")
+                // a socket file that isn't there is no bus: a failed connect to it
+                // threw a SocketException on every start, under WSL among others
+                if (key == "path" && File.Exists(value))
                     yield return new UnixDomainSocketEndPoint(value);
 
                 // the abstract namespace: a name with a leading zero byte

@@ -5,7 +5,7 @@ namespace ZeppelinForms.Linux;
 
 internal static class X11
 {
-    private const string Lib = "libX11.so.6";
+    internal const string Lib = "libX11.so.6";
 
     public const int RevertToParent = 2;
 

@@ -8,7 +8,7 @@ namespace ZeppelinForms.Linux;
 /// a system without it gets the fallback.</summary>
 internal static class Xcursor
 {
-    private const string Lib = "libXcursor.so.1";
+    internal const string Lib = "libXcursor.so.1";
 
     /// <summary>XcursorImage: the pixels follow the header, ARGB premultiplied.</summary>
     [StructLayout(LayoutKind.Sequential)]

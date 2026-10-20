@@ -61,6 +61,9 @@ internal sealed partial class X11Window
     /// Image keeps its pixels, only in another byte order.</summary>
     private nuint LoadImageCursor(CursorImage cursor)
     {
+        // no libXcursor: the fallback, without an exception thrown on every cursor set
+        if (!NativeProbe.Has(Xcursor.Lib)) return 0;
+
         try
         {
             int width = cursor.Image.Width;

@@ -10,7 +10,7 @@ namespace ZeppelinForms.Linux;
 /// and falls back to drawing in memory.</remarks>
 internal static class Egl
 {
-    private const string Lib = "libEGL.so.1";
+    internal const string Lib = "libEGL.so.1";
 
     public const int EGL_SUCCESS = 0x3000;
     public const int EGL_NONE = 0x3038;

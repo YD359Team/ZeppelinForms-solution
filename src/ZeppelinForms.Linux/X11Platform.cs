@@ -32,6 +32,13 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
             if (_eglTried) return _eglDisplay;
 
             _eglTried = true;
+            // no libEGL is no error: the machine draws in memory, and asking the
+            // library first spares the DllNotFoundException in the debugger's output
+            if (!NativeProbe.Has(Egl.Lib))
+            {
+                System.Diagnostics.Debug.WriteLine($"No {Egl.Lib}: the windows draw in memory");
+                return null;
+            }
 
             try
             {
