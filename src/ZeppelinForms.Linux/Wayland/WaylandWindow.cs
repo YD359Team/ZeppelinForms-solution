@@ -8,8 +8,8 @@ using ZeppelinForms.Input.Mouse;
 namespace ZeppelinForms.Linux.Wayland;
 
 /// <summary>
-/// A form's window on Wayland: a wl_surface with the xdg_toplevel role, drawn into
-/// shared memory.
+/// A form's window on Wayland: a wl_surface with the xdg_toplevel role, drawn on the GPU
+/// through EGL or into shared memory.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -35,7 +35,7 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
     private WlSurface? _surface;
     private XdgSurface? _xdgSurface;
     private XdgToplevel? _toplevel;
-    private WaylandShmSurface? _buffers;
+    private IWaylandSurface? _buffers;
     private WlCallback? _frameCallback;
 
     /// <summary>The screens the surface is on — for the scale, where the compositor
@@ -80,6 +80,18 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
     internal Form Form => _form;
 
     internal bool IsAlive => _surface is not null;
+
+    /// <summary>The window's surface: what the seat's events name the window by.</summary>
+    internal WlSurface? Surface => _surface;
+
+    /// <summary>The integer scale the window's buffers are drawn at: the cursor's theme is
+    /// loaded at it too.</summary>
+    internal int BufferScale => _scale;
+
+    /// <summary>The cursor over the window: a kind of the theme, or a picture.</summary>
+    internal CursorKind CursorKind { get; private set; } = CursorKind.Default;
+
+    internal CursorImage? CursorPicture { get; private set; }
 
     internal bool IsInputEnabled { get; private set; } = true;
 
@@ -127,7 +139,8 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
 
         ApplySizeLimits(_form.MinimumSize, _form.MaximumSize);
 
-        _buffers = new WaylandShmSurface(_platform.Shm, _platform.Graphics);
+        // on the GPU through EGL where it works, in shared memory otherwise
+        _buffers = WaylandSurfaceFactory.Create(_platform, _surface, _platform.Graphics);
 
         // the size the form asks for, until the compositor sends one of its own
         Size opening = _form.ClampToSizeLimits(_form.Size);
@@ -324,7 +337,7 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
         _paintRequested
         && _configured
         && (_frameCallback is null || _configureUnanswered)
-        && _buffers is { HasFreeBuffer: true };
+        && _buffers is { CanBeginFrame: true };
 
     internal void PaintIfRequested()
     {
@@ -344,27 +357,21 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
 
         FormRenderer.Render(_form, g, _scale);
 
-        WlBuffer buffer = _buffers.EndFrame();
-
         _form.TakeDirtyRegion();
 
         WlSurface surface = _surface!;
 
-        // buffer_scale from version 3, damage in buffer pixels from 4: the compositor
-        // is bound at 6 where it can, and older ones are still spoken to
+        // buffer_scale from version 3: the compositor is bound at 6 where it can, and
+        // older ones are still spoken to
         if (surface.Version >= 3) surface.SetBufferScale(_scale);
 
-        surface.Attach(buffer, 0, 0);
-
-        if (surface.Version >= 4) surface.DamageBuffer(0, 0, width, height);
-        else surface.Damage(0, 0, _width, _height);
-
-        // the next frame when the compositor has shown this one
+        // the next frame when the compositor has shown this one; asked before the
+        // commit the frame ends in — the surface's own, or EGL's swap
         _frameCallback?.Abandon();
         _frameCallback = surface.Frame();
         _frameCallback.Done += _ => _frameCallback = null;
 
-        surface.Commit();
+        _buffers.EndFrame(surface, width, height);
 
         _configureUnanswered = false;
     }
@@ -454,12 +461,28 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
 
     public void SetEnabled(bool enabled) => IsInputEnabled = enabled;
 
-    // pointer and keyboard input, cursors, activation, the clipboard and drag and
-    // drop are not here yet: until they come the window only shows the form
-    public void Activate()
+    public void SetCursor(CursorKind cursor)
     {
+        if (CursorPicture is null && CursorKind == cursor) return;
+
+        CursorKind = cursor;
+        CursorPicture = null;
+
+        _platform.Seat?.Pointer?.CursorChanged(this);
     }
 
+    public void SetCursor(CursorImage cursor)
+    {
+        if (ReferenceEquals(CursorPicture, cursor)) return;
+
+        CursorPicture = cursor;
+        CursorKind = cursor.Fallback;
+
+        _platform.Seat?.Pointer?.CursorChanged(this);
+    }
+
+    /// <summary>While a button is held the compositor sends the pointer to the window it
+    /// was pressed in, wherever it goes: Wayland's capture is implicit.</summary>
     public void CaptureMouse()
     {
     }
@@ -468,7 +491,8 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
     {
     }
 
-    public void SetCursor(CursorKind cursor)
+    // activation, the clipboard and drag and drop are not here yet
+    public void Activate()
     {
     }
 

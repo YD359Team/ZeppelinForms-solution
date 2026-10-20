@@ -19,7 +19,16 @@ internal sealed class EglDisplay
     /// <summary>The display over an X11 connection.</summary>
     /// <exception cref="ZfPlatformException">EGL is there but won't initialize.</exception>
     /// <exception cref="DllNotFoundException">There is no libEGL on the machine.</exception>
-    public static unsafe EglDisplay ForX11(nint x11Display)
+    public static EglDisplay ForX11(nint x11Display) =>
+        ForPlatform(x11Display, Egl.EGL_PLATFORM_X11_KHR, "x11", "the X11 connection");
+
+    /// <summary>The display over a Wayland connection: the wl_display*.</summary>
+    /// <exception cref="ZfPlatformException">EGL is there but won't initialize.</exception>
+    /// <exception cref="DllNotFoundException">There is no libEGL on the machine.</exception>
+    public static EglDisplay ForWayland(nint wlDisplay) =>
+        ForPlatform(wlDisplay, Egl.EGL_PLATFORM_WAYLAND_KHR, "wayland", "the Wayland connection");
+
+    private static unsafe EglDisplay ForPlatform(nint nativeDisplay, uint platform, string extension, string what)
     {
         nint display = 0;
 
@@ -28,23 +37,23 @@ internal sealed class EglDisplay
         // in the environment it guessed Wayland for an X11 connection
         string extensions = Egl.ClientExtensions();
 
-        if (extensions.Contains("EGL_EXT_platform_x11", StringComparison.Ordinal)
-            || extensions.Contains("EGL_KHR_platform_x11", StringComparison.Ordinal))
+        if (extensions.Contains($"EGL_EXT_platform_{extension}", StringComparison.Ordinal)
+            || extensions.Contains($"EGL_KHR_platform_{extension}", StringComparison.Ordinal))
         {
             nint getPlatformDisplay = Egl.eglGetProcAddress("eglGetPlatformDisplayEXT");
 
             if (getPlatformDisplay != 0)
             {
                 var get = (delegate* unmanaged<uint, nint, int*, nint>)getPlatformDisplay;
-                display = get(Egl.EGL_PLATFORM_X11_KHR, x11Display, null);
+                display = get(platform, nativeDisplay, null);
             }
         }
 
         if (display == 0)
-            display = Egl.eglGetDisplay(x11Display);
+            display = Egl.eglGetDisplay(nativeDisplay);
 
         if (display == 0)
-            throw new ZfPlatformException($"EGL gave no display for the X11 connection ({Egl.LastError()}).");
+            throw new ZfPlatformException($"EGL gave no display for {what} ({Egl.LastError()}).");
 
         if (Egl.eglInitialize(display, out _, out _) == 0)
             throw new ZfPlatformException($"EGL could not initialize its display ({Egl.LastError()}).");
@@ -61,7 +70,16 @@ internal sealed class EglDisplay
     /// visual is refused with EGL_BAD_MATCH.</remarks>
     /// <returns>The config and the ES version for its context, or null when none
     /// matches the visual.</returns>
-    public (nint Config, int EsVersion)? ChooseConfig(int visualId)
+    public (nint Config, int EsVersion)? ChooseConfig(int visualId) =>
+        ChooseConfig(alpha: false, config =>
+            Egl.eglGetConfigAttrib(Handle, config, Egl.EGL_NATIVE_VISUAL_ID, out int id) != 0 && id == visualId);
+
+    /// <summary>A config with an alpha channel, for a Wayland surface: there is no visual
+    /// to match, and the compositor blends a translucent form by the alpha.</summary>
+    public (nint Config, int EsVersion)? ChooseConfigWithAlpha() =>
+        ChooseConfig(alpha: true, _ => true);
+
+    private (nint Config, int EsVersion)? ChooseConfig(bool alpha, Func<nint, bool> accept)
     {
         (int Version, int Bit)[] apis = [(3, Egl.EGL_OPENGL_ES3_BIT), (2, Egl.EGL_OPENGL_ES2_BIT)];
 
@@ -74,6 +92,7 @@ internal sealed class EglDisplay
                 Egl.EGL_RED_SIZE, 8,
                 Egl.EGL_GREEN_SIZE, 8,
                 Egl.EGL_BLUE_SIZE, 8,
+                Egl.EGL_ALPHA_SIZE, alpha ? 8 : 0,
                 Egl.EGL_STENCIL_SIZE, 8,
                 Egl.EGL_NONE,
             ];
@@ -86,10 +105,10 @@ internal sealed class EglDisplay
             if (Egl.eglChooseConfig(Handle, attribs, configs, count, out count) == 0)
                 continue;
 
-            // the best first, as EGL sorts them; the first of the window's visual wins
+            // the best first, as EGL sorts them; the first one accepted wins
             for (int i = 0; i < count; i++)
             {
-                if (Egl.eglGetConfigAttrib(Handle, configs[i], Egl.EGL_NATIVE_VISUAL_ID, out int id) != 0 && id == visualId)
+                if (accept(configs[i]))
                     return (configs[i], version);
             }
         }

@@ -7,8 +7,8 @@ using ZeppelinForms.Forms;
 namespace ZeppelinForms.Linux.Wayland;
 
 /// <summary>
-/// The Linux platform over a Wayland compositor: xdg-shell windows drawn into shared
-/// memory.
+/// The Linux platform over a Wayland compositor: xdg-shell windows drawn on the GPU
+/// through EGL or into shared memory, the seat's pointer and keyboard.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -37,6 +37,12 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
     private PortalAppearance? _appearance;
     private bool _running;
 
+    private WaylandSeat? _seat;
+    private WaylandCursors? _cursors;
+
+    private EglDisplay? _eglDisplay;
+    private bool _eglTried;
+
     /// <summary>What the windows draw with.</summary>
     public IGraphicsBackend Graphics { get; }
 
@@ -49,6 +55,45 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
 
     /// <summary>The screens the compositor announced, by their global name.</summary>
     internal IReadOnlyCollection<WaylandOutput> Outputs => _outputs.Values;
+
+    /// <summary>The user's keyboard and pointer; null on a compositor without a seat — a
+    /// headless one, a kiosk with no input.</summary>
+    internal WaylandSeat? Seat => _seat;
+
+    /// <summary>The cursor theme and the picture cursors, loaded on the first cursor shown.</summary>
+    internal WaylandCursors Cursors => _cursors ??= new WaylandCursors(Shm);
+
+    /// <summary>EGL over this connection, made on the first window's request; null when
+    /// the machine has no libEGL or libwayland-egl, or EGL won't initialize — then the
+    /// windows draw into shared memory.</summary>
+    internal EglDisplay? EglDisplay
+    {
+        get
+        {
+            if (_eglTried) return _eglDisplay;
+
+            _eglTried = true;
+
+            // asked first: the absence of either library is no error, and spares the
+            // DllNotFoundException in the debugger's output, as on X11
+            if (!NativeProbe.Has(Egl.Lib) || !NativeProbe.Has(WaylandEglSurface.WaylandEglLib))
+            {
+                System.Diagnostics.Debug.WriteLine("No libEGL or libwayland-egl: the windows draw in shared memory");
+                return null;
+            }
+
+            try
+            {
+                _eglDisplay = EglDisplay.ForWayland(_connection.Handle);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"EGL is unavailable ({ex.Message}): the windows draw in shared memory");
+            }
+
+            return _eglDisplay;
+        }
+    }
 
     /// <summary>The platform drawing with Skia.</summary>
     public WaylandPlatform() : this(Skia.SkiaGraphicsBackend.Instance)
@@ -85,6 +130,10 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
 
                 case "xdg_wm_base":
                     wmBase = Bind<XdgWmBase>(name, version);
+                    break;
+
+                case "wl_seat" when _seat is null:
+                    _seat = new WaylandSeat(this, Bind<WlSeat>(name, version));
                     break;
 
                 case "wl_output":
@@ -146,6 +195,19 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
     internal WaylandOutput? FindOutput(WlOutput? proxy) =>
         proxy is null ? null : _outputs.Values.FirstOrDefault(o => ReferenceEquals(o.Proxy, proxy));
 
+    /// <summary>The window of a surface an input event names; null for a surface that
+    /// isn't a window's — the cursor's, another client's.</summary>
+    internal WaylandWindow? FindWindow(WlSurface? surface)
+    {
+        if (surface is null) return null;
+
+        foreach (WaylandWindow window in _windows)
+            if (ReferenceEquals(window.Surface, surface))
+                return window;
+
+        return null;
+    }
+
     public IPlatformWindow CreateWindow(Form form)
     {
         var window = new WaylandWindow(this, form);
@@ -160,6 +222,7 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
     internal void Unregister(WaylandWindow window)
     {
         _windows.Remove(window);
+        _seat?.Forget(window);
 
         if (_windows.Count == 0)
             _running = false;
@@ -262,6 +325,10 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
 
         DispatchPending();
 
+        // Wayland repeats no key: the held one is repeated here, when its time came
+        if (_seat?.Keyboard is { } keyboard)
+            App.RunGuarded(keyboard.DispatchRepeat);
+
         if ((entries[1].Returned & Poll.In) != 0)
             _wake.Drain();
 
@@ -306,7 +373,13 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
 
         // with animations the loop wakes for the next tick; without them it waits for
         // input, the wake-up or the bus — at most 100 ms, as the X11 loop does
-        return _tickingWindows.Count > 0 ? _tickIntervalMs : 100;
+        int timeout = _tickingWindows.Count > 0 ? _tickIntervalMs : 100;
+
+        // a held key wakes the loop for its next repeat
+        if (_seat?.Keyboard?.RepeatDueInMs is { } repeat)
+            timeout = Math.Min(timeout, repeat);
+
+        return timeout;
     }
 
     private void DispatchTick()

@@ -1044,7 +1044,9 @@ public partial class Form : IDisposable
             return;
         }
 
-        var args = new KeyEventArgs(key, modifiers);
+        // isRepeat went nowhere until 0.18: every platform reported it, and every
+        // handler saw false
+        var args = new KeyEventArgs(key, modifiers, isRepeat);
 
         // the form's preview goes before everything: a shortcut of the window
         // as a whole takes the key from menus and elements alike

@@ -16,6 +16,7 @@ internal static class Egl
     public const int EGL_NONE = 0x3038;
 
     public const int EGL_BLUE_SIZE = 0x3022;
+    public const int EGL_ALPHA_SIZE = 0x3021;
     public const int EGL_GREEN_SIZE = 0x3023;
     public const int EGL_RED_SIZE = 0x3024;
     public const int EGL_STENCIL_SIZE = 0x3026;
@@ -33,6 +34,9 @@ internal static class Egl
 
     /// <summary>EGL_KHR_platform_x11 / EGL_EXT_platform_x11.</summary>
     public const uint EGL_PLATFORM_X11_KHR = 0x31D5;
+
+    /// <summary>EGL_KHR_platform_wayland / EGL_EXT_platform_wayland.</summary>
+    public const uint EGL_PLATFORM_WAYLAND_KHR = 0x31D8;
 
     [DllImport(Lib)] public static extern int eglGetError();
 

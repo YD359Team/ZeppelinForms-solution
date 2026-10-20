@@ -17,7 +17,7 @@ namespace ZeppelinForms.Linux.Wayland;
 /// premultiplied — a translucent form is composited as such.
 /// </para>
 /// </remarks>
-internal sealed class WaylandShmSurface(WlShm shm, IGraphicsBackend graphics) : IDisposable
+internal sealed class WaylandShmSurface(WlShm shm, IGraphicsBackend graphics) : IWaylandSurface
 {
     private sealed class Slot : IDisposable
     {
@@ -44,7 +44,7 @@ internal sealed class WaylandShmSurface(WlShm shm, IGraphicsBackend graphics) : 
     private Slot? _current;
 
     /// <summary>A frame can begin: a buffer isn't the compositor's, or is yet to be made.</summary>
-    public bool HasFreeBuffer => Array.Exists(_slots, slot => slot is not { Busy: true });
+    public bool CanBeginFrame => Array.Exists(_slots, slot => slot is not { Busy: true });
 
     /// <summary>The graphics for a frame of this size in pixels, or null while both
     /// buffers are the compositor's.</summary>
@@ -72,8 +72,9 @@ internal sealed class WaylandShmSurface(WlShm shm, IGraphicsBackend graphics) : 
         return null;
     }
 
-    /// <summary>Finish the frame: the buffer to attach, the compositor's from here on.</summary>
-    public WlBuffer EndFrame()
+    /// <summary>Finish the frame and commit its buffer: the compositor's from here on,
+    /// until it releases it.</summary>
+    public void EndFrame(WlSurface surface, int width, int height)
     {
         Slot slot = _current ?? throw new InvalidOperationException("No frame was begun.");
 
@@ -81,7 +82,14 @@ internal sealed class WaylandShmSurface(WlShm shm, IGraphicsBackend graphics) : 
         slot.Busy = true;
         _current = null;
 
-        return slot.Buffer;
+        surface.Attach(slot.Buffer, 0, 0);
+
+        // damage in buffer pixels from version 4; before, in the surface's units — the
+        // whole surface either way, as large as it may be
+        if (surface.Version >= 4) surface.DamageBuffer(0, 0, width, height);
+        else surface.Damage(0, 0, int.MaxValue, int.MaxValue);
+
+        surface.Commit();
     }
 
     private Slot MakeSlot(int width, int height)
@@ -95,7 +103,7 @@ internal sealed class WaylandShmSurface(WlShm shm, IGraphicsBackend graphics) : 
         IRenderSurface surface = graphics.CreatePixelSurface(
             new PixelBuffer(memory.Pointer, width, height, stride, PixelFormat.Bgra8888))
             ?? throw new Core.ZfPlatformException(
-                $"The {graphics.Name} backend draws on the GPU only, and this Wayland window has no EGL surface yet.");
+                $"The {graphics.Name} backend draws on the GPU only, and EGL is unavailable for this Wayland window.");
 
         var slot = new Slot
         {
@@ -107,7 +115,7 @@ internal sealed class WaylandShmSurface(WlShm shm, IGraphicsBackend graphics) : 
             Height = height,
         };
 
-        // the loop sees the free buffer through HasFreeBuffer on its next turn
+        // the loop sees the free buffer through CanBeginFrame on its next turn
         buffer.Release += () => slot.Busy = false;
 
         return slot;
