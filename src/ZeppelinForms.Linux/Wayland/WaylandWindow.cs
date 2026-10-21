@@ -34,7 +34,7 @@ namespace ZeppelinForms.Linux.Wayland;
 /// they fall.
 /// </para>
 /// </remarks>
-internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
+internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow
 {
     private readonly WaylandPlatform _platform;
     private readonly Form _form;
@@ -930,4 +930,23 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
 
     /// <summary>The form takes drops: AllowDrop on one of its elements turned it on.</summary>
     internal bool AcceptsDrops { get; private set; }
+
+
+    /// <summary>The focused text field's caret, in the form's coordinates; null — no field
+    /// has the focus.</summary>
+    private Rectangle? _textInputArea;
+
+    /// <summary>The input method is on while a text field has the focus, and its windows
+    /// open at the caret: the seat's text input is told, see <see cref="WaylandTextInput"/>.</summary>
+    public void SetTextInputArea(Rectangle? caret)
+    {
+        _textInputArea = caret;
+        _platform.TextInput?.Update(this);
+    }
+
+    /// <summary>The caret on the surface: past the frame the window draws, where it draws one.</summary>
+    internal Rectangle? TextInputAreaOnSurface =>
+        _textInputArea is { } area && DrawnFrame is { } frame
+            ? area.Offset(frame.ContentOrigin.X, frame.ContentOrigin.Y)
+            : _textInputArea;
 }

@@ -11,6 +11,7 @@ internal static class WaylandProtocols
     /// of one point at another's.</summary>
     public static void DefineAll()
     {
+        TextInputUnstableV3Protocol.Define();
         WaylandProtocol.Define();
         XdgDecorationUnstableV1Protocol.Define();
         XdgShellProtocol.Define();

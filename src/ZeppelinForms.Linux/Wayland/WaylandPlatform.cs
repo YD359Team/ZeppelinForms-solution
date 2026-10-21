@@ -42,6 +42,8 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
     private WlDataDeviceManager? _dataDeviceManager;
     private WaylandDataDevice? _dataDevice;
 
+    private ZwpTextInputManagerV3? _textInputManager;
+
     private EglDisplay? _eglDisplay;
     private bool _eglTried;
 
@@ -73,6 +75,9 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
     /// <summary>The user's keyboard and pointer; null on a compositor without a seat — a
     /// headless one, a kiosk with no input.</summary>
     internal WaylandSeat? Seat => _seat;
+
+    /// <summary>The seat's input method; null where the compositor has none to relay.</summary>
+    internal WaylandTextInput? TextInput { get; private set; }
 
     /// <summary>The cursor theme and the picture cursors, loaded on the first cursor shown.</summary>
     internal WaylandCursors Cursors => _cursors ??= new WaylandCursors(Shm);
@@ -150,6 +155,10 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
                     DecorationManager = Bind<ZxdgDecorationManagerV1>(name, version);
                     break;
 
+                case "zwp_text_input_manager_v3":
+                    _textInputManager = Bind<ZwpTextInputManagerV3>(name, version);
+                    break;
+
                 case "wl_data_device_manager":
                     _dataDeviceManager = Bind<WlDataDeviceManager>(name, version);
                     break;
@@ -207,6 +216,11 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
             Clipboard.Current = _dataDevice;
         }
 
+        // input methods: GNOME and KDE relay ibus and fcitx through text-input-v3; a
+        // compositor without it leaves the windows the keyboard's own text, Compose included
+        if (_seat is not null && _textInputManager is not null)
+            TextInput = new WaylandTextInput(this, _textInputManager.GetTextInput(_seat.Proxy));
+
         graphics.Register();
 
         _appearance = PortalAppearance.TryCreate();
@@ -255,6 +269,8 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
         _seat?.Forget(window);
 
         _dataDevice?.Forget(window);
+
+        TextInput?.Forget(window);
 
         if (_windows.Count == 0)
             _running = false;
