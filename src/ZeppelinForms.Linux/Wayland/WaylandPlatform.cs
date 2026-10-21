@@ -39,6 +39,8 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
 
     private WaylandSeat? _seat;
     private WaylandCursors? _cursors;
+    private WlDataDeviceManager? _dataDeviceManager;
+    private WaylandDataDevice? _dataDevice;
 
     private EglDisplay? _eglDisplay;
     private bool _eglTried;
@@ -148,6 +150,10 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
                     DecorationManager = Bind<ZxdgDecorationManagerV1>(name, version);
                     break;
 
+                case "wl_data_device_manager":
+                    _dataDeviceManager = Bind<WlDataDeviceManager>(name, version);
+                    break;
+
                 case "wl_seat" when _seat is null:
                     _seat = new WaylandSeat(this, Bind<WlSeat>(name, version));
                     break;
@@ -192,6 +198,14 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
         WmBase.Ping += serial => WmBase.Pong(serial);
 
         Displays.Current = new WaylandDisplayProvider(this);
+
+        // the clipboard and the drops are the seat's: a compositor without either — a
+        // kiosk, a headless one — keeps the clipboard there was
+        if (_seat is not null && _dataDeviceManager is not null)
+        {
+            _dataDevice = new WaylandDataDevice(this, _seat, _dataDeviceManager);
+            Clipboard.Current = _dataDevice;
+        }
 
         graphics.Register();
 
@@ -240,6 +254,8 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
         _windows.Remove(window);
         _seat?.Forget(window);
 
+        _dataDevice?.Forget(window);
+
         if (_windows.Count == 0)
             _running = false;
     }
@@ -285,6 +301,9 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
 
         _connection.Flush();
     }
+
+    /// <summary>Send the requests made so far: before waiting on another client.</summary>
+    internal void Flush() => _connection.Flush();
 
     /// <summary>Run an action on the loop's thread: from any thread.</summary>
     internal void Invoke(Action action)

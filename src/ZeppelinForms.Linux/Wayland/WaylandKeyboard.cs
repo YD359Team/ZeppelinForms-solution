@@ -127,6 +127,8 @@ internal sealed unsafe class WaylandKeyboard : IDisposable
 
     private void OnEnter(uint serial, WlSurface? surface, byte[] keys)
     {
+        // the focus coming is input too: a paste right after it is the user's
+        _platform.Seat?.NoteInput(serial);
         _focus = _platform.FindWindow(surface);
         StopRepeat();
     }
@@ -169,6 +171,9 @@ internal sealed unsafe class WaylandKeyboard : IDisposable
 
     private void OnKey(uint serial, uint time, uint evdevKey, uint state)
     {
+        // Ctrl+C takes the clipboard with this very serial
+        _platform.Seat?.NoteInput(serial);
+
         if (_state == 0 || _focus is not { IsAlive: true } window) return;
 
         uint key = evdevKey + Xkb.EvdevOffset;

@@ -586,6 +586,9 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
 
     // ---- the pointer, in the surface's coordinates: the frame's or the form's ----
 
+    /// <summary>A point of the surface in the form's coordinates: a drop's, as the pointer's.</summary>
+    internal Point ToFormPoint(Point surfacePoint) => ToForm(surfacePoint);
+
     /// <summary>A point of the surface in the form's coordinates.</summary>
     private Point ToForm(Point surfacePoint) =>
         DrawnFrame is { } frame
@@ -916,12 +919,15 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow
     {
     }
 
-    // activation, the clipboard and drag and drop are not here yet
+    // activation is not here yet: xdg-activation comes with the rest of the protocols
     public void Activate()
     {
     }
 
-    public void SetDragDropEnabled(bool enabled)
-    {
-    }
+    /// <summary>A drag over the window reaches the form: the seat's data device asks
+    /// <see cref="AcceptsDrops"/>, there is nothing to register with the compositor.</summary>
+    public void SetDragDropEnabled(bool enabled) => AcceptsDrops = enabled;
+
+    /// <summary>The form takes drops: AllowDrop on one of its elements turned it on.</summary>
+    internal bool AcceptsDrops { get; private set; }
 }

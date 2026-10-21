@@ -117,6 +117,9 @@ internal sealed class WaylandPointer : IDisposable
 
         if (which is not { } mouseButton) return;
 
+        // a menu's Copy takes the clipboard with the click's serial
+        if (state == (uint)WlPointer.ButtonState.Pressed) _seat.NoteInput(serial);
+
         // the serial goes along: a press on the frame moves or resizes the window by it
         window.OnPointerButton(mouseButton, state == (uint)WlPointer.ButtonState.Pressed, serial, _seat.Modifiers);
     }

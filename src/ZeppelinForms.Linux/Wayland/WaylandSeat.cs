@@ -32,6 +32,14 @@ internal sealed class WaylandSeat : IDisposable
     /// <summary>Shift, Control and Alt as the keyboard holds them; none without a keyboard.</summary>
     public KeyModifiers Modifiers => Keyboard?.Modifiers ?? KeyModifiers.None;
 
+
+    /// <summary>The serial of the last key or button the user pressed: what the compositor
+    /// asks to see behind taking the clipboard, as proof the user wanted it.</summary>
+    public uint LastInputSerial { get; private set; }
+
+    /// <summary>A key or a button came: its serial is the latest the user gave.</summary>
+    public void NoteInput(uint serial) => LastInputSerial = serial;
+
     private void OnCapabilities(uint capabilities)
     {
         bool hasPointer = (capabilities & (uint)WlSeat.Capability.Pointer) != 0;
