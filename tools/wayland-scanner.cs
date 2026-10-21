@@ -32,7 +32,15 @@ string folder = Path.Combine(root, "src", "ZeppelinForms.Linux", "Wayland", "Pro
 int stale = 0;
 var protocols = new List<string>();
 
-foreach (string xml in Directory.GetFiles(folder, "*.xml").OrderBy(f => f, StringComparer.Ordinal))
+string[] files = Directory.GetFiles(folder, "*.xml").OrderBy(f => f, StringComparer.Ordinal).ToArray();
+
+// the interfaces there are classes for: an argument of one that isn't — a protocol
+// referring to another not in the folder — is typed as the base proxy
+foreach (string xml in files)
+    foreach (var iface in XDocument.Load(xml).Root!.Elements("interface"))
+        Known.Interfaces.Add((string)iface.Attribute("name")!);
+
+foreach (string xml in files)
 {
     string name = Path.GetFileNameWithoutExtension(xml);
     protocols.Add($"{Pascal(name)}Protocol");
@@ -276,10 +284,10 @@ static void Interface(StringBuilder sb, XElement iface)
                 "fd" => ("int", $"{a}.I"),
                 "string" => (nullable ? "string?" : "string", nullable ? $"Text({a}.P)" : $"Text({a}.P)!"),
                 "array" => ("byte[]", $"Bytes({a}.P)"),
-                "object" when argIface is not null => ($"{Pascal(argIface)}?", $"FromHandle<{Pascal(argIface)}>({a}.P)"),
+                "object" when argIface is not null && Known.Interfaces.Contains(argIface) => ($"{Pascal(argIface)}?", $"FromHandle<{Pascal(argIface)}>({a}.P)"),
                 "object" => ("WlProxy?", $"FromHandle<WlProxy>({a}.P)"),
-                "new_id" when argIface is not null => (Pascal(argIface), $"{Pascal(argIface)}.Wrap({a}.P)"),
-                _ => throw new InvalidOperationException($"event argument {type} without an interface"),
+                "new_id" when argIface is not null && Known.Interfaces.Contains(argIface) => (Pascal(argIface), $"{Pascal(argIface)}.Wrap({a}.P)"),
+                _ => throw new InvalidOperationException($"event argument {type} of an interface no protocol here defines: {argIface}"),
             });
 
             slot++;
@@ -376,7 +384,7 @@ static void Request(StringBuilder sb, XElement request, uint opcode)
                 break;
 
             case "object":
-                parameters.Add($"{(iface is null ? "WlProxy" : Pascal(iface))}{(nullable ? "?" : "")} {argName}");
+                parameters.Add($"{(iface is null || !Known.Interfaces.Contains(iface) ? "WlProxy" : Pascal(iface))}{(nullable ? "?" : "")} {argName}");
                 fill.Add(nullable ? $"{a}.P = {argName}?.Handle ?? 0;" : $"{a}.P = {argName}.Handle;");
                 break;
 
@@ -387,6 +395,9 @@ static void Request(StringBuilder sb, XElement request, uint opcode)
                 fill.Add($"{a}.P = (nint)(&{argName}Array);");
                 cleanup.Add($"System.Runtime.InteropServices.NativeMemory.Free((void*){argName}Array.Data);");
                 break;
+
+            case "new_id" when iface is not null && !Known.Interfaces.Contains(iface):
+                throw new InvalidOperationException($"{(string)request.Attribute("name")!} makes a {iface}, which no protocol here defines: add its XML");
 
             case "new_id" when iface is not null:
                 created = iface;
@@ -494,4 +505,10 @@ static string Camel(string snake)
         or "params" or "operator" or "checked" or "default" or "lock" or "out" or "ref" or "in"
         ? "@" + camel
         : camel;
+}
+
+/// <summary>What every protocol in the folder defines, gathered before any is generated.</summary>
+static class Known
+{
+    public static readonly HashSet<string> Interfaces = new(StringComparer.Ordinal);
 }

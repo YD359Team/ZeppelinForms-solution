@@ -44,6 +44,9 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
 
     private ZwpTextInputManagerV3? _textInputManager;
 
+    /// <summary>The launcher's activation token, until the first window takes it.</summary>
+    private string? _startupActivationToken = Environment.GetEnvironmentVariable("XDG_ACTIVATION_TOKEN");
+
     private EglDisplay? _eglDisplay;
     private bool _eglTried;
 
@@ -75,6 +78,33 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
     /// <summary>The user's keyboard and pointer; null on a compositor without a seat — a
     /// headless one, a kiosk with no input.</summary>
     internal WaylandSeat? Seat => _seat;
+
+    /// <summary>cursor-shape-v1: cursors of a kind drawn by the compositor. Null where it
+    /// lacks it — the Xcursor theme then.</summary>
+    internal WpCursorShapeManagerV1? CursorShapeManager { get; private set; }
+
+    /// <summary>fractional-scale-v1 and viewporter: a window drawn at 1.25 or 1.5 rather
+    /// than at the next whole scale. The window uses them only together.</summary>
+    internal WpFractionalScaleManagerV1? FractionalScaleManager { get; private set; }
+
+    internal WpViewporter? Viewporter { get; private set; }
+
+    /// <summary>xdg-activation-v1: a window brought forward with the user's leave.</summary>
+    internal XdgActivationV1? Activation { get; private set; }
+
+    /// <summary>The token the launcher passed in XDG_ACTIVATION_TOKEN, once: the variable
+    /// goes too, so a process this one starts doesn't use it again.</summary>
+    internal string? TakeStartupActivationToken()
+    {
+        string? token = _startupActivationToken;
+
+        if (token is null) return null;
+
+        _startupActivationToken = null;
+        Environment.SetEnvironmentVariable("XDG_ACTIVATION_TOKEN", null);
+
+        return token.Length > 0 ? token : null;
+    }
 
     /// <summary>The seat's input method; null where the compositor has none to relay.</summary>
     internal WaylandTextInput? TextInput { get; private set; }
@@ -153,6 +183,22 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
 
                 case "zxdg_decoration_manager_v1":
                     DecorationManager = Bind<ZxdgDecorationManagerV1>(name, version);
+                    break;
+
+                case "wp_cursor_shape_manager_v1":
+                    CursorShapeManager = Bind<WpCursorShapeManagerV1>(name, version);
+                    break;
+
+                case "wp_fractional_scale_manager_v1":
+                    FractionalScaleManager = Bind<WpFractionalScaleManagerV1>(name, version);
+                    break;
+
+                case "wp_viewporter":
+                    Viewporter = Bind<WpViewporter>(name, version);
+                    break;
+
+                case "xdg_activation_v1":
+                    Activation = Bind<XdgActivationV1>(name, version);
                     break;
 
                 case "zwp_text_input_manager_v3":

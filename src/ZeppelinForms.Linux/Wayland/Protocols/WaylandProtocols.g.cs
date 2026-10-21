@@ -11,8 +11,12 @@ internal static class WaylandProtocols
     /// of one point at another's.</summary>
     public static void DefineAll()
     {
+        CursorShapeV1Protocol.Define();
+        FractionalScaleV1Protocol.Define();
         TextInputUnstableV3Protocol.Define();
+        ViewporterProtocol.Define();
         WaylandProtocol.Define();
+        XdgActivationV1Protocol.Define();
         XdgDecorationUnstableV1Protocol.Define();
         XdgShellProtocol.Define();
     }

@@ -25,7 +25,10 @@ namespace ZeppelinForms.Linux.Wayland;
 /// </para>
 /// <para>
 /// Sizes are logical — Wayland's surface coordinates are —, and the buffer is the size
-/// times the integer buffer scale of the screens the window is on.
+/// times the scale of the screens the window is on: a fractional one — 1.25, 1.5 — where
+/// the compositor has fractional-scale-v1 and viewporter, the buffer drawn at that scale
+/// and shown at the logical size; the integer buffer scale otherwise, which a 1.5 screen
+/// gets as 2, downscaled by the compositor.
 /// </para>
 /// <para>
 /// The frame is the compositor's where it draws one — asked through xdg-decoration — and
@@ -71,7 +74,15 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
     private int _floatingWidth;
     private int _floatingHeight;
 
-    private int _scale = 1;
+    private float _scale = 1f;
+
+    // the fractional scale and the viewport that shows a buffer of that scale at the
+    // logical size; null where the compositor lacks either
+    private WpFractionalScaleV1? _fractionalScale;
+    private WpViewport? _viewport;
+
+    /// <summary>The logical size the viewport was last given.</summary>
+    private Size _viewportSize;
 
     // the frame: the compositor's when it agreed to draw one, the window's own otherwise
     private ZxdgToplevelDecorationV1? _serverDecoration;
@@ -123,9 +134,9 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
     /// <summary>The window's surface: what the seat's events name the window by.</summary>
     internal WlSurface? Surface => _surface;
 
-    /// <summary>The integer scale the window's buffers are drawn at: the cursor's theme is
-    /// loaded at it too.</summary>
-    internal int BufferScale => _scale;
+    /// <summary>The whole scale the cursor's theme is loaded at: the window's, rounded up —
+    /// a 1.5 screen gets a theme of 2, sharp, the compositor scales it down.</summary>
+    internal int BufferScale => (int)MathF.Ceiling(_scale);
 
     /// <summary>The cursor the form set: a kind of the theme, or a picture.</summary>
     internal CursorKind CursorKind { get; private set; } = CursorKind.Default;
@@ -170,7 +181,17 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
         _surface = _platform.Compositor.CreateSurface();
         _surface.Enter += OnSurfaceEnter;
         _surface.Leave += OnSurfaceLeave;
-        _surface.PreferredBufferScale += scale => SetScale(Math.Max(1, scale));
+        _surface.PreferredBufferScale += OnPreferredBufferScale;
+
+        // the fractional scale wins over the integer one where the compositor has it:
+        // a 1.25 screen is drawn at 1.25, not at 2 and downscaled
+        if (_platform.FractionalScaleManager is { } fractional && _platform.Viewporter is { } viewporter)
+        {
+            _fractionalScale = fractional.GetFractionalScale(_surface);
+            _fractionalScale.PreferredScale += scale120 => SetScale(Math.Max(1, scale120) / 120f);
+
+            _viewport = viewporter.GetViewport(_surface);
+        }
 
         _xdgSurface = _platform.WmBase.GetXdgSurface(_surface);
         _xdgSurface.Configure += OnSurfaceConfigure;
@@ -231,6 +252,12 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
         // the first commit has no buffer: it asks the compositor for a configure, and the
         // window appears with the frame that answers it
         _surface!.Commit();
+
+
+        // the launcher's token — a click on the dock, a desktop file opened — brings the
+        // first window forward, as the click meant it to
+        if (_platform.Activation is { } activation && _platform.TakeStartupActivationToken() is { } startup)
+            activation.Activate(startup, _surface);
     }
 
     public void Close()
@@ -245,6 +272,12 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
         // the decoration before its toplevel, as the protocol asks
         _serverDecoration?.Destroy();
         _serverDecoration = null;
+
+        // the surface's add-ons before the surface
+        _viewport?.Destroy();
+        _fractionalScale?.Destroy();
+        _viewport = null;
+        _fractionalScale = null;
 
         // the role before the surface, the surface before its buffers: a buffer the
         // compositor still shows is let go of with the surface
@@ -404,15 +437,22 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
     }
 
     /// <summary>Before wl_surface 6 the scale is the client's guess: the largest of the
-    /// screens the window is on. From 6 the compositor names it, and that is taken.</summary>
+    /// screens the window is on. From 6 the compositor names it, and that is taken. The
+    /// fractional scale, where there is one, is taken over both.</summary>
     private void UpdateScaleFromOutputs()
     {
-        if (_surface is null || _surface.Version >= 6 || _enteredOutputs.Count == 0) return;
+        if (_surface is null || _fractionalScale is not null || _surface.Version >= 6 || _enteredOutputs.Count == 0)
+            return;
 
         SetScale(_enteredOutputs.Max(o => o.Scale));
     }
 
-    private void SetScale(int scale)
+    private void OnPreferredBufferScale(int scale)
+    {
+        if (_fractionalScale is null) SetScale(Math.Max(1, scale));
+    }
+
+    private void SetScale(float scale)
     {
         if (scale == _scale) return;
 
@@ -448,8 +488,10 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
         // the surface is the form, or the form in the frame the window draws round it
         Size surfaceSize = frame?.SurfaceSize(client) ?? client;
 
-        int width = (int)surfaceSize.Width * _scale;
-        int height = (int)surfaceSize.Height * _scale;
+        // a fractional scale rounds the buffer to whole pixels; the viewport shows it at
+        // the logical size whatever the rounding
+        int width = Math.Max(1, (int)MathF.Round(surfaceSize.Width * _scale));
+        int height = Math.Max(1, (int)MathF.Round(surfaceSize.Height * _scale));
 
         if (_buffers!.BeginFrame(width, height) is not { } g)
         {
@@ -488,9 +530,21 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
             _geometry = geometry;
         }
 
-        // buffer_scale from version 3: the compositor is bound at 6 where it can, and
-        // older ones are still spoken to
-        if (surface.Version >= 3) surface.SetBufferScale(_scale);
+        if (_viewport is not null)
+        {
+            // the buffer stays at scale 1 — the viewport maps it onto the logical size
+            if (surfaceSize != _viewportSize)
+            {
+                _viewport.SetDestination((int)surfaceSize.Width, (int)surfaceSize.Height);
+                _viewportSize = surfaceSize;
+            }
+        }
+        else if (surface.Version >= 3)
+        {
+            // buffer_scale from version 3: the compositor is bound at 6 where it can, and
+            // older ones are still spoken to; without a viewport the scale is whole
+            surface.SetBufferScale((int)_scale);
+        }
 
         // the next frame when the compositor has shown this one; asked before the
         // commit the frame ends in — the surface's own, or EGL's swap
@@ -919,9 +973,31 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
     {
     }
 
-    // activation is not here yet: xdg-activation comes with the rest of the protocols
+    /// <summary>Bring the window forward — the owner of a dialog that closed. Wayland lets a
+    /// client do it only with a token the compositor hands out for the user's latest input:
+    /// a compositor that thinks the request is not the user's may only mark the window as
+    /// wanting attention.</summary>
     public void Activate()
     {
+        if (_surface is null || _platform.Activation is not { } activation) return;
+
+        XdgActivationTokenV1 token = activation.GetActivationToken();
+
+        // the latest key or click, and the window that had the keyboard for it: what the
+        // compositor checks the request against
+        if (_platform.Seat is { LastInputSerial: not 0 } seat)
+            token.SetSerial(seat.LastInputSerial, seat.Proxy);
+
+        if (_platform.Seat?.Keyboard?.FocusedWindow?.Surface is { } focused)
+            token.SetSurface(focused);
+
+        token.Done += value =>
+        {
+            if (_surface is not null) activation.Activate(value, _surface);
+            token.Destroy();
+        };
+
+        token.Commit();
     }
 
     /// <summary>A drag over the window reaches the form: the seat's data device asks

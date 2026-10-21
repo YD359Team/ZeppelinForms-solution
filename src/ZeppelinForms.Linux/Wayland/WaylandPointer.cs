@@ -1,4 +1,5 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Linux.Wayland;
@@ -40,6 +41,11 @@ internal sealed class WaylandPointer : IDisposable
     /// <summary>The surface the cursor is drawn on; made with the first cursor shown — the
     /// seat may come before the compositor's globals are all bound.</summary>
     private WlSurface? _cursorSurface;
+
+    /// <summary>cursor-shape-v1: the compositor draws the cursor of a kind itself, from the
+    /// desktop's own theme at the screen's scale. Made with the first cursor shown; null
+    /// where the compositor lacks it, and the Xcursor theme is drawn instead.</summary>
+    private WpCursorShapeDeviceV1? _shapeDevice;
 
     private WaylandWindow? _focus;
     private uint _enterSerial;
@@ -198,6 +204,15 @@ internal sealed class WaylandPointer : IDisposable
 
     private void ApplyCursor(WaylandWindow window)
     {
+        // a kind the compositor knows is its to draw: the desktop's theme, its size, its scale
+        if (window.EffectiveCursorPicture is null && _platform.CursorShapeManager is { } shapes)
+        {
+            _shapeDevice ??= shapes.GetPointer(_pointer);
+            _shapeDevice.SetShape(_enterSerial, (uint)ShapeOf(window.EffectiveCursorKind));
+
+            return;
+        }
+
         WaylandCursorImage? image = window.EffectiveCursorPicture is { } picture
             ? _platform.Cursors.Get(picture)
             : _platform.Cursors.Get(window.EffectiveCursorKind, window.BufferScale);
@@ -218,6 +233,22 @@ internal sealed class WaylandPointer : IDisposable
         _pointer.SetCursor(_enterSerial, surface, cursor.HotspotX / cursor.Scale, cursor.HotspotY / cursor.Scale);
     }
 
+    /// <summary>The shape of cursor-shape-v1 for a kind: the CSS cursors' names.</summary>
+    private static WpCursorShapeDeviceV1.Shape ShapeOf(CursorKind kind) => kind switch
+    {
+        CursorKind.Hand => WpCursorShapeDeviceV1.Shape.Pointer,
+        CursorKind.IBeam => WpCursorShapeDeviceV1.Shape.Text,
+        CursorKind.Wait => WpCursorShapeDeviceV1.Shape.Wait,
+        CursorKind.SizeWestEast => WpCursorShapeDeviceV1.Shape.EwResize,
+        CursorKind.SizeNorthSouth => WpCursorShapeDeviceV1.Shape.NsResize,
+        CursorKind.SizeNorthWestSouthEast => WpCursorShapeDeviceV1.Shape.NwseResize,
+        CursorKind.SizeNorthEastSouthWest => WpCursorShapeDeviceV1.Shape.NeswResize,
+        CursorKind.SizeAll => WpCursorShapeDeviceV1.Shape.Move,
+        CursorKind.Cross => WpCursorShapeDeviceV1.Shape.Crosshair,
+        CursorKind.No => WpCursorShapeDeviceV1.Shape.NotAllowed,
+        _ => WpCursorShapeDeviceV1.Shape.Default,
+    };
+
     /// <summary>The window closed: a pointer over it holds it no longer.</summary>
     public void Forget(WaylandWindow window)
     {
@@ -226,6 +257,9 @@ internal sealed class WaylandPointer : IDisposable
 
     public void Dispose()
     {
+        _shapeDevice?.Destroy();
+        _shapeDevice = null;
+
         _cursorSurface?.Destroy();
         _cursorSurface = null;
 

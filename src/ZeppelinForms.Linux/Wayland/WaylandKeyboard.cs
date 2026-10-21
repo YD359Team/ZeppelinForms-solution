@@ -61,6 +61,9 @@ internal sealed unsafe class WaylandKeyboard : IDisposable
         keyboard.RepeatInfo += OnRepeatInfo;
     }
 
+    /// <summary>The window with the keyboard: an activation token is asked for from it.</summary>
+    public WaylandWindow? FocusedWindow => _focus;
+
     /// <summary>Shift, Control and Alt as they are now: the pointer's events carry them too.</summary>
     public KeyModifiers Modifiers { get; private set; }
 
