@@ -97,6 +97,38 @@ internal sealed class VectorPath
         _open = true;
     }
 
+    /// <summary>Another path's subpaths added to this one, mapped by a transform: a composite
+    /// glyph made of its components.</summary>
+    public void Append(VectorPath other, in Affine matrix)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+
+        int p = 0;
+
+        foreach (Verb verb in other._verbs)
+        {
+            switch (verb)
+            {
+                case Verb.Move:
+                    MoveTo(matrix.Map(other._points[p++]));
+                    break;
+
+                case Verb.Line:
+                    LineTo(matrix.Map(other._points[p++]));
+                    break;
+
+                case Verb.Cubic:
+                    CubicTo(matrix.Map(other._points[p]), matrix.Map(other._points[p + 1]), matrix.Map(other._points[p + 2]));
+                    p += 3;
+                    break;
+
+                case Verb.Close:
+                    Close();
+                    break;
+            }
+        }
+    }
+
     /// <summary>An arc of an axis-aligned ellipse by its center: angles in radians, clockwise
     /// on the screen from the x axis. Joined to the path by a line, or begins a subpath.</summary>
     public void AddArc(Point center, float rx, float ry, float start, float sweep, bool moveTo)

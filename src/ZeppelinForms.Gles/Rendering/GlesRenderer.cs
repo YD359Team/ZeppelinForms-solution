@@ -47,6 +47,7 @@ internal sealed unsafe class GlesRenderer : IDisposable
     private uint _white;
     private uint _maskAtlas;
     private uint _rampAtlas;
+    private uint _glyphAtlas;
 
     private int _uViewport;
     private int _uClip0Rect, _uClip0Radii, _uClip1Rect, _uClip1Radii;
@@ -76,6 +77,11 @@ internal sealed unsafe class GlesRenderer : IDisposable
 
     private readonly List<LayerTexture> _layers = [];
     private long _frame;
+
+    private const int GlyphAtlasSize = 2048;
+    private readonly ShelfPacker _glyphPacker = new(GlyphAtlasSize, GlyphAtlasSize);
+    private readonly Dictionary<(int Typeface, ushort Glyph, int Size, int Subpixel), GlyphSlot> _glyphs = [];
+    private readonly Text.GlyphRasterizer _glyphRasterizer = new();
 
     public GlesRenderer(Gl gl, bool isGles)
     {
@@ -134,6 +140,7 @@ internal sealed unsafe class GlesRenderer : IDisposable
         _gl.Uniform1i(_gl.UniformLocation(_program, "uImage"), 0);
         _gl.Uniform1i(_gl.UniformLocation(_program, "uMask"), 1);
         _gl.Uniform1i(_gl.UniformLocation(_program, "uRamp"), 2);
+        _gl.Uniform1i(_gl.UniformLocation(_program, "uGlyphs"), 3);
     }
 
     private uint Compile(uint type, string source)
@@ -250,6 +257,12 @@ internal sealed unsafe class GlesRenderer : IDisposable
         _gl.BindTexture(Gl.GL_TEXTURE_2D, _rampAtlas);
         _gl.TexImage2D(Gl.GL_TEXTURE_2D, 0, (int)Gl.GL_RGBA8, RampWidth, RampRows, 0, Gl.GL_RGBA, Gl.GL_UNSIGNED_BYTE, null);
         SetFiltering(Gl.GL_LINEAR, Gl.GL_LINEAR, Gl.GL_CLAMP_TO_EDGE);
+
+        // glyphs too are placed pixel for pixel, and live from frame to frame
+        _glyphAtlas = _gl.GenTexture();
+        _gl.BindTexture(Gl.GL_TEXTURE_2D, _glyphAtlas);
+        _gl.TexImage2D(Gl.GL_TEXTURE_2D, 0, (int)Gl.GL_R8, GlyphAtlasSize, GlyphAtlasSize, 0, Gl.GL_RED, Gl.GL_UNSIGNED_BYTE, null);
+        SetFiltering(Gl.GL_NEAREST, Gl.GL_NEAREST, Gl.GL_CLAMP_TO_EDGE);
     }
 
     private void SetFiltering(int min, int mag, int wrap)
@@ -443,6 +456,8 @@ internal sealed unsafe class GlesRenderer : IDisposable
         }
 
         // the textures every time: an upload in between may have bound others
+        _gl.ActiveTexture(Gl.GL_TEXTURE0 + 3);
+        _gl.BindTexture(Gl.GL_TEXTURE_2D, _glyphAtlas);
         _gl.ActiveTexture(Gl.GL_TEXTURE0 + 2);
         _gl.BindTexture(Gl.GL_TEXTURE_2D, _rampAtlas);
         _gl.ActiveTexture(Gl.GL_TEXTURE0 + 1);
@@ -668,6 +683,58 @@ internal sealed unsafe class GlesRenderer : IDisposable
 
     #endregion
 
+    #region Glyphs
+
+    /// <summary>A glyph's place in the glyph atlas at a size and a subpixel offset,
+    /// rasterized the first time it is drawn so. The atlas lives from frame to frame; when
+    /// it is full, what was drawn with it goes first, and it starts empty.</summary>
+    /// <param name="size">The size in device pixels.</param>
+    public GlyphSlot Glyph(Text.Fonts.Typeface typeface, ushort glyph, float size, int subpixel)
+    {
+        // eighths of a pixel: an animated size doesn't make a glyph every frame
+        int quantized = (int)MathF.Round(size * 8f);
+        var key = (typeface.Id, glyph, quantized, subpixel);
+
+        if (_glyphs.TryGetValue(key, out GlyphSlot slot)) return slot;
+
+        Text.GlyphBitmap bitmap = _glyphRasterizer.Rasterize(typeface, glyph, quantized / 8f, subpixel);
+
+        if (bitmap.IsEmpty)
+        {
+            _glyphs[key] = GlyphSlot.Empty;
+            return GlyphSlot.Empty;
+        }
+
+        if (!_glyphPacker.TryAdd(bitmap.Width + 1, bitmap.Height + 1, out int x, out int y))
+        {
+            Flush();
+
+            _glyphs.Clear();
+            _glyphPacker.Reset();
+
+            if (!_glyphPacker.TryAdd(bitmap.Width + 1, bitmap.Height + 1, out x, out y)) return GlyphSlot.Empty;
+        }
+
+        _gl.ActiveTexture(Gl.GL_TEXTURE0 + 3);
+        _gl.BindTexture(Gl.GL_TEXTURE_2D, _glyphAtlas);
+
+        fixed (byte* p = bitmap.Coverage)
+            _gl.TexSubImage2D(Gl.GL_TEXTURE_2D, 0, x, y, bitmap.Width, bitmap.Height, Gl.GL_RED, Gl.GL_UNSIGNED_BYTE, p);
+
+        _gl.ActiveTexture(Gl.GL_TEXTURE0);
+
+        const float Size = GlyphAtlasSize;
+
+        slot = new GlyphSlot(
+            bitmap.Left, bitmap.Top, bitmap.Width, bitmap.Height,
+            x / Size, y / Size, (x + bitmap.Width) / Size, (y + bitmap.Height) / Size);
+
+        _glyphs[key] = slot;
+        return slot;
+    }
+
+    #endregion
+
     #region Layers
 
     /// <summary>A texture with a framebuffer and a stencil at least this large, for a layer:
@@ -741,6 +808,7 @@ internal sealed unsafe class GlesRenderer : IDisposable
         _gl.DeleteTexture(_white);
         _gl.DeleteTexture(_maskAtlas);
         _gl.DeleteTexture(_rampAtlas);
+        _gl.DeleteTexture(_glyphAtlas);
 
         uint vao = _vao, vbo = _vbo, ibo = _ibo;
         if (vao != 0) _gl.DeleteVertexArrays(1, &vao);
@@ -751,6 +819,15 @@ internal sealed unsafe class GlesRenderer : IDisposable
 
         _vao = _vbo = _ibo = _program = 0;
     }
+}
+
+/// <summary>A glyph in the glyph atlas: its box against the pen's pixel, y down, and its
+/// texture coordinates. Empty: nothing to draw — a space, or a glyph too large.</summary>
+internal readonly record struct GlyphSlot(int Left, int Top, int Width, int Height, float U0, float V0, float U1, float V1)
+{
+    public static readonly GlyphSlot Empty = new(0, 0, 0, 0, 0, 0, 0, 0);
+
+    public bool IsEmpty => Width <= 0 || Height <= 0;
 }
 
 /// <summary>A picture's texture. The collector frees it with the picture: the finalizer

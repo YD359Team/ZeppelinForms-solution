@@ -26,12 +26,13 @@ namespace ZeppelinForms.Gles.Rendering;
 /// once; a third, or one under a rotation, goes into the stencil, with hard edges.
 /// </para>
 /// <para>
-/// Text is not drawn yet: the preview of 0.18 measures it with the headless measurer and
-/// leaves it out. Blurs, backdrops, reflections and blend modes other than normal come in
-/// the next steps; until then a blurred layer is drawn sharp and a blended one normally.
+/// Text is drawn from a glyph atlas, its glyphs rasterized from the fonts' outlines; see
+/// the text part of the class. Blurs, backdrops, reflections and blend modes other than
+/// normal come in the next steps; until then a blurred layer is drawn sharp and a blended
+/// one normally.
 /// </para>
 /// </remarks>
-internal sealed class GlesGraphics : Graphics
+internal sealed partial class GlesGraphics : Graphics
 {
     /// <summary>How far a flattened curve may be off the curve, in device pixels.</summary>
     private const float FlattenTolerance = 0.2f;
@@ -926,30 +927,6 @@ internal sealed class GlesGraphics : Graphics
     public override void DrawReflection(Rectangle bounds, float heightRatio, float gap, float startOpacity)
     {
         // TODO(0.19): a copy of the target under the bounds, mirrored and faded
-    }
-
-    #endregion
-
-    #region Text
-
-    // TODO(0.18, batch 7): glyphs — rasterized fonts in an atlas, shaped by HarfBuzz
-
-    public override void DrawText(string text, Point position, Color color, Font font)
-    {
-    }
-
-    public override void DrawText(
-        string text, Rectangle rect, Color color, Font font,
-        HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
-        VerticalContentAlignment vAlign = VerticalContentAlignment.Center)
-    {
-    }
-
-    public override void DrawRuns(
-        IReadOnlyList<TextRun> runs, Rectangle rect, Font baseFont, Color baseColor,
-        HorizontalContentAlignment hAlign = HorizontalContentAlignment.Center,
-        VerticalContentAlignment vAlign = VerticalContentAlignment.Center)
-    {
     }
 
     #endregion

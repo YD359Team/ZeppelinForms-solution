@@ -3,6 +3,7 @@ using ZeppelinForms.Drawing;
 using ZeppelinForms.Gles.Imaging;
 using ZeppelinForms.Gles.Rendering;
 using ZeppelinForms.Headless;
+using ZeppelinForms.Gles.Text;
 
 namespace ZeppelinForms.Gles;
 
@@ -17,9 +18,14 @@ namespace ZeppelinForms.Gles;
 /// platform without GL falls back to what it has.
 /// </para>
 /// <para>
-/// What the preview lacks: text is measured by the headless measurer and not drawn; JPEG
-/// pictures don't decode (PNG and BMP do); blurs, backdrops, reflections and blend modes
-/// other than normal are drawn without their effect. Each comes in the next steps.
+/// Text is its own: the system's fonts read in managed code — TrueType, CFF, collections,
+/// color emoji — found through fontconfig on Linux and the font folders elsewhere, shaped
+/// by the system's HarfBuzz where there is one.
+/// </para>
+/// <para>
+/// What the preview lacks: JPEG pictures don't decode (PNG and BMP do); blurs, backdrops,
+/// reflections and blend modes other than normal are drawn without their effect. Each comes
+/// in the next steps.
 /// </para>
 /// </remarks>
 public sealed class GlesGraphicsBackend : IGraphicsBackend
@@ -32,8 +38,7 @@ public sealed class GlesGraphicsBackend : IGraphicsBackend
 
     public void Register()
     {
-        // TODO(0.18, batch 7): a measurer of the fonts the renderer draws
-        HeadlessTextMeasurer.Register();
+        GlesTextMeasurer.Register();
         GlesImageDecoder.Register();
         HeadlessElementRenderer.Register();
     }

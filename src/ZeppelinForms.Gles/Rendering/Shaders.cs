@@ -16,7 +16,8 @@
 /// The kind is <c>shape + 8 × paint</c>. Shapes: 0 — none, the quad itself; 1 — a rounded
 /// rectangle; 2 — an ellipse; 3 — a Gaussian-blurred rectangle. Paints: 0 — the color;
 /// 1 — a picture times the color; 2 — the color through a coverage mask; 3 — a gradient
-/// ramp; 4 — a layer, desaturated and faded; 5 — fractal noise.
+/// ramp; 4 — a layer, desaturated and faded; 5 — fractal noise; 6 — the color through a
+/// glyph of the glyph atlas.
 /// </para>
 /// <para>
 /// Up to two clips are analytic, rounded rectangles in device pixels with antialiased
@@ -37,6 +38,7 @@ internal static class Shaders
     public const int PaintGradient = 3;
     public const int PaintLayer = 4;
     public const int PaintNoise = 5;
+    public const int PaintGlyph = 6;
 
     public static float Kind(int shape, int paint) => shape + 8 * paint;
 
@@ -89,6 +91,7 @@ internal static class Shaders
         uniform sampler2D uImage;
         uniform sampler2D uMask;
         uniform sampler2D uRamp;
+        uniform sampler2D uGlyphs;
 
         uniform vec4 uViewport;
         uniform vec4 uClip0Rect;
@@ -231,6 +234,10 @@ internal static class Shaders
                 vec2 p = vLocal * vExtra.x;
                 vec4 n = vec4(fractalNoise(p, 0.0), fractalNoise(p, 1.0), fractalNoise(p, 2.0), fractalNoise(p, 3.0));
                 color = vec4(n.rgb * n.a, n.a) * vColor.a;
+            }
+            else if (paint == 6)
+            {
+                coverage *= texture(uGlyphs, vExtra.xy).r;
             }
 
             vec2 device = vec2(gl_FragCoord.x, uViewport.y - gl_FragCoord.y) + uViewport.zw;
