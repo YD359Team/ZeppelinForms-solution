@@ -53,7 +53,7 @@ internal sealed class TextLine
 
     public required string Text { get; init; }
 
-    public required TextLine[] Runs { get; init; }
+    public required GlyphRun[] Runs { get; init; }
 
     public required float Width { get; init; }
 
