@@ -1,7 +1,23 @@
 # Changes
 
 ## [0.18.0] - Terra Incognita
-TODO: img
+
+![Terra Incognita](assets/Logo-0.18.0.jpg)
+
+> Terra incognita - unknown lands in ancient maps.
+This release name symbolizes the huge changes in this version, whole new "territories" 
+in the form of Wayland and GLES.
+
+### Fixes
+
+
+### Wayland
+
+- Wayland platform available for Linux
+
+### GLES
+
+- GLES available as alternate graphics stack
 
 
 ## [0.17.1] - Victoria Falls
