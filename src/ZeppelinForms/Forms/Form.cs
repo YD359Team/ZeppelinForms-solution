@@ -2314,12 +2314,20 @@ public partial class Form : IDisposable
         return null;
     }
 
+    private bool _disposed;
+
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
+
         App.ThemeChanged -= OnThemeChanged;
         App.TextScaleChanged -= OnTextScaleChanged;
-
         Localization.Changed -= OnLocalizationChanged;
+
+        _focusDispatcher.FocusChanged -= OnFocusChangedForKeyboard;
+        _focusDispatcher.FocusChanged -= OnFocusChangedForAccessibility;
+        _focusDispatcher.FocusChanged -= OnFocusChangedForStyles;
 
         _toolTipWake?.Dispose();
         _clock?.Dispose();
