@@ -1763,6 +1763,8 @@ public partial class Form : IDisposable
         // every MessageBox, every InputBox — was never collected. The subscription
         // is dropped here and renewed if the form is shown again
         App.ThemeChanged -= OnThemeChanged;
+        App.TextScaleChanged -= OnTextScaleChanged;
+        Localization.Changed -= OnLocalizationChanged;
         _themeAtUnsubscribe = App.Theme;
 
         // the text scale's event is static too, and would hold the form the same way
