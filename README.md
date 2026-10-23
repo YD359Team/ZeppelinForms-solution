@@ -58,7 +58,7 @@ And if the project is modern, why not take advantage of the full capabilities of
 | # | Name      | Status |
 | - | --------- | ------ |
 | 1 | SkiaSharp | ✅     |
-| 2 | DirectX   | 💡     |
+| 2 | GLES      | ✅     |
 
 ZeppelinForms itself knows nothing about Skia, because it is implemented in a separate project, `ZeppelinForms.Skia`. This means that the graphics layer is completely decoupled from the framework logic.
 
@@ -213,7 +213,7 @@ registration to call directly.
 | 22 | ToggleButton        | ✅     |  45 | DataGridView     | ✅**  |
 | 23 | TabStrip            | ✅     |     |                  |        |
 
-\* — contains bugs and is missing part of its API
+\* — contains bugs and is missing part of its API \
 \*\* — DataGridView: no frozen columns yet
 
 `Button` has the variants `PrimaryButton`, `SecondaryButton` and `DangerButton`.
