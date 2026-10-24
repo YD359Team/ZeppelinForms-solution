@@ -324,8 +324,8 @@ public partial class GripBox : DecoratedWrapControl
         {
             GripKind.Left or GripKind.Right => CursorKind.SizeWestEast,
             GripKind.Top or GripKind.Bottom => CursorKind.SizeNorthSouth,
-            GripKind.TopLeft or GripKind.TopRight or
-            GripKind.BottomLeft or GripKind.BottomRight => CursorKind.SizeAll,
+            GripKind.TopLeft or GripKind.BottomRight => CursorKind.SizeNorthWestSouthEast,
+            GripKind.TopRight or GripKind.BottomLeft => CursorKind.SizeNorthEastSouthWest,
             GripKind.Rotate => CursorKind.Hand,
             _ => CursorKind.Default,
         };
