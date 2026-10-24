@@ -86,6 +86,9 @@ internal readonly record struct ClipShape(float Left, float Top, float Right, fl
 
 internal enum BlendKind : byte
 {
+    /// <summary>Premultiplied source over: ONE, ONE_MINUS_SRC_ALPHA.</summary>
+    Normal,
+
     /// <summary>The source replaces what is there: a clear under a clip, and a layer put
     /// over in a blend mode, which the shader mixes with a copy of what is under it.</summary>
     Replace,
