@@ -37,8 +37,16 @@ public class Page : DecoratedWrapControl
     {
         if (_built || _factory is null) return;
 
-        _built = true;
-        Child = _factory();
+        _built = false;
+        try
+        {
+            Child = _factory();
+            _built = true;
+        }
+        catch
+        {
+            throw;
+        }
     }
 
     /// <summary>Hot Reload: content made by a factory whose assembly changed is made
