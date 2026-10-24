@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Concurrent;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 
@@ -59,7 +60,7 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
     /// with its own DOM for that, or a canvas that is decoration in a larger page.</summary>
     public static bool AccessibilityMirror { get; set; } = true;
 
-    private readonly Queue<Action> _invokeQueue = new();
+    private readonly ConcurrentQueue<Action> _invokeQueue = new();
 
     private int _physicalWidth;
     private int _physicalHeight;
@@ -359,7 +360,12 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
         // each action on its own: one that threw used to leave the rest of the queue
         // until the next microtask, which nothing would schedule
         for (int i = 0; i < pending; i++)
-            App.RunGuarded(_invokeQueue.Dequeue());
+        {
+            if (_invokeQueue.TryDequeue(out Action? result)) 
+            {
+                App.RunGuarded(result);
+            }
+        }
     }
 
     // ==== input ====
