@@ -7,8 +7,9 @@ using ZeppelinForms.Gles.Imaging;
 
 namespace ZeppelinForms.UnitTests;
 
-/// <summary>The managed decoders of the GLES backend: PNG of every kind a UI ships, BMP,
-/// and the icons inside the framework's own ICO.</summary>
+/// <summary>The managed decoders of the GLES backend: PNG of every kind a UI ships, JPEG
+/// baseline and progressive, the first frame of a GIF, BMP, and the icons inside the
+/// framework's own ICO.</summary>
 public class GlesImageDecoderTests
 {
     #region A small PNG writer
@@ -285,13 +286,139 @@ public class GlesImageDecoderTests
         Assert.True(image.Pixels.Any(b => b != 0), "the icon decoded to nothing");
     }
 
-    [Fact]
-    public void AJpegIsRefusedByName()
-    {
-        var error = Assert.Throws<InvalidDataException>(() => Decode([0xFF, 0xD8, 0xFF, 0xE0, 0, 0x10]));
+    #region JPEG and GIF
 
-        Assert.Contains("JPEG", error.Message, StringComparison.Ordinal);
+    // 16 × 16, red on the left half, blue on the right, 4:2:0, quality 95 — written by
+    // libjpeg through Pillow; libjpeg-turbo decodes them to the values asserted
+    private const string RedBlueBaseline =
+        "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAIBAQEBAQIBAQECAgICAgQDAgICAgUEBAMEBgUGBgYFBgYGBwkIBgcJBwYGCAsICQoKCgoKBggLDAsKDAkKCgr/2wBDAQICAgICAgUDAwUKBwYHCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgr/wAARCAAQABADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD4vr5Dr68r5Dr+qP2Zf/NV/wDcj/7uH9qftDP+aZ/7nf8A3UP/2Q==";
+
+    private const string RedBlueProgressive =
+        "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAIBAQEBAQIBAQECAgICAgQDAgICAgUEBAMEBgUGBgYFBgYGBwkIBgcJBwYGCAsICQoKCgoKBggLDAsKDAkKCgr/2wBDAQICAgICAgUDAwUKBwYHCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgr/wgARCAAQABADASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAAB//EABQBAQAAAAAAAAAAAAAAAAAAAAf/2gAMAwEAAhADEAAAARchXiFUav/EABQQAQAAAAAAAAAAAAAAAAAAACD/2gAIAQEAAQUCH//EABgRAAIDAAAAAAAAAAAAAAAAAAAIRYPD/9oACAEDAQE/AWGjLsj/xAAYEQACAwAAAAAAAAAAAAAAAAAACEWDw//aAAgBAgEBPwFZZWjY/8QAFBABAAAAAAAAAAAAAAAAAAAAIP/aAAgBAQAGPwIf/8QAFBABAAAAAAAAAAAAAAAAAAAAIP/aAAgBAQABPyEf/9oADAMBAAIAAwAAABAD/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPxAf/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPxAn/8QAFBABAAAAAAAAAAAAAAAAAAAAIP/aAAgBAQABPxAf/9k=";
+
+    // the same, 4:4:4, a restart marker after every block
+    private const string RedBlueRestarts =
+        "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAIBAQEBAQIBAQECAgICAgQDAgICAgUEBAMEBgUGBgYFBgYGBwkIBgcJBwYGCAsICQoKCgoKBggLDAsKDAkKCgr/2wBDAQICAgICAgUDAwUKBwYHCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgr/wAARCAAQABADAREAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/90ABAAB/9oADAMBAAIRAxEAPwD4vr+Uz/fw/9D8c6/38Pys/9H4vr+Uz/fw/9L8c6/38Pys/9k=";
+
+    // 8 × 8 grayscale of 200
+    private const string Gray200 =
+        "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAIBAQEBAQIBAQECAgICAgQDAgICAgUEBAMEBgUGBgYFBgYGBwkIBgcJBwYGCAsICQoKCgoKBggLDAsKDAkKCgr/wAALCAAIAAgBAREA/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oACAEBAAA/AP0gr//Z";
+
+    // 64 × 48 of (40, 160, 80), quality 90
+    private const string Green64x48 =
+        "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAwAEADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDnKKKK+KP5yCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA/9k=";
+
+    // 4 × 3, interlaced, palette red, green, blue and a transparent index 3: the pixel
+    // at (x, y) is index (x + y) mod 4
+    private const string PaletteGif = "R0lGODlhBAADAIEAAP8AAAD/AAAA/wkJCSH5BAEAAAMALAAAAAAEAAMAAAgNAAEEEDBg4AAABAUGBAA7";
+
+    [Theory]
+    [InlineData(RedBlueBaseline)]
+    [InlineData(RedBlueProgressive)]
+    [InlineData(RedBlueRestarts)]
+    public void AJpegDecodesAsLibjpegDecodesIt(string base64)
+    {
+        Image image = Decode(Convert.FromBase64String(base64));
+
+        Assert.Equal(16, image.Width);
+        Assert.Equal(16, image.Height);
+
+        Assert.Equal(((byte)254, (byte)0, (byte)0, (byte)255), Pixel(image, 1, 8));
+        Assert.Equal(((byte)0, (byte)0, (byte)254, (byte)255), Pixel(image, 14, 8));
+        Assert.Equal(((byte)254, (byte)0, (byte)0, (byte)255), Pixel(image, 0, 0));
+        Assert.Equal(((byte)0, (byte)0, (byte)254, (byte)255), Pixel(image, 15, 15));
     }
+
+    [Fact]
+    public void AGrayJpegIsGray()
+    {
+        Image image = Decode(Convert.FromBase64String(Gray200));
+
+        Assert.Equal(((byte)200, (byte)200, (byte)200, (byte)255), Pixel(image, 3, 3));
+    }
+
+    [Fact]
+    public void ALargeJpegIsDecodedScaledDown()
+    {
+        // a quarter of the size is still no smaller than the 16 wanted: decoded at it
+        Image image = new GlesImageDecoder { MaxDimension = 16 }.Decode(new MemoryStream(Convert.FromBase64String(Green64x48)));
+
+        Assert.Equal(16, image.Width);
+        Assert.Equal(12, image.Height);
+
+        (byte r, byte g, byte b, byte a) = Pixel(image, 8, 6);
+
+        Assert.InRange(r, 38, 43);
+        Assert.InRange(g, 157, 163);
+        Assert.InRange(b, 77, 83);
+        Assert.Equal(255, a);
+    }
+
+    [Fact]
+    public void ACutJpegDecodesWhatItHas()
+    {
+        byte[] whole = Convert.FromBase64String(RedBlueBaseline);
+        byte[] cut = whole[..(whole.Length - 20)];
+
+        Image image = Decode(cut);
+
+        Assert.Equal(16, image.Width);
+    }
+
+    [Fact]
+    public void AnArithmeticJpegIsRefusedByName()
+    {
+        // SOI, then a frame header of the arithmetic-coded process
+        byte[] data = [0xFF, 0xD8, 0xFF, 0xC9, 0, 11, 8, 0, 1, 0, 1, 1, 1, 0x11, 0];
+
+        var error = Assert.Throws<InvalidDataException>(() => Decode(data));
+
+        Assert.Contains("Arithmetic", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AGifGivesItsFirstFrameWithItsTransparency()
+    {
+        Image image = Decode(Convert.FromBase64String(PaletteGif));
+
+        Assert.Equal(4, image.Width);
+        Assert.Equal(3, image.Height);
+
+        (byte, byte, byte, byte)[] colors =
+            [(255, 0, 0, 255), (0, 255, 0, 255), (0, 0, 255, 255), (0, 0, 0, 0)];
+
+        for (int y = 0; y < 3; y++)
+        {
+            for (int x = 0; x < 4; x++)
+                Assert.Equal(colors[(x + y) % 4], Pixel(image, x, y));
+        }
+    }
+
+    [Fact]
+    public void AWebPIsRefusedByName()
+    {
+        byte[] data = [.. "RIFF"u8, 0, 0, 0, 0, .. "WEBPVP8 "u8];
+
+        var error = Assert.Throws<InvalidDataException>(() => Decode(data));
+
+        Assert.Contains("WebP", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void APictureLargerThanTheLimitIsAveragedDown()
+    {
+        // 4 × 2 of white and black columns: halved, every pixel the average grey
+        byte[] row = [255, 255, 255, 0, 0, 0, 0, 0, 255, 255, 255, 0, 0, 0, 0, 0];
+        byte[] bmp = Bmp(4, 2, 32, [.. row, .. row]);
+
+        Image image = new GlesImageDecoder { MaxDimension = 2 }.Decode(new MemoryStream(bmp));
+
+        Assert.Equal(2, image.Width);
+        Assert.Equal(1, image.Height);
+        Assert.Equal(((byte)128, (byte)128, (byte)128, (byte)255), Pixel(image, 0, 0));
+    }
+
+    #endregion
 
     private static byte[] Bmp(int width, int height, int bitCount, byte[] pixels)
     {

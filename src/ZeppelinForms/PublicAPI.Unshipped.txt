@@ -75,3 +75,5 @@ ZeppelinForms.App.Capabilities.get -> ZeppelinForms.PlatformCapabilities
 ZeppelinForms.Headless.HeadlessPlatform.Capabilities.get -> ZeppelinForms.PlatformCapabilities
 ZeppelinForms.Headless.HeadlessWindow.SupportsPositioning.get -> bool
 ZeppelinForms.Headless.HeadlessWindow.SupportsPositioning.set -> void
+ZeppelinForms.Drawing.GlTarget.MakeCurrent.get -> System.Action?
+ZeppelinForms.Drawing.GlTarget.MakeCurrent.init -> void

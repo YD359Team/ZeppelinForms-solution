@@ -33,10 +33,12 @@ internal sealed unsafe class Gl
     public const uint GL_COLOR_BUFFER_BIT = 0x4000;
 
     public const uint GL_TRIANGLES = 0x0004;
+    public const uint GL_TRIANGLE_STRIP = 0x0005;
 
     public const uint GL_ZERO = 0;
     public const uint GL_ONE = 1;
     public const uint GL_ONE_MINUS_SRC_ALPHA = 0x0303;
+    public const uint GL_ONE_MINUS_SRC_COLOR = 0x0301;
 
     public const uint GL_BLEND = 0x0BE2;
     public const uint GL_CULL_FACE = 0x0B44;
@@ -137,6 +139,7 @@ internal sealed unsafe class Gl
     public readonly delegate* unmanaged<int, int, void> Uniform1i;
     public readonly delegate* unmanaged<int, float, void> Uniform1f;
     public readonly delegate* unmanaged<int, float, float, float, float, void> Uniform4f;
+    public readonly delegate* unmanaged<int, float, float, void> Uniform2f;
 
     public readonly delegate* unmanaged<int, uint*, void> GenVertexArrays;
     public readonly delegate* unmanaged<uint, void> BindVertexArray;
@@ -148,6 +151,7 @@ internal sealed unsafe class Gl
     public readonly delegate* unmanaged<uint, void> EnableVertexAttribArray;
     public readonly delegate* unmanaged<uint, int, uint, byte, int, nint, void> VertexAttribPointer;
     public readonly delegate* unmanaged<uint, int, uint, nint, void> DrawElements;
+    public readonly delegate* unmanaged<uint, int, int, void> DrawArrays;
 
     public readonly delegate* unmanaged<int, uint*, void> GenTextures;
     public readonly delegate* unmanaged<uint, uint, void> BindTexture;
@@ -170,6 +174,7 @@ internal sealed unsafe class Gl
     public readonly delegate* unmanaged<uint, uint, int, int, void> RenderbufferStorage;
     public readonly delegate* unmanaged<uint, uint, uint, uint, void> FramebufferRenderbuffer;
     public readonly delegate* unmanaged<int, uint*, void> DeleteRenderbuffers;
+    public readonly delegate* unmanaged<int, int, int, int, int, int, int, int, uint, int, void> BlitFramebuffer;
 
     #endregion
 
@@ -221,6 +226,9 @@ internal sealed unsafe class Gl
         Uniform1i = (delegate* unmanaged<int, int, void>)Need("glUniform1i");
         Uniform1f = (delegate* unmanaged<int, float, void>)Need("glUniform1f");
         Uniform4f = (delegate* unmanaged<int, float, float, float, float, void>)Need("glUniform4f");
+        Uniform2f = (delegate* unmanaged<int, float, float, void>)Need("glUniform2f");
+        DrawArrays = (delegate* unmanaged<uint, int, int, void>)Need("glDrawArrays");
+        BlitFramebuffer = (delegate* unmanaged<int, int, int, int, int, int, int, int, uint, int, void>)Need("glBlitFramebuffer");
 
         GenVertexArrays = (delegate* unmanaged<int, uint*, void>)Need("glGenVertexArrays");
         BindVertexArray = (delegate* unmanaged<uint, void>)Need("glBindVertexArray");

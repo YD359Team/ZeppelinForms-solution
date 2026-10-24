@@ -43,10 +43,10 @@ public sealed class SkiaGraphicsBackend : IGraphicsBackend
 
     public IGlSurface? CreateGlSurface(GlTarget target)
     {
-        GRGlInterface? glInterface = target.GetProcAddress is { } getProcAddress
-            ? target.IsGles
-                ? GRGlInterface.CreateGles(name => getProcAddress(name))
-                : GRGlInterface.CreateOpenGl(name => getProcAddress(name))
+        // desktop OpenGL — WGL — through Skia's own native interface, as it always was: the
+        // loader the platform gives is for backends that have no other
+        GRGlInterface? glInterface = target.GetProcAddress is { } getProcAddress && target.IsGles
+            ? GRGlInterface.CreateGles(name => getProcAddress(name))
             : GRGlInterface.Create();
 
         if (glInterface is null)

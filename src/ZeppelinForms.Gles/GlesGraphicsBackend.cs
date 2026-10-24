@@ -2,7 +2,6 @@
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Gles.Imaging;
 using ZeppelinForms.Gles.Rendering;
-using ZeppelinForms.Headless;
 using ZeppelinForms.Gles.Text;
 
 namespace ZeppelinForms.Gles;
@@ -23,9 +22,9 @@ namespace ZeppelinForms.Gles;
 /// by the system's HarfBuzz where there is one.
 /// </para>
 /// <para>
-/// What the preview lacks: JPEG pictures don't decode (PNG and BMP do); blurs, backdrops,
-/// reflections and blend modes other than normal are drawn without their effect. Each comes
-/// in the next steps.
+/// Pictures decode in managed code too — PNG, JPEG, BMP. An element drawn into a picture is
+/// drawn in the GL context of a window, which the platform makes current through
+/// <see cref="GlTarget.MakeCurrent"/>.
 /// </para>
 /// </remarks>
 public sealed class GlesGraphicsBackend : IGraphicsBackend
@@ -40,7 +39,7 @@ public sealed class GlesGraphicsBackend : IGraphicsBackend
     {
         GlesTextMeasurer.Register();
         GlesImageDecoder.Register();
-        HeadlessElementRenderer.Register();
+        GlesElementRenderer.Register();
     }
 
     /// <summary>None: the backend draws on the GPU only.</summary>

@@ -27,6 +27,15 @@ public sealed class GlTarget
 
     /// <summary>The address of a GL function by name, as the context's loader gives it —
     /// eglGetProcAddress, wglGetProcAddress with the opengl32 fallback. Null: the
-    /// backend finds them its own way, as Skia's default interface does on WGL.</summary>
+    /// backend finds them its own way. Skia's backend takes it for OpenGL ES only: on
+    /// desktop OpenGL it keeps to its own native interface.</summary>
     public Func<string, nint>? GetProcAddress { get; init; }
+
+    /// <summary>Make the context current on the calling thread, outside the frames the
+    /// platform begins: for a backend drawing an element into a picture —
+    /// <see cref="Forms.Controls.Base.UIElement.RenderToImage"/>, the color picker's
+    /// eyedropper. Null: the backend draws in the platform's frames only.</summary>
+    /// <remarks>Called on the window's thread; the next frame makes the context current
+    /// again by itself, as every frame does.</remarks>
+    public Action? MakeCurrent { get; init; }
 }

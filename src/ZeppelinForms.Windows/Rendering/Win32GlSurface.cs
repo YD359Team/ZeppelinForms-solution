@@ -84,14 +84,17 @@ internal sealed class Win32GlSurface : IWin32Surface
                 setSwapInterval(0);
             }
 
-            // the size comes with the first WM_SIZE; the loader stays the backend's
-            // own, as Skia's default interface finds WGL's functions by itself
+            // the size comes with the first WM_SIZE; the functions through WGL's loader,
+            // as Skia's own WGL interface finds them — the GLES backend has no other way
             IGlSurface? surface = graphics.CreateGlSurface(new GlTarget
             {
                 Width = 0,
                 Height = 0,
                 IsGles = false,
                 StencilBits = 8,
+                GetProcAddress = GetGlProcAddress,
+                // an element drawn into a picture between frames, in this context
+                MakeCurrent = () => NativeMethods.wglMakeCurrent(hdc, glContext),
             });
 
             if (surface is null)
@@ -151,6 +154,21 @@ internal sealed class Win32GlSurface : IWin32Surface
         _surface.Dispose();
 
         Release(_hWnd, _hdc, _glContext);
+    }
+
+    private static readonly Lazy<nint> OpenGl32 = new(() => NativeLibrary.Load("opengl32.dll"));
+
+    /// <summary>A GL function's address on WGL: wglGetProcAddress for what came after
+    /// OpenGL 1.1, opengl32.dll's own exports for 1.1 itself — for those the loader gives
+    /// 0, or 1, 2, 3 or −1 on some drivers.</summary>
+    private static nint GetGlProcAddress(string name)
+    {
+        nint address = NativeMethods.wglGetProcAddress(name);
+
+        if (address is 0 or 1 or 2 or 3 or -1)
+            address = NativeLibrary.TryGetExport(OpenGl32.Value, name, out nint export) ? export : 0;
+
+        return address;
     }
 
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]

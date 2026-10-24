@@ -264,6 +264,20 @@ public class GlesGeometryTests
         Assert.Equal(1f, p.Y, 1e-5f);
     }
 
+    [Fact]
+    public void AnInverseMapsBack()
+    {
+        Affine m = Affine.Translation(30, -7).Then(Affine.Rotation(25)).Then(Affine.Skewing(0.3f, 0)).Then(Affine.Scaling(1.5f, 2));
+
+        Assert.True(m.TryInvert(out Affine inverse));
+
+        Point back = inverse.Map(m.Map(new Point(11, -4)));
+        Assert.Equal(11f, back.X, 1e-3f);
+        Assert.Equal(-4f, back.Y, 1e-3f);
+
+        Assert.False(Affine.Scaling(0, 1).TryInvert(out _));
+    }
+
     [Theory]
     [InlineData("OpenGL ES 3.2 Mesa 25.2.8", true, true)]
     [InlineData("OpenGL ES 3.0 (ANGLE 2.1.0)", true, true)]

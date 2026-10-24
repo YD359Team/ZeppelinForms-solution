@@ -24,7 +24,7 @@ internal struct Vertex
     public float R0, R1, R2, R3;
 
     /// <summary>The paint's parameters: a texture's coordinates, a gradient's position
-    /// and row, a layer's saturation, the noise's frequency.</summary>
+    /// and row, a layer's saturation, the noise's frequency, a blend mode.</summary>
     public float E0, E1, E2, E3;
 
     public const int Size = 17 * sizeof(float);
@@ -86,11 +86,12 @@ internal readonly record struct ClipShape(float Left, float Top, float Right, fl
 
 internal enum BlendKind : byte
 {
-    /// <summary>Premultiplied source over: ONE, ONE_MINUS_SRC_ALPHA.</summary>
-    Normal,
-
-    /// <summary>The source replaces what is there: a clear under a clip.</summary>
+    /// <summary>The source replaces what is there: a clear under a clip, and a layer put
+    /// over in a blend mode, which the shader mixes with a copy of what is under it.</summary>
     Replace,
+
+    /// <summary>Premultiplied screen: ONE, ONE_MINUS_SRC_COLOR — exact for any alpha.</summary>
+    Screen,
 }
 
 internal enum StencilUse : byte
@@ -107,6 +108,8 @@ internal enum StencilUse : byte
 }
 
 /// <summary>Everything a batch shares: what changes it flushes the batch before.</summary>
+/// <param name="Backdrop">The copy of what is under a layer put over in a blend mode;
+/// 0 — none.</param>
 internal readonly record struct BatchState(
     uint Image,
     bool ImageRepeat,
@@ -115,7 +118,8 @@ internal readonly record struct BatchState(
     ClipShape Clip0,
     ClipShape Clip1,
     StencilUse Stencil,
-    int StencilReference);
+    int StencilReference,
+    uint Backdrop = 0);
 
 /// <summary>Where the frame is drawn now: the window's framebuffer or a layer's.</summary>
 internal readonly record struct RenderTarget(uint Framebuffer, int Width, int Height, int OriginX, int OriginY)

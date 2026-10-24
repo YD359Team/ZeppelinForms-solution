@@ -66,6 +66,28 @@ internal readonly record struct Affine(float A, float B, float C, float D, float
     /// curves to a tolerance in pixels.</summary>
     public float MeanScale => MathF.Max(1e-6f, MathF.Sqrt(MathF.Abs(A * D - B * C)));
 
+    /// <summary>The transform back from the device to the local units; false for one that
+    /// flattens the plane to a line, which has none.</summary>
+    public bool TryInvert(out Affine inverse)
+    {
+        float determinant = A * D - B * C;
+
+        if (MathF.Abs(determinant) < 1e-12f)
+        {
+            inverse = Identity;
+            return false;
+        }
+
+        float r = 1f / determinant;
+
+        inverse = new Affine(
+            D * r, -B * r,
+            -C * r, A * r,
+            (C * F - D * E) * r, (B * E - A * F) * r);
+
+        return true;
+    }
+
     /// <summary>The device bounds of a local rectangle.</summary>
     public Rectangle MapBounds(Rectangle rect)
     {

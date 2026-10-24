@@ -23,6 +23,11 @@ namespace ZeppelinForms.Gles.Rendering;
 /// ends a batch is a change of the picture texture, the scissor, the analytic clips, the
 /// stencil or the blending, and the target — everything else is in the vertices.
 /// </para>
+/// <para>
+/// The effects that read what is drawn — a blurred backdrop, a reflection, a layer put
+/// over in a blend mode — copy it out of the target with a blit first, into a texture of
+/// the layers' pool; a blur runs on such a texture with a program of its own.
+/// </para>
 /// </remarks>
 internal sealed unsafe class GlesRenderer : IDisposable
 {
@@ -40,7 +45,9 @@ internal sealed unsafe class GlesRenderer : IDisposable
     private readonly bool _isGles;
 
     private uint _program;
+    private uint _blurProgram;
     private uint _vao;
+    private uint _blurVao;
     private uint _vbo;
     private uint _ibo;
 
@@ -52,6 +59,8 @@ internal sealed unsafe class GlesRenderer : IDisposable
     private int _uViewport;
     private int _uClip0Rect, _uClip0Radii, _uClip1Rect, _uClip1Radii;
     private int _uStencilWrite;
+
+    private int _uBlurDestination, _uBlurSource, _uBlurStep, _uBlurRegion, _uBlurSigma, _uBlurRadius, _uBlurClamp;
 
     private Vertex[] _vertices = new Vertex[1024];
     private int _quadCount;
@@ -98,36 +107,16 @@ internal sealed unsafe class GlesRenderer : IDisposable
 
     public Gl Gl => _gl;
 
+    /// <summary>OpenGL ES rather than desktop OpenGL: the shaders' version line.</summary>
+    public bool IsGles => _isGles;
+
     public int MaxTextureSize => _gl.Integer(Gl.GL_MAX_TEXTURE_SIZE);
 
     #region Setup
 
     private void CreateProgram()
     {
-        string header = Shaders.Header(_isGles);
-
-        uint vertex = Compile(Gl.GL_VERTEX_SHADER, header + Shaders.Vertex);
-        uint fragment = Compile(Gl.GL_FRAGMENT_SHADER, header + Shaders.Fragment);
-
-        _program = _gl.CreateProgram();
-        _gl.AttachShader(_program, vertex);
-        _gl.AttachShader(_program, fragment);
-        _gl.LinkProgram(_program);
-
-        _gl.DeleteShader(vertex);
-        _gl.DeleteShader(fragment);
-
-        int linked = 0;
-        _gl.GetProgramiv(_program, Gl.GL_LINK_STATUS, &linked);
-
-        if (linked == 0)
-        {
-            string log = ProgramLog(_program);
-            _gl.DeleteProgram(_program);
-            _program = 0;
-
-            throw new ZfPlatformException($"The GLES backend's program did not link: {log}");
-        }
+        _program = Link(Shaders.Vertex, Shaders.Fragment, "drawing");
 
         _uViewport = _gl.UniformLocation(_program, "uViewport");
         _uClip0Rect = _gl.UniformLocation(_program, "uClip0Rect");
@@ -141,6 +130,51 @@ internal sealed unsafe class GlesRenderer : IDisposable
         _gl.Uniform1i(_gl.UniformLocation(_program, "uMask"), 1);
         _gl.Uniform1i(_gl.UniformLocation(_program, "uRamp"), 2);
         _gl.Uniform1i(_gl.UniformLocation(_program, "uGlyphs"), 3);
+        _gl.Uniform1i(_gl.UniformLocation(_program, "uBackdrop"), 4);
+
+        _blurProgram = Link(Shaders.BlurVertex, Shaders.BlurFragment, "blur");
+
+        _uBlurDestination = _gl.UniformLocation(_blurProgram, "uDestination");
+        _uBlurSource = _gl.UniformLocation(_blurProgram, "uSource");
+        _uBlurStep = _gl.UniformLocation(_blurProgram, "uStep");
+        _uBlurRegion = _gl.UniformLocation(_blurProgram, "uRegion");
+        _uBlurSigma = _gl.UniformLocation(_blurProgram, "uSigma");
+        _uBlurRadius = _gl.UniformLocation(_blurProgram, "uRadius");
+        _uBlurClamp = _gl.UniformLocation(_blurProgram, "uClamp");
+
+        _gl.UseProgram(_blurProgram);
+        _gl.Uniform1i(_gl.UniformLocation(_blurProgram, "uTexture"), 0);
+
+        _gl.UseProgram(_program);
+    }
+
+    private uint Link(string vertexSource, string fragmentSource, string name)
+    {
+        string header = Shaders.Header(_isGles);
+
+        uint vertex = Compile(Gl.GL_VERTEX_SHADER, header + vertexSource);
+        uint fragment = Compile(Gl.GL_FRAGMENT_SHADER, header + fragmentSource);
+
+        uint program = _gl.CreateProgram();
+        _gl.AttachShader(program, vertex);
+        _gl.AttachShader(program, fragment);
+        _gl.LinkProgram(program);
+
+        _gl.DeleteShader(vertex);
+        _gl.DeleteShader(fragment);
+
+        int linked = 0;
+        _gl.GetProgramiv(program, Gl.GL_LINK_STATUS, &linked);
+
+        if (linked == 0)
+        {
+            string log = ProgramLog(program);
+            _gl.DeleteProgram(program);
+
+            throw new ZfPlatformException($"The GLES backend's {name} program did not link: {log}");
+        }
+
+        return program;
     }
 
     private uint Compile(uint type, string source)
@@ -236,6 +270,12 @@ internal sealed unsafe class GlesRenderer : IDisposable
         _gl.VertexAttribPointer(5, 4, Gl.GL_FLOAT, 0, Vertex.Size, 52);
 
         _gl.BindVertexArray(0);
+
+        // the blur's corners come from the vertex's index: a vertex array with nothing
+        // enabled, as desktop OpenGL's core profile wants one bound to draw at all
+        uint blurVao = 0;
+        _gl.GenVertexArrays(1, &blurVao);
+        _blurVao = blurVao;
     }
 
     private void CreateTextures()
@@ -408,14 +448,21 @@ internal sealed unsafe class GlesRenderer : IDisposable
 
         if (all || state.Blend != _applied.Blend)
         {
-            if (state.Blend == BlendKind.Normal)
+            switch (state.Blend)
             {
-                _gl.Enable(Gl.GL_BLEND);
-                _gl.BlendFunc(Gl.GL_ONE, Gl.GL_ONE_MINUS_SRC_ALPHA);
-            }
-            else
-            {
-                _gl.Disable(Gl.GL_BLEND);
+                case BlendKind.Normal:
+                    _gl.Enable(Gl.GL_BLEND);
+                    _gl.BlendFunc(Gl.GL_ONE, Gl.GL_ONE_MINUS_SRC_ALPHA);
+                    break;
+
+                case BlendKind.Screen:
+                    _gl.Enable(Gl.GL_BLEND);
+                    _gl.BlendFunc(Gl.GL_ONE, Gl.GL_ONE_MINUS_SRC_COLOR);
+                    break;
+
+                default:
+                    _gl.Disable(Gl.GL_BLEND);
+                    break;
             }
         }
 
@@ -456,6 +503,8 @@ internal sealed unsafe class GlesRenderer : IDisposable
         }
 
         // the textures every time: an upload in between may have bound others
+        _gl.ActiveTexture(Gl.GL_TEXTURE0 + 4);
+        _gl.BindTexture(Gl.GL_TEXTURE_2D, state.Backdrop != 0 ? state.Backdrop : _white);
         _gl.ActiveTexture(Gl.GL_TEXTURE0 + 3);
         _gl.BindTexture(Gl.GL_TEXTURE_2D, _glyphAtlas);
         _gl.ActiveTexture(Gl.GL_TEXTURE0 + 2);
@@ -768,6 +817,9 @@ internal sealed unsafe class GlesRenderer : IDisposable
             _appliedValid = false;
         }
 
+        // a blurred layer scaled up was sampled smoothly; a layer is placed pixel for pixel
+        if (best.Smooth) SetSmooth(best, false);
+
         best.InUse = true;
         best.LastUsed = _frame;
 
@@ -775,6 +827,180 @@ internal sealed unsafe class GlesRenderer : IDisposable
     }
 
     public static void ReleaseLayer(LayerTexture layer) => layer.InUse = false;
+
+    /// <summary>Sample a layer's texture smoothly — a blur made on a smaller copy is drawn
+    /// back scaled up — or pixel for pixel.</summary>
+    public void SetSmooth(LayerTexture layer, bool smooth)
+    {
+        if (layer.Smooth == smooth) return;
+
+        // a draw gathered before may sample it still: drawn with the filtering it had
+        Flush();
+
+        int filter = smooth ? Gl.GL_LINEAR : Gl.GL_NEAREST;
+
+        _gl.ActiveTexture(Gl.GL_TEXTURE0);
+        _gl.BindTexture(Gl.GL_TEXTURE_2D, layer.Texture);
+        _gl.TexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MIN_FILTER, filter);
+        _gl.TexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MAG_FILTER, filter);
+
+        layer.Smooth = smooth;
+        _appliedValid = false;
+    }
+
+    #endregion
+
+    #region Copies and blurs
+
+    /// <summary>What is drawn in a part of the current target, copied into a texture of
+    /// the layers' pool: into its lower left, GL's rows from the bottom, as a layer is.</summary>
+    /// <remarks>The caller releases it with <see cref="ReleaseLayer"/>.</remarks>
+    public LayerTexture CopyTarget(PixelRect region)
+    {
+        // what was gathered is in the picture copied
+        Flush();
+
+        LayerTexture copy = AcquireLayer(region.Width, region.Height);
+        RenderTarget t = _target;
+
+        int x = region.X - t.OriginX;
+        int y = t.Height - (region.Y - t.OriginY + region.Height);
+
+        Blit(t.Framebuffer, x, y, region.Width, region.Height, copy.Framebuffer, region.Width, region.Height, smooth: false);
+
+        BindTarget(t);
+        return copy;
+    }
+
+    /// <summary>A copy of a framebuffer's part into another's lower left, scaled to the
+    /// size given: averaged when smooth, as a halving is.</summary>
+    private void Blit(uint from, int x, int y, int width, int height, uint to, int toWidth, int toHeight, bool smooth)
+    {
+        // a blit is cut by the scissor, like a draw
+        _gl.Disable(Gl.GL_SCISSOR_TEST);
+
+        _gl.BindFramebuffer(Gl.GL_READ_FRAMEBUFFER, from);
+        _gl.BindFramebuffer(Gl.GL_DRAW_FRAMEBUFFER, to);
+        _gl.BlitFramebuffer(
+            x, y, x + width, y + height, 0, 0, toWidth, toHeight,
+            Gl.GL_COLOR_BUFFER_BIT, smooth ? Gl.GL_LINEAR : Gl.GL_NEAREST);
+
+        _gl.Enable(Gl.GL_SCISSOR_TEST);
+    }
+
+    /// <summary>A Gaussian blur of a layer texture's content, its lower-left
+    /// <paramref name="width"/> × <paramref name="height"/>, into a texture of the pool.</summary>
+    /// <param name="sigma">In the content's pixels.</param>
+    /// <param name="clampEdges">Beyond the content its edge goes on, as a backdrop's
+    /// does; otherwise there is nothing there, as around a layer's content.</param>
+    /// <remarks>
+    /// <para>
+    /// A sigma above <see cref="Shaders.MaxBlurSigma"/> is blurred on a copy halved as
+    /// many times as it takes, and the result is that small: it is drawn back scaled up,
+    /// sampled smoothly. The source stays the caller's; the result is released by the
+    /// caller too.
+    /// </para>
+    /// </remarks>
+    public BlurredLayer Blur(LayerTexture source, int width, int height, float sigma, bool clampEdges)
+    {
+        Flush();
+
+        int scale = 1;
+
+        while (sigma / scale > Shaders.MaxBlurSigma && scale < 64 && width / (scale * 2) >= 2 && height / (scale * 2) >= 2)
+            scale *= 2;
+
+        LayerTexture current = source;
+        bool owned = false;
+        int w = width, h = height;
+
+        for (int step = 1; step < scale; step *= 2)
+        {
+            int halfWidth = (w + 1) / 2, halfHeight = (h + 1) / 2;
+            LayerTexture half = AcquireLayer(halfWidth, halfHeight);
+
+            Blit(current.Framebuffer, 0, 0, w, h, half.Framebuffer, halfWidth, halfHeight, smooth: true);
+
+            if (owned) ReleaseLayer(current);
+
+            current = half;
+            owned = true;
+            w = halfWidth;
+            h = halfHeight;
+        }
+
+        float scaledSigma = sigma / scale;
+
+        // a texel more each way than the content: the blur beyond it is computed too, so a
+        // result drawn back scaled up and sampled smoothly never reaches stale texels
+        LayerTexture across = AcquireLayer(w + 1, h + 1);
+        BlurPass(current, across, w, h, horizontal: true, scaledSigma, clampEdges);
+
+        if (owned) ReleaseLayer(current);
+
+        LayerTexture result = AcquireLayer(w + 1, h + 1);
+        BlurPass(across, result, w, h, horizontal: false, scaledSigma, clampEdges);
+
+        ReleaseLayer(across);
+
+        RestoreState();
+        SetSmooth(result, scale > 1);
+
+        return new BlurredLayer(result, w, h);
+    }
+
+    /// <summary>One direction of the blur of the content's <paramref name="width"/> ×
+    /// <paramref name="height"/>, written a texel wider and higher: what the blur makes
+    /// just beyond the content's edge.</summary>
+    private void BlurPass(LayerTexture from, LayerTexture to, int width, int height, bool horizontal, float sigma, bool clampEdges)
+    {
+        float tw = from.Width, th = from.Height;
+
+        _gl.BindFramebuffer(Gl.GL_FRAMEBUFFER, to.Framebuffer);
+        _gl.Viewport(0, 0, width + 1, height + 1);
+
+        _gl.Disable(Gl.GL_SCISSOR_TEST);
+        _gl.Disable(Gl.GL_STENCIL_TEST);
+        _gl.Disable(Gl.GL_BLEND);
+        _gl.ColorMask(1, 1, 1, 1);
+
+        _gl.UseProgram(_blurProgram);
+        _gl.BindVertexArray(_blurVao);
+
+        _gl.ActiveTexture(Gl.GL_TEXTURE0);
+        _gl.BindTexture(Gl.GL_TEXTURE_2D, from.Texture);
+
+        _gl.Uniform4f(_uBlurDestination, -1, -1, 1, 1);
+        _gl.Uniform4f(_uBlurSource, 0, 0, (width + 1) / tw, (height + 1) / th);
+        _gl.Uniform2f(_uBlurStep, horizontal ? 1f / tw : 0f, horizontal ? 0f : 1f / th);
+
+        if (clampEdges)
+            _gl.Uniform4f(_uBlurRegion, 0.5f / tw, 0.5f / th, (width - 0.5f) / tw, (height - 0.5f) / th);
+        else
+            _gl.Uniform4f(_uBlurRegion, 0, 0, width / tw, height / th);
+
+        _gl.Uniform1f(_uBlurSigma, MathF.Max(sigma, 1e-3f));
+        _gl.Uniform1i(_uBlurRadius, Math.Clamp((int)MathF.Ceiling(sigma * 3f), 1, 64));
+        _gl.Uniform1i(_uBlurClamp, clampEdges ? 1 : 0);
+
+        _gl.DrawArrays(Gl.GL_TRIANGLE_STRIP, 0, 4);
+    }
+
+    /// <summary>The drawing program, its vertices and the target bound again, the rest of
+    /// the state set anew at the next draw: after a blur, or after another renderer drew
+    /// in this context between this one's draws.</summary>
+    public void RestoreState()
+    {
+        _gl.UseProgram(_program);
+        _gl.BindVertexArray(_vao);
+        _gl.BindBuffer(Gl.GL_ARRAY_BUFFER, _vbo);
+        _gl.Enable(Gl.GL_SCISSOR_TEST);
+        _gl.Disable(Gl.GL_DEPTH_TEST);
+        _gl.Disable(Gl.GL_CULL_FACE);
+        _gl.PixelStorei(Gl.GL_UNPACK_ALIGNMENT, 1);
+
+        BindTarget(_target);
+    }
 
     #endregion
 
@@ -810,24 +1036,17 @@ internal sealed unsafe class GlesRenderer : IDisposable
         _gl.DeleteTexture(_rampAtlas);
         _gl.DeleteTexture(_glyphAtlas);
 
-        uint vao = _vao, vbo = _vbo, ibo = _ibo;
+        uint vao = _vao, vbo = _vbo, ibo = _ibo, blurVao = _blurVao;
         if (vao != 0) _gl.DeleteVertexArrays(1, &vao);
+        if (blurVao != 0) _gl.DeleteVertexArrays(1, &blurVao);
         if (vbo != 0) _gl.DeleteBuffers(1, &vbo);
         if (ibo != 0) _gl.DeleteBuffers(1, &ibo);
 
         if (_program != 0) _gl.DeleteProgram(_program);
+        if (_blurProgram != 0) _gl.DeleteProgram(_blurProgram);
 
-        _vao = _vbo = _ibo = _program = 0;
+        _vao = _vbo = _ibo = _blurVao = _program = _blurProgram = 0;
     }
-}
-
-/// <summary>A glyph in the glyph atlas: its box against the pen's pixel, y down, and its
-/// texture coordinates. Empty: nothing to draw — a space, or a glyph too large.</summary>
-internal readonly record struct GlyphSlot(int Left, int Top, int Width, int Height, float U0, float V0, float U1, float V1)
-{
-    public static readonly GlyphSlot Empty = new(0, 0, 0, 0, 0, 0, 0, 0);
-
-    public bool IsEmpty => Width <= 0 || Height <= 0;
 }
 
 /// <summary>A picture's texture. The collector frees it with the picture: the finalizer
@@ -852,6 +1071,9 @@ internal sealed unsafe class LayerTexture
 
     public bool InUse { get; set; }
     public long LastUsed { get; set; }
+
+    /// <summary>Sampled smoothly rather than pixel for pixel: see <see cref="GlesRenderer.SetSmooth"/>.</summary>
+    public bool Smooth { get; set; }
 
     public static LayerTexture Create(Gl gl, int width, int height)
     {
@@ -943,4 +1165,18 @@ internal sealed class ShelfPacker(int width, int height)
         x = y = 0;
         return false;
     }
+}
+
+/// <summary>A blur's result: a texture of the layers' pool, the blurred content in its
+/// lower-left <see cref="Width"/> × <see cref="Height"/> — smaller than the source by the
+/// scale it was blurred at.</summary>
+internal readonly record struct BlurredLayer(LayerTexture Texture, int Width, int Height);
+
+/// <summary>A glyph in the glyph atlas: its box against the pen's pixel, y down, and its
+/// texture coordinates. Empty: nothing to draw — a space, or a glyph too large.</summary>
+internal readonly record struct GlyphSlot(int Left, int Top, int Width, int Height, float U0, float V0, float U1, float V1)
+{
+    public static readonly GlyphSlot Empty = new(0, 0, 0, 0, 0, 0, 0, 0);
+
+    public bool IsEmpty => Width <= 0 || Height <= 0;
 }

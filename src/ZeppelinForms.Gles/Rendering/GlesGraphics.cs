@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Core.Text;
+﻿using System.Text.RegularExpressions;
+using ZeppelinForms.Core.Text;
+using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Helpers;
 using ZeppelinForms.Drawing.Imaging;
@@ -27,9 +29,13 @@ namespace ZeppelinForms.Gles.Rendering;
 /// </para>
 /// <para>
 /// Text is drawn from a glyph atlas, its glyphs rasterized from the fonts' outlines; see
-/// the text part of the class. Blurs, backdrops, reflections and blend modes other than
-/// normal come in the next steps; until then a blurred layer is drawn sharp and a blended
-/// one normally.
+/// the text part of the class.
+/// </para>
+/// <para>
+/// A blurred layer is blurred when it is restored, in two passes, on a smaller copy for a
+/// large radius; a blurred backdrop and a reflection copy what is drawn under their bounds
+/// out of the target first. A layer in a blend mode is put over a copy of what is under it,
+/// by the shader, in any of the modes Skia has.
 /// </para>
 /// </remarks>
 internal sealed partial class GlesGraphics : Graphics
@@ -67,8 +73,10 @@ internal sealed partial class GlesGraphics : Graphics
         public LayerFrame? Layer;
     }
 
+    /// <param name="Sigma">The blur in device pixels; 0 — none.</param>
     private sealed record LayerFrame(
-        LayerTexture? Texture, RenderTarget Previous, PixelRect Bounds, float Opacity, float Saturation);
+        LayerTexture? Texture, RenderTarget Previous, PixelRect Bounds, float Opacity, float Saturation,
+        BlendMode Blend = BlendMode.Normal, float Sigma = 0f);
 
     public GlesGraphics(GlesRenderer renderer)
     {
@@ -82,6 +90,12 @@ internal sealed partial class GlesGraphics : Graphics
         _stack.Clear();
         _stencilClips.Clear();
         _stencilDirty = false;
+
+        // captures a broken frame left open give their textures back
+        while (_captures.TryPop(out CaptureFrame? capture))
+        {
+            if (capture.Texture is not null) GlesRenderer.ReleaseLayer(capture.Texture);
+        }
 
         TextEffects = default;
         TextDirection = default;
@@ -267,15 +281,16 @@ internal sealed partial class GlesGraphics : Graphics
         }
     }
 
-    private BatchState Batch(uint image = 0, bool repeat = false, BlendKind blend = BlendKind.Normal) =>
+    private BatchState Batch(uint image = 0, bool repeat = false, BlendKind blend = BlendKind.Normal, uint backdrop = 0) =>
         new(
             image, repeat, blend, _state.Scissor, _state.Clip0, _state.Clip1,
             _state.StencilDepth > 0 ? StencilUse.Test : StencilUse.None,
-            _state.StencilDepth);
+            _state.StencilDepth, backdrop);
 
     /// <summary>Room for a quad in the current state, or none when the clip leaves nothing
     /// of the device bounds it covers.</summary>
-    private Span<Vertex> Quad(Rectangle deviceBounds, uint image = 0, bool repeat = false, BlendKind blend = BlendKind.Normal)
+    private Span<Vertex> Quad(
+        Rectangle deviceBounds, uint image = 0, bool repeat = false, BlendKind blend = BlendKind.Normal, uint backdrop = 0)
     {
         if (_state.Scissor.IsEmpty) return [];
 
@@ -283,7 +298,7 @@ internal sealed partial class GlesGraphics : Graphics
 
         EnsureStencil();
 
-        return _renderer.AddQuad(Batch(image, repeat, blend));
+        return _renderer.AddQuad(Batch(image, repeat, blend, backdrop));
     }
 
     #endregion
@@ -292,25 +307,30 @@ internal sealed partial class GlesGraphics : Graphics
 
     public override void SaveLayer(float opacity) => SaveLayer(opacity, 1f);
 
+    /// <summary>A layer put over what is under it in a blend mode when it is restored: the
+    /// shader blends it with a copy of what is there, as Skia does on the GPU.</summary>
     public override void SaveLayer(float opacity, BlendMode blendMode) =>
-        // TODO(0.19): the blend modes, through a copy of what is under the layer
-        SaveLayer(opacity, 1f);
+        SaveLayer(opacity, 1f, blendMode);
 
     public override void SaveDisabledLayer(float opacity, float desaturation) =>
         SaveLayer(opacity, 1f - Math.Clamp(desaturation, 0f, 1f));
 
+    /// <summary>A layer blurred when it is restored, the sigma half the radius as in
+    /// Skia's backend, in device pixels: a form scaled for the screen blurs as much.</summary>
     public override void SaveBlurLayer(float radius) =>
-        // TODO(0.19): the blur, in two passes over the layer
-        SaveLayer(1f, 1f);
+        SaveLayer(1f, 1f, BlendMode.Normal, MathF.Max(0f, radius) / 2f * _state.Matrix.MeanScale);
 
-    private void SaveLayer(float opacity, float saturation)
+    private void SaveLayer(float opacity, float saturation, BlendMode blend = BlendMode.Normal, float sigma = 0f)
     {
         opacity = Math.Clamp(opacity, 0f, 1f);
+
+        // a blur of a tenth of a pixel moves nothing
+        if (sigma < 0.1f) sigma = 0f;
 
         Save();
 
         // a layer of full opacity and color changes nothing: drawn straight through
-        if (opacity >= 1f && saturation >= 1f) return;
+        if (opacity >= 1f && saturation >= 1f && blend == BlendMode.Normal && sigma == 0f) return;
 
         RenderTarget previous = _renderer.Target;
         PixelRect bounds = _state.Scissor.Intersect(previous.Bounds);
@@ -318,7 +338,7 @@ internal sealed partial class GlesGraphics : Graphics
         if (bounds.IsEmpty)
         {
             // nothing of it can show: whatever is drawn in it is clipped away
-            _state.Layer = new LayerFrame(null, previous, bounds, opacity, saturation);
+            _state.Layer = new LayerFrame(null, previous, bounds, opacity, saturation, blend, sigma);
             _state.Scissor = bounds;
             return;
         }
@@ -326,7 +346,7 @@ internal sealed partial class GlesGraphics : Graphics
         LayerTexture texture = _renderer.AcquireLayer(bounds.Width, bounds.Height);
         var target = new RenderTarget(texture.Framebuffer, bounds.Width, bounds.Height, bounds.X, bounds.Y);
 
-        _state.Layer = new LayerFrame(texture, previous, bounds, opacity, saturation);
+        _state.Layer = new LayerFrame(texture, previous, bounds, opacity, saturation, blend, sigma);
 
         _renderer.SetTarget(target);
         _renderer.Clear(default, bounds);
@@ -345,29 +365,237 @@ internal sealed partial class GlesGraphics : Graphics
         if (_state.StencilDepth > 0) _stencilDirty = true;
 
         PixelRect b = layer.Bounds;
+
+        // what is put over: the layer, or its blur — smaller by the scale it was made at
+        LayerTexture content = texture;
+        float contentWidth = b.Width, contentHeight = b.Height;
+
+        if (layer.Sigma > 0f)
+        {
+            BlurredLayer blurred = _renderer.Blur(texture, b.Width, b.Height, layer.Sigma, clampEdges: false);
+            GlesRenderer.ReleaseLayer(texture);
+
+            content = blurred.Texture;
+            contentWidth = blurred.Width;
+            contentHeight = blurred.Height;
+        }
+
+        // the layer was drawn into the lower left of its texture, GL's rows from the bottom
+        float u1 = contentWidth / content.Width;
+        float vTop = contentHeight / content.Height;
+
+        byte o = (byte)(layer.Opacity * 255f + 0.5f);
+
+        if (layer.Blend == BlendMode.Normal)
+            Composite(content, b, u1, vTop, Pack(o, o, o, o), layer.Saturation);
+        else
+            CompositeBlended(content, b, u1, vTop, o, layer.Blend);
+
+        // the composite is drawn before any later layer can take the texture: taking one
+        // to draw into flushes first
+        GlesRenderer.ReleaseLayer(content);
+    }
+
+    /// <summary>A layer's content drawn over the target in its device bounds, faded by the
+    /// color, desaturated by the saturation.</summary>
+    private void Composite(LayerTexture content, PixelRect b, float u1, float vTop, uint color, float saturation)
+    {
         var device = new Rectangle(b.X, b.Y, b.Width, b.Height);
 
-        Span<Vertex> quad = Quad(device, texture.Texture);
+        Span<Vertex> quad = Quad(device, content.Texture);
+        if (quad.IsEmpty) return;
+
+        float kind = Shaders.Kind(Shaders.ShapeNone, Shaders.PaintLayer);
+
+        quad[0] = DeviceVertex(b.X, b.Y, color, kind, 0, vTop, saturation);
+        quad[1] = DeviceVertex(b.Right, b.Y, color, kind, u1, vTop, saturation);
+        quad[2] = DeviceVertex(b.Right, b.Bottom, color, kind, u1, 0, saturation);
+        quad[3] = DeviceVertex(b.X, b.Bottom, color, kind, 0, 0, saturation);
+    }
+
+    /// <summary>A layer put over what is under it in a blend mode: what is there is copied
+    /// out, and the shader writes the blend of the two in its place.</summary>
+    private void CompositeBlended(LayerTexture content, PixelRect b, float u1, float vTop, byte opacity, BlendMode mode)
+    {
+        var device = new Rectangle(b.X, b.Y, b.Width, b.Height);
+
+        // nothing of it shows: the copy isn't worth making
+        if (_state.Scissor.Intersect(b).IsEmpty) return;
+
+        LayerTexture under = _renderer.CopyTarget(b);
+
+        float du1 = (float)b.Width / under.Width;
+        float dvTop = (float)b.Height / under.Height;
+
+        Span<Vertex> quad = Quad(device, content.Texture, blend: BlendKind.Replace, backdrop: under.Texture);
 
         if (!quad.IsEmpty)
         {
-            // the layer was drawn into the lower left of its texture, GL's rows from the bottom
-            float u1 = (float)b.Width / texture.Width;
-            float vTop = (float)b.Height / texture.Height;
+            float kind = Shaders.Kind(Shaders.ShapeNone, Shaders.PaintBlend);
+            uint color = Pack(opacity, opacity, opacity, opacity);
+            float m = (float)mode;
 
-            byte o = (byte)(layer.Opacity * 255f + 0.5f);
-            uint color = Pack(o, o, o, o);
-            float kind = Shaders.Kind(Shaders.ShapeNone, Shaders.PaintLayer);
+            quad[0] = BlendVertex(b.X, b.Y, 0, vTop, 0, dvTop);
+            quad[1] = BlendVertex(b.Right, b.Y, u1, vTop, du1, dvTop);
+            quad[2] = BlendVertex(b.Right, b.Bottom, u1, 0, du1, 0);
+            quad[3] = BlendVertex(b.X, b.Bottom, 0, 0, 0, 0);
 
-            quad[0] = DeviceVertex(b.X, b.Y, color, kind, 0, vTop, layer.Saturation);
-            quad[1] = DeviceVertex(b.Right, b.Y, color, kind, u1, vTop, layer.Saturation);
-            quad[2] = DeviceVertex(b.Right, b.Bottom, color, kind, u1, 0, layer.Saturation);
-            quad[3] = DeviceVertex(b.X, b.Bottom, color, kind, 0, 0, layer.Saturation);
+            // the layer's coordinates in the paint's, the copy's in the local ones
+            Vertex BlendVertex(float x, float y, float u, float v, float du, float dv) => new()
+            {
+                X = x,
+                Y = y,
+                LocalX = du,
+                LocalY = dv,
+                Color = color,
+                Kind = kind,
+                E0 = u,
+                E1 = v,
+                E2 = m,
+            };
         }
 
-        // the composite is drawn before any later layer can take the texture: taking one
-        // changes the target, and that flushes
-        GlesRenderer.ReleaseLayer(texture);
+        GlesRenderer.ReleaseLayer(under);
+    }
+
+    #endregion
+
+    #region Layer capture
+
+    private readonly Stack<CaptureFrame> _captures = new();
+
+    /// <summary>A capture being drawn: its texture, and what the drawing goes back to.</summary>
+    private sealed record CaptureFrame(
+        LayerTexture? Texture, RenderTarget Previous, State Saved, Vertex[][] StencilClips, Rectangle Bounds, int Width, int Height);
+
+    public override bool SupportsLayerCapture => true;
+
+    /// <summary>Drawing goes into a texture of the bounds' size, one unit a pixel, its
+    /// corner at the bounds' corner — Skia's backend captures at the same scale.</summary>
+    public override void BeginCapture(Rectangle bounds)
+    {
+        int width = (int)MathF.Ceiling(bounds.Width);
+        int height = (int)MathF.Ceiling(bounds.Height);
+
+        RenderTarget previous = _renderer.Target;
+        Vertex[][] clips = [.. _stencilClips];
+
+        if (width <= 0 || height <= 0)
+        {
+            // nothing to capture, but EndCapture must find a pair for its Begin; whatever
+            // is drawn until then goes nowhere
+            _captures.Push(new CaptureFrame(null, previous, _state, clips, bounds, 0, 0));
+            _state.Scissor = new PixelRect(0, 0, 0, 0);
+            return;
+        }
+
+        LayerTexture texture = _renderer.AcquireLayer(width, height);
+        var target = new RenderTarget(texture.Framebuffer, width, height, 0, 0);
+
+        _captures.Push(new CaptureFrame(texture, previous, _state, clips, bounds, width, height));
+
+        // a canvas of its own: no transform but the shift to its corner, no clip
+        _state = new State
+        {
+            Matrix = Affine.Translation(-bounds.X, -bounds.Y),
+            Scissor = target.Bounds,
+            Clip0 = ClipShape.None,
+            Clip1 = ClipShape.None,
+        };
+
+        _stencilClips.Clear();
+        _stencilDirty = false;
+
+        _renderer.SetTarget(target);
+        _renderer.Clear(default, target.Bounds);
+    }
+
+    public override LayerCapture? EndCapture()
+    {
+        if (!_captures.TryPop(out CaptureFrame? frame))
+        {
+            ZfContract.Fail("EndCapture without a matching BeginCapture.");
+            return null;
+        }
+
+        if (frame.Texture is not null) _renderer.SetTarget(frame.Previous);
+
+        _state = frame.Saved;
+
+        _stencilClips.Clear();
+        _stencilClips.AddRange(frame.StencilClips);
+        _stencilDirty = _state.StencilDepth > 0;
+
+        return frame.Texture is { } texture
+            ? new GlesLayerCapture(texture, frame.Bounds, frame.Width, frame.Height)
+            : null;
+    }
+
+    public override void DrawCapture(
+        LayerCapture capture,
+        Rectangle target,
+        Rectangle? sourceClip = null,
+        ColorChannels channels = ColorChannels.All,
+        CaptureBlend blend = CaptureBlend.Normal,
+        float opacity = 1f)
+    {
+        if (capture is not GlesLayerCapture gles || gles.IsDisposed) return;
+        if (opacity <= 0f || target.Width <= 0 || target.Height <= 0) return;
+
+        LayerTexture texture = gles.Texture;
+
+        // the part of the capture, in its own pixels from its top left
+        Rectangle source = sourceClip is { } clip
+            ? new Rectangle(clip.X - gles.Bounds.X, clip.Y - gles.Bounds.Y, clip.Width, clip.Height)
+            : new Rectangle(0, 0, gles.Width, gles.Height);
+
+        // GL's rows from the bottom of the content
+        float u0 = source.X / texture.Width, u1 = source.Right / texture.Width;
+        float v0 = (gles.Height - source.Y) / texture.Height, v1 = (gles.Height - source.Bottom) / texture.Height;
+
+        Affine m = _state.Matrix;
+        Point p0 = m.Map(target.X, target.Y), p1 = m.Map(target.Right, target.Y);
+        Point p2 = m.Map(target.Right, target.Bottom), p3 = m.Map(target.X, target.Bottom);
+
+        Span<Vertex> quad = Quad(Bounds(p0, p1, p2, p3), texture.Texture,
+            blend: blend == CaptureBlend.Screen ? BlendKind.Screen : BlendKind.Normal);
+        if (quad.IsEmpty) return;
+
+        // the channels let through, the alpha always: the color multiplies the picture
+        byte o = (byte)(Math.Clamp(opacity, 0f, 1f) * 255f + 0.5f);
+        byte r = channels is ColorChannels.All or ColorChannels.Red or ColorChannels.Magenta or ColorChannels.Yellow ? o : (byte)0;
+        byte g = channels is ColorChannels.All or ColorChannels.Green or ColorChannels.Cyan or ColorChannels.Yellow ? o : (byte)0;
+        byte bl = channels is ColorChannels.All or ColorChannels.Blue or ColorChannels.Cyan or ColorChannels.Magenta ? o : (byte)0;
+
+        uint color = Pack(r, g, bl, o);
+        float kind = Shaders.Kind(Shaders.ShapeNone, Shaders.PaintLayer);
+
+        quad[0] = DeviceVertex(p0.X, p0.Y, color, kind, u0, v0, 1f);
+        quad[1] = DeviceVertex(p1.X, p1.Y, color, kind, u1, v0, 1f);
+        quad[2] = DeviceVertex(p2.X, p2.Y, color, kind, u1, v1, 1f);
+        quad[3] = DeviceVertex(p3.X, p3.Y, color, kind, u0, v1, 1f);
+    }
+
+    /// <summary>A capture's texture, kept out of the layers' pool until it is disposed.</summary>
+    private sealed class GlesLayerCapture(LayerTexture texture, Rectangle bounds, int width, int height) : LayerCapture
+    {
+        public LayerTexture Texture { get; } = texture;
+
+        public override Rectangle Bounds { get; } = bounds;
+
+        public int Width { get; } = width;
+
+        public int Height { get; } = height;
+
+        public bool IsDisposed { get; private set; }
+
+        public override void Dispose()
+        {
+            if (IsDisposed) return;
+
+            IsDisposed = true;
+            GlesRenderer.ReleaseLayer(Texture);
+        }
     }
 
     #endregion
@@ -919,15 +1147,105 @@ internal sealed partial class GlesGraphics : Graphics
         quad[3] = DeviceVertex(p3.X, p3.Y, 0xFFFFFFFF, kind, u0, v1);
     }
 
+    /// <summary>What is drawn under the bounds, blurred in place: copied out of the target —
+    /// the part the clip shows, as Skia's backend snapshots — blurred with its edges going
+    /// on, and drawn back cut to the bounds.</summary>
     public override void BlurBackdrop(Rectangle bounds, float radius)
     {
-        // TODO(0.19): a copy of the target under the bounds, blurred and drawn back
+        if (radius <= 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        PixelRect region = Snapshotable(bounds);
+        if (region.IsEmpty) return;
+
+        float sigma = radius / 2f * _state.Matrix.MeanScale;
+
+        LayerTexture copy = _renderer.CopyTarget(region);
+        BlurredLayer blurred = _renderer.Blur(copy, region.Width, region.Height, sigma, clampEdges: true);
+        GlesRenderer.ReleaseLayer(copy);
+
+        Save();
+        ClipRect(bounds);
+
+        LayerTexture texture = blurred.Texture;
+        Composite(texture, region, (float)blurred.Width / texture.Width, (float)blurred.Height / texture.Height, 0xFFFFFFFF, 1f);
+
+        Restore();
+
+        GlesRenderer.ReleaseLayer(texture);
     }
 
+    /// <summary>
+    /// A reflection under the bounds: what is drawn in them, copied out, mirrored, squeezed
+    /// to <paramref name="heightRatio"/> of their height <paramref name="gap"/> below them,
+    /// fading from <paramref name="startOpacity"/> right under them to nothing.
+    /// </summary>
+    /// <remarks>Only the part actually copied is reflected, at its own share of the
+    /// reflection's height — as Skia's backend does with a snapshot cut at the window's edge.
+    /// The fade is the vertices' alpha, interpolated: the linear gradient exactly.</remarks>
     public override void DrawReflection(Rectangle bounds, float heightRatio, float gap, float startOpacity)
     {
-        // TODO(0.19): a copy of the target under the bounds, mirrored and faded
+        if (heightRatio <= 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        Affine m = _state.Matrix;
+        if (!m.TryInvert(out Affine inverse)) return;
+
+        PixelRect region = Snapshotable(bounds);
+        if (region.IsEmpty) return;
+
+        LayerTexture copy = _renderer.CopyTarget(region);
+
+        // the part taken, back in local units
+        Rectangle taken = inverse.MapBounds(new Rectangle(region.X, region.Y, region.Width, region.Height));
+
+        float left = MathF.Max(taken.X, bounds.X), right = MathF.Min(taken.Right, bounds.Right);
+        float top = MathF.Max(taken.Y, bounds.Y), bottom = MathF.Min(taken.Bottom, bounds.Bottom);
+
+        if (right > left && bottom > top)
+        {
+            float height = bounds.Height * Math.Clamp(heightRatio, 0f, 1f);
+            float start = bounds.Bottom + gap;
+            float opacity = Math.Clamp(startOpacity, 0f, 1f);
+
+            // a row of the bounds to its row in the reflection: the bottom right under them
+            float Mirror(float y) => start + (bounds.Bottom - y) / bounds.Height * height;
+
+            Point s0 = new(left, bottom), s1 = new(right, bottom), s2 = new(right, top), s3 = new(left, top);
+            Point d0 = m.Map(left, Mirror(bottom)), d1 = m.Map(right, Mirror(bottom));
+            Point d2 = m.Map(right, Mirror(top)), d3 = m.Map(left, Mirror(top));
+
+            Span<Vertex> quad = Quad(Bounds(d0, d1, d2, d3), copy.Texture);
+
+            if (!quad.IsEmpty)
+            {
+                float kind = Shaders.Kind(Shaders.ShapeNone, Shaders.PaintLayer);
+
+                quad[0] = Reflected(d0, s0, Mirror(bottom));
+                quad[1] = Reflected(d1, s1, Mirror(bottom));
+                quad[2] = Reflected(d2, s2, Mirror(top));
+                quad[3] = Reflected(d3, s3, Mirror(top));
+
+                Vertex Reflected(Point device, Point source, float y)
+                {
+                    // where the source point was in the copy, GL's rows from the bottom
+                    Point at = m.Map(source);
+                    float u = (at.X - region.X) / copy.Width;
+                    float v = (region.Bottom - at.Y) / copy.Height;
+
+                    float fade = Math.Clamp(1f - (y - start) / height, 0f, 1f) * opacity;
+                    byte a = (byte)(fade * 255f + 0.5f);
+
+                    return DeviceVertex(device.X, device.Y, Pack(a, a, a, a), kind, u, v, 1f);
+                }
+            }
+        }
+
+        GlesRenderer.ReleaseLayer(copy);
     }
+
+    /// <summary>The device pixels under local bounds that can be copied: inside the target
+    /// and the clip — beyond them there is nothing, or something stale.</summary>
+    private PixelRect Snapshotable(Rectangle bounds) =>
+        PixelRect.Outer(_state.Matrix.MapBounds(bounds)).Intersect(_state.Scissor).Intersect(_renderer.Target.Bounds);
 
     #endregion
 

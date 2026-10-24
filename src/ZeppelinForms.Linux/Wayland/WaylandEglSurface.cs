@@ -95,6 +95,8 @@ internal sealed class WaylandEglSurface : IWaylandSurface
                 IsGles = true,
                 StencilBits = 8,
                 GetProcAddress = EglDisplay.GetProcAddress,
+                // an element drawn into a picture between frames, in this context
+                MakeCurrent = () => Egl.eglMakeCurrent(egl.Handle, eglSurface, eglSurface, context),
             });
 
             if (backend is null)
