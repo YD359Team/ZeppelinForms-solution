@@ -10,6 +10,12 @@ in the form of Wayland and GLES.
 
 ### Fixes
 
+- Fix possible `Image` int32 overflow in constructor
+- Fix unsubscribed static event handlers in `Form`
+
+### Behavior
+
+- `MapControl` have cache size limit in 100MB
 
 ### Wayland
 
