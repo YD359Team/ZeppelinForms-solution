@@ -1,11 +1,28 @@
+using ZeppelinForms.Input.Commands;
 using ZeppelinForms.Input.Mouse;
 
 namespace ZF_SharedLib.Showcase;
 
-/// <summary>The behaviour of the card SignUpCard.zfml lays out. The constructor
-/// InitializeComponent is called from is generated too: the class declares none.</summary>
+/// <summary>The behaviour of the card SignUpCard.zfml lays out.</summary>
 public partial class SignUpCard
 {
+    /// <summary>The markup's Command="Clear": made before InitializeComponent, which
+    /// hands it to the button.</summary>
+    public Command Clear { get; }
+
+    public SignUpCard()
+    {
+        Clear = new Command(ClearFields, () =>
+            !string.IsNullOrEmpty(NameBox.Text) || !string.IsNullOrEmpty(EmailBox.Text) || Terms.IsChecked);
+
+        InitializeComponent();
+
+        // the button asks again whenever what CanExecute reads changes
+        NameBox.TextChanged += (_, _) => Clear.NotifyCanExecuteChanged();
+        EmailBox.TextChanged += (_, _) => Clear.NotifyCanExecuteChanged();
+        Terms.CheckedChanged += (_, _) => Clear.NotifyCanExecuteChanged();
+    }
+
     private void OnSubmit(object? sender, MouseClickEventArgs e)
     {
         if (string.IsNullOrWhiteSpace(NameBox.Text) || string.IsNullOrWhiteSpace(EmailBox.Text))
@@ -19,7 +36,7 @@ public partial class SignUpCard
             : "Accept the terms first.";
     }
 
-    private void OnClear(object? sender, MouseClickEventArgs e)
+    private void ClearFields()
     {
         NameBox.Text = string.Empty;
         EmailBox.Text = string.Empty;

@@ -31,12 +31,14 @@ public class MarkupGeneratorTests
 
     private sealed record Result(Assembly? Assembly, ImmutableArray<Diagnostic> Errors, string? Source)
     {
+        public ImmutableArray<Diagnostic> Warnings { get; init; } = [];
+
         public object Create(string type) => Activator.CreateInstance(Assembly!.GetType(type, throwOnError: true)!)!;
     }
 
     private static int s_build;
 
-    private static Result Build(string markup, string code = "")
+    private static Result Build(string markup, string code = "", params string[] styleSheets)
     {
         var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
             .Split(Path.PathSeparator)
@@ -53,7 +55,7 @@ public class MarkupGeneratorTests
 
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
             [new MarkupGenerator().AsSourceGenerator()],
-            [new MarkupFile("/app/Main.zfml", markup)],
+            [new MarkupFile("/app/Main.zfml", markup), .. styleSheets.Select(path => new MarkupFile(path, string.Empty))],
             parse);
 
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation output, out ImmutableArray<Diagnostic> generated);
@@ -61,15 +63,16 @@ public class MarkupGeneratorTests
         string? source = driver.GetRunResult().GeneratedTrees.FirstOrDefault()?.ToString();
 
         ImmutableArray<Diagnostic> errors = [.. generated.Concat(output.GetDiagnostics()).Where(d => d.Severity == DiagnosticSeverity.Error)];
+        ImmutableArray<Diagnostic> warnings = [.. generated.Where(d => d.Severity == DiagnosticSeverity.Warning)];
 
-        if (!errors.IsEmpty) return new Result(null, errors, source);
+        if (!errors.IsEmpty) return new Result(null, errors, source) { Warnings = warnings };
 
         using var stream = new MemoryStream();
         var emitted = output.Emit(stream);
 
         Assert.True(emitted.Success, string.Join("\n", emitted.Diagnostics));
 
-        return new Result(Assembly.Load(stream.ToArray()), errors, source);
+        return new Result(Assembly.Load(stream.ToArray()), errors, source) { Warnings = warnings };
     }
 
     private static T Field<T>(object owner, string name) =>
@@ -312,5 +315,190 @@ public class MarkupGeneratorTests
         Result result = Build($"<StackPanel x:Class=\"App.Broken\" {Xmlns}>\n  <Label>\n</StackPanel>");
 
         Assert.Contains(result.Errors, d => d.Id == "ZF2001");
+    }
+
+    // ===== commands =====
+
+    [Fact]
+    public void ACommandComesFromTheClass()
+    {
+        Result result = Build($"""
+            <StackPanel x:Class="App.Editor" {Xmlns}>
+              <Button x:Name="SaveButton" Text="Save" Command="Save" CommandParameter="draft"/>
+            </StackPanel>
+            """, """
+            namespace App;
+            public partial class Editor
+            {
+                public object? Saved;
+                public ZeppelinForms.Input.Commands.Command Save { get; }
+                public Editor()
+                {
+                    Save = new(p => Saved = p);
+                    InitializeComponent();
+                }
+            }
+            """);
+
+        Assert.Empty(result.Errors);
+        Assert.Contains("e1.Command = this.Save;", result.Source, StringComparison.Ordinal);
+
+        object editor = result.Create("App.Editor");
+        var button = Field<Button>(editor, "SaveButton");
+
+        Assert.Same(editor.GetType().GetProperty("Save")!.GetValue(editor), button.Command);
+
+        button.Command!.Execute(button.CommandParameter);
+        Assert.Equal("draft", Field<object>(editor, "Saved"));
+    }
+
+    [Fact]
+    public void AStaticCommandOfAnotherTypeIsNamedWithItsType()
+    {
+        Result result = Build($"""
+            <StackPanel x:Class="App.Shell" {Xmlns}>
+              <Button x:Name="Quit" Command="AppCommands.Quit"/>
+            </StackPanel>
+            """, """
+            namespace App;
+            public static class AppCommands
+            {
+                public static readonly ZeppelinForms.Input.Commands.Command Quit = new(() => { });
+            }
+            """);
+
+        Assert.Empty(result.Errors);
+        Assert.Contains("e1.Command = global::App.AppCommands.Quit;", result.Source, StringComparison.Ordinal);
+
+        object shell = result.Create("App.Shell");
+        Assert.NotNull(Field<Button>(shell, "Quit").Command);
+    }
+
+    [Fact]
+    public void ACommandTheMarkupCantFindIsReportedAtItsLine()
+    {
+        Result result = Build($"""
+            <StackPanel x:Class="App.Editor" {Xmlns}>
+              <Button Command="Missing"/>
+              <Button Command="Count"/>
+              <Button Command="Nowhere.Save"/>
+            </StackPanel>
+            """, """
+            namespace App;
+            public partial class Editor { public int Count; }
+            """);
+
+        Diagnostic[] errors = [.. result.Errors.Where(d => d.Id == "ZF2011")];
+        Assert.Equal(3, errors.Length);
+
+        Assert.Equal([2, 3, 4], errors.Select(e => e.Location.GetLineSpan().StartLinePosition.Line + 1));
+        Assert.Contains("int", errors[1].GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("Nowhere", errors[2].GetMessage(), StringComparison.Ordinal);
+    }
+
+    // ===== style sheets =====
+
+    [Fact]
+    public void AStyleSheetInTheMarkupStylesTheElement()
+    {
+        Result result = Build($$"""
+            <StackPanel x:Class="App.Styled" {{Xmlns}}>
+              <x:Styles>
+                $pad: 14 6;
+                Button.wide { Padding: $pad; &amp;:hover { Padding: 16 8; } }
+              </x:Styles>
+              <Button Classes="wide"/>
+            </StackPanel>
+            """);
+
+        Assert.Empty(result.Errors);
+        Assert.Empty(result.Warnings);
+
+        var panel = (StackPanel)result.Create("App.Styled");
+
+        Assert.Equal(2, panel.Styles.Count);
+
+        // in a window the button takes the sheet's padding
+        var form = new Form { Size = new Size(200, 200), Content = panel };
+        new ZeppelinForms.Headless.HeadlessPlatform().CreateWindow(form);
+        Assert.Equal(new Thickness(14, 6), panel.Children[0].Padding);
+
+        // the sheet's lines are those of the markup
+        Assert.Equal("Main.zfml:4", panel.Styles[0].Source);
+
+        // built again, as by Hot Reload: the old sheet goes before the new comes
+        panel.GetType().GetMethod("InitializeComponent", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(panel, null);
+        Assert.Equal(2, panel.Styles.Count);
+    }
+
+    [Fact]
+    public void AStyleSheetInTheMarkupIsCheckedAtItsLines()
+    {
+        Result result = Build($$"""
+            <StackPanel x:Class="App.Checked" {{Xmlns}}>
+              <x:Styles>
+                Button { Padding 4; }
+                Buton { Padding: 4; }
+                Label { Nothing: 1; }
+                Label { Padding: $none; }
+              </x:Styles>
+            </StackPanel>
+            """);
+
+        int LineOf(Diagnostic d) => d.Location.GetLineSpan().StartLinePosition.Line + 1;
+
+        Diagnostic[] errors = [.. result.Errors.Where(d => d.Id == "ZF2012")];
+        Assert.Equal([3, 6], errors.Select(LineOf));
+        Assert.Contains("Property: value", errors[0].GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("$none", errors[1].GetMessage(), StringComparison.Ordinal);
+
+        Diagnostic[] warnings = [.. result.Warnings.Where(d => d.Id == "ZF2013")];
+        Assert.Equal([4, 5], warnings.Select(LineOf));
+        Assert.Contains("'Buton'", warnings[0].GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("'Nothing'", warnings[1].GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AStyleSheetInCDataKeepsItsColumns()
+    {
+        Result result = Build($$"""
+            <StackPanel x:Class="App.Raw" {{Xmlns}}>
+              <x:Styles><![CDATA[StackPanel > Buton { Padding: 4; }]]></x:Styles>
+            </StackPanel>
+            """);
+
+        Assert.Empty(result.Errors);
+
+        Diagnostic warning = Assert.Single(result.Warnings, d => d.Id == "ZF2013");
+        LinePosition start = warning.Location.GetLineSpan().StartLinePosition;
+
+        // "  <x:Styles><![CDATA[": the sheet starts at the 22nd column of the 2nd line
+        Assert.Equal(2, start.Line + 1);
+        Assert.Equal(22, start.Character + 1);
+
+        var panel = (StackPanel)result.Create("App.Raw");
+        Assert.Single(panel.Styles);
+    }
+
+    [Fact]
+    public void AStyleSheetIsLinkedFromTheAssets()
+    {
+        string markup = $"""
+            <StackPanel x:Class="App.Linked" StyleSheet="Styles/app.zss; Styles/extra.zss" {Xmlns}/>
+            """;
+
+        Result found = Build(markup, "", "/app/Assets/Styles/app.zss", "/app/Assets/Styles/extra.zss");
+
+        Assert.Empty(found.Errors);
+        Assert.Empty(found.Warnings);
+        Assert.Contains("this.Styles.Load(global::System.IO.Path.Combine(global::ZeppelinForms.Assets.Root, \"Styles/app.zss\")",
+            found.Source, StringComparison.Ordinal);
+
+        // a sheet the project doesn't have may reach the assets another way: a warning
+        Result missing = Build(markup, "", "/app/Assets/Styles/app.zss");
+
+        Diagnostic warning = Assert.Single(missing.Warnings);
+        Assert.Equal("ZF2014", warning.Id);
+        Assert.Contains("Styles/extra.zss", warning.GetMessage(), StringComparison.Ordinal);
     }
 }
