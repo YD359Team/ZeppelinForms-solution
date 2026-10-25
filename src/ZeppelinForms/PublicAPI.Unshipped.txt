@@ -99,3 +99,67 @@ ZeppelinForms.IDesktopWindow.SetVisible(bool visible) -> void
 ZeppelinForms.Headless.HeadlessWindow.IsVisible.get -> bool
 ZeppelinForms.Headless.HeadlessWindow.HideCount.get -> int
 ZeppelinForms.Headless.HeadlessWindow.SetVisible(bool visible) -> void
+ZeppelinForms.PlatformHandle
+ZeppelinForms.PlatformHandle.Deconstruct(out nint Handle, out string! Kind) -> void
+ZeppelinForms.PlatformHandle.Equals(ZeppelinForms.PlatformHandle other) -> bool
+ZeppelinForms.PlatformHandle.Handle.get -> nint
+ZeppelinForms.PlatformHandle.Handle.init -> void
+ZeppelinForms.PlatformHandle.Kind.get -> string!
+ZeppelinForms.PlatformHandle.Kind.init -> void
+ZeppelinForms.PlatformHandle.PlatformHandle() -> void
+ZeppelinForms.PlatformHandle.PlatformHandle(nint Handle, string! Kind) -> void
+override ZeppelinForms.PlatformHandle.GetHashCode() -> int
+~override ZeppelinForms.PlatformHandle.Equals(object obj) -> bool
+~override ZeppelinForms.PlatformHandle.ToString() -> string
+static ZeppelinForms.PlatformHandle.operator !=(ZeppelinForms.PlatformHandle left, ZeppelinForms.PlatformHandle right) -> bool
+static ZeppelinForms.PlatformHandle.operator ==(ZeppelinForms.PlatformHandle left, ZeppelinForms.PlatformHandle right) -> bool
+const ZeppelinForms.PlatformHandle.Hwnd = "HWND" -> string!
+const ZeppelinForms.PlatformHandle.Xid = "XID" -> string!
+const ZeppelinForms.PlatformHandle.HtmlElement = "HTMLElement" -> string!
+ZeppelinForms.INativeControlHostWindow
+ZeppelinForms.INativeControlHostWindow.CreateNativeSlot() -> ZeppelinForms.INativeControlSlot?
+ZeppelinForms.INativeControlSlot
+ZeppelinForms.INativeControlSlot.Attach(ZeppelinForms.PlatformHandle control) -> void
+ZeppelinForms.INativeControlSlot.ControlFocused -> System.EventHandler?
+ZeppelinForms.INativeControlSlot.DestroyControl(ZeppelinForms.PlatformHandle control) -> void
+ZeppelinForms.INativeControlSlot.Focus() -> void
+ZeppelinForms.INativeControlSlot.Parent.get -> ZeppelinForms.PlatformHandle
+ZeppelinForms.INativeControlSlot.Place(ZeppelinForms.Drawing.Primitives.Rectangle bounds, ZeppelinForms.Drawing.Primitives.Rectangle visible) -> void
+ZeppelinForms.Forms.Controls.NativeControlHost
+ZeppelinForms.Forms.Controls.NativeControlHost.NativeControlHost() -> void
+ZeppelinForms.Forms.Controls.NativeControlHost.NativeControl.get -> ZeppelinForms.PlatformHandle?
+ZeppelinForms.Forms.Controls.NativeControlHost.NativeControlCreated -> System.EventHandler?
+ZeppelinForms.Forms.Controls.NativeControlHost.NativeControlDestroying -> System.EventHandler?
+ZeppelinForms.Forms.Controls.NativeControlHost.IsFocused.get -> bool
+ZeppelinForms.Forms.Controls.NativeControlHost.IsFocused.set -> void
+ZeppelinForms.Forms.Controls.NativeControlHost.TabStop.get -> bool
+ZeppelinForms.Forms.Controls.NativeControlHost.TabStop.set -> void
+ZeppelinForms.Forms.Controls.NativeControlHost.TabIndex.get -> uint
+ZeppelinForms.Forms.Controls.NativeControlHost.TabIndex.set -> void
+abstract ZeppelinForms.Forms.Controls.NativeControlHost.CreateNativeControlCore(ZeppelinForms.PlatformHandle parent) -> ZeppelinForms.PlatformHandle
+virtual ZeppelinForms.Forms.Controls.NativeControlHost.DestroyNativeControlCore(ZeppelinForms.PlatformHandle control) -> void
+virtual ZeppelinForms.Forms.Controls.NativeControlHost.DrawPlaceholder(ZeppelinForms.Drawing.Graphics! g) -> void
+override ZeppelinForms.Forms.Controls.NativeControlHost.Draw(ZeppelinForms.Drawing.Graphics! g) -> void
+override ZeppelinForms.Forms.Controls.NativeControlHost.OnAttached() -> void
+override ZeppelinForms.Forms.Controls.NativeControlHost.OnDetached() -> void
+override ZeppelinForms.Forms.Controls.NativeControlHost.OnGotFocus() -> void
+ZeppelinForms.Headless.HeadlessNativeSlot
+ZeppelinForms.Headless.HeadlessNativeSlot.Attach(ZeppelinForms.PlatformHandle control) -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.Bounds.get -> ZeppelinForms.Drawing.Primitives.Rectangle
+ZeppelinForms.Headless.HeadlessNativeSlot.Control.get -> ZeppelinForms.PlatformHandle?
+ZeppelinForms.Headless.HeadlessNativeSlot.ControlFocused -> System.EventHandler?
+ZeppelinForms.Headless.HeadlessNativeSlot.DestroyControl(ZeppelinForms.PlatformHandle control) -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.Destroyed.get -> System.Collections.Generic.List<ZeppelinForms.PlatformHandle>!
+ZeppelinForms.Headless.HeadlessNativeSlot.Dispose() -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.Focus() -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.FocusCount.get -> int
+ZeppelinForms.Headless.HeadlessNativeSlot.IsDisposed.get -> bool
+ZeppelinForms.Headless.HeadlessNativeSlot.Parent.get -> ZeppelinForms.PlatformHandle
+ZeppelinForms.Headless.HeadlessNativeSlot.Place(ZeppelinForms.Drawing.Primitives.Rectangle bounds, ZeppelinForms.Drawing.Primitives.Rectangle visible) -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.PlaceCount.get -> int
+ZeppelinForms.Headless.HeadlessNativeSlot.SimulateControlFocus() -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.Visible.get -> ZeppelinForms.Drawing.Primitives.Rectangle
+ZeppelinForms.Headless.HeadlessWindow.CreateNativeSlot() -> ZeppelinForms.INativeControlSlot?
+ZeppelinForms.Headless.HeadlessWindow.NativeSlots.get -> System.Collections.Generic.List<ZeppelinForms.Headless.HeadlessNativeSlot!>!
+ZeppelinForms.Headless.HeadlessWindow.SupportsNativeControls.get -> bool
+ZeppelinForms.Headless.HeadlessWindow.SupportsNativeControls.set -> void

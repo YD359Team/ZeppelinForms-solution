@@ -5,7 +5,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Headless;
 
-public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow
+public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow, INativeControlHostWindow
 {
     private readonly HeadlessPlatform _platform;
     private readonly Form _form;
@@ -85,6 +85,22 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
 
     /// <summary>The window is on the "screen": shown and not hidden. Checked in tests.</summary>
     public bool IsVisible { get; private set; }
+
+    /// <summary>The slots native controls were given, in order — checked in tests.</summary>
+    public List<HeadlessNativeSlot> NativeSlots { get; } = [];
+
+    /// <summary>Whether the window holds native controls; false plays a Wayland window,
+    /// where a host draws its placeholder.</summary>
+    public bool SupportsNativeControls { get; set; } = true;
+
+    public INativeControlSlot? CreateNativeSlot()
+    {
+        if (!SupportsNativeControls) return null;
+
+        var slot = new HeadlessNativeSlot();
+        NativeSlots.Add(slot);
+        return slot;
+    }
 
     /// <summary>How many times the form hid its window — checked in tests.</summary>
     public int HideCount { get; private set; }

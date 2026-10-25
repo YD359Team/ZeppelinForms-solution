@@ -1792,6 +1792,10 @@ public partial class Form : IDisposable
 
         s_openForms.Remove(this);
 
+        // the native controls go before the window's children are destroyed with it:
+        // each host stops what draws into its control first
+        ReleaseNativeControls();
+
         // the forms this one owns close with it, and this one leaves its owner,
         // see Form.Owner
         CloseOwnedForms();

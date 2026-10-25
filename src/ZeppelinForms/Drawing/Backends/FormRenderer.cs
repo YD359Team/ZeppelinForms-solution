@@ -93,6 +93,10 @@ public static class FormRenderer
         {
             g.Restore();
         }
+
+        // every element is where this frame drew it: the native controls follow their
+        // hosts now, so that a scrolled list and the player in it move together
+        form.PlaceNativeControls();
     }
 
     private static void DrawInspector(Form form, Graphics g)
