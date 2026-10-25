@@ -1,6 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
+using System.Xml;
+using System.Xml.Linq;
+using ZeppelinForms.Analyzers.Markup;
 using ZeppelinForms.Design.Protocol;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Styling;
@@ -292,11 +295,59 @@ public sealed class PreviewServer
 
     private void CheckSheet(string path)
     {
+        if (path.EndsWith(".zfml", StringComparison.OrdinalIgnoreCase))
+        {
+            Send(new SheetDiagnosticsMessage(path, CheckMarkupStyles(path)));
+            return;
+        }
+
         StyleSheet sheet = StyleSheet.Load(path);
 
         Send(new SheetDiagnosticsMessage(path, [.. sheet.Diagnostics.Select(d => new SheetDiagnosticInfo(
             d.Severity == StyleDiagnosticSeverity.Error, d.Message, d.Source, d.Line, d.Column))]));
     }
+
+    /// <summary>The styles of a markup file, parsed as the sheets they become at run time:
+    /// what the build can't check — values, easings, pseudo-classes — at the markup's
+    /// lines. The rest — the shape, the controls and properties named — is the build's
+    /// ZF2012 and ZF2013, and isn't reported twice.</summary>
+    private static List<SheetDiagnosticInfo> CheckMarkupStyles(string path)
+    {
+        var items = new List<SheetDiagnosticInfo>();
+        XDocument document;
+
+        try
+        {
+            document = XDocument.Load(path, LoadOptions.SetLineInfo);
+        }
+        catch (Exception e) when (e is XmlException or IOException or UnauthorizedAccessException)
+        {
+            // markup that isn't XML is the build's ZF2001; a file that can't be read has
+            // nothing to check
+            return items;
+        }
+
+        foreach (string text in MarkupStyleText.SheetsOf(document))
+        {
+            StyleSheet sheet = StyleSheet.Parse(text, path, Assets.Root);
+
+            foreach (StyleDiagnostic d in sheet.Diagnostics)
+            {
+                if (IsTheBuilds(d.Message)) continue;
+
+                items.Add(new SheetDiagnosticInfo(
+                    d.Severity == StyleDiagnosticSeverity.Error, d.Message, path, d.Line, d.Column));
+            }
+        }
+
+        return items;
+    }
+
+    /// <summary>A control or a property nobody has: the build reports it, as ZF2013.</summary>
+    private static bool IsTheBuilds(string message) =>
+        message.StartsWith("No control is called ", StringComparison.Ordinal) ||
+        message.StartsWith("No control has a property ", StringComparison.Ordinal) ||
+        message.Contains(" has no property '", StringComparison.Ordinal);
 
     /// <summary>Run the previewed code; its exception goes to the IDE. False — it threw.</summary>
     private bool Guard(Action action)

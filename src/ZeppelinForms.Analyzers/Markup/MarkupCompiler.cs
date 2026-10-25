@@ -37,8 +37,8 @@ namespace ZeppelinForms.Analyzers.Markup;
 /// Selector="…"&gt;</c> with <c>&lt;Setter&gt;</c>, <c>&lt;Transition&gt;</c> and nested
 /// styles, <c>^</c> for the enclosing selector — and <c>&lt;StyleInclude
 /// Source="…"/&gt;</c> for a sheet of the assets folder. The styles become the text of a
-/// style sheet, line for line where the markup has them: checked here
-/// (<see cref="InlineStyleChecker"/>), parsed when the element is built.
+/// style sheet, line for line where the markup has them (<see cref="MarkupStyleText"/>):
+/// checked here (<see cref="InlineStyleChecker"/>), parsed when the element is built.
 /// </para>
 /// </remarks>
 internal sealed class MarkupCompiler
@@ -570,11 +570,11 @@ internal sealed class MarkupCompiler
         {
             switch (child)
             {
-                case XElement element when IsStyleElement(element, "Style"):
+                case XElement element when MarkupStyleText.IsElement(element, "Style"):
                     styles.Add(element);
                     break;
 
-                case XElement element when IsStyleElement(element, "StyleInclude"):
+                case XElement element when MarkupStyleText.IsElement(element, "StyleInclude"):
                     EmitStyles(styles, target);
                     styles.Clear();
                     ApplyStyleInclude(element, target);
@@ -593,9 +593,6 @@ internal sealed class MarkupCompiler
 
         EmitStyles(styles, target);
     }
-
-    private static bool IsStyleElement(XElement element, string name) =>
-        element.Name.NamespaceName == DefaultNamespace && element.Name.LocalName == name;
 
     /// <summary>&lt;StyleInclude Source="Styles/app.zss"/&gt;: a sheet of the assets folder,
     /// as <c>StyleSheet.LoadAsset</c> finds it. One that isn't among the project's .zss
@@ -635,20 +632,21 @@ internal sealed class MarkupCompiler
     }
 
     /// <summary>Styles as one style sheet: its text is written line for line where the
-    /// markup has them, so what the check here and the sheet at run time report has the
-    /// markup's lines.</summary>
+    /// markup has them (<see cref="MarkupStyleText"/>), so what the check here and the
+    /// sheet at run time report has the markup's lines.</summary>
     private void EmitStyles(List<XElement> styles, string target)
     {
         if (styles.Count == 0) return;
 
-        var sheet = new SheetText();
+        string text = MarkupStyleText.Write(styles, issue =>
+        {
+            if (issue.Misplaced)
+                Report(MarkupDiagnostics.NoPlace, issue.At, issue.Holder, issue.Child, issue.Message);
+            else
+                Report(MarkupDiagnostics.BadStyles, issue.At, issue.Message);
+        });
 
-        foreach (XElement style in styles)
-            WriteStyle(sheet, style, nested: false);
-
-        string text = sheet.ToString();
-
-        if (text.Trim().Length == 0) return;
+        if (text.Length == 0) return;
 
         _styleNames ??= StyleNames.Collect(_compilation, _element!);
 
@@ -673,178 +671,6 @@ internal sealed class MarkupCompiler
             .Append(SymbolDisplay.FormatLiteral(text.Substring(blank), quote: true)).Append(", ")
             .Append(SymbolDisplay.FormatLiteral(Path.GetFileName(_path), quote: true))
             .AppendLine(", global::ZeppelinForms.Assets.Root));");
-    }
-
-    /// <summary>&lt;Style Selector="…"&gt; as a rule: its setters, transitions and nested
-    /// styles inside, '^' of a nested selector standing for the enclosing one.</summary>
-    private void WriteStyle(SheetText sheet, XElement style, bool nested)
-    {
-        string selector = ((string?)style.Attribute("Selector"))?.Trim() ?? string.Empty;
-
-        if (selector.Length == 0)
-        {
-            Report(MarkupDiagnostics.BadStyles, style, "A Style needs a Selector: <Style Selector=\"Button.primary\">");
-            return;
-        }
-
-        if (!nested && selector.IndexOf('^') >= 0)
-        {
-            Report(MarkupDiagnostics.BadStyles, style, "'^' stands for the selector of the enclosing Style, and this one is in none");
-            return;
-        }
-
-        if (style.Attributes().FirstOrDefault(a => !a.IsNamespaceDeclaration && a.Name.LocalName != "Selector") is { } stray)
-        {
-            Report(MarkupDiagnostics.BadStyles, stray, "A Style takes only a Selector; '" + stray.Name.LocalName + "' is a Setter's");
-            return;
-        }
-
-        sheet.Put(style, selector.Replace("^", "&") + " {");
-
-        foreach (XNode child in style.Nodes())
-        {
-            switch (child)
-            {
-                case XElement element when IsStyleElement(element, "Setter"):
-                    WriteSetter(sheet, element);
-                    break;
-
-                case XElement element when IsStyleElement(element, "Transition"):
-                    WriteTransition(sheet, element);
-                    break;
-
-                case XElement element when IsStyleElement(element, "Style"):
-                    WriteStyle(sheet, element, nested: true);
-                    break;
-
-                case XElement element:
-                    Report(MarkupDiagnostics.NoPlace, element, "Style", element.Name.LocalName,
-                        "it holds <Setter>, <Transition> and nested <Style>");
-                    break;
-
-                case XText text when !string.IsNullOrWhiteSpace(text.Value):
-                    Report(MarkupDiagnostics.NoPlace, text, "Style", "text", "it holds <Setter>, <Transition> and nested <Style>");
-                    break;
-            }
-        }
-
-        sheet.Close();
-    }
-
-    /// <summary>&lt;Setter Property="Padding" Value="14 6"/&gt; — or the value as the
-    /// element's text — in the style sheets' own values: theme references, functions.</summary>
-    private void WriteSetter(SheetText sheet, XElement setter)
-    {
-        string property = ((string?)setter.Attribute("Property"))?.Trim() ?? string.Empty;
-        string? value = ((string?)setter.Attribute("Value") ?? (setter.HasElements ? null : setter.Value))?.Trim();
-
-        if (property.Length == 0)
-        {
-            Report(MarkupDiagnostics.BadStyles, setter, "A Setter names its Property: <Setter Property=\"Padding\" Value=\"14 6\"/>");
-            return;
-        }
-
-        if (setter.HasElements)
-        {
-            Report(MarkupDiagnostics.BadStyles, setter, "A Setter's value is text, written as the style sheets write it: Value=\"14 6\"");
-            return;
-        }
-
-        if (string.IsNullOrEmpty(value))
-        {
-            Report(MarkupDiagnostics.BadStyles, setter, property + " has no Value");
-            return;
-        }
-
-        if (!IsPlainValue(value!))
-        {
-            Report(MarkupDiagnostics.BadStyles, setter, "A value can't hold ';', '{' or '}': '" + value + "'");
-            return;
-        }
-
-        sheet.Put(setter, property + ": " + value + ";");
-    }
-
-    /// <summary>&lt;Transition Property="Background" Duration="150ms" Easing="ease-out"/&gt;.</summary>
-    private void WriteTransition(SheetText sheet, XElement transition)
-    {
-        string property = ((string?)transition.Attribute("Property"))?.Trim() ?? string.Empty;
-        string duration = ((string?)transition.Attribute("Duration"))?.Trim() ?? string.Empty;
-        string easing = ((string?)transition.Attribute("Easing"))?.Trim() ?? string.Empty;
-
-        if (property.Length == 0 || duration.Length == 0)
-        {
-            Report(MarkupDiagnostics.BadStyles, transition,
-                "A Transition names its Property and Duration: <Transition Property=\"Background\" Duration=\"150ms\"/>");
-            return;
-        }
-
-        if (!IsPlainValue(property + " " + duration + " " + easing) || property.IndexOf(' ') >= 0 || duration.IndexOf(' ') >= 0)
-        {
-            Report(MarkupDiagnostics.BadStyles, transition, "A Transition's Property, Duration and Easing are single words");
-            return;
-        }
-
-        sheet.Put(transition, "transition: " + property + " " + duration + (easing.Length > 0 ? " " + easing : string.Empty) + ";");
-    }
-
-    /// <summary>The value can't end the declaration or open a block: no ';', '{' or '}'
-    /// outside quotes.</summary>
-    private static bool IsPlainValue(string value)
-    {
-        char quote = '\0';
-
-        foreach (char c in value)
-        {
-            if (quote != '\0')
-            {
-                if (c == quote) quote = '\0';
-                continue;
-            }
-
-            if (c is '"' or '\'') quote = c;
-            else if (c is ';' or '{' or '}') return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>The text of a style sheet built from markup: each statement on the line
-    /// and at the column of its element.</summary>
-    private sealed class SheetText
-    {
-        private readonly List<StringBuilder> _lines = [];
-        private int _last;
-
-        public void Put(XObject at, string statement)
-        {
-            IXmlLineInfo info = at;
-            int line = info.HasLineInfo() ? info.LineNumber : Math.Max(_last, 1);
-            int column = info.HasLineInfo() ? info.LinePosition : 1;
-
-            // a statement never goes above the one before it: the order is the cascade's
-            line = Math.Max(line, _last);
-
-            while (_lines.Count < line) _lines.Add(new StringBuilder());
-
-            StringBuilder text = _lines[line - 1];
-
-            if (text.Length == 0) text.Append(' ', Math.Max(0, column - 1));
-            else text.Append(' ');
-
-            text.Append(statement);
-            _last = line;
-        }
-
-        /// <summary>The end of a rule: on the line of what it held last.</summary>
-        public void Close()
-        {
-            if (_lines.Count == 0) return;
-
-            _lines[Math.Max(_last, 1) - 1].Append(" }");
-        }
-
-        public override string ToString() => string.Join("\n", _lines.Select(l => l.ToString()));
     }
 
     /// <summary>The line and column of an offset in a text that starts at the given place.</summary>

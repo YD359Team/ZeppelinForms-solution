@@ -13,6 +13,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<!-- the styles of markup as a style sheet: the generator's own file, so that the
+		     host checks exactly the text the application parses -->
+		<Compile Include="..\..\src\ZeppelinForms.Analyzers\Markup\MarkupStyleText.cs" Link="Markup\MarkupStyleText.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <ProjectReference Include="..\..\src\ZeppelinForms.Skia\ZeppelinForms.Skia.csproj" />
 	  <ProjectReference Include="..\..\src\ZeppelinForms\ZeppelinForms.csproj" />
 	</ItemGroup>

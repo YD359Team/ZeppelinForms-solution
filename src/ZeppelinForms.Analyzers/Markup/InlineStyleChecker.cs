@@ -215,14 +215,29 @@ internal sealed class InlineStyleChecker
             return;
         }
 
-        // the properties of a transition are checked by the sheet itself
+        // a transition names its properties first in each of its items; the durations
+        // and easings are checked by the sheet itself
         if (name.Equals("transition", StringComparison.OrdinalIgnoreCase) ||
             name.Equals("transitions", StringComparison.OrdinalIgnoreCase))
         {
+            foreach (string item in value.Split(','))
+            {
+                string[] parts = item.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length > 0)
+                    CheckProperty(start, KebabToPascal(parts[0]), subjects);
+            }
+
             return;
         }
 
-        string property = KebabToPascal(name);
+        CheckProperty(start, KebabToPascal(name), subjects);
+    }
+
+    /// <summary>Some control has the property — one the selector can meet, when it names
+    /// its subjects' types.</summary>
+    private void CheckProperty(int start, string property, List<INamedTypeSymbol>? subjects)
+    {
         IReadOnlyList<INamedTypeSymbol> owners = _names.OwnersOf(property);
 
         if (owners.Count == 0)

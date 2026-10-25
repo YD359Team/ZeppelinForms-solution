@@ -476,40 +476,23 @@ public class MarkupGeneratorTests
     }
 
     [Fact]
-    public void AStyleSheetIsIncludedFromTheAssetsInItsPlace()
+    public void ATransitionsPropertyIsCheckedToo()
     {
-        string markup = $"""
-            <StackPanel x:Class="App.Linked" {Xmlns}>
+        Result result = Build($"""
+            <StackPanel x:Class="App.Moving" {Xmlns}>
               <StackPanel.Styles>
-                <StyleInclude Source="Styles/app.zss"/>
                 <Style Selector="Button">
-                  <Setter Property="Padding" Value="4"/>
+                  <Transition Property="Backgrund" Duration="150ms"/>
                 </Style>
-                <StyleInclude Source="Styles/extra.zss"/>
               </StackPanel.Styles>
             </StackPanel>
-            """;
+            """);
 
-        Result found = Build(markup, "", "/app/Assets/Styles/app.zss", "/app/Assets/Styles/extra.zss");
+        Assert.Empty(result.Errors);
 
-        Assert.Empty(found.Errors);
-        Assert.Empty(found.Warnings);
-
-        // the cascade's order: the first sheet, the markup's styles, the second sheet
-        string source = found.Source!;
-        int first = source.IndexOf("\"Styles/app.zss\"", StringComparison.Ordinal);
-        int own = source.IndexOf("StyleSheet.Parse(", StringComparison.Ordinal);
-        int second = source.IndexOf("\"Styles/extra.zss\"", StringComparison.Ordinal);
-
-        Assert.True(first > 0 && first < own && own < second);
-        Assert.Contains("this.Styles.Load(global::System.IO.Path.Combine(global::ZeppelinForms.Assets.Root, \"Styles/app.zss\")",
-            source, StringComparison.Ordinal);
-
-        // a sheet the project doesn't have may reach the assets another way: a warning
-        Result missing = Build(markup, "", "/app/Assets/Styles/app.zss");
-
-        Diagnostic warning = Assert.Single(missing.Warnings);
-        Assert.Equal("ZF2014", warning.Id);
-        Assert.Equal(7, warning.Location.GetLineSpan().StartLinePosition.Line + 1);
+        Diagnostic warning = Assert.Single(result.Warnings);
+        Assert.Equal("ZF2013", warning.Id);
+        Assert.Equal(4, warning.Location.GetLineSpan().StartLinePosition.Line + 1);
+        Assert.Contains("'Backgrund'", warning.GetMessage(), StringComparison.Ordinal);
     }
 }

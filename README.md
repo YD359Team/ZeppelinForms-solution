@@ -523,6 +523,12 @@ C# would construct them (`Padding: 14 6`). A mistake skips its declaration and i
 reported with its file, line and column; the Visual Studio extension highlights `.zss`
 and lists the problems in the Error List. `watch: true` reloads a sheet on every save.
 
+The styles of `.zfml` markup (`<Type.Styles>`) are checked the same way when the file
+is opened or saved: the host parses them as the sheet the application builds from
+them, and a value that can't be read, an easing or a pseudo-class nobody has goes to
+the Error List at its line of the markup. Their shape and the controls and properties
+they name are the build's — ZF2012 and ZF2013 — and aren't reported twice.
+
 **Icons.** `App.Icon` is the icon of every form without one of its own and of the
 taskbar button; without it the ZeppelinForms logo is used. `Form.Icon` overrides it
 for one window and can be changed while the window is open. The icon of the executable

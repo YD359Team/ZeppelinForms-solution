@@ -112,9 +112,9 @@ command, or another type's member that isn't static is ZF2011.
   included sheet included.
 - The build checks the styles: a style it can't read — no `Selector`, a setter without a
   property or a value — is ZF2012, an error; a control or a property nobody has is ZF2013,
-  a warning, as the style sheets themselves say: the selector never matches. A value is
-  checked when the element is built; a problem there goes to the debug output with its line
-  in the markup.
+  a warning, as the style sheets themselves say: the selector never matches. The values
+  are checked by the Visual Studio extension when the file is opened or saved — in the
+  Error List at their lines — and when the element is built, in the debug output.
 - The package hands the project's `.zss` files to the build: a `StyleInclude` of a file
   that isn't among them is ZF2014 — a warning, since it may reach the assets another way.
   While a debugger is attached an included sheet is watched: a save restyles the running
@@ -136,7 +136,8 @@ Ctrl+Alt+Shift+P (View › Other Windows › ZeppelinForms Preview) previews the
 every form with a parameterless constructor and every method marked `[Preview]` (namespace
 `ZeppelinForms.Design`). What `Main` does before showing a form — loading style sheets,
 choosing a theme — goes into a `[PreviewSetup]` method. The extension also highlights `.zss`
-style sheets and lists their problems in the Error List.
+style sheets and lists their problems in the Error List, and those of the values of the
+styles in `.zfml` markup.
 
 ## Hot Reload
 
