@@ -21,6 +21,31 @@ internal static class X11
 
     [DllImport(Lib)] public static extern int XIconifyWindow(nint display, nuint window, int screen);
 
+    // ===== native controls among the form's elements, see X11NativeSlot =====
+
+    [DllImport(Lib)] public static extern int XReparentWindow(nint display, nuint window, nuint parent, int x, int y);
+    [DllImport(Lib)] public static extern int XSetWindowBackgroundPixmap(nint display, nuint window, nuint pixmap);
+    [DllImport(Lib)] public static extern int XGetInputFocus(nint display, out nuint focus, out int revertTo);
+
+    /// <summary>FocusIn and FocusOut with the fields that tell where the focus went.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct XFocusChangeEvent
+    {
+        public int type;
+        public nuint serial;
+        public int send_event;
+        public nint display;
+        public nuint window;
+        public int mode;
+        public int detail;
+    }
+
+    /// <summary>The focus went to — or came from — a window inside this one.</summary>
+    public const int NotifyInferior = 2;
+
+    /// <summary>XGetInputFocus: the focus follows the pointer, no window holds it.</summary>
+    public const nuint PointerRoot = 1;
+
     /// <summary>Unmap a top-level window and tell the manager it is withdrawn, as ICCCM
     /// asks: a bare XUnmapWindow leaves some managers thinking it was minimized.</summary>
     [DllImport(Lib)] public static extern int XWithdrawWindow(nint display, nuint window, int screen);

@@ -173,6 +173,10 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
     {
         if (_window == 0) return;
 
+        // the native controls first, while their windows are there to be destroyed:
+        // destroyed with this one, they came back as BadWindow errors
+        _form.ReleaseNativeControls();
+
         _surface?.Dispose();
         _surface = null;
 

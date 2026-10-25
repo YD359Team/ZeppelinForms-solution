@@ -201,6 +201,17 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         }
     }
 
+    // the slots of native controls, by their windows: their focus events come here
+    private readonly Dictionary<nuint, X11NativeSlot> _slots = [];
+
+    internal void RegisterSlot(nuint window, X11NativeSlot slot) => _slots[window] = slot;
+
+    internal void UnregisterSlot(nuint window) => _slots.Remove(window);
+
+    internal X11NativeSlot? SlotOf(nuint window) => _slots.GetValueOrDefault(window);
+
+    internal bool HasSlots => _slots.Count > 0;
+
     internal void Unregister(X11Window window)
     {
         _windows.Remove(window.Handle);
@@ -421,6 +432,9 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
 
                     var point = new Point(button.x / window.Scale, button.y / window.Scale);
                     KeyModifiers modifiers = ToModifiers(button.state);
+                    // a press on the form's picture while a native control types
+                    if (button.button is >= 1 and <= 3)
+                        window.TakeKeyboardBack();
 
                     switch (button.button)
                     {
@@ -568,12 +582,13 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
 
             case X11.FocusIn:
                 {
-                    var focus = Marshal.PtrToStructure<X11.XAnyEvent>(eventPtr);
+                    var focus = Marshal.PtrToStructure<X11.XFocusChangeEvent>(eventPtr);
 
-                    if (_windows.TryGetValue(focus.window, out X11Window? window))
+                    // the keyboard went into a native control: its slot hears it on the way
+                    if (_slots.TryGetValue(focus.window, out X11NativeSlot? slot))
                     {
-                        window.OnFocusIn();
-                        window.Form.OnWindowActivated(true);
+                        slot.OnFocusIn();
+                        break;
                     }
 
                     break;
@@ -584,15 +599,17 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                     // we won't learn about key releases anymore — the form resets the
                     // keyboard state, as WM_KILLFOCUS does on Windows. This case used to
                     // be empty, and after Alt+Tab the modifiers stuck
-                    var focus = Marshal.PtrToStructure<X11.XAnyEvent>(eventPtr);
+                    var focus = Marshal.PtrToStructure<X11.XFocusChangeEvent>(eventPtr);
 
                     ForgetHeldKeys();
 
-                    if (_windows.TryGetValue(focus.window, out X11Window? window))
+                    // the keyboard went to a window inside the form's — a native control:
+                    // the window is still the active one, only its own focus moved
+                    if (focus.detail == X11.NotifyInferior && _windows.TryGetValue(focus.window, out X11Window? owner))
                     {
-                        window.OnFocusOut();
-                        window.Form.OnWindowFocusLost();
-                        window.Form.OnWindowActivated(false);
+                        owner.OnFocusOut();
+                        owner.Form.OnWindowFocusLost();
+                        break;
                     }
 
                     break;
