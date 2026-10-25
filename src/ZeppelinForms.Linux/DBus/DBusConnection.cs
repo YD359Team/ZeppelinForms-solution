@@ -4,9 +4,10 @@ using System.Text;
 
 namespace ZeppelinForms.Linux.DBus;
 
-/// <summary>A minimal connection to the session bus: enough to call a method
-/// and to receive signals. No dependency — the protocol is a socket, a line of
-/// text to authenticate, and binary messages after it.</summary>
+/// <summary>A minimal connection to the session bus: enough to call a method,
+/// to receive signals, and to export objects that answer calls and send signals of
+/// their own. No dependency — the protocol is a socket, a line of text to
+/// authenticate, and binary messages after it.</summary>
 /// <remarks>
 /// <para>
 /// It doesn't run a thread of its own. Calls made at startup wait for their reply
@@ -17,6 +18,12 @@ namespace ZeppelinForms.Linux.DBus;
 /// nothing has to be marshaled.
 /// </para>
 /// <para>
+/// An exported object (<see cref="Register"/>) is called the same way: a call to it
+/// is read by <see cref="ProcessIncoming"/> on the UI thread, answered by the object,
+/// and the reply goes out at once. A call that comes while the application waits for a
+/// reply of its own is answered too — the other side may need the answer to reply.
+/// </para>
+/// <para>
 /// Every failure — no bus, a refused authentication, a broken connection —
 /// ends in a closed connection rather than an exception: the system appearance
 /// is a nicety, and its absence must not keep the application from starting.
@@ -24,14 +31,29 @@ namespace ZeppelinForms.Linux.DBus;
 /// </remarks>
 internal sealed class DBusConnection : IDisposable
 {
+    private const string BusName = "org.freedesktop.DBus";
+    private const string BusPath = "/org/freedesktop/DBus";
+    private const string IntrospectableInterface = "org.freedesktop.DBus.Introspectable";
+
     private readonly Socket _socket;
     private readonly List<byte> _incoming = [];
     private uint _serial;
+
+    // the objects the application exports, by path
+    private readonly Dictionary<string, IDBusObject> _objects = new(StringComparer.Ordinal);
+
+    // the serials of the calls waiting for a reply, and the replies a nested wait read
+    // for an outer one
+    private readonly HashSet<uint> _waiting = [];
+    private readonly Dictionary<uint, DBusMessage> _replies = [];
 
     /// <summary>A signal arrived — on the thread that called <see cref="ProcessIncoming"/>.</summary>
     public event Action<DBusMessage>? Signal;
 
     public bool IsOpen { get; private set; } = true;
+
+    /// <summary>The name the bus gave the connection at Hello: ":1.42".</summary>
+    public string? UniqueName { get; private set; }
 
     /// <summary>The socket's descriptor, for the select of the event loop; −1 once closed.</summary>
     public int FileDescriptor => IsOpen ? (int)_socket.Handle : -1;
@@ -59,9 +81,11 @@ internal sealed class DBusConnection : IDisposable
                 var connection = new DBusConnection(socket);
 
                 if (connection.Authenticate() &&
-                    connection.Call("org.freedesktop.DBus", "/org/freedesktop/DBus",
-                        "org.freedesktop.DBus", "Hello") is { Type: DBusMessageType.MethodReturn })
+                    connection.Call(BusName, BusPath, BusName, "Hello") is
+                    { Type: DBusMessageType.MethodReturn } hello)
                 {
+                    connection.UniqueName = hello.Body.Count > 0 ? hello.Body[0] as string : null;
+
                     return connection;
                 }
 
@@ -152,21 +176,35 @@ internal sealed class DBusConnection : IDisposable
         return string.Empty;
     }
 
-    /// <summary>Call a method and wait for its reply or error, up to the socket's
-    /// timeout. Signals that arrive meanwhile are dispatched as usual. Null — no
-    /// reply in time, or the connection broke.</summary>
-    public DBusMessage? Call(string destination, string path, string @interface, string member, params string[] arguments)
+    /// <summary>Call a method with string arguments and wait for its reply or error,
+    /// up to the socket's timeout. Signals that arrive meanwhile are dispatched as
+    /// usual. Null — no reply in time, or the connection broke.</summary>
+    public DBusMessage? Call(string destination, string path, string @interface, string member, params string[] arguments) =>
+        CallMethod(destination, path, @interface, member, new string('s', arguments.Length), [.. arguments]);
+
+    /// <summary>Call a method with arguments of any type, by their signature, and wait
+    /// for its reply or error, up to the socket's timeout. Signals and calls to the
+    /// exported objects that arrive meanwhile are dispatched as usual. Null — no reply
+    /// in time, or the connection broke.</summary>
+    public DBusMessage? CallMethod(
+        string destination, string path, string @interface, string member,
+        string signature, IReadOnlyList<object?> arguments)
     {
         if (!IsOpen) return null;
 
         uint serial = ++_serial;
+        _waiting.Add(serial);
 
         try
         {
-            _socket.Send(DBusWire.MethodCall(serial, destination, path, @interface, member, arguments));
+            _socket.Send(DBusWire.MethodCall(serial, destination, path, @interface, member, signature, arguments));
 
             while (IsOpen)
             {
+                // a call answered while waiting may have waited for one of its own,
+                // and read this reply on the way
+                if (_replies.Remove(serial, out DBusMessage? early)) return early;
+
                 if (TakeMessage() is { } message)
                 {
                     if (message.ReplySerial == serial) return message;
@@ -188,8 +226,58 @@ internal sealed class DBusConnection : IDisposable
         {
             Close();
         }
+        finally
+        {
+            _waiting.Remove(serial);
+            _replies.Remove(serial);
+        }
 
         return null;
+    }
+
+    /// <summary>Ask the bus for a well-known name, without queueing for it. True — the
+    /// connection owns it now.</summary>
+    public bool RequestName(string name)
+    {
+        // DBUS_NAME_FLAG_DO_NOT_QUEUE; the reply 1 is DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER
+        DBusMessage? reply = CallMethod(BusName, BusPath, BusName, "RequestName", "su", [name, 4u]);
+
+        return reply is { Type: DBusMessageType.MethodReturn, Body: [uint result, ..] } && result == 1;
+    }
+
+    /// <summary>Some connection owns the name now.</summary>
+    public bool NameHasOwner(string name)
+    {
+        DBusMessage? reply = CallMethod(BusName, BusPath, BusName, "NameHasOwner", "s", [name]);
+
+        return reply is { Type: DBusMessageType.MethodReturn, Body: [true, ..] };
+    }
+
+    /// <summary>Have the bus send the signals the rule matches to this connection.</summary>
+    public void AddMatch(string rule) => Call(BusName, BusPath, BusName, "AddMatch", rule);
+
+    /// <summary>Export an object at a path: the calls to it come to
+    /// <see cref="IDBusObject.Call"/>.</summary>
+    public void Register(string path, IDBusObject target) => _objects[path] = target;
+
+    public void Unregister(string path) => _objects.Remove(path);
+
+    /// <summary>Send a signal from an exported object; nothing waits for it.</summary>
+    public void Emit(string path, string @interface, string member, string signature, IReadOnlyList<object?> values) =>
+        Send(DBusWire.Signal(++_serial, path, @interface, member, signature, values));
+
+    private void Send(byte[] message)
+    {
+        if (!IsOpen) return;
+
+        try
+        {
+            _socket.Send(message);
+        }
+        catch (SocketException)
+        {
+            Close();
+        }
     }
 
     /// <summary>Read what has arrived, without waiting, and dispatch the signals.
@@ -266,9 +354,131 @@ internal sealed class DBusConnection : IDisposable
 
     private void Dispatch(DBusMessage message)
     {
-        // replies to calls nobody waits for anymore are dropped
-        if (message.Type == DBusMessageType.Signal)
-            Signal?.Invoke(message);
+        switch (message.Type)
+        {
+            case DBusMessageType.Signal:
+                Signal?.Invoke(message);
+                break;
+
+            case DBusMessageType.MethodCall:
+                Answer(message);
+                break;
+
+            // the reply of an outer wait, read by a nested one; replies to calls
+            // nobody waits for anymore are dropped
+            case DBusMessageType.MethodReturn or DBusMessageType.Error
+                when message.ReplySerial is { } serial && _waiting.Contains(serial):
+                _replies[serial] = message;
+                break;
+        }
+    }
+
+    /// <summary>A call to an exported object: its reply, or an error — also for a path
+    /// nothing is exported at. An exception of the application's own code goes on to
+    /// the loop's handler after the caller got an error.</summary>
+    private void Answer(DBusMessage call)
+    {
+        DBusReply reply;
+
+        try
+        {
+            reply = Resolve(call);
+        }
+        catch (DBusErrorException error)
+        {
+            if (call.ExpectsReply)
+                Send(DBusWire.Error(++_serial, call, error.Name, error.Message));
+
+            return;
+        }
+        catch (Exception exception) when (exception is not (SocketException or InvalidDataException))
+        {
+            if (call.ExpectsReply)
+                Send(DBusWire.Error(++_serial, call, "org.freedesktop.DBus.Error.Failed", exception.Message));
+
+            throw;
+        }
+
+        if (call.ExpectsReply)
+            Send(DBusWire.MethodReturn(++_serial, call, reply.Signature, reply.Values));
+    }
+
+    private DBusReply Resolve(DBusMessage call)
+    {
+        // every connection answers Peer, whatever the path
+        if (call.Interface == "org.freedesktop.DBus.Peer")
+        {
+            return call.Member switch
+            {
+                "Ping" => DBusReply.Empty,
+                "GetMachineId" => DBusReply.Of("s", MachineId()),
+                _ => throw DBusErrorException.UnknownMethod(call),
+            };
+        }
+
+        string path = call.Path ?? string.Empty;
+
+        if (_objects.TryGetValue(path, out IDBusObject? target))
+            return target.Call(call);
+
+        // a path above the exported objects: a node that lists its children,
+        // so that a tool walking the tree from "/" finds them
+        if (call.Member == "Introspect" && call.Interface is null or IntrospectableInterface &&
+            Children(path) is { Count: > 0 } children)
+        {
+            var xml = new StringBuilder(IntrospectHeader).Append("<node>");
+
+            foreach (string child in children)
+                xml.Append("<node name=\"").Append(child).Append("\"/>");
+
+            return DBusReply.Of("s", xml.Append("</node>").ToString());
+        }
+
+        throw new DBusErrorException("org.freedesktop.DBus.Error.UnknownObject", $"Nothing is exported at {path}.");
+    }
+
+    /// <summary>The doctype every introspection document starts with.</summary>
+    internal const string IntrospectHeader =
+        "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\" " +
+        "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">";
+
+    /// <summary>The names of the nodes right under <paramref name="path"/> that lead to
+    /// exported objects.</summary>
+    private List<string> Children(string path)
+    {
+        string prefix = path == "/" ? "/" : path + "/";
+        var children = new List<string>();
+
+        foreach (string exported in _objects.Keys)
+        {
+            if (!exported.StartsWith(prefix, StringComparison.Ordinal)) continue;
+
+            string rest = exported[prefix.Length..];
+            int slash = rest.IndexOf('/');
+            string child = slash < 0 ? rest : rest[..slash];
+
+            if (child.Length > 0 && !children.Contains(child))
+                children.Add(child);
+        }
+
+        return children;
+    }
+
+    private static string MachineId()
+    {
+        foreach (string file in (string[])["/etc/machine-id", "/var/lib/dbus/machine-id"])
+        {
+            try
+            {
+                if (File.Exists(file)) return File.ReadAllText(file).Trim();
+            }
+            catch (IOException)
+            {
+                // the next one
+            }
+        }
+
+        return string.Empty;
     }
 
     private void Close()

@@ -19,8 +19,10 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
     /// <summary>What the windows draw with.</summary>
     public IGraphicsBackend Graphics { get; }
 
-    /// <summary>X11 lets a window place itself: the window manager is asked and obeys.</summary>
-    public PlatformCapabilities Capabilities => PlatformCapabilities.WindowPositioning | PlatformCapabilities.WindowHiding;
+    /// <summary>X11 lets a window place itself: the window manager is asked and obeys.
+    /// The tray is there when a panel collects StatusNotifierItems.</summary>
+    public PlatformCapabilities Capabilities =>
+        PlatformCapabilities.WindowPositioning | PlatformCapabilities.WindowHiding | TrayCapability;
 
     private EglDisplay? _eglDisplay;
     private bool _eglTried;
@@ -320,6 +322,9 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         // the session bus: the portal's signals, handled on this thread
         App.RunGuarded(PollAppearance);
 
+        // the panels' calls to the tray icons: a click, the menu
+        _tray.Poll();
+
         DispatchTick();
 
         // one frame per pump for every window that asked for one: after the input
@@ -360,6 +365,7 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         // the session bus is waited on together with the X connection:
         // a theme change on the desktop wakes the loop like any input
         int nfds = WatchAppearance(ref readSet, fd + 1);
+        nfds = WatchTray(ref readSet, nfds);
 
         X11.select(nfds, ref readSet, 0, 0, ref timeout);
     }

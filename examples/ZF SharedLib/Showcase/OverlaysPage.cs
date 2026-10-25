@@ -24,7 +24,8 @@ internal static class OverlaysPage
             Demo.Section("Message box", Messages(form), "await MessageBox.ShowAsync works everywhere, the browser included"),
             Demo.Section("Input box and own dialogs", Dialogs(form), "Any form is a dialog: ShowDialogAsync<T> waits for Accept(value) or Cancel()"),
             Demo.Section("Files", Files(form), "FileDialog.OpenFileAsync, OpenFilesAsync, SaveFileAsync, SelectFolderAsync: the framework's own dialog"),
-            Demo.Section("Hiding the window", Hiding(form), "form.Hide() keeps the window and its state; Show() brings it back — the ground of a tray icon"));
+            Demo.Section("Hiding the window", Hiding(form), "form.Hide() keeps the window and its state; Show() brings it back — the ground of a tray icon"),
+            Demo.Section("Tray icon", Tray(form), "TrayIcon: an icon in the notification area or on the panel, with a tooltip, a click and the system's menu"));
 
     private static UIElement Tooltips() => Demo.Row(
         new Button { Text = "Hover me", ToolTip = "A tooltip: a short hint about the control" },
@@ -234,6 +235,72 @@ internal static class OverlaysPage
         };
 
         return Demo.Column(hide, note);
+    }
+
+    // one icon for the application, whatever times the page is made again
+    private static TrayIcon? s_tray;
+    private static bool s_closeToTray;
+
+    /// <summary>The icon in the tray, and "close to the tray": the main form's Closing
+    /// cancelled and the form hidden; a click on the icon or its menu brings it back.</summary>
+    private static UIElement Tray(Form form)
+    {
+        Label note = Demo.Note(s_tray?.IsShown == true
+            ? "The icon is in the tray: click it, or open its menu"
+            : "Windows shows it in the notification area, Linux on a panel with StatusNotifierItem");
+
+        if (s_tray is null)
+        {
+            s_tray = new TrayIcon { ToolTip = "ZeppelinForms Showcase" };
+
+            var show = new MenuItem { Text = "Show the window" };
+            show.Click += (_, _) => form.Show();
+
+            var closeToTray = new MenuItem { Text = "Close to the tray", IsCheckable = true };
+            closeToTray.Click += (_, _) => s_closeToTray = closeToTray.IsChecked;
+
+            var quit = new MenuItem { Text = "Quit" };
+            quit.Click += (_, _) =>
+            {
+                s_closeToTray = false;
+                form.Show();
+                form.Close();
+            };
+
+            s_tray.Menu.AddRange([show, closeToTray, MenuItem.Separator, quit]);
+
+            // the menu shows the state as it is when it opens
+            s_tray.MenuOpening += (_, _) => closeToTray.IsChecked = s_closeToTray;
+
+            s_tray.Click += (_, _) => form.Show();
+
+            // the close button hides the window while the icon is there to bring it back
+            form.Closing += (_, e) =>
+            {
+                if (!s_closeToTray || s_tray?.IsShown != true || e.Reason != CloseReason.UserClosing) return;
+
+                e.Cancel = true;
+                form.Hide();
+            };
+        }
+
+        var visible = new CheckBox { Text = "Icon in the tray", IsChecked = s_tray.Visible };
+        visible.CheckedChanged += (_, _) =>
+        {
+            s_tray.Visible = visible.IsChecked;
+
+            note.Text = !visible.IsChecked ? "The icon is off the tray"
+                : s_tray.IsShown ? "The icon is in the tray: click it, or open its menu"
+                : "This platform has no tray";
+        };
+
+        var close = new CheckBox { Text = "Close to the tray", IsChecked = s_closeToTray };
+        close.CheckedChanged += (_, _) => s_closeToTray = close.IsChecked;
+
+        var tip = new TextBox { Text = s_tray.ToolTip ?? string.Empty, Size = new(260, float.NaN) };
+        tip.TextChanged += (_, _) => s_tray.ToolTip = tip.Text;
+
+        return Demo.Column(Demo.Row(visible, close), Demo.Row(new Label { Text = "Tooltip" }, tip), note);
     }
 
     /// <summary>A dialog of one's own: a form that closes with <see cref="Form.Accept"/>

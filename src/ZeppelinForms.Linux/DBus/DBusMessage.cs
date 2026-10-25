@@ -1,13 +1,4 @@
-﻿namespace ZeppelinForms.Linux.DBus;
-
-/// <summary>The kind of a D-Bus message: the second byte of its header.</summary>
-internal enum DBusMessageType : byte
-{
-    MethodCall = 1,
-    MethodReturn = 2,
-    Error = 3,
-    Signal = 4,
-}
+﻿using ZeppelinForms.Linux.DBus;
 
 /// <summary>A received D-Bus message: the header fields that matter here
 /// and the body, unmarshaled by its signature.</summary>
@@ -28,20 +19,15 @@ internal sealed record DBusMessage(
     string? ErrorName,
     string? Sender,
     string Signature,
-    IReadOnlyList<object?> Body);
-
-/// <summary>A variant: a value together with its own signature.</summary>
-internal sealed record DBusVariant(string Signature, object? Value)
+    IReadOnlyList<object?> Body)
 {
-    /// <summary>The value under all the variants wrapped around it. The deprecated
-    /// Settings.Read puts the setting into one variant more than ReadOne does.</summary>
-    public object? Unwrap()
-    {
-        object? value = Value;
+    /// <summary>The header's flags; <see cref="DBusWire.FlagNoReplyExpected"/> — a call
+    /// that wants no answer.</summary>
+    public byte Flags { get; init; }
 
-        while (value is DBusVariant inner)
-            value = inner.Value;
+    /// <summary>The name the message was sent to: a well-known name or the unique one.</summary>
+    public string? Destination { get; init; }
 
-        return value;
-    }
+    /// <summary>The caller waits for a reply.</summary>
+    public bool ExpectsReply => (Flags & DBusWire.FlagNoReplyExpected) == 0;
 }

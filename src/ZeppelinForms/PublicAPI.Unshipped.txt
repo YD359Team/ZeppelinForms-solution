@@ -163,3 +163,18 @@ ZeppelinForms.Headless.HeadlessWindow.CreateNativeSlot() -> ZeppelinForms.INativ
 ZeppelinForms.Headless.HeadlessWindow.NativeSlots.get -> System.Collections.Generic.List<ZeppelinForms.Headless.HeadlessNativeSlot!>!
 ZeppelinForms.Headless.HeadlessWindow.SupportsNativeControls.get -> bool
 ZeppelinForms.Headless.HeadlessWindow.SupportsNativeControls.set -> void
+ZeppelinForms.PlatformCapabilities.SystemTray = 4 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.Forms.TrayIcon
+ZeppelinForms.Forms.TrayIcon.TrayIcon() -> void
+ZeppelinForms.Forms.TrayIcon.Icon.get -> ZeppelinForms.Drawing.Imaging.Icon?
+ZeppelinForms.Forms.TrayIcon.Icon.set -> void
+ZeppelinForms.Forms.TrayIcon.ToolTip.get -> string?
+ZeppelinForms.Forms.TrayIcon.ToolTip.set -> void
+ZeppelinForms.Forms.TrayIcon.Visible.get -> bool
+ZeppelinForms.Forms.TrayIcon.Visible.set -> void
+ZeppelinForms.Forms.TrayIcon.IsShown.get -> bool
+ZeppelinForms.Forms.TrayIcon.Menu.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>!
+ZeppelinForms.Forms.TrayIcon.Click -> System.EventHandler?
+ZeppelinForms.Forms.TrayIcon.DoubleClick -> System.EventHandler?
+ZeppelinForms.Forms.TrayIcon.MenuOpening -> System.EventHandler?
+ZeppelinForms.Forms.TrayIcon.Dispose() -> void

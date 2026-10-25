@@ -3,6 +3,7 @@ using ZeppelinForms.Core;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
+using ZeppelinForms.Linux.Tray;
 
 namespace ZeppelinForms.Linux.Wayland;
 
@@ -25,7 +26,7 @@ namespace ZeppelinForms.Linux.Wayland;
 /// <see cref="X11Platform"/> by the session.
 /// </para>
 /// </remarks>
-public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
+public sealed partial class WaylandPlatform : IPlatform, INestedLoopSupport
 {
     private readonly WaylandConnection _connection;
     private readonly WlRegistry _registry;
@@ -53,8 +54,9 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
     /// <summary>What the windows draw with.</summary>
     public IGraphicsBackend Graphics { get; }
 
-    /// <summary>Nothing beyond the minimum: the compositor alone places windows.</summary>
-    public PlatformCapabilities Capabilities => PlatformCapabilities.WindowHiding;
+    /// <summary>Nothing beyond the minimum: the compositor alone places windows. The tray
+    /// is there when a panel collects StatusNotifierItems.</summary>
+    public PlatformCapabilities Capabilities => PlatformCapabilities.WindowHiding | TrayCapability;
 
     internal WlCompositor Compositor { get; }
     internal WlShm Shm { get; }
@@ -393,10 +395,15 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
 
         _connection.Flush();
 
-        Span<Poll.Entry> entries = stackalloc Poll.Entry[3];
+        // the display, the wake pipe, the portal's bus, then the tray icons' buses
+        IReadOnlyList<StatusNotifierItem> trayItems = _tray.Items;
+        Span<Poll.Entry> entries = stackalloc Poll.Entry[3 + trayItems.Count];
         entries[0] = new Poll.Entry { Fd = _connection.FileDescriptor, Events = Poll.In };
         entries[1] = new Poll.Entry { Fd = _wake.FileDescriptor, Events = Poll.In };
         entries[2] = new Poll.Entry { Fd = _appearance?.FileDescriptor ?? -1, Events = Poll.In };
+
+        for (int i = 0; i < trayItems.Count; i++)
+            entries[3 + i] = new Poll.Entry { Fd = trayItems[i].FileDescriptor, Events = Poll.In };
 
         Poll.Wait(entries, WaitTimeout());
 
@@ -434,6 +441,9 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
             App.RunGuarded(action);
 
         App.RunGuarded(() => _appearance?.Poll());
+
+        // the panels' calls to the tray icons: a click, the menu
+        _tray.Poll();
 
         DispatchTick();
 

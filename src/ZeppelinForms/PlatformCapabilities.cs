@@ -20,4 +20,11 @@ public enum PlatformCapabilities
     /// and on Android a form is the page or the screen, and Hide throws
     /// <see cref="PlatformNotSupportedException"/>.</summary>
     WindowHiding = 1 << 1,
+
+    /// <summary>A <see cref="Forms.TrayIcon"/> shows: the notification area on Windows; on
+    /// Linux a StatusNotifierItem host on the session bus — KDE, XFCE, Cinnamon, LXQt,
+    /// waybar, GNOME with the AppIndicator extension — looked for the first time this is
+    /// asked; an icon made before a panel came still appears when one does. The browser
+    /// and Android have no tray.</summary>
+    SystemTray = 1 << 2,
 }
