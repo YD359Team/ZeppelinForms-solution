@@ -40,10 +40,8 @@ in the form of Wayland and GLES.
 
 - `Command="Save"` takes a command of the class, `Command="AppCommands.Save"` a static one
   of another type; a command the markup can't find is ZF2011
-- `<x:Styles>` holds a style sheet for the element and its descendants, checked by the build
-  (ZF2012 for a statement it can't read, ZF2013 for a control or a property nobody has)
-- `StyleSheet="Styles/app.zss"` adds sheets from the assets folder; one that isn't among the
-  project's `.zss` files is ZF2014. The package hands the `.zss` files to the generator
+- The **Visual Studio** extension checks the values of the styles in `.zfml` files when they are
+  opened or saved, and lists their problems in the Error List at their lines
 
 ### Documentation
 

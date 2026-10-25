@@ -74,7 +74,7 @@ command, or another type's member that isn't static is ZF2011.
 `<Type.Styles>` holds styles for the element and everything inside it — the element's own
 `Styles`, as if the code had added them — written as XAML writes them:
 
-````xml
+```xml
 <StackPanel x:Class="MyApp.SignUpCard" …>
   <StackPanel.Styles>
     <StyleInclude Source="Styles/cards.zss"/>
@@ -96,7 +96,7 @@ command, or another type's member that isn't static is ZF2011.
   <Label x:Name="Result"/>
   <Button Text="Clear" Classes="quiet"/>
 </StackPanel>
-````
+```
 
 | Element | Does |
 | ------- | ---- |
