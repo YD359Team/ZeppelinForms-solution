@@ -437,7 +437,6 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                 return 0;
 
             case NativeConstants.WM_LBUTTONUP:
-                TakeKeyboardBack();
                 _form.OnPointerUp(PointFromLParam(lParam), MouseButton.Left, GetModifiers());
                 return 0;
 
@@ -456,6 +455,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                 }
 
             case NativeConstants.WM_MBUTTONDOWN:
+                TakeKeyboardBack();
                 _form.OnPointerDown(PointFromLParam(lParam), MouseButton.Middle, GetModifiers());
                 return 0;
 
@@ -471,6 +471,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             case NativeConstants.WM_KEYUP:
                 _form.OnKeyUp((Key)(int)wParam, GetModifiers());
                 return 0;
+
             // Alt combinations and F10 come as system keys. They used to go straight
             // to DefWindowProc: the form never saw Alt+S or F10, and a tap of Alt put
             // the window into its system menu. Now the form gets them; Alt+F4 still

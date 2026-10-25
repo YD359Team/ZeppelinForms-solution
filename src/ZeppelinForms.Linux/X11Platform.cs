@@ -591,6 +591,12 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                         break;
                     }
 
+                    if (_windows.TryGetValue(focus.window, out X11Window? window))
+                    {
+                        window.OnFocusIn();
+                        window.Form.OnWindowActivated(true);
+                    }
+
                     break;
                 }
 
@@ -610,6 +616,13 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                         owner.OnFocusOut();
                         owner.Form.OnWindowFocusLost();
                         break;
+                    }
+
+                    if (_windows.TryGetValue(focus.window, out X11Window? window))
+                    {
+                        window.OnFocusOut();
+                        window.Form.OnWindowFocusLost();
+                        window.Form.OnWindowActivated(false);
                     }
 
                     break;

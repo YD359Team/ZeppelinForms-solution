@@ -43,10 +43,10 @@ internal abstract class ValueExpr
 /// (<c>Colors.RoyalBlue</c>), a brand color as <c>MediaColors.Telegram</c>, and the
 /// functions <c>alpha(c, a)</c>, <c>lighten(c, x)</c>, <c>darken(c, x)</c>,
 /// <c>mix(c1, c2, t)</c></item>
-/// <item>numbers with an optional <c>px</c>; <c>none</c> for a value that may be null</item>
-/// </list>
 /// <item><c>@Accent</c> — a color role of the theme; <c>@Metrics.ControlCornerRadius</c>,
 /// <c>@TypeRamp.Body.Size</c> — any path from <see cref="Theme"/></item>
+/// <item>numbers with an optional <c>px</c>; <c>none</c> for a value that may be null</item>
+/// </list>
 /// </remarks>
 internal static class StyleValueCompiler
 {
