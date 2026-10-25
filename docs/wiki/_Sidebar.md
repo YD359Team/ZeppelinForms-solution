@@ -3,6 +3,7 @@
 **Start**
 - [Getting started](Getting-Started)
 - [Forms and windows](Forms-and-Windows)
+- [Recipes](Recipes)
 
 **Building the UI**
 - [Layout](Layout)

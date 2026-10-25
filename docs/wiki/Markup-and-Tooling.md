@@ -33,11 +33,83 @@ public partial class SignUpCard
   `Children`, `Items`, `Nodes`, `Content`, `Child`; `<Border.Child>` names one.
 - `{Bind Name.Property}` binds a styled property to a named element, `Mode=TwoWay` both
   ways; `{x:Null}` is null; `<x:String>` is a text item of a list.
-- An unknown type, property, event or value is a ZF2xxx error at its line of the markup, and
-  so is a handler of the wrong signature.
+- `Command="Save"` takes a command of the class — a property or a field — and
+  `Command="AppCommands.Save"` a static one of another type, found in the class's
+  namespace, in a `using:` namespace of the markup or by its full name.
+- An unknown type, property, event, command or value is a ZF2xxx error at its line of the
+  markup, and so is a handler of the wrong signature.
 - A class whose code declares no constructor gets one that calls `InitializeComponent`.
 
 The package's build picks `.zfml` files up by itself.
+
+### Commands
+
+A command property — `Command` of a button or a menu item — names a command instead of
+taking a value written in the markup:
+
+```xml
+<Button Text="Save" Command="Save"/>
+<Button Text="Quit" Command="AppCommands.Quit"/>
+```
+
+```csharp
+public partial class EditorBar
+{
+    public Command Save { get; }
+
+    public EditorBar()
+    {
+        Save = new Command(DoSave, () => _document.IsDirty);
+        InitializeComponent();
+    }
+}
+```
+
+`InitializeComponent` reads the command when it builds the button: make it before the call
+— in the constructor or an initializer. A name the markup can't find, a member that isn't a
+command, or another type's member that isn't static is ZF2011.
+
+### Style sheets
+
+`<x:Styles>` holds a style sheet for the element it is in and everything inside it — the
+element's own `Styles`, as if the code had added it there:
+
+```xml
+<StackPanel x:Class="MyApp.SignUpCard" …>
+  <x:Styles><![CDATA[
+    $gap: 8;
+
+    #Result { TextColor: @Accent; }
+
+    Button.quiet {
+      Background: transparent;
+      &:hover { Background: alpha(@Accent, 0.1); }
+    }
+  ]]></x:Styles>
+
+  <Label x:Name="Result"/>
+  <Button Text="Clear" Classes="quiet"/>
+</StackPanel>
+```
+
+- The build checks the sheet: a statement it can't read is ZF2012, an error; a control or
+  a property nobody has is ZF2013, a warning — the selector never matches, as the sheet
+  itself would say. Values are checked when the sheet is parsed, as the element is built;
+  a problem there goes to the debug output with its line in the markup.
+- Write the sheet in CDATA when it uses `&` or `>` — or write them as `&amp;` and `&gt;`.
+- `@import` inside it looks in the assets folder.
+- Built again by Hot Reload, the element drops the old sheet before it takes the new.
+
+`StyleSheet="…"` adds sheets from files of the assets folder, as `StyleSheet.LoadAsset`
+finds them; several are separated by `;`:
+
+```xml
+<Form x:Class="MyApp.MainForm" StyleSheet="Styles/app.zss; Styles/forms.zss" …>
+```
+
+The package hands the project's `.zss` files to the build, and a sheet that isn't among
+them is ZF2014 — a warning, since it may reach the assets another way. While a debugger is
+attached the sheets are watched: a save restyles the running form.
 
 ## Analyzers
 
