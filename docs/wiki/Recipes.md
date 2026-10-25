@@ -90,7 +90,7 @@ the `RelayCommand` of CommunityToolkit.Mvvm included.
 A `.zfml` file names a command of its class by name, and carries styles of its own for
 what it builds. Both are checked by the build.
 
-````xml
+```xml
 <StackPanel x:Class="MyApp.EditorBar"
             xmlns="https://zeppelinforms.dev/markup"
             xmlns:x="https://zeppelinforms.dev/markup/x"
@@ -104,7 +104,25 @@ what it builds. Both are checked by the build.
       </Style>
     </Style>
   </StackPanel.Styles>
-````
+
+  <Button Text="Save" Command="Save"/>
+  <Button Text="Quit" Classes="quiet" Command="AppCommands.Quit"/>
+</StackPanel>
+```
+
+```csharp
+public partial class EditorBar
+{
+    public Command Save { get; }
+
+    public EditorBar()
+    {
+        // before InitializeComponent: it hands the command to the button
+        Save = new Command(DoSave);
+        InitializeComponent();
+    }
+}
+```
 
 `Command="Save"` is a property or a field of the class; `Command="AppCommands.Quit"` a
 static one of another type. Make the command before `InitializeComponent` runs — in the
