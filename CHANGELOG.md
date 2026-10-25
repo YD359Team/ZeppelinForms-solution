@@ -12,10 +12,18 @@ in the form of Wayland and GLES.
 
 - Fix possible `Image` int32 overflow in constructor
 - Fix unsubscribed static event handlers in `Form`
+- Fix diagonal resize cursors in `GripBox`
+- Add `Form` `_disposed` flag and guard
 
 ### Behavior
 
+- Controls with unset `Text` property will be set `Text` from his `Name` property
 - `MapControl` have cache size limit in 100MB
+
+### Dialogs
+
+- Rework file dialogs (not native) appearance: support icon for different file extension groups
+(folder, executable, image, music, ...), interactive searchbar in top panel
 
 ### Wayland
 
