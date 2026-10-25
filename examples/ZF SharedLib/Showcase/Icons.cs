@@ -32,6 +32,7 @@ internal static class Icons
     public static IconSource Sparkle { get; } = Line("M12 3 L13.8 10.2 L21 12 L13.8 13.8 L12 21 L10.2 13.8 L3 12 L10.2 10.2 Z");
     public static IconSource Motion { get; } = Line("M3 12 H11 M6 7 H13 M8 17 H14 M17 8 A4 4 0 1 1 17 16 A4 4 0 1 1 17 8 Z");
     public static IconSource Window { get; } = Line("M3 4 H21 V20 H3 Z M3 8 H21 M6 6 H7 M9 6 H10");
+    public static IconSource Plug { get; } = Line("M9 3 V8 M15 3 V8 M6 8 H18 V12 A6 6 0 0 1 6 12 Z M12 18 V21");
     public static IconSource Hand { get; } = Line("M8 13 V5 A1.5 1.5 0 0 1 11 5 V11 M11 10 V3.5 A1.5 1.5 0 0 1 14 3.5 V11 M14 10 V5 A1.5 1.5 0 0 1 17 5 V12 M17 9 A1.5 1.5 0 0 1 20 9 V14 A7 7 0 0 1 13 21 A7 7 0 0 1 6 16 L4 12.5 A1.5 1.5 0 0 1 6.5 11 L8 13");
     public static IconSource Calculator { get; } = Line("M5 3 H19 V21 H5 Z M8 6 H16 V10 H8 Z M8 14 H9 M12 14 H13 M16 14 H17 M8 18 H9 M12 18 H13 M16 18 H17");
     public static IconSource Gear { get; } = Line("M12 8.5 A3.5 3.5 0 1 0 12 15.5 A3.5 3.5 0 1 0 12 8.5 Z M12 2 V5 M12 19 V22 M2 12 H5 M19 12 H22 M4.9 4.9 L7 7 M17 17 L19.1 19.1 M4.9 19.1 L7 17 M17 7 L19.1 4.9");

@@ -94,6 +94,7 @@ public partial class ExampleMainForm : Form
 
         view.Items.Add(SplitViewItem.Header("Interaction"));
         view.Items.Add(new SplitViewItem("Dialogs and overlays", Icons.Window, () => OverlaysPage.Create(this)));
+        view.Items.Add(new SplitViewItem("Native controls", Icons.Plug, NativePage.Create));
         view.Items.Add(new SplitViewItem("Gestures", Icons.Hand, GesturesPage.Create));
         view.Items.Add(new SplitViewItem("Calculator", Icons.Calculator, CalculatorPage.Create));
 
