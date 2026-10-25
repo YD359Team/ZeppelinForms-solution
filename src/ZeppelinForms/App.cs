@@ -20,9 +20,6 @@ public partial class App
     /// <remarks>The executable's own icon — the one Explorer shows, and a pinned
     /// taskbar button — is not this: it is <c>&lt;ApplicationIcon&gt;</c> in the
     /// project file.</remarks>
-    /// <remarks>The executable's own icon — the one Explorer shows, and a pinned
-    /// taskbar button — is not this: it is <c>&lt;ApplicationIcon&gt;</c> in the
-    /// project file.</remarks>
     public Icon? Icon
     {
         get;

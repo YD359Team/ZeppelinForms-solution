@@ -1,4 +1,13 @@
-﻿using ZeppelinForms.Linux.DBus;
+﻿namespace ZeppelinForms.Linux.DBus;
+
+/// <summary>The kind of a D-Bus message: the second byte of its header.</summary>
+internal enum DBusMessageType : byte
+{
+    MethodCall = 1,
+    MethodReturn = 2,
+    Error = 3,
+    Signal = 4,
+}
 
 /// <summary>A received D-Bus message: the header fields that matter here
 /// and the body, unmarshaled by its signature.</summary>
@@ -30,4 +39,20 @@ internal sealed record DBusMessage(
 
     /// <summary>The caller waits for a reply.</summary>
     public bool ExpectsReply => (Flags & DBusWire.FlagNoReplyExpected) == 0;
+}
+
+/// <summary>A variant: a value together with its own signature.</summary>
+internal sealed record DBusVariant(string Signature, object? Value)
+{
+    /// <summary>The value under all the variants wrapped around it. The deprecated
+    /// Settings.Read puts the setting into one variant more than ReadOne does.</summary>
+    public object? Unwrap()
+    {
+        object? value = Value;
+
+        while (value is DBusVariant inner)
+            value = inner.Value;
+
+        return value;
+    }
 }
