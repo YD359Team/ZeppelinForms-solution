@@ -396,18 +396,27 @@ public class MarkupGeneratorTests
         Assert.Contains("Nowhere", errors[2].GetMessage(), StringComparison.Ordinal);
     }
 
-    // ===== style sheets =====
+    // ===== styles =====
 
     [Fact]
-    public void AStyleSheetInTheMarkupStylesTheElement()
+    public void StylesAreWrittenAsXamlWritesThem()
     {
-        Result result = Build($$"""
-            <StackPanel x:Class="App.Styled" {{Xmlns}}>
-              <x:Styles>
-                $pad: 14 6;
-                Button.wide { Padding: $pad; &amp;:hover { Padding: 16 8; } }
-              </x:Styles>
+        Result result = Build($"""
+            <StackPanel x:Class="App.Styled" {Xmlns}>
+              <StackPanel.Styles>
+                <Style Selector="Button.wide">
+                  <Setter Property="Padding" Value="14 6"/>
+                  <Transition Property="Background" Duration="150ms" Easing="ease-out"/>
+                  <Style Selector="^:hover">
+                    <Setter Property="Padding">16 8</Setter>
+                  </Style>
+                </Style>
+                <Style Selector="StackPanel > Label">
+                  <Setter Property="TextColor" Value="@Accent"/>
+                </Style>
+              </StackPanel.Styles>
               <Button Classes="wide"/>
+              <Label Text="Note"/>
             </StackPanel>
             """);
 
@@ -416,89 +425,91 @@ public class MarkupGeneratorTests
 
         var panel = (StackPanel)result.Create("App.Styled");
 
-        Assert.Equal(2, panel.Styles.Count);
+        // a rule with a setter each, the nested one included
+        Assert.Equal(3, panel.Styles.Count);
 
-        // in a window the button takes the sheet's padding
+        // the sheet's lines are those of the markup
+        Assert.Equal(["Main.zfml:3", "Main.zfml:6", "Main.zfml:10"], panel.Styles.Select(s => s.Source));
+        Assert.Single(panel.Styles[0].Transitions);
+
+        // in a window the button takes the style's padding
         var form = new Form { Size = new Size(200, 200), Content = panel };
         new ZeppelinForms.Headless.HeadlessPlatform().CreateWindow(form);
         Assert.Equal(new Thickness(14, 6), panel.Children[0].Padding);
 
-        // the sheet's lines are those of the markup
-        Assert.Equal("Main.zfml:4", panel.Styles[0].Source);
-
-        // built again, as by Hot Reload: the old sheet goes before the new comes
+        // built again, as by Hot Reload: the old styles go before the new come
         panel.GetType().GetMethod("InitializeComponent", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(panel, null);
-        Assert.Equal(2, panel.Styles.Count);
+        Assert.Equal(3, panel.Styles.Count);
     }
 
     [Fact]
-    public void AStyleSheetInTheMarkupIsCheckedAtItsLines()
+    public void StylesAreCheckedAtTheirLines()
     {
-        Result result = Build($$"""
-            <StackPanel x:Class="App.Checked" {{Xmlns}}>
-              <x:Styles>
-                Button { Padding 4; }
-                Buton { Padding: 4; }
-                Label { Nothing: 1; }
-                Label { Padding: $none; }
-              </x:Styles>
+        Result result = Build($"""
+            <StackPanel x:Class="App.Checked" {Xmlns}>
+              <StackPanel.Styles>
+                <Style>
+                  <Setter Property="Padding" Value="4"/>
+                </Style>
+                <Style Selector="Buton">
+                  <Setter Property="Padding" Value="4"/>
+                </Style>
+                <Style Selector="Label">
+                  <Setter Property="Nothing" Value="1"/>
+                  <Setter Property="Padding"/>
+                </Style>
+                <Style Selector="^:hover"/>
+                <Button/>
+              </StackPanel.Styles>
             </StackPanel>
             """);
 
         int LineOf(Diagnostic d) => d.Location.GetLineSpan().StartLinePosition.Line + 1;
 
-        Diagnostic[] errors = [.. result.Errors.Where(d => d.Id == "ZF2012")];
-        Assert.Equal([3, 6], errors.Select(LineOf));
-        Assert.Contains("Property: value", errors[0].GetMessage(), StringComparison.Ordinal);
-        Assert.Contains("$none", errors[1].GetMessage(), StringComparison.Ordinal);
+        Assert.Equal([3, 11, 13], result.Errors.Where(d => d.Id == "ZF2012").Select(LineOf));
+        Assert.Equal([14], result.Errors.Where(d => d.Id == "ZF2006").Select(LineOf));
 
         Diagnostic[] warnings = [.. result.Warnings.Where(d => d.Id == "ZF2013")];
-        Assert.Equal([4, 5], warnings.Select(LineOf));
+        Assert.Equal([6, 10], warnings.Select(LineOf));
         Assert.Contains("'Buton'", warnings[0].GetMessage(), StringComparison.Ordinal);
         Assert.Contains("'Nothing'", warnings[1].GetMessage(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AStyleSheetInCDataKeepsItsColumns()
-    {
-        Result result = Build($$"""
-            <StackPanel x:Class="App.Raw" {{Xmlns}}>
-              <x:Styles><![CDATA[StackPanel > Buton { Padding: 4; }]]></x:Styles>
-            </StackPanel>
-            """);
-
-        Assert.Empty(result.Errors);
-
-        Diagnostic warning = Assert.Single(result.Warnings, d => d.Id == "ZF2013");
-        LinePosition start = warning.Location.GetLineSpan().StartLinePosition;
-
-        // "  <x:Styles><![CDATA[": the sheet starts at the 22nd column of the 2nd line
-        Assert.Equal(2, start.Line + 1);
-        Assert.Equal(22, start.Character + 1);
-
-        var panel = (StackPanel)result.Create("App.Raw");
-        Assert.Single(panel.Styles);
-    }
-
-    [Fact]
-    public void AStyleSheetIsLinkedFromTheAssets()
+    public void AStyleSheetIsIncludedFromTheAssetsInItsPlace()
     {
         string markup = $"""
-            <StackPanel x:Class="App.Linked" StyleSheet="Styles/app.zss; Styles/extra.zss" {Xmlns}/>
+            <StackPanel x:Class="App.Linked" {Xmlns}>
+              <StackPanel.Styles>
+                <StyleInclude Source="Styles/app.zss"/>
+                <Style Selector="Button">
+                  <Setter Property="Padding" Value="4"/>
+                </Style>
+                <StyleInclude Source="Styles/extra.zss"/>
+              </StackPanel.Styles>
+            </StackPanel>
             """;
 
         Result found = Build(markup, "", "/app/Assets/Styles/app.zss", "/app/Assets/Styles/extra.zss");
 
         Assert.Empty(found.Errors);
         Assert.Empty(found.Warnings);
+
+        // the cascade's order: the first sheet, the markup's styles, the second sheet
+        string source = found.Source!;
+        int first = source.IndexOf("\"Styles/app.zss\"", StringComparison.Ordinal);
+        int own = source.IndexOf("StyleSheet.Parse(", StringComparison.Ordinal);
+        int second = source.IndexOf("\"Styles/extra.zss\"", StringComparison.Ordinal);
+
+        Assert.True(first > 0 && first < own && own < second);
         Assert.Contains("this.Styles.Load(global::System.IO.Path.Combine(global::ZeppelinForms.Assets.Root, \"Styles/app.zss\")",
-            found.Source, StringComparison.Ordinal);
+            source, StringComparison.Ordinal);
 
         // a sheet the project doesn't have may reach the assets another way: a warning
         Result missing = Build(markup, "", "/app/Assets/Styles/app.zss");
 
         Diagnostic warning = Assert.Single(missing.Warnings);
         Assert.Equal("ZF2014", warning.Id);
-        Assert.Contains("Styles/extra.zss", warning.GetMessage(), StringComparison.Ordinal);
+        Assert.Equal(7, warning.Location.GetLineSpan().StartLinePosition.Line + 1);
     }
 }

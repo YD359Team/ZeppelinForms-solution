@@ -19,8 +19,8 @@ namespace ZeppelinForms.Analyzers.Markup;
 /// </para>
 /// <para>
 /// The markup files reach the generator as AdditionalFiles; the package's build
-/// targets add every <c>*.zfml</c> of a project, and every <c>*.zss</c> — for
-/// <c>StyleSheet="…"</c> to check that the sheets it names are there.
+/// targets add every <c>*.zfml</c> of a project, and every <c>*.zss</c> — for a
+/// <c>&lt;StyleInclude Source="…"/&gt;</c> to check that the sheet it names is there.
 /// </para>
 /// </remarks>
 [Generator(LanguageNames.CSharp)]
@@ -105,13 +105,13 @@ internal static class MarkupDiagnostics
         "ZF2011", "No command for a command property", "'{0}' is not a command the markup can find: {1}");
 
     public static readonly DiagnosticDescriptor BadStyles = Error(
-        "ZF2012", "A style sheet in the markup can't be read", "{0}");
+        "ZF2012", "A style in the markup can't be read", "{0}");
 
     public static readonly DiagnosticDescriptor StyleWarning = Warning(
-        "ZF2013", "A style sheet in the markup names what isn't there", "{0}");
+        "ZF2013", "A style in the markup names what isn't there", "{0}");
 
     public static readonly DiagnosticDescriptor NoStyleSheet = Warning(
-        "ZF2014", "A style sheet is not among the project's files",
+        "ZF2014", "An included style sheet is not among the project's files",
         "'{0}' is not among the project's .zss files: it must reach the assets folder another way, or the form won't open");
 
     private static DiagnosticDescriptor Error(string id, string title, string message) =>

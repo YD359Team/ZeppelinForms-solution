@@ -2,25 +2,29 @@
 <!-- A card written in markup: the generator compiles it into SignUpCard's
      InitializeComponent, with a field for every x:Name. The behaviour is in
      SignUpCard.cs; the look comes from the theme, the showcase's sheet and the
-     card's own sheet below -->
+     card's own styles below -->
 <StackPanel x:Class="ZF_SharedLib.Showcase.SignUpCard"
             xmlns="https://zeppelinforms.dev/markup"
             xmlns:x="https://zeppelinforms.dev/markup/x"
             Orientation="Vertical" Spacing="10" CrossAxisAlignment="Start">
 
-	<!-- a style sheet of the card alone: it styles what is inside it. Checked by the
-       build like the rest of the markup; CDATA lets it write & and > as they are -->
-	<x:Styles>
-		<![CDATA[
-    #Result { TextColor: @Accent; }
+	<!-- styles of the card alone: they style what is inside it. Checked by the build
+       like the rest of the markup; values are the style sheets' own, theme included -->
+	<StackPanel.Styles>
+		<Style Selector="#Result">
+			<Setter Property="TextColor" Value="@Accent"/>
+		</Style>
 
-    Button.quiet {
-      Background: transparent;
-      &:hover { Background: alpha(@Accent, 0.1); }
-    }
-  ]]>
-	</x:Styles>
+		<Style Selector="Button.quiet">
+			<Setter Property="Background" Value="transparent"/>
+			<Transition Property="Background" Duration="120ms"/>
 
+			<Style Selector="^:hover">
+				<Setter Property="Background" Value="alpha(@Accent, 0.1)"/>
+			</Style>
+		</Style>
+	</StackPanel.Styles>
+	
 	<Label Text="Create an account" TextStyle="Subtitle"/>
 
 	<StackPanel Orientation="Vertical" Spacing="4">

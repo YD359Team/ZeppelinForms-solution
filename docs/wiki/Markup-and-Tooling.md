@@ -69,47 +69,57 @@ public partial class EditorBar
 — in the constructor or an initializer. A name the markup can't find, a member that isn't a
 command, or another type's member that isn't static is ZF2011.
 
-### Style sheets
+### Styles
 
-`<x:Styles>` holds a style sheet for the element it is in and everything inside it — the
-element's own `Styles`, as if the code had added it there:
+`<Type.Styles>` holds styles for the element and everything inside it — the element's own
+`Styles`, as if the code had added them — written as XAML writes them:
 
-```xml
+````xml
 <StackPanel x:Class="MyApp.SignUpCard" …>
-  <x:Styles><![CDATA[
-    $gap: 8;
+  <StackPanel.Styles>
+    <StyleInclude Source="Styles/cards.zss"/>
 
-    #Result { TextColor: @Accent; }
+    <Style Selector="#Result">
+      <Setter Property="TextColor" Value="@Accent"/>
+    </Style>
 
-    Button.quiet {
-      Background: transparent;
-      &:hover { Background: alpha(@Accent, 0.1); }
-    }
-  ]]></x:Styles>
+    <Style Selector="Button.quiet">
+      <Setter Property="Background" Value="transparent"/>
+      <Transition Property="Background" Duration="120ms" Easing="ease-out"/>
+
+      <Style Selector="^:hover">
+        <Setter Property="Background" Value="alpha(@Accent, 0.1)"/>
+      </Style>
+    </Style>
+  </StackPanel.Styles>
 
   <Label x:Name="Result"/>
   <Button Text="Clear" Classes="quiet"/>
 </StackPanel>
-```
+````
 
-- The build checks the sheet: a statement it can't read is ZF2012, an error; a control or
-  a property nobody has is ZF2013, a warning — the selector never matches, as the sheet
-  itself would say. Values are checked when the sheet is parsed, as the element is built;
-  a problem there goes to the debug output with its line in the markup.
-- Write the sheet in CDATA when it uses `&` or `>` — or write them as `&amp;` and `&gt;`.
-- `@import` inside it looks in the assets folder.
-- Built again by Hot Reload, the element drops the old sheet before it takes the new.
+| Element | Does |
+| ------- | ---- |
+| `<Style Selector="…">` | A rule: the selectors of the style sheets, `Button.primary > Label:hover` |
+| `<Setter Property="…" Value="…"/>` | A property and its value; the value may also be the element's text |
+| `<Transition Property="…" Duration="…" Easing="…"/>` | Animates the property's changes; the easing is optional |
+| `<Style>` inside a `<Style>` | A nested rule: `^` stands for the enclosing selector, `^:hover`; without `^` it is a descendant |
+| `<StyleInclude Source="…"/>` | A `.zss` file of the assets folder, as `StyleSheet.LoadAsset` finds it |
 
-`StyleSheet="…"` adds sheets from files of the assets folder, as `StyleSheet.LoadAsset`
-finds them; several are separated by `;`:
-
-```xml
-<Form x:Class="MyApp.MainForm" StyleSheet="Styles/app.zss; Styles/forms.zss" …>
-```
-
-The package hands the project's `.zss` files to the build, and a sheet that isn't among
-them is ZF2014 — a warning, since it may reach the assets another way. While a debugger is
-attached the sheets are watched: a save restyles the running form.
+- Values are written as in style sheets, so they follow the theme: `@Accent`,
+  `alpha(@Accent, 0.1)`, `lighten(…)`, `Colors.RoyalBlue`, `14 6`.
+- The order is the cascade's: of two rules of equal specificity the later wins, an
+  included sheet included.
+- The build checks the styles: a style it can't read — no `Selector`, a setter without a
+  property or a value — is ZF2012, an error; a control or a property nobody has is ZF2013,
+  a warning, as the style sheets themselves say: the selector never matches. A value is
+  checked when the element is built; a problem there goes to the debug output with its line
+  in the markup.
+- The package hands the project's `.zss` files to the build: a `StyleInclude` of a file
+  that isn't among them is ZF2014 — a warning, since it may reach the assets another way.
+  While a debugger is attached an included sheet is watched: a save restyles the running
+  form.
+- Built again by Hot Reload, the element drops its old styles before it takes the new.
 
 ## Analyzers
 

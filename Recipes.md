@@ -87,46 +87,30 @@ the `RelayCommand` of CommunityToolkit.Mvvm included.
 
 ## Commands and a style sheet in markup
 
-A `.zfml` file names a command of its class by name, and carries a style sheet of its own
-for what it builds. Both are checked by the build.
+A `.zfml` file names a command of its class by name, and carries styles of its own for
+what it builds. Both are checked by the build.
 
-```xml
+````xml
 <StackPanel x:Class="MyApp.EditorBar"
             xmlns="https://zeppelinforms.dev/markup"
             xmlns:x="https://zeppelinforms.dev/markup/x"
             Orientation="Horizontal" Spacing="6">
 
-  <x:Styles><![CDATA[
-    Button.quiet {
-      Background: transparent;
-      &:hover { Background: alpha(@Accent, 0.1); }
-    }
-  ]]></x:Styles>
-
-  <Button Text="Save" Command="Save"/>
-  <Button Text="Quit" Classes="quiet" Command="AppCommands.Quit"/>
-</StackPanel>
-```
-
-```csharp
-public partial class EditorBar
-{
-    public Command Save { get; }
-
-    public EditorBar()
-    {
-        // before InitializeComponent: it hands the command to the button
-        Save = new Command(DoSave);
-        InitializeComponent();
-    }
-}
-```
+  <StackPanel.Styles>
+    <Style Selector="Button.quiet">
+      <Setter Property="Background" Value="transparent"/>
+      <Style Selector="^:hover">
+        <Setter Property="Background" Value="alpha(@Accent, 0.1)"/>
+      </Style>
+    </Style>
+  </StackPanel.Styles>
+````
 
 `Command="Save"` is a property or a field of the class; `Command="AppCommands.Quit"` a
 static one of another type. Make the command before `InitializeComponent` runs — in the
-constructor before the call, or in an initializer. Write the sheet in CDATA when it uses
-`&` or `>`; otherwise XML wants them as `&amp;` and `&gt;`. A sheet in a file goes in with
-`StyleSheet="Styles/editor.zss"`. See [Markup and tooling](Markup-and-Tooling).
+constructor before the call, or in an initializer. A sheet in a file goes in with
+`<StyleInclude Source="Styles/editor.zss"/>` among the styles. See
+[Markup and tooling](Markup-and-Tooling).
 
 ## Ask before closing unsaved work
 

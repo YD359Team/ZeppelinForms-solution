@@ -28,6 +28,13 @@ in the form of Wayland and GLES.
 ### Styles and themes
 
 - Now `.zss` styles can use color from classes `Colors.*` and `MediaColors.*`
+- `<Type.Styles>` holds styles as XAML writes them: `<Style Selector="…">` with `<Setter>`,
+  `<Transition>` and nested styles (`^:hover`), values in the style sheets' own syntax —
+  theme references included. Checked by the build: ZF2012 for a style it can't read, ZF2013
+  for a control or a property nobody has
+- `<StyleInclude Source="Styles/app.zss"/>` adds a sheet of the assets folder in its place
+  among the styles; one that isn't among the project's `.zss` files is ZF2014. The package
+  hands the `.zss` files to the generator
 
 ### Markup
 
