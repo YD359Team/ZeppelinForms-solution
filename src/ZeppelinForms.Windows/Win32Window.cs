@@ -432,14 +432,17 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                 return 0;
 
             case NativeConstants.WM_LBUTTONDOWN:
+                TakeKeyboardBack();
                 _form.OnPointerDown(PointFromLParam(lParam), MouseButton.Left, GetModifiers());
                 return 0;
 
             case NativeConstants.WM_LBUTTONUP:
+                TakeKeyboardBack();
                 _form.OnPointerUp(PointFromLParam(lParam), MouseButton.Left, GetModifiers());
                 return 0;
 
             case NativeConstants.WM_RBUTTONDOWN:
+                TakeKeyboardBack();
                 _form.OnPointerDown(PointFromLParam(lParam), MouseButton.Right, GetModifiers());
                 return 0;
 

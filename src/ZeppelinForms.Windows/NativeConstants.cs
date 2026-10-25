@@ -136,6 +136,17 @@ internal static class NativeConstants
     // the size limits, the topmost place and centering (Win32Window.Placement)
     public const uint WM_GETMINMAXINFO = 0x0024;
     public const uint WM_WINDOWPOSCHANGED = 0x0047;
+    // ===== native controls among the form's elements, see Win32NativeSlot =====
+    public const uint WS_CHILD = 0x40000000;
+    public const uint WS_VISIBLE = 0x10000000;
+    public const uint WS_CLIPSIBLINGS = 0x04000000;
+    public const uint WS_CLIPCHILDREN = 0x02000000;
+    public const uint WM_PARENTNOTIFY = 0x0210;
+    public const uint WM_SETFOCUS = 0x0007;
+    public const uint WM_XBUTTONDOWN = 0x020B;
+    public const uint WM_POINTERDOWN = 0x0246;
+    public const int SWP_SHOWWINDOW = 0x0040;
+    public const nint HWND_TOP = 0;
     public const nint HWND_TOPMOST = -1;
     public const nint HWND_NOTOPMOST = -2;
 }
