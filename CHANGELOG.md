@@ -25,14 +25,27 @@ in the form of Wayland and GLES.
 - Rework file dialogs (not native) appearance: support icon for different file extension groups
 (folder, executable, image, music, ...), interactive searchbar in top panel
 
+### Styles and themes
+
+- Now `.zss` styles can use color from classes `Colors.*` and `MediaColors.*`
+
+### Markup
+
+
+
 ### Wayland
 
-- Wayland platform available for Linux
+The Wayland platform is available for Linux as an alternative to X11
 
 ### GLES
 
-- GLES available as alternate graphics stack
+The GLES graphics stack is available as an alternative to Skia
 
+### NativeControlHost
+
+For the implementation of complex controls that exist as a separate native component, appropriate
+support from the framework has been added. Added support for native controls via `NativeControlHost`. 
+Support for `HwndHost`, `X11WindowHost` and `HtmlElementHost` is currently available
 
 ## [0.17.1] - Victoria Falls
 
