@@ -77,7 +77,7 @@ public partial class SplitButton : ButtonBase
 
     /// <summary>What is actually written on the button.</summary>
     private string? DisplayText =>
-        ShowSelectedItem && _lastInvoked?.Text is { Length: > 0 } header ? header : Text;
+        ShowSelectedItem && _lastInvoked?.Text is { Length: > 0 } header ? header : ShownText;
 
     public bool IsMenuOpen => _flyout.IsOpen;
 
@@ -233,7 +233,7 @@ public partial class SplitButton : ButtonBase
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size content = StableWidth ? WidestCaption() : Measure(DisplayText);
+        Size content = StableWidth ? WidestCaption() : Measure(ShownText);
 
         return ResolveSize(
             new Size(

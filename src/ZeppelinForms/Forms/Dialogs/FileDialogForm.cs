@@ -1,5 +1,7 @@
-﻿using ZeppelinForms.Core.Collections;
+﻿using System.IO.Enumeration;
+using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Core.Globalization;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
@@ -18,19 +20,30 @@ internal sealed class FileDialogForm : Form
     private readonly FileDialogOptions _options;
     private readonly FileDialogMode _mode;
 
-    private readonly Label _path = new();
+    // the current folder, and the place to type another one or a part of a name
+    private readonly TextBox _path = new();
     private readonly ListBox _list = new();
     private readonly TextBox _name = new();
     private readonly ComboBox _filter = new();
     private readonly Button _accept = new();
 
-    // maps list rows to real paths: the ListBox holds
-    // only the display names
-    private readonly List<Entry> _entries = [];
-
     private string _directory = string.Empty;
 
-    private readonly record struct Entry(string Path, bool IsDirectory);
+    /// <summary>What the path field asked to look for in the current folder: a part
+    /// of a name, or a pattern with * and ?. Null — the whole folder.</summary>
+    private string? _search;
+
+    // the list holds the entries themselves: the row template draws a row from one,
+    // and a row's index finds its path
+    private sealed record Entry(string Path, bool IsDirectory, FileKind Kind)
+    {
+        public string Name { get; } = System.IO.Path.GetFileName(Path);
+
+        // what a screen reader and the list's own text search take for the row
+        public override string ToString() => Name;
+    }
+
+    private const string SearchIcon = "M3 11a8 8 0 1 0 16 0a8 8 0 1 0-16 0M21 21l-4.3-4.3";
 
     public FileDialogForm(FileDialogOptions options, FileDialogMode mode)
     {
@@ -64,8 +77,12 @@ internal sealed class FileDialogForm : Form
         _filter.SelectedIndex = 0;
         _filter.SelectionChanged += (_, _) => Reload();
 
+        _list.ItemTemplate = CreateRow;
         _list.SelectionChanged += (_, _) => OnSelectionChanged();
         _list.DoubleClick += (_, _) => Activate();
+
+        _path.Accepted += (_, _) => OnPathAccepted();
+        _name.Accepted += (_, _) => Activate();
 
         _name.Text = options.FileName;
 
@@ -108,6 +125,8 @@ internal sealed class FileDialogForm : Form
         };
 
         _path.FlexGrow = 1;
+        _path.LeadingIcon = IconSource.FromPath(SearchIcon, strokeWidth: 2f);
+        _path.Localize(nameof(TextBox.Watermark), static (box, text) => box.Watermark = text, ZfText.PathOrSearch);
         top.Children.AddRange([up, _path]);
 
         StackPanel bottom = new()
@@ -135,8 +154,8 @@ internal sealed class FileDialogForm : Form
 
         // the renderer clears the window to white and knows nothing about
         // the theme, so the root paints the theme background itself —
-        // otherwise the path label, which takes the theme text color,
-        // ends up light-on-white in the dark theme
+        // otherwise the names in the list, which take the theme text color,
+        // end up light-on-white in the dark theme
         DockPanel root = new() { Background = App.Theme.Colors.Background };
         root.Children.AddRange([top, bottom, _list]);
 
@@ -150,8 +169,69 @@ internal sealed class FileDialogForm : Form
         _directory = directory;
         _path.Text = directory;
 
+        // a search looked in the folder it was typed in
+        _search = null;
+
         Reload();
     }
+
+    /// <summary>Enter in the path field. A folder goes there, a file is picked as if
+    /// chosen in its folder, and anything else is looked for in the current folder:
+    /// a part of a name, or a pattern such as <c>*.txt</c>. An empty field shows the
+    /// whole folder again.</summary>
+    private void OnPathAccepted()
+    {
+        string text = (_path.Text ?? string.Empty).Trim();
+
+        if (text.Length == 0)
+        {
+            Navigate(_directory);
+            return;
+        }
+
+        string? target = Resolve(text);
+
+        if (target is not null && Directory.Exists(target))
+        {
+            Navigate(target);
+            return;
+        }
+
+        if (target is not null && _mode != FileDialogMode.Folder && File.Exists(target) &&
+            Path.GetDirectoryName(target) is { Length: > 0 } folder)
+        {
+            Navigate(folder);
+            _name.Text = Path.GetFileName(target);
+            Activate();
+            return;
+        }
+
+        _search = text;
+        Reload();
+    }
+
+    /// <summary>The full path the text names: absolute, from the home folder for
+    /// <c>~</c>, or else from the current folder. Null for text no path can be made of.</summary>
+    private string? Resolve(string text)
+    {
+        if (text == "~" || text.StartsWith("~/", StringComparison.Ordinal) || text.StartsWith("~\\", StringComparison.Ordinal))
+            text = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), text[1..].TrimStart('/', '\\'));
+
+        try
+        {
+            return Path.GetFullPath(Path.IsPathRooted(text) ? text : Path.Combine(_directory, text));
+        }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+    }
+
+    private bool MatchesSearch(string name) =>
+        _search is not { } search ||
+        (search.Contains('*') || search.Contains('?')
+            ? FileSystemName.MatchesSimpleExpression(search, name, ignoreCase: true)
+            : name.Contains(search, StringComparison.OrdinalIgnoreCase));
 
     private void NavigateUp()
     {
@@ -163,14 +243,14 @@ internal sealed class FileDialogForm : Form
 
     private void Reload()
     {
-        _entries.Clear();
         _list.Items.Clear();
         _list.SelectedIndex = -1;
 
         foreach (string directory in Enumerate(Directory.EnumerateDirectories))
         {
-            _entries.Add(new Entry(directory, IsDirectory: true));
-            _list.Items.Add("[" + Path.GetFileName(directory) + "]");
+            if (!MatchesSearch(Path.GetFileName(directory))) continue;
+
+            _list.Items.Add(new Entry(directory, IsDirectory: true, FileKind.Folder));
         }
 
         if (_mode == FileDialogMode.Folder) return;
@@ -179,12 +259,42 @@ internal sealed class FileDialogForm : Form
 
         foreach (string file in Enumerate(Directory.EnumerateFiles))
         {
-            if (!filter.Matches(file)) continue;
+            if (!filter.Matches(file) || !MatchesSearch(Path.GetFileName(file))) continue;
 
-            _entries.Add(new Entry(file, IsDirectory: false));
-            _list.Items.Add(Path.GetFileName(file));
+            _list.Items.Add(new Entry(file, IsDirectory: false, FileKinds.Of(file)));
         }
     }
+
+    /// <summary>A row: the kind's icon and the name. The folders were told apart by
+    /// brackets around the name; an icon tells every kind apart and leaves the name
+    /// as it is.</summary>
+    private static StackPanel CreateRow(object item)
+    {
+        var entry = (Entry)item;
+        (string data, float stroke, Color color) = FileKinds.Icon(entry.Kind);
+
+        return new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            Padding = new Thickness(6, 3),
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Children =
+            {
+                new SvgIcon { PathData = data, StrokeWidth = stroke, Color = color, IconSize = 16 },
+                new Label
+                {
+                    Text = entry.Name,
+                    FlexGrow = 1,
+                    HorizontalContentAlign = HorizontalContentAlignment.Left,
+                },
+            },
+        };
+    }
+
+    private Entry? EntryAt(int index) =>
+        index >= 0 && index < _list.Items.Count ? _list.Items[index] as Entry : null;
 
     /// <summary>Enumeration that cuts off whatever is inaccessible: system folders
     /// like "System Volume Information" throw on the very first access,
@@ -211,20 +321,14 @@ internal sealed class FileDialogForm : Form
 
     private void OnSelectionChanged()
     {
-        if (_list.SelectedIndex < 0 || _list.SelectedIndex >= _entries.Count) return;
-
-        Entry entry = _entries[_list.SelectedIndex];
-
-        if (!entry.IsDirectory)
-            _name.Text = Path.GetFileName(entry.Path);
+        if (EntryAt(_list.SelectedIndex) is { IsDirectory: false } entry)
+            _name.Text = entry.Name;
     }
 
     /// <summary>Double click or the button: a folder — enter it, a file — return it.</summary>
     private void Activate()
     {
-        Entry? current = _list.SelectedIndex >= 0 && _list.SelectedIndex < _entries.Count
-            ? _entries[_list.SelectedIndex]
-            : null;
+        Entry? current = EntryAt(_list.SelectedIndex);
 
         // picking a folder: take the selected one, or the current one if nothing is selected
         if (_mode == FileDialogMode.Folder)
@@ -246,8 +350,10 @@ internal sealed class FileDialogForm : Form
         if (_mode == FileDialogMode.Open && _options.AllowMultiple)
         {
             string[] files = [.. _list.SelectedIndices
-                .Where(i => i < _entries.Count && !_entries[i].IsDirectory)
-                .Select(i => _entries[i].Path)];
+                .Select(EntryAt)
+                .OfType<Entry>()
+                .Where(entry => !entry.IsDirectory)
+                .Select(entry => entry.Path)];
 
             if (files.Length > 1)
             {

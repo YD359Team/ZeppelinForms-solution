@@ -11,6 +11,15 @@ namespace ZeppelinForms.Forms.Controls;
 
 public partial class ToggleSwitch : InteractiveControl, ITextElement
 {
+    /// <summary>The caption as shown: the text, or — never set — the name given to the
+    /// control, see <see cref="ZeppelinForms.Forms.Controls.Base.UIElement.NameCaption"/>.</summary>
+    internal override string? ShownText => Text ?? NameCaption;
+
+    protected override void OnNameCaptionChanged()
+    {
+        if (Text is null) Invalidate();
+    }
+
     private const float Gap = 8f;
 
     /// <summary>How far the focus ring runs outside the track.</summary>
@@ -194,14 +203,14 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
         Color onThumb = OnThumbColor.A > 0 ? OnThumbColor : ThumbColor;
         g.FillEllipse(thumb, Interpolators.Color(ThumbColor, onThumb, _thumbProgress));
 
-        if (!string.IsNullOrEmpty(Text))
+        if (!string.IsNullOrEmpty(ShownText))
         {
             var textRect = new Rectangle(
                 new Point(content.X + track.Width + Gap, content.Y),
                 new Size(Math.Max(0, content.Width - track.Width - Gap), content.Height));
 
-            g.DrawText(ApplyTextTransform(Text), textRect, TextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
-            DrawAccessKeyUnderline(g, Text, textRect, TextColor, this.HorizontalContentAlign, this.VerticalContentAlign);
+            g.DrawText(ApplyTextTransform(ShownText), textRect, TextColor, EffectiveFont, this.HorizontalContentAlign, this.VerticalContentAlign);
+            DrawAccessKeyUnderline(g, ShownText, textRect, TextColor, this.HorizontalContentAlign, this.VerticalContentAlign);
         }
     }
 
@@ -220,9 +229,9 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = string.IsNullOrEmpty(Text)
+        Size textSize = string.IsNullOrEmpty(ShownText)
             ? Size.Empty
-            : TextMeasurer.MeasureLine(ApplyTextTransform(Text), EffectiveFont);
+            : TextMeasurer.MeasureLine(ApplyTextTransform(ShownText), EffectiveFont);
 
         Size track = TrackSize;
 

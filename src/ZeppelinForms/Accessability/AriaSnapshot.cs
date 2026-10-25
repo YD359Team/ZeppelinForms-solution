@@ -51,7 +51,7 @@ internal static class AriaSnapshot
             Layer? root = layers.Count > 0 ? layers[0] : null;
             Layer? top = layers.Count > 0 ? layers[^1] : null;
 
-            json.WriteString("label", root?.Form.Title ?? string.Empty);
+            json.WriteString("label", root?.Form.ShownTitle ?? string.Empty);
 
             // the keyboard's place: the focused element of the top window,
             // or the current item inside it

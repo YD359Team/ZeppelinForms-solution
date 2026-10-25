@@ -291,24 +291,41 @@ internal sealed class VectorPath
         int p = 0;
         bool inContour = false;
 
+        // a move starts a contour only once something is drawn from it: a bare move
+        // draws nothing — in SVG and in Skia — and the stroker would have made a dot of
+        // it, as of a line of no length. Icons start with "M0 0M24 24" to set their grid,
+        // and those two moves came out as dots in the corners
+        Point? pending = null;
+
+        void Start()
+        {
+            if (pending is not { } start) return;
+
+            if (inContour) output.EndContour(closed: false);
+
+            output.BeginContour();
+            output.Add(start);
+            inContour = true;
+            pending = null;
+        }
+
         for (int v = 0; v < _verbs.Count; v++)
         {
             switch (_verbs[v])
             {
                 case Verb.Move:
-                    if (inContour) output.EndContour(closed: false);
-
-                    output.BeginContour();
-                    output.Add(matrix.Map(_points[p++]));
-                    inContour = true;
+                    pending = matrix.Map(_points[p++]);
                     break;
 
                 case Verb.Line:
+                    Start();
                     output.Add(matrix.Map(_points[p++]));
                     break;
 
                 case Verb.Cubic:
                     {
+                        Start();
+
                         Point p0 = output.Last;
                         Point p1 = matrix.Map(_points[p]);
                         Point p2 = matrix.Map(_points[p + 1]);
@@ -320,6 +337,9 @@ internal sealed class VectorPath
                     }
 
                 case Verb.Close:
+                    // a move closed at once is drawn: Skia caps it as a line of no length
+                    Start();
+
                     if (inContour) output.EndContour(closed: true);
                     inContour = false;
                     break;

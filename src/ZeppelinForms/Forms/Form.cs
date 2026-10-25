@@ -153,8 +153,37 @@ public partial class Form : IDisposable
         }
     }
 
-    public string Name { get; set; } = string.Empty;
-    public string? Title { get; set; }
+    /// <summary>The form's name; a form without a <see cref="Title"/> is captioned with it,
+    /// as a form the WinForms designer adds is captioned "Form1".</summary>
+    public string Name
+    {
+        get;
+        set
+        {
+            field = value ?? string.Empty;
+
+            if (Title is null) DesktopWindow?.SetTitle(ShownTitle);
+        }
+    } = string.Empty;
+
+    /// <summary>The window's caption. An open window shows a change at once.</summary>
+    public string? Title
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            DesktopWindow?.SetTitle(ShownTitle);
+        }
+    }
+
+    /// <summary>The caption the window shows: the title, or — never set — the form's
+    /// <see cref="Name"/>.</summary>
+    internal string? ShownTitle => Title ?? (Name.Length > 0 ? Name : null);
+
     /// <summary>The window's icon: the title bar's, the taskbar button's. Null — the
     /// application's, <see cref="App.Icon"/>. Changing it shows at once.</summary>
     public Icon? Icon
@@ -597,7 +626,8 @@ public partial class Form : IDisposable
 
             hit?.RaiseMouseDown(downArgs);
 
-            if (e.Button == MouseButton.Left && hit is not null)
+            // a press on a scroll bar scrolls, and leaves the focus where it was
+            if (e.Button == MouseButton.Left && hit is not null && !(hit is PanelControl panel && panel.IsOverScrollBar(e.Location)))
                 FocusFromHit(hit);
         }
         finally
@@ -1260,7 +1290,7 @@ public partial class Form : IDisposable
         }
 
         DesktopWindow?.SetOpacity(_opacity);
-        DesktopWindow?.SetTitle(Title);
+        DesktopWindow?.SetTitle(ShownTitle);
 
         // before the window is seen: a dark caption must not flash white first
         ApplyTitleBar();

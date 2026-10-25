@@ -20,7 +20,8 @@ public sealed class NameScope
     {
         if (string.IsNullOrEmpty(element.Name))
         {
-            element.Name = GenerateName(element);
+            // made up, not given: it identifies the element, it isn't its caption
+            element.AssignGeneratedName(GenerateName(element));
         }
         else if (_byName.TryGetValue(element.Name, out var existing) && !ReferenceEquals(existing, element))
         {

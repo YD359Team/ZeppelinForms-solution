@@ -624,6 +624,21 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
     private static bool Contains(Rectangle r, Point p) =>
         p.X >= r.X && p.X <= r.X + r.Width && p.Y >= r.Y && p.Y <= r.Y + r.Height;
 
+    /// <summary>Whether a point of the form — a pointer's location — is on one of the
+    /// panel's scroll bars. A bar is the panel's own, not its content's: hovering it
+    /// lights no row, and pressing it neither selects nor moves the focus, as a scroll
+    /// bar of the system's lists doesn't.</summary>
+    protected internal bool IsOverScrollBar(Point location)
+    {
+        if (!ShowVerticalBar && !ShowHorizontalBar) return false;
+
+        Point origin = GetAbsolutePosition();
+        var local = new Point(location.X - origin.X, location.Y - origin.Y);
+
+        return (ShowVerticalBar && Contains(VerticalBarRect, local)) ||
+            (ShowHorizontalBar && Contains(HorizontalBarRect, local));
+    }
+
     private ScrollBarInteraction VerticalBarInput => _verticalBarInput ??= new(
     this,
     Orientation.Vertical,

@@ -246,6 +246,31 @@ public class GlesGeometryTests
     }
 
     [Fact]
+    public void ABareMoveSetsTheBoundsButDrawsNothing()
+    {
+        // an icon's grid: two moves to its corners, then the shape
+        VectorPath path = SvgPathParser.Parse("M0 0M24 24M2 2h10v6H2z");
+        Assert.Equal(new Rectangle(0, 0, 24, 24), path.ControlBounds);
+
+        var lines = new Polylines();
+        path.Flatten(Affine.Identity, 0.1f, lines);
+        Assert.Single(lines.Contours);
+
+        // stroked with round caps, the moves left no dots in the corners
+        var outline = new Polylines();
+        new Stroker().Stroke(lines, 2, LineCap.Round, LineJoin.Round, 4, 0.1f, outline);
+        byte[] coverage = Rasterize(outline, 26, 26);
+
+        Assert.Equal(0, coverage[0]);
+        Assert.Equal(0, coverage[24 * 26 + 24]);
+
+        // a move closed at once is still a dot, as Skia caps a line of no length
+        var dot = new Polylines();
+        SvgPathParser.Parse("M5 5z").Flatten(Affine.Identity, 0.1f, dot);
+        Assert.Single(dot.Contours);
+    }
+
+    [Fact]
     public void BrokenDataKeepsWhatCameBefore()
     {
         VectorPath path = SvgPathParser.Parse("M0 0 L10 0 L10 10 X 5 5");

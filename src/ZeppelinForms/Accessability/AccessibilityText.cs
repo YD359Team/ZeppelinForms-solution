@@ -16,7 +16,8 @@ internal static class AccessibilityText
     {
         string? text = element switch
         {
-            ITextElement textElement => textElement.Text,
+            // the caption as shown: a control with no text of its own shows its name
+            ITextElement textElement => textElement.Text ?? element.ShownText,
             RichLabel rich => string.Concat(rich.Inlines.Select(run => run.Text)),
             HintLabel hint => hint.Text,
             _ => null,

@@ -1,4 +1,6 @@
 #nullable enable
+override ZeppelinForms.Forms.Controls.ToggleButton.OnNameCaptionChanged() -> void
+static readonly ZeppelinForms.Core.Globalization.ZfText.PathOrSearch -> ZeppelinForms.Core.Globalization.TextKey!
 virtual ZeppelinForms.Drawing.Graphics.DrawBezier(ZeppelinForms.Drawing.Primitives.Point start, ZeppelinForms.Drawing.Primitives.Point control1, ZeppelinForms.Drawing.Primitives.Point control2, ZeppelinForms.Drawing.Primitives.Point end, ZeppelinForms.Drawing.Primitives.Color color, float width) -> void
 virtual ZeppelinForms.Drawing.Graphics.DrawBeziers(System.ReadOnlySpan<ZeppelinForms.Drawing.Primitives.Point> points, ZeppelinForms.Drawing.Primitives.Color color, float width) -> void
 ZeppelinForms.Forms.Controls.ColorPicker.ShowEyedropper.get -> bool
@@ -77,3 +79,13 @@ ZeppelinForms.Headless.HeadlessWindow.SupportsPositioning.get -> bool
 ZeppelinForms.Headless.HeadlessWindow.SupportsPositioning.set -> void
 ZeppelinForms.Drawing.GlTarget.MakeCurrent.get -> System.Action?
 ZeppelinForms.Drawing.GlTarget.MakeCurrent.init -> void
+ZeppelinForms.Forms.Controls.Base.UIElement.NameCaption.get -> string?
+virtual ZeppelinForms.Forms.Controls.Base.UIElement.OnNameCaptionChanged() -> void
+override ZeppelinForms.Forms.Controls.Button.OnNameCaptionChanged() -> void
+override ZeppelinForms.Forms.Controls.CheckBox.OnNameCaptionChanged() -> void
+override ZeppelinForms.Forms.Controls.RadioButton.OnNameCaptionChanged() -> void
+override ZeppelinForms.Forms.Controls.ToggleSwitch.OnNameCaptionChanged() -> void
+override ZeppelinForms.Forms.Controls.GroupBox.OnNameCaptionChanged() -> void
+override ZeppelinForms.Forms.Controls.Text.Label.OnNameCaptionChanged() -> void
+override ZeppelinForms.Forms.Controls.Text.LinkLabel.OnNameCaptionChanged() -> void
+ZeppelinForms.Forms.Controls.Base.PanelControl.IsOverScrollBar(ZeppelinForms.Drawing.Primitives.Point location) -> bool

@@ -26,6 +26,15 @@ public partial class Button : ButtonBase, ITextElement
         }
     }
 
+    /// <summary>The caption as shown: the text, or — never set, and no icon standing for
+    /// it — the name given to the button, see <see cref="ZeppelinForms.Forms.Controls.Base.UIElement.NameCaption"/>.</summary>
+    internal override string? ShownText => Text ?? (Icon is null ? NameCaption : null);
+
+    protected override void OnNameCaptionChanged()
+    {
+        if (Text is null) Invalidate();
+    }
+
     /// <summary>Where the text stands across its room. A styled property: a style
     /// sheet sets it, and a change redraws at once.</summary>
     [Styled(Category = "Text")]
@@ -112,7 +121,7 @@ public partial class Button : ButtonBase, ITextElement
     {
         Rectangle content = ContentBounds;
         IconSource? icon = Icon;
-        string? text = string.IsNullOrEmpty(Text) ? null : ApplyTextTransform(Text);
+        string? text = string.IsNullOrEmpty(ShownText) ? null : ApplyTextTransform(ShownText);
 
         if (icon is null)
         {
@@ -172,8 +181,8 @@ public partial class Button : ButtonBase, ITextElement
 
     private void DrawCaption(Graphics g, Rectangle area, HorizontalContentAlignment horizontal, VerticalContentAlignment vertical)
     {
-        g.DrawText(ApplyTextTransform(Text!), area, CurrentTextColor, EffectiveFont, horizontal, vertical);
-        DrawAccessKeyUnderline(g, Text!, area, CurrentTextColor, horizontal, vertical);
+        g.DrawText(ApplyTextTransform(ShownText!), area, CurrentTextColor, EffectiveFont, horizontal, vertical);
+        DrawAccessKeyUnderline(g, ShownText!, area, CurrentTextColor, horizontal, vertical);
     }
 
     private static float Align(float start, float available, float size, HorizontalContentAlignment alignment) => alignment switch
@@ -192,9 +201,9 @@ public partial class Button : ButtonBase, ITextElement
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = string.IsNullOrEmpty(Text)
+        Size textSize = string.IsNullOrEmpty(ShownText)
             ? Size.Empty
-            : TextMeasurer.MeasureLine(ApplyTextTransform(Text), EffectiveFont);
+            : TextMeasurer.MeasureLine(ApplyTextTransform(ShownText), EffectiveFont);
 
         float width = textSize.Width;
         float height = textSize.Height;

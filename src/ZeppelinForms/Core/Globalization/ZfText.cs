@@ -42,6 +42,7 @@ public static class ZfText
 
     public static readonly TextKey AllFiles = new("zf.file.all-files", "All files");
     public static readonly TextKey FileExists = new("zf.file.exists", "\"{0}\" already exists. Replace it?");
+    public static readonly TextKey PathOrSearch = new("zf.file.path-or-search", "Folder, file or part of a name");
 
     // ===== validation =====
 

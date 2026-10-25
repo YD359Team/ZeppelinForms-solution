@@ -41,6 +41,13 @@ public partial class ListBox : ItemsControl, IInputElement
 
     public event EventHandler? SelectionChanged;
 
+    /// <summary>The preview reaches the list while the cursor moves over any of its
+    /// rows, so the hovered row is found here rather than in OnMouseMove.</summary>
+    /// <remarks>Over the scroll bar no row is lit: the bar is above the rows, not part of
+    /// the one under it.</remarks>
+    protected override void OnPreviewMouseMove(MouseMoveEventArgs e) =>
+        SetHovered(IsEffectivelyEnabled && !IsOverScrollBar(e.Location) ? IndexAt(e.Location) : -1);
+
     public bool IsSelected(int index) => _selected.Contains(index);
 
     public void ClearSelection()
@@ -260,11 +267,6 @@ public partial class ListBox : ItemsControl, IInputElement
         SetHovered(-1);
     }
 
-    /// <summary>The preview reaches the list while the cursor moves over any of its
-    /// rows, so the hovered row is found here rather than in OnMouseMove.</summary>
-    protected override void OnPreviewMouseMove(MouseMoveEventArgs e) =>
-        SetHovered(IsEffectivelyEnabled ? IndexAt(e.Location) : -1);
-
     private void SetHovered(int index)
     {
         if (index == _hoveredIndex) return;
@@ -308,6 +310,9 @@ public partial class ListBox : ItemsControl, IInputElement
         // the hit lands on a row, which is itself enabled, so the form's check
         // for a disabled hit doesn't stop a disabled list from selecting
         if (!IsEffectivelyEnabled) return;
+
+        // a press on the scroll bar scrolls: the row under it is not chosen
+        if (IsOverScrollBar(e.Location)) return;
 
         int index = IndexAt(e.Location);
         if (index < 0) return;

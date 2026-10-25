@@ -32,5 +32,5 @@
     <Button Text="Clear" Click="OnClear"/>
   </StackPanel>
 
-  <Label x:Name="Result" Classes="demo-note"/>
+  <Label x:Name="Result" Classes="demo-note" Text=""/>
 </StackPanel>
