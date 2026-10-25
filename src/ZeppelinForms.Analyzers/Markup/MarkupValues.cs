@@ -9,9 +9,10 @@ namespace ZeppelinForms.Analyzers.Markup;
 /// The text of an attribute as a C# expression of the property's type, by the rule of
 /// the style sheets: a struct takes the arguments of one of its constructors in their
 /// order — <c>Padding="14 6"</c> is <c>new Thickness(14, 6)</c> — a bare name is a
-/// static member of the type or a member of an enum, a name of <c>Colors</c> (<c>red</c>
-/// or <c>Colors.Red</c>), <c>MediaColors.Telegram</c> or <c>rgb(…)</c>.. Commas may 
-/// separate the arguments too, as XAML writes them: <c>Size="800,600"</c>.
+/// static member of the type or a member of an enum, a color is <c>#rrggbb</c>, a
+/// name of <c>Colors</c> (<c>red</c> or <c>Colors.Red</c>), <c>MediaColors.Telegram</c>
+/// or <c>rgb(…)</c>. Commas may separate the arguments too, as XAML writes them:
+/// <c>Size="800,600"</c>.
 /// </summary>
 /// <remarks>
 /// Everything is decided at compile time: a value that can't be written is an error at

@@ -45,6 +45,8 @@ internal abstract class ValueExpr
 /// <c>mix(c1, c2, t)</c></item>
 /// <item>numbers with an optional <c>px</c>; <c>none</c> for a value that may be null</item>
 /// </list>
+/// <item><c>@Accent</c> — a color role of the theme; <c>@Metrics.ControlCornerRadius</c>,
+/// <c>@TypeRamp.Body.Size</c> — any path from <see cref="Theme"/></item>
 /// </remarks>
 internal static class StyleValueCompiler
 {
