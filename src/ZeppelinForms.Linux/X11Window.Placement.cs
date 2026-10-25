@@ -183,6 +183,20 @@ internal sealed partial class X11Window
             data3 = data3,
         };
 
-        // … the rest as before: AllocHGlobal, StructureToPtr, XSendEvent to the root, FreeHGlobal
+        nint buffer = Marshal.AllocHGlobal(Marshal.SizeOf<X11.XClientMessageEvent>());
+
+        try
+        {
+            Marshal.StructureToPtr(message, buffer, false);
+
+            nuint root = X11.XRootWindow(_display, X11.XDefaultScreen(_display));
+
+            X11.XSendEvent(_display, root, false,
+                X11.SubstructureNotifyMask | X11.SubstructureRedirectMask, buffer);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
     }
 }
