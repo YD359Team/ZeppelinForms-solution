@@ -122,6 +122,37 @@ internal static partial class Interop
     [JSImport("clearTextInputArea", ModuleName)]
     internal static partial void ClearTextInputArea();
 
+    // ==== native elements among the form's, see BrowserNativeSlot ====
+
+    [JSImport("createSlot", ModuleName)]
+    internal static partial int CreateSlot();
+
+    /// <summary>The slot's element from a tag and its attributes as JSON; null — no slot.</summary>
+    [JSImport("createSlotElement", ModuleName)]
+    internal static partial JSObject? CreateSlotElement(int slot, string tag, string attributesJson);
+
+    [JSImport("placeSlot", ModuleName)]
+    internal static partial void PlaceSlot(
+        int slot, double x, double y, double width, double height,
+        double visibleX, double visibleY, double visibleWidth, double visibleHeight);
+
+    [JSImport("hideSlot", ModuleName)]
+    internal static partial void HideSlot(int slot);
+
+    [JSImport("focusSlot", ModuleName)]
+    internal static partial void FocusSlot(int slot);
+
+    [JSImport("destroySlotElement", ModuleName)]
+    internal static partial void DestroySlotElement(int slot);
+
+    [JSImport("destroySlot", ModuleName)]
+    internal static partial void DestroySlot(int slot);
+
+    /// <summary>A slot's element took the keyboard by itself.</summary>
+    [JSExport]
+    internal static void OnSlotFocused(int slot) =>
+        App.RunGuarded(() => BrowserNativeSlot.OnFocused(slot));
+
     /// <summary>The contents of the picked files: JSON of the form [{name, data}],
     /// data in base64. Written into /uploads, where an ordinary File reads them.</summary>
     [JSExport]

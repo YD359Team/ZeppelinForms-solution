@@ -15,7 +15,7 @@ namespace ZeppelinForms.Browser;
 /// doesn't implement IDesktopWindow: a browser has no title bar, transparency or
 /// window state, and Form skips those calls by itself when it sees null.
 /// </summary>
-internal sealed class BrowserWindow : IPlatformWindow, ITextInputMethodWindow
+internal sealed class BrowserWindow : IPlatformWindow, ITextInputMethodWindow, INativeControlHostWindow
 {
     private readonly BrowserPlatform _platform;
     private readonly Form _form;
@@ -44,6 +44,9 @@ internal sealed class BrowserWindow : IPlatformWindow, ITextInputMethodWindow
     public float Scale => _platform.Scale;
 
     public void Show() => _platform.Invalidate();
+
+    /// <summary>An element of the page among the form's elements, over the canvas.</summary>
+    public INativeControlSlot? CreateNativeSlot() => _closed ? null : new BrowserNativeSlot(this);
 
     public void Close()
     {
