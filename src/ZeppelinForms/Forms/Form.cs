@@ -1281,6 +1281,14 @@ public partial class Form : IDisposable
 
     public void Show()
     {
+        // a window shown already: one on the screen stays as it is, a hidden one comes
+        // back as it was — Load is of its first showing, Shown of every one, see Hide
+        if (TryShowAgain())
+        {
+            OnShown(EventArgs.Empty);
+            return;
+        }
+
         // once, before the window is first seen: the place to fill the form
         // with data, as WinForms' Load is
         if (!_loaded)
@@ -1296,6 +1304,7 @@ public partial class Form : IDisposable
         ApplyTitleBar();
 
         PlatformWindow?.Show();
+        OnFirstShown();
 
         // before Shown: a handler that wants the focus elsewhere moves it after us
         if (FocusOnShow && Content is not null)
@@ -1813,6 +1822,9 @@ public partial class Form : IDisposable
             _dispatcher?.Detach(window);
 
         _isActive = false;
+        // a closed window is off the screen, whether it was shown or hidden
+        _shownWindow = null;
+        SetVisibleState(false);
         OnClosed(EventArgs.Empty);
     }
 

@@ -21,6 +21,10 @@ internal static class X11
 
     [DllImport(Lib)] public static extern int XIconifyWindow(nint display, nuint window, int screen);
 
+    /// <summary>Unmap a top-level window and tell the manager it is withdrawn, as ICCCM
+    /// asks: a bare XUnmapWindow leaves some managers thinking it was minimized.</summary>
+    [DllImport(Lib)] public static extern int XWithdrawWindow(nint display, nuint window, int screen);
+
     [DllImport(Lib)]
     public static extern int XTranslateCoordinates(
       nint display, nuint srcWindow, nuint destWindow,

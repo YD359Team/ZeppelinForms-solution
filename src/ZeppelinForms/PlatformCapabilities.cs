@@ -14,4 +14,10 @@ public enum PlatformCapabilities
     /// <see cref="PlatformNotSupportedException"/>; in the browser and on Android a form
     /// fills the page or the screen.</summary>
     WindowPositioning = 1 << 0,
+
+    /// <summary>A window can leave the screen without closing: <see cref="Forms.Form.Hide"/>
+    /// and <see cref="Forms.Form.Visible"/>. Windows, X11 and Wayland can; in the browser
+    /// and on Android a form is the page or the screen, and Hide throws
+    /// <see cref="PlatformNotSupportedException"/>.</summary>
+    WindowHiding = 1 << 1,
 }

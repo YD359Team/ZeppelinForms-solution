@@ -1,161 +1,173 @@
 ﻿using Xunit;
-using ZeppelinForms.Animation;
-using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
-using ZeppelinForms.Forms.Controls.Base;
-using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Headless;
 
 namespace ZeppelinForms.UnitTests;
 
+/// <summary>Form.Hide and Visible: a window off the screen and back, still open all the
+/// while — the ground the tray icon stands on.</summary>
 [Collection("Platform")]
-public class VisibilityTransitionTests
+public sealed class FormVisibilityTests
 {
-    private sealed class ProbeBox : UnitControl
+    private static (Form Form, HeadlessWindow Window) Shown(Form? form = null)
     {
-        public int Draws { get; private set; }
+        form ??= new Form { Size = new Size(400, 300) };
+        var window = (HeadlessWindow)new HeadlessPlatform().CreateWindow(form);
+        form.Show();
 
-        public float SeenOpacity { get; private set; } = float.NaN;
-
-        public override void Draw(Graphics g)
-        {
-            Draws++;
-            SeenOpacity = Opacity;
-        }
-
-        protected override Size MeasureOverride(Size availableSize) => new(100, 40);
+        return (form, window);
     }
 
-    private static (Form Form, StackPanel Panel, ProbeBox First) CreateForm()
+    [Fact]
+    public void AHiddenFormKeepsItsWindowAndComesBackAsItWas()
     {
-        var platform = new HeadlessPlatform();
+        var form = new Form { Size = new Size(400, 300) };
+        var box = new TextBox();
+        form.Content = new StackPanel { Children = { box } };
 
-        var first = new ProbeBox();
+        int loads = 0, shows = 0;
+        var changes = new List<bool>();
+        form.Load += (_, _) => loads++;
+        form.Shown += (_, _) => shows++;
+        form.VisibleChanged += (_, _) => changes.Add(form.Visible);
 
-        var panel = new StackPanel
+        (_, HeadlessWindow window) = Shown(form);
+        Assert.True(form.Visible);
+        Assert.Same(box, form.FocusedElement);
+
+        form.Hide();
+
+        Assert.False(form.Visible);
+        Assert.False(window.IsVisible);
+        Assert.False(window.IsClosed);
+        Assert.Contains(form, Form.OpenForms);
+
+        form.Show();
+
+        Assert.True(form.Visible);
+        Assert.True(window.IsVisible);
+        Assert.Same(box, form.FocusedElement);
+
+        // Load is of the first showing, Shown of every one
+        Assert.Equal(1, loads);
+        Assert.Equal(2, shows);
+        Assert.Equal([true, false, true], changes);
+
+        form.Close();
+    }
+
+    [Fact]
+    public void VisibleShowsAndHides()
+    {
+        (Form form, HeadlessWindow window) = Shown();
+
+        form.Visible = false;
+        Assert.False(window.IsVisible);
+
+        form.Visible = true;
+        Assert.True(window.IsVisible);
+
+        // a second showing of a shown window changes nothing
+        form.Show();
+        Assert.Equal(1, window.HideCount);
+
+        form.Close();
+    }
+
+    [Fact]
+    public void AFormNotShownHasNothingToHide()
+    {
+        var form = new Form();
+
+        form.Hide();
+
+        Assert.False(form.Visible);
+    }
+
+    [Fact]
+    public void ClosingTheWindowEndsItsVisibility()
+    {
+        (Form form, _) = Shown();
+        int changes = 0;
+        form.VisibleChanged += (_, _) => changes++;
+
+        form.Hide();
+        form.Close();
+
+        // hidden already: the close changes nothing more
+        Assert.False(form.Visible);
+        Assert.Equal(1, changes);
+        Assert.DoesNotContain(form, Form.OpenForms);
+    }
+
+    [Fact]
+    public void AFormShownInANewWindowIsShownForTheFirstTimeAgain()
+    {
+        (Form form, _) = Shown();
+        int shows = 0;
+        form.Shown += (_, _) => shows++;
+
+        form.Close();
+        var window = (HeadlessWindow)new HeadlessPlatform().CreateWindow(form);
+        form.Show();
+
+        Assert.Equal(1, shows);
+        Assert.True(form.Visible);
+        Assert.True(window.IsVisible);
+
+        form.Close();
+    }
+
+    [Fact]
+    public void ClosingToTheTrayIsACancelledCloseAndAHide()
+    {
+        (Form form, HeadlessWindow window) = Shown();
+
+        bool quitting = false;
+
+        form.Closing += (_, e) =>
         {
-            Orientation = Orientation.Vertical,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch,
-            ChildrenEnterTransition = VisibilityTransition.Fade(200, Easing.Linear),
-            ChildrenExitTransition = VisibilityTransition.Fade(200, Easing.Linear),
+            if (quitting) return;
+
+            e.Cancel = true;
+            form.Hide();
         };
 
-        panel.Children.Add(first);
+        form.Close();
 
-        var form = new Form { Size = new Size(400, 300), Content = panel };
-        platform.CreateWindow(form);
-        form.UpdateLayout();
+        Assert.False(window.IsClosed);
+        Assert.False(form.Visible);
+        Assert.Contains(form, Form.OpenForms);
 
-        return (form, panel, first);
-    }
-
-    private static void Render(Form form) =>
-        ElementTreeRenderer.Draw(form.Content!, new HeadlessGraphics());
-
-    [Fact]
-    public void InitialContentDoesNotFadeIn()
-    {
-        var (form, _, first) = CreateForm();
-
-        Render(form);
-
-        // opening a form is not an appearance: the first content is visible right away
-        Assert.Equal(1f, first.SeenOpacity);
+        // the tray menu's Exit
+        quitting = true;
+        form.Close();
+        Assert.True(window.IsClosed);
     }
 
     [Fact]
-    public void AddedChildFadesIn()
+    public async Task ADialogCantBeHidden()
     {
-        var (form, panel, _) = CreateForm();
+        (Form main, _) = Shown();
+        var dialog = new Form { Size = new Size(200, 120) };
 
-        var added = new ProbeBox();
-        panel.Children.Add(added);
-        form.UpdateLayout();
+        Task<DialogResult<object>> result = dialog.ShowDialogAsync<object>(main);
 
-        // at the very start the element is fully transparent — the renderer doesn't
-        // even draw such, so the first check is made halfway
-        Render(form);
-        Assert.True(float.IsNaN(added.SeenOpacity), "fully transparent is not drawn");
+        Assert.Throws<InvalidOperationException>(dialog.Hide);
+        Assert.True(dialog.Visible);
 
-        form.Clock.Advance(TimeSpan.FromMilliseconds(100));
-        Render(form);
-        Assert.InRange(added.SeenOpacity, 0.4f, 0.6f);
+        dialog.Cancel();
+        await result;
 
-        form.Clock.Advance(TimeSpan.FromMilliseconds(100));
-        Render(form);
-        Assert.Equal(1f, added.SeenOpacity);
-
-        // the model saw the final value all this time
-        Assert.Equal(1f, added.Opacity);
+        main.Close();
     }
 
     [Fact]
-    public void RemovedChildIsDrawnUntilExitEnds()
+    public void ThePlatformsSayWhetherTheyHide()
     {
-        var (form, panel, first) = CreateForm();
-
-        Render(form);
-
-        panel.Children.Remove(first);
-        form.UpdateLayout();
-
-        int before = first.Draws;
-
-        // removed from the panel, but still on screen
-        form.Clock.Advance(TimeSpan.FromMilliseconds(100));
-        Render(form);
-
-        Assert.True(first.Draws > before);
-
-        // the disappearance ended — it is no longer drawn
-        form.Clock.Advance(TimeSpan.FromMilliseconds(150));
-
-        int after = first.Draws;
-        Render(form);
-
-        Assert.Equal(after, first.Draws);
-    }
-
-    [Fact]
-    public void ReaddedChildIsNotDrawnTwice()
-    {
-        var (form, panel, first) = CreateForm();
-
-        Render(form);
-
-        panel.Children.Remove(first);
-        panel.Children.Add(first);
-        form.UpdateLayout();
-
-        int before = first.Draws;
-        Render(form);
-
-        // brought back in the middle of disappearing: drawn once, alive
-        Assert.Equal(before + 1, first.Draws);
-    }
-
-    [Fact]
-    public void MoveIsNotAnExit()
-    {
-        var (form, panel, first) = CreateForm();
-
-        var second = new ProbeBox();
-        panel.Children.Add(second);
-        form.UpdateLayout();
-
-        // let the second one's appearance finish, so it doesn't interfere with the count
-        form.Clock.Advance(TimeSpan.FromMilliseconds(250));
-        Render(form);
-
-        panel.Children.Move(0, 1);
-        form.UpdateLayout();
-
-        int before = first.Draws;
-        Render(form);
-
-        Assert.Equal(before + 1, first.Draws);
+        Assert.True(new HeadlessPlatform().Capabilities.HasFlag(PlatformCapabilities.WindowHiding));
     }
 }

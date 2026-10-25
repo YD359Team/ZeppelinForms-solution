@@ -39,10 +39,10 @@ internal abstract class ValueExpr
 /// <list type="bullet">
 /// <item>colors: <c>#rgb</c>, <c>#rgba</c>, <c>#rrggbb</c>, <c>#rrggbbaa</c>,
 /// <c>rgb(r, g, b)</c>, <c>rgba(r, g, b, a)</c> with alpha from 0 to 1, a name from
-/// <see cref="Colors"/>, and the functions <c>alpha(c, a)</c>, <c>lighten(c, x)</c>,
-/// <c>darken(c, x)</c>, <c>mix(c1, c2, t)</c></item>
-/// <item><c>@Accent</c> — a color role of the theme; <c>@Metrics.ControlCornerRadius</c>,
-/// <c>@TypeRamp.Body.Size</c> — any path from <see cref="Theme"/></item>
+/// <see cref="Colors"/> — bare (<c>royal-blue</c>) or as C# writes it
+/// (<c>Colors.RoyalBlue</c>), a brand color as <c>MediaColors.Telegram</c>, and the
+/// functions <c>alpha(c, a)</c>, <c>lighten(c, x)</c>, <c>darken(c, x)</c>,
+/// <c>mix(c1, c2, t)</c></item>
 /// <item>numbers with an optional <c>px</c>; <c>none</c> for a value that may be null</item>
 /// </list>
 /// </remarks>
@@ -356,10 +356,40 @@ internal static class StyleValueCompiler
         if (token.Equals("transparent", StringComparison.OrdinalIgnoreCase))
             return ValueExpr.Constant(Colors.Transparent);
 
+        int dot = token.IndexOf('.');
+
+        if (dot > 0 && char.IsLetter(token[0]))
+            return CompilePaletteColor(token, token[..dot], KebabToPascal(token[(dot + 1)..]), out error);
+
         if (FindStatic(typeof(Colors), KebabToPascal(token), typeof(Color)) is Color named)
             return ValueExpr.Constant(named);
 
         error = $"'{token}' is not a color";
+        return null;
+    }
+
+    /// <summary>A color of one of the framework's palettes named as C# names it —
+    /// <c>Colors.RoyalBlue</c>, <c>MediaColors.Telegram</c> — so a value copied from
+    /// code reads the same in a sheet. Without the at sign: <c>@Colors.Text</c> is the
+    /// theme's role, followed when the theme changes; these are constants.</summary>
+    private static ValueExpr? CompilePaletteColor(string token, string palette, string name, out string? error)
+    {
+        error = null;
+
+        // the types are spelled out rather than looked up: the trimmer keeps the members
+        // of a type it sees here, and would not of one picked from a table
+        object? found =
+            palette.Equals(nameof(Colors), StringComparison.OrdinalIgnoreCase) ? FindStatic(typeof(Colors), name, typeof(Color)) :
+            palette.Equals(nameof(MediaColors), StringComparison.OrdinalIgnoreCase) ? FindStatic(typeof(MediaColors), name, typeof(Color)) :
+            null;
+
+        if (found is Color color) return ValueExpr.Constant(color);
+
+        error = palette.Equals(nameof(Colors), StringComparison.OrdinalIgnoreCase) ||
+                palette.Equals(nameof(MediaColors), StringComparison.OrdinalIgnoreCase)
+            ? $"'{token}': {palette} has no color {name}"
+            : $"'{token}' is not a color: a palette is Colors or MediaColors";
+
         return null;
     }
 

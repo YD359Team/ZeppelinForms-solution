@@ -1,5 +1,5 @@
 #nullable enable
-override ZeppelinForms.Forms.Controls.ToggleButton.OnNameCaptionChanged() -> void
+override ZeppelinForms.Forms.Controls.SplitButton.OnNameCaptionChanged() -> void
 static readonly ZeppelinForms.Core.Globalization.ZfText.PathOrSearch -> ZeppelinForms.Core.Globalization.TextKey!
 virtual ZeppelinForms.Drawing.Graphics.DrawBezier(ZeppelinForms.Drawing.Primitives.Point start, ZeppelinForms.Drawing.Primitives.Point control1, ZeppelinForms.Drawing.Primitives.Point control2, ZeppelinForms.Drawing.Primitives.Point end, ZeppelinForms.Drawing.Primitives.Color color, float width) -> void
 virtual ZeppelinForms.Drawing.Graphics.DrawBeziers(System.ReadOnlySpan<ZeppelinForms.Drawing.Primitives.Point> points, ZeppelinForms.Drawing.Primitives.Color color, float width) -> void
@@ -89,3 +89,13 @@ override ZeppelinForms.Forms.Controls.GroupBox.OnNameCaptionChanged() -> void
 override ZeppelinForms.Forms.Controls.Text.Label.OnNameCaptionChanged() -> void
 override ZeppelinForms.Forms.Controls.Text.LinkLabel.OnNameCaptionChanged() -> void
 ZeppelinForms.Forms.Controls.Base.PanelControl.IsOverScrollBar(ZeppelinForms.Drawing.Primitives.Point location) -> bool
+ZeppelinForms.PlatformCapabilities.WindowHiding = 2 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.Forms.Form.Hide() -> void
+ZeppelinForms.Forms.Form.Visible.get -> bool
+ZeppelinForms.Forms.Form.Visible.set -> void
+ZeppelinForms.Forms.Form.VisibleChanged -> System.EventHandler?
+virtual ZeppelinForms.Forms.Form.OnVisibleChanged(System.EventArgs! e) -> void
+ZeppelinForms.IDesktopWindow.SetVisible(bool visible) -> void
+ZeppelinForms.Headless.HeadlessWindow.IsVisible.get -> bool
+ZeppelinForms.Headless.HeadlessWindow.HideCount.get -> int
+ZeppelinForms.Headless.HeadlessWindow.SetVisible(bool visible) -> void

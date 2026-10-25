@@ -12,15 +12,6 @@ namespace ZeppelinForms.Forms.Controls;
 
 public partial class ToggleButton : Button
 {
-    /// <summary>The caption as shown: the text, or — never set — the name given to the
-    /// control, see <see cref="ZeppelinForms.Forms.Controls.Base.UIElement.NameCaption"/>.</summary>
-    internal override string? ShownText => Text ?? NameCaption;
-
-    protected override void OnNameCaptionChanged()
-    {
-        if (Text is null) Invalidate();
-    }
-
     /// <summary>Text color in the checked state.</summary>
     [Styled(Category = "States")]
     public partial Color CheckedTextColor { get; set; }

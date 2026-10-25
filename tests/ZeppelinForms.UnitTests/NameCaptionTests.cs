@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using System.Xml.Linq;
+using Xunit;
 using ZeppelinForms.Accessibility;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
@@ -86,6 +87,26 @@ public sealed class NameCaptionTests
     }
 
     [Fact]
+    public void AToggleButtonKeepsTheButtonsRuleForAnIcon()
+    {
+        // a toggle button is a button: its icon stands for the caption as well
+        var toggle = new ToggleButton { Name = "bold", Icon = IconSource.FromPath("M0 0 L10 10") };
+
+        Assert.Null(toggle.ShownText);
+    }
+
+    [Fact]
+    public void ASplitButtonMeasuresTheNameItShows()
+    {
+        var split = new SplitButton { Name = "more", StableWidth = false };
+        var empty = new SplitButton { Text = string.Empty, StableWidth = false };
+        Host(split);
+        Host(empty);
+
+        Assert.True(split.ActualSize.Width > empty.ActualSize.Width, "the name takes room as a text does");
+    }
+
+    [Fact]
     public void EveryCaptionedControlFallsBackToItsName()
     {
         UIElement[] controls =
@@ -93,6 +114,7 @@ public sealed class NameCaptionTests
             new Button { Name = "a" }, new CheckBox { Name = "b" }, new RadioButton { Name = "c" },
             new ToggleSwitch { Name = "d" }, new SplitButton { Name = "e" }, new GroupBox { Name = "f" },
             new Label { Name = "g" }, new LinkLabel { Name = "h" },
+            new ToggleButton { Name = "i" },
         ];
 
         foreach (UIElement control in controls)

@@ -33,6 +33,15 @@ public partial class SplitButton : ButtonBase
         }
     }
 
+    /// <summary>The caption as shown: the text, or — never set — the name given to the
+    /// button, see <see cref="ZeppelinForms.Forms.Controls.Base.UIElement.NameCaption"/>.</summary>
+    internal override string? ShownText => Text ?? NameCaption;
+
+    protected override void OnNameCaptionChanged()
+    {
+        if (Text is null) Invalidate();
+    }
+
     public List<MenuItem> Items { get; init; } = [];
 
     /// <summary>Pressing the main part repeats the last chosen item.</summary>
@@ -233,7 +242,7 @@ public partial class SplitButton : ButtonBase
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size content = StableWidth ? WidestCaption() : Measure(ShownText);
+        Size content = StableWidth ? WidestCaption() : Measure(DisplayText);
 
         return ResolveSize(
             new Size(
@@ -250,7 +259,7 @@ public partial class SplitButton : ButtonBase
     /// menu items. That way the button's width doesn't change on a choice.</summary>
     private Size WidestCaption()
     {
-        Size widest = Measure(Text);
+        Size widest = Measure(ShownText);
 
         if (!ShowSelectedItem) return widest;
 

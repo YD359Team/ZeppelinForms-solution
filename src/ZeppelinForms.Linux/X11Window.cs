@@ -271,7 +271,9 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
     private bool _fullRepaint;
     private Rectangle? _pendingDirty;
 
-    internal bool IsPaintRequested => _paintRequested;
+    // a hidden window waits with its frame until it is shown again: the loop doesn't
+    // wake for it, and nothing is drawn into a window off the screen
+    internal bool IsPaintRequested => _paintRequested && !_hidden;
 
     /// <summary>Mark an area dirty. The frame is painted by the platform loop,
     /// once, after all pending events are handled.</summary>
@@ -303,7 +305,7 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
     /// <summary>Paint what was requested since the last frame, if anything.</summary>
     internal void PaintIfRequested()
     {
-        if (!_paintRequested) return;
+        if (!_paintRequested || _hidden) return;
 
         Paint(_fullRepaint ? null : _pendingDirty);
     }

@@ -73,6 +73,43 @@ public class StyleSheetTests
     }
 
     [Fact]
+    public void PaletteColorsAreNamedAsCodeNamesThem()
+    {
+        var a = new Button { Text = "a" };
+        var b = new Button { Text = "b" };
+        var c = new Button { Text = "c" };
+        a.Classes.Add("a"); b.Classes.Add("b"); c.Classes.Add("c");
+
+        Form form = CreateForm(a, b, c);
+        form.Styles.Add(Parse("""
+            .a { BackgroundColor: Colors.RoyalBlue; TextColor: colors.white; }
+            .b { BackgroundColor: MediaColors.Telegram; }
+            .c { BackgroundColor: alpha(MediaColors.DotnetModern, 0.5); BorderColor: mix(Colors.Red, Colors.Blue, 0.5); }
+            """));
+
+        Assert.Equal(Colors.RoyalBlue, a.BackgroundColor);
+        Assert.Equal(Colors.White, a.TextColor);
+        Assert.Equal(MediaColors.Telegram, b.BackgroundColor);
+        Assert.Equal(MediaColors.DotnetModern.WithA(128), c.BackgroundColor);
+        Assert.Equal(Color.Lerp(Colors.Red, Colors.Blue, 0.5f), c.BorderColor);
+    }
+
+    [Fact]
+    public void AnUnknownPaletteColorIsReported()
+    {
+        StyleSheet sheet = StyleSheet.Parse("""
+            .a { BackgroundColor: MediaColors.Myspace; }
+            .b { BackgroundColor: Brushes.Red; }
+            """, "palette.zss");
+
+        StyleDiagnostic[] errors = [.. sheet.Diagnostics.Where(d => d.Severity == StyleDiagnosticSeverity.Error)];
+
+        Assert.Equal(2, errors.Length);
+        Assert.Contains("MediaColors has no color Myspace", errors[0].Message);
+        Assert.Contains("Colors or MediaColors", errors[1].Message);
+    }
+
+    [Fact]
     public void StructsTakeConstructorArguments()
     {
         var button = new Button { Text = "OK" };

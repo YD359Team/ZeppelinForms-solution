@@ -79,7 +79,21 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
     public void Show()
     {
         IsShown = true;
+        IsVisible = true;
         _form.PerformLayout();
+    }
+
+    /// <summary>The window is on the "screen": shown and not hidden. Checked in tests.</summary>
+    public bool IsVisible { get; private set; }
+
+    /// <summary>How many times the form hid its window — checked in tests.</summary>
+    public int HideCount { get; private set; }
+
+    public void SetVisible(bool visible)
+    {
+        if (!visible) HideCount++;
+
+        IsVisible = visible;
     }
 
     public void Close()
@@ -88,6 +102,7 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
 
         IsClosed = true;
         IsShown = false;
+        IsVisible = false;
         _platform.Remove(this);
 
         _form.OnWindowClosed();

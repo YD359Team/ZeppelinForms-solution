@@ -245,6 +245,24 @@ public class MarkupGeneratorTests
         Assert.Equal(2, panel.Children.Count);
     }
 
+    [Fact]
+    public void PaletteColorsAreNamedAsCodeNamesThem()
+    {
+        Result result = Build($"""
+            <StackPanel x:Class="App.Palette" Background="Colors.RoyalBlue" {Xmlns}>
+              <Label Text="a" TextColor="MediaColors.Telegram"/>
+              <Label Text="b" TextColor="dark-gray"/>
+            </StackPanel>
+            """);
+
+        Assert.Empty(result.Errors);
+
+        var panel = (StackPanel)result.Create("App.Palette");
+        Assert.Equal(Colors.RoyalBlue, panel.Background);
+        Assert.Equal(MediaColors.Telegram, ((Label)panel.Children[0]).TextColor);
+        Assert.Equal(Colors.DarkGray, ((Label)panel.Children[1]).TextColor);
+    }
+
     [Theory]
     [InlineData("<Buton/>", "ZF2003", 2)]
     [InlineData("<Button Txt=\"x\"/>", "ZF2004", 2)]
@@ -252,6 +270,8 @@ public class MarkupGeneratorTests
     [InlineData("<StackPanel Spacing=\"wide\"/>", "ZF2005", 2)]
     [InlineData("<StackPanel Orientation=\"Diagonal\"/>", "ZF2005", 2)]
     [InlineData("<Label TextColor=\"@Accent\"/>", "ZF2005", 2)]
+    [InlineData("<Label TextColor=\"MediaColors.Myspace\"/>", "ZF2005", 2)]
+    [InlineData("<Label TextColor=\"Brushes.Red\"/>", "ZF2005", 2)]
     [InlineData("<Button Click=\"Nowhere\"/>", "ZF2007", 2)]
     [InlineData("<Label Text=\"{Bind Missing.Text}\"/>", "ZF2008", 2)]
     public void AMistakeIsReportedAtItsLine(string element, string id, int line)

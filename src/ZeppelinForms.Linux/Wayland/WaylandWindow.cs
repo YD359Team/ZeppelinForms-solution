@@ -471,6 +471,7 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
     /// frame was shown — or a configure waits for its answer — and a buffer is free.</summary>
     internal bool CanPaintNow =>
         _paintRequested
+        && !_hidden
         && _configured
         && (_frameCallback is null || _configureUnanswered)
         && _buffers is { CanBeginFrame: true };
@@ -939,6 +940,51 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
     /// <summary>Wayland lets no client keep itself above the others.</summary>
     public void SetTopMost(bool topMost)
     {
+    }
+
+    /// <summary>Form.Hide unmapped the surface.</summary>
+    private bool _hidden;
+
+    /// <summary>Form.Hide unmaps the surface — a null buffer committed — and Form.Show maps
+    /// it again the way it was mapped first: a commit without a buffer asks for a
+    /// configure, and the frame that answers it brings the window back. The toplevel and
+    /// its decoration stay: xdg-shell keeps the role of an unmapped surface.</summary>
+    /// <remarks>Nothing is drawn while the window is hidden: a buffer attached would map
+    /// it again, and one attached before the new configure is a protocol error. A
+    /// configure that comes in between is acknowledged, and the showing waits for its own.</remarks>
+    public void SetVisible(bool visible)
+    {
+        if (_surface is null || _hidden == !visible) return;
+
+        _hidden = !visible;
+
+        // the window waits for a configure either way: the one after the new initial commit
+        _configured = false;
+        _configureUnanswered = false;
+
+        // a frame of a surface going off the screen is never done
+        _frameCallback?.Abandon();
+        _frameCallback = null;
+
+        if (!visible)
+        {
+            _surface.Attach(null, 0, 0);
+            _surface.Commit();
+            _platform.Flush();
+            return;
+        }
+
+        // as on the first showing: a maximized state goes with the initial commit
+        if (_form.WindowState == WindowState.Maximized)
+            _toplevel!.SetMaximized();
+
+        _surface.Commit();
+
+        // what was asked while it was hidden is drawn whole, once the configure comes
+        Invalidate(null);
+
+        Activate();
+        _platform.Flush();
     }
 
     public void SetEnabled(bool enabled) => IsInputEnabled = enabled;

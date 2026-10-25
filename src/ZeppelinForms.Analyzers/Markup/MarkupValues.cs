@@ -9,9 +9,9 @@ namespace ZeppelinForms.Analyzers.Markup;
 /// The text of an attribute as a C# expression of the property's type, by the rule of
 /// the style sheets: a struct takes the arguments of one of its constructors in their
 /// order — <c>Padding="14 6"</c> is <c>new Thickness(14, 6)</c> — a bare name is a
-/// static member of the type or a member of an enum, a color is <c>#rrggbb</c>, a
-/// name of <c>Colors</c> or <c>rgb(…)</c>. Commas may separate the arguments too, as
-/// XAML writes them: <c>Size="800,600"</c>.
+/// static member of the type or a member of an enum, a name of <c>Colors</c> (<c>red</c>
+/// or <c>Colors.Red</c>), <c>MediaColors.Telegram</c> or <c>rgb(…)</c>.. Commas may 
+/// separate the arguments too, as XAML writes them: <c>Size="800,600"</c>.
 /// </summary>
 /// <remarks>
 /// Everything is decided at compile time: a value that can't be written is an error at
@@ -23,6 +23,7 @@ internal static class MarkupValues
 {
     private const string ColorMetadataName = "ZeppelinForms.Drawing.Primitives.Color";
     private const string ColorsMetadataName = "ZeppelinForms.Drawing.Primitives.Colors";
+    private const string MediaColorsMetadataName = "ZeppelinForms.Drawing.Primitives.MediaColors";
 
     public static readonly SymbolDisplayFormat TypeFormat = SymbolDisplayFormat.FullyQualifiedFormat;
 
@@ -230,6 +231,32 @@ internal static class MarkupValues
             return null;
         }
 
+        // a palette's color as C# names it: Colors.RoyalBlue, MediaColors.Telegram
+        int dot = value.IndexOf('.');
+
+        if (dot > 0 && char.IsLetter(value[0]))
+        {
+            string palette = value.Substring(0, dot);
+            string member = value.Substring(dot + 1);
+
+            string? metadataName =
+                string.Equals(palette, "Colors", StringComparison.OrdinalIgnoreCase) ? ColorsMetadataName :
+                string.Equals(palette, "MediaColors", StringComparison.OrdinalIgnoreCase) ? MediaColorsMetadataName :
+                null;
+
+            if (metadataName is null)
+            {
+                error = "it is not a color: a palette is Colors or MediaColors";
+                return null;
+            }
+
+            if (compilation.GetTypeByMetadataName(metadataName) is { } type && StaticMember(type, member) is { } found)
+                return "global::" + metadataName + "." + found;
+
+            error = palette + " has no color " + KebabToPascal(member);
+            return null;
+        }
+
         // a name of Colors: red, white, dark-gray
         if (compilation.GetTypeByMetadataName(ColorsMetadataName) is { } colors &&
             StaticMember(colors, value) is { } named)
@@ -237,7 +264,7 @@ internal static class MarkupValues
             return "global::" + ColorsMetadataName + "." + named;
         }
 
-        error = "it is not a color: #rrggbb, rgb(r, g, b) or a name of Colors";
+        error = "it is not a color: #rrggbb, rgb(r, g, b), a name of Colors or MediaColors.Name";
         return null;
     }
 

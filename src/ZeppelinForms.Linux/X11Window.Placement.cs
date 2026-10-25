@@ -4,8 +4,9 @@ using ZeppelinForms.Forms.Enums;
 
 namespace ZeppelinForms.Linux;
 
-/// <summary>The window's size limits, its topmost place, its centering on a screen and
-/// the place it opens at.</summary>
+/// <summary>
+/// The window's size limits, its topmost place, its centering on a screen, the place it opens at and its hiding.
+/// </summary>
 /// <remarks>
 /// All of it is a request to the window manager, as the frame is (see X11Window.Chrome):
 /// the limits go as WM_NORMAL_HINTS, the topmost place as <c>_NET_WM_STATE_ABOVE</c>.
@@ -31,6 +32,38 @@ internal sealed partial class X11Window
             if (width != _physicalWidth || height != _physicalHeight)
                 X11.XResizeWindow(_display, _window, (uint)width, (uint)height);
         }
+
+        X11.XFlush(_display);
+    }
+
+    /// <summary>Form.Hide withdraws the window, Form.Show maps it again.</summary>
+    private bool _hidden;
+
+    public void SetVisible(bool visible)
+    {
+        if (_window == 0 || _hidden == !visible) return;
+
+        _hidden = !visible;
+
+        if (!visible)
+        {
+            X11.XWithdrawWindow(_display, _window, X11.XDefaultScreen(_display));
+            X11.XFlush(_display);
+            return;
+        }
+
+        // the manager forgets a withdrawn window's state: the frame, the topmost place
+        // and the taskbar's say go again before it is mapped, as for a new window
+        ApplyChrome(mapped: false);
+
+        X11.XMapWindow(_display, _window);
+
+        // asked of the manager rather than taken with XSetInputFocus: the window isn't
+        // viewable until the manager has framed it, and the focus can't go to it before
+        SendRootMessage("_NET_ACTIVE_WINDOW", data0: 1);
+
+        // what was asked while it was hidden is drawn now, whole
+        Invalidate(null);
 
         X11.XFlush(_display);
     }
@@ -129,36 +162,27 @@ internal sealed partial class X11Window
 
     /// <summary>Ask the manager to add or remove a state of a mapped window. Before the
     /// window is mapped the state is the property itself (see SetSkipTaskbar).</summary>
-    private void SendNetWmState(int action, nuint state)
+    private void SendNetWmState(int action, nuint state) =>
+        // the source is an ordinary application, not a panel or a pager
+        SendRootMessage("_NET_WM_STATE", data0: action, data1: (nint)state, data3: 1);
+
+    /// <summary>A request about this window to the window manager, which listens on
+    /// the root window.</summary>
+    private void SendRootMessage(string type, nint data0 = 0, nint data1 = 0, nint data2 = 0, nint data3 = 0)
     {
         var message = new X11.XClientMessageEvent
         {
             type = X11.ClientMessage,
             display = _display,
             window = _window,
-            message_type = X11.XInternAtom(_display, "_NET_WM_STATE", false),
+            message_type = X11.XInternAtom(_display, type, false),
             format = 32,
-            data0 = action,
-            data1 = (nint)state,
-            data2 = 0,
-            // the source is an ordinary application, not a panel or a pager
-            data3 = 1,
+            data0 = data0,
+            data1 = data1,
+            data2 = data2,
+            data3 = data3,
         };
 
-        nint buffer = Marshal.AllocHGlobal(Marshal.SizeOf<X11.XClientMessageEvent>());
-
-        try
-        {
-            Marshal.StructureToPtr(message, buffer, false);
-
-            nuint root = X11.XRootWindow(_display, X11.XDefaultScreen(_display));
-
-            X11.XSendEvent(_display, root, false,
-                X11.SubstructureNotifyMask | X11.SubstructureRedirectMask, buffer);
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(buffer);
-        }
+        // … the rest as before: AllocHGlobal, StructureToPtr, XSendEvent to the root, FreeHGlobal
     }
 }

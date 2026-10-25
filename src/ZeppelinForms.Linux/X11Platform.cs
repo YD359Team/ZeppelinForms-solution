@@ -20,7 +20,7 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
     public IGraphicsBackend Graphics { get; }
 
     /// <summary>X11 lets a window place itself: the window manager is asked and obeys.</summary>
-    public PlatformCapabilities Capabilities => PlatformCapabilities.WindowPositioning;
+    public PlatformCapabilities Capabilities => PlatformCapabilities.WindowPositioning | PlatformCapabilities.WindowHiding;
 
     private EglDisplay? _eglDisplay;
     private bool _eglTried;

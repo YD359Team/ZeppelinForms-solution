@@ -11,7 +11,8 @@ using ZeppelinForms.Forms.Layout;
 namespace ZF_SharedLib.Showcase;
 
 /// <summary>What opens over the window: tooltips, toasts, flyouts, context menus,
-/// message boxes and dialogs of one's own.</summary>
+/// message boxes, file dialogs and dialogs of one's own — and the window going away
+/// for a while.</summary>
 internal static class OverlaysPage
 {
     public static UIElement Create(Form form) =>
@@ -21,7 +22,9 @@ internal static class OverlaysPage
             Demo.Section("Flyout", Flyout(form), "form.ShowFlyout(anchor, content, placement): closes on a click outside or Esc"),
             Demo.Section("Context menu", ContextMenu(), "UIElement.ContextMenu: right click, the menu key or a long press; looked up the tree"),
             Demo.Section("Message box", Messages(form), "await MessageBox.ShowAsync works everywhere, the browser included"),
-            Demo.Section("Input box and own dialogs", Dialogs(form), "Any form is a dialog: ShowDialogAsync<T> waits for Accept(value) or Cancel()"));
+            Demo.Section("Input box and own dialogs", Dialogs(form), "Any form is a dialog: ShowDialogAsync<T> waits for Accept(value) or Cancel()"),
+            Demo.Section("Files", Files(form), "FileDialog.OpenFileAsync, OpenFilesAsync, SaveFileAsync, SelectFolderAsync: the framework's own dialog"),
+            Demo.Section("Hiding the window", Hiding(form), "form.Hide() keeps the window and its state; Show() brings it back — the ground of a tray icon"));
 
     private static UIElement Tooltips() => Demo.Row(
         new Button { Text = "Hover me", ToolTip = "A tooltip: a short hint about the control" },
@@ -173,6 +176,64 @@ internal static class OverlaysPage
         };
 
         return Demo.Column(Demo.Row(name, secret, own), answer);
+    }
+
+    private static UIElement Files(Form form)
+    {
+        Label chosen = Demo.Note("Nothing chosen yet");
+
+        var options = new FileDialogOptions
+        {
+            Filters = { new FileFilter("Images", "png", "jpg", "jpeg", "gif"), new FileFilter("Text", "txt", "md", "json") },
+        };
+
+        var open = new PrimaryButton { Text = "Open a file" };
+        open.Click += async (_, _) =>
+            chosen.Text = await FileDialog.OpenFileAsync(form, options) is { } file ? file : "Cancelled";
+
+        var many = new Button { Text = "Open several" };
+        many.Click += async (_, _) =>
+        {
+            string[] files = await FileDialog.OpenFilesAsync(form, options);
+            chosen.Text = files.Length == 0 ? "Cancelled" : $"{files.Length} file(s): {string.Join(", ", files.Select(Path.GetFileName))}";
+        };
+
+        var save = new Button { Text = "Save as" };
+        save.Click += async (_, _) =>
+            chosen.Text = await FileDialog.SaveFileAsync(form, new FileDialogOptions { FileName = "notes.txt" }) is { } file
+                ? $"Would save to {file}"
+                : "Cancelled";
+
+        var folder = new Button { Text = "Pick a folder" };
+        folder.Click += async (_, _) =>
+            chosen.Text = await FileDialog.SelectFolderAsync(form) is { } path ? path : "Cancelled";
+
+        return Demo.Column(Demo.Row(open, many, save, folder), chosen);
+    }
+
+    private static UIElement Hiding(Form form)
+    {
+        Label note = Demo.Note("The window comes back by itself after three seconds");
+
+        var hide = new Button { Text = "Hide for 3 seconds" };
+        hide.Click += async (_, _) =>
+        {
+            try
+            {
+                form.Hide();
+            }
+            catch (PlatformNotSupportedException)
+            {
+                // the browser and Android: the form is the page or the screen
+                note.Text = "This platform can't hide its window";
+                return;
+            }
+
+            await Task.Delay(3000);
+            form.Show();
+        };
+
+        return Demo.Column(hide, note);
     }
 
     /// <summary>A dialog of one's own: a form that closes with <see cref="Form.Accept"/>

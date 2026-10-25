@@ -54,7 +54,7 @@ public sealed class WaylandPlatform : IPlatform, INestedLoopSupport
     public IGraphicsBackend Graphics { get; }
 
     /// <summary>Nothing beyond the minimum: the compositor alone places windows.</summary>
-    public PlatformCapabilities Capabilities => PlatformCapabilities.None;
+    public PlatformCapabilities Capabilities => PlatformCapabilities.WindowHiding;
 
     internal WlCompositor Compositor { get; }
     internal WlShm Shm { get; }

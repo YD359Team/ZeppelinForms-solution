@@ -273,7 +273,7 @@ public partial class RadioButton : InteractiveControl, ITextElement
 
         g.DrawText(ApplyTextTransform(ShownText), textRect, TextColor, EffectiveFont,
             this.HorizontalContentAlign, this.VerticalContentAlign);
-        DrawAccessKeyUnderline(g, Text, textRect, TextColor,
+        DrawAccessKeyUnderline(g, ShownText, textRect, TextColor,
             this.HorizontalContentAlign, this.VerticalContentAlign);
     }
 

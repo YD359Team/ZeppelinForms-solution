@@ -274,7 +274,7 @@ public partial class Label : DecoratedControl, ITextElement
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        if (string.IsNullOrEmpty(Text))
+        if (string.IsNullOrEmpty(ShownText))
             return ResolveSize(new Size(Padding.Horizontal, Padding.Vertical), availableSize);
 
         // the room for the text: the given width, or this label's own when it has one
