@@ -251,6 +251,11 @@ public partial class App
     {
         _platform = platform;
         CurrentPlatform = platform;
+
+        // a new application starts without the icon of the one before it: the icon is
+        // static, and an earlier App's — a test's, a restart's — went on to the forms and
+        // the tray icons of this one until Run. The Icon initializer runs after this
+        DefaultIcon = null;
     }
 
     /// <summary>The platform of the application being built or run: what a
