@@ -33,6 +33,9 @@ public class GradientBorder : DecoratedWrapControl
 
     private bool HasGradient => Stops.Count >= 2;
 
+    // the stops as the array the graphics take, copied when they change rather than every frame
+    private GradientStopCache _stops;
+
     public GradientBorder()
     {
         SetControlDefault(BorderWidthProperty, 1f);
@@ -73,7 +76,7 @@ public class GradientBorder : DecoratedWrapControl
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
 
         if (HasGradient)
-            g.FillGradient(bounds, CornerRadius, [.. Stops], Angle);
+            g.FillGradient(bounds, CornerRadius, _stops.For(Stops), Angle);
 
         if (Background.A == 0) return;
 

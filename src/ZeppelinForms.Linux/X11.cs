@@ -281,6 +281,13 @@ internal static class X11
     public const int PropModeReplace = 0;
     public const long PropertyChangeMask = 1L << 22;
 
+    /// <summary>The state of a PropertyNotify: the property got a new value, or was deleted.</summary>
+    public const int PropertyNewValue = 0;
+    public const int PropertyDelete = 1;
+
+    /// <summary>XGetWindowProperty's AnyPropertyType: the property whatever its type.</summary>
+    public const nuint AnyPropertyType = 0;
+
     [DllImport(Lib)] public static extern nuint XGetSelectionOwner(nint display, nuint selection);
     [DllImport(Lib)] public static extern int XSetSelectionOwner(nint display, nuint selection, nuint owner, nuint time);
     [DllImport(Lib)] public static extern int XConvertSelection(nint display, nuint selection, nuint target, nuint property, nuint requestor, nuint time);
@@ -338,6 +345,19 @@ internal static class X11
         public nuint target;
         public nuint property;
         public nuint time;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct XPropertyEvent
+    {
+        public int type;
+        public nuint serial;
+        public int send_event;
+        public nint display;
+        public nuint window;
+        public nuint atom;
+        public nuint time;
+        public int state;
     }
 
     [StructLayout(LayoutKind.Sequential)]

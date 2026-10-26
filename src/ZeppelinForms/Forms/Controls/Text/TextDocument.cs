@@ -21,12 +21,17 @@ public sealed class TextDocument
 
     private string _text = string.Empty;
 
+    /// <summary>Where each line starts, made on the first question after a change: the
+    /// line of an index and the index of a line are a binary search and a lookup instead
+    /// of a scan of the text and a split of it into a new array.</summary>
+    private int[]? _lineStarts;
+
     public string Text
     {
         get => _text;
         set
         {
-            _text = value ?? string.Empty;
+            SetText(value ?? string.Empty);
             CaretIndex = Math.Min(CaretIndex, _text.Length);
             SelectionAnchor = CaretIndex;
 
@@ -49,6 +54,78 @@ public sealed class TextDocument
     public event EventHandler? CaretMoved;
 
     public string[] Lines => _text.Split('\n');
+
+    /// <summary>A text put in whole: the line index is made again when it is next
+    /// asked for.</summary>
+    private void SetText(string text)
+    {
+        _text = text;
+        _lineStarts = null;
+    }
+
+    /// <summary>
+    /// <paramref name="length"/> characters at <paramref name="position"/> replaced by
+    /// <paramref name="insertion"/> — every edit, undo and redo goes through here.
+    /// </summary>
+    /// <remarks>
+    /// One new string: Remove and then Insert made two and copied the whole text
+    /// twice when both had something to do, as when typing over a selection.
+    /// An edit without line breaks on either side — a typed key, a deleted
+    /// character — keeps the line index and moves the starts after it, instead of
+    /// making it again: the lines are the same, only shifted.
+    /// </remarks>
+    private void Splice(int position, int length, string insertion)
+    {
+        bool sameLines = _lineStarts is not null &&
+                         insertion.IndexOf('\n') < 0 &&
+                         _text.AsSpan(position, length).IndexOf('\n') < 0;
+
+        _text = string.Concat(_text.AsSpan(0, position), insertion, _text.AsSpan(position + length));
+
+        if (!sameLines)
+        {
+            _lineStarts = null;
+            return;
+        }
+
+        int shift = insertion.Length - length;
+        if (shift == 0) return;
+
+        int[] starts = _lineStarts!;
+
+        // a line starting at the position keeps its start: the edit is inside it.
+        // No start lies inside the removed characters — they hold no line break
+        int first = Array.BinarySearch(starts, position);
+        first = first < 0 ? ~first : first + 1;
+
+        for (int line = first; line < starts.Length; line++)
+            starts[line] += shift;
+    }
+
+    private int[] LineStarts
+    {
+        get
+        {
+            if (_lineStarts is not null) return _lineStarts;
+
+            // counted first: one array of the right size, not a list grown and copied
+            var starts = new int[_text.AsSpan().Count('\n') + 1];
+            int line = 1;
+
+            for (int i = _text.IndexOf('\n'); i >= 0; i = _text.IndexOf('\n', i + 1))
+                starts[line++] = i + 1;
+
+            return _lineStarts = starts;
+        }
+    }
+
+    /// <summary>The characters of a line, its line break left out.</summary>
+    private int LineLength(int line)
+    {
+        int[] starts = LineStarts;
+
+        return (line + 1 < starts.Length ? starts[line + 1] - 1 : _text.Length) - starts[line];
+    }
 
     // ===== movement =====
 
@@ -153,24 +230,22 @@ public sealed class TextDocument
 
     public (int Line, int Column) ToPosition(int index)
     {
-        int line = 0, lineStart = 0;
+        int[] starts = LineStarts;
+        index = Math.Clamp(index, 0, _text.Length);
 
-        for (int i = 0; i < index && i < _text.Length; i++)
-            if (_text[i] == '\n') { line++; lineStart = i + 1; }
+        // the last line starting at or before the index
+        int line = Array.BinarySearch(starts, index);
+        if (line < 0) line = ~line - 1;
 
-        return (line, index - lineStart);
+        return (line, index - starts[line]);
     }
 
     public int FromPosition(int line, int column)
     {
-        string[] lines = Lines;
-        line = Math.Clamp(line, 0, lines.Length - 1);
+        int[] starts = LineStarts;
+        line = Math.Clamp(line, 0, starts.Length - 1);
 
-        int index = 0;
-        for (int i = 0; i < line; i++)
-            index += lines[i].Length + 1;
-
-        return index + Math.Clamp(column, 0, lines[line].Length);
+        return starts[line] + Math.Clamp(column, 0, LineLength(line));
     }
 
     private int LineStart(int index)
@@ -182,7 +257,7 @@ public sealed class TextDocument
     private int LineEnd(int index)
     {
         var (line, _) = ToPosition(index);
-        return FromPosition(line, Lines[line].Length);
+        return FromPosition(line, LineLength(line));
     }
 
     /// <summary>The single point of editing: any change of the text passes
@@ -196,7 +271,7 @@ public sealed class TextDocument
         int caretBefore = CaretIndex;
         int anchorBefore = SelectionAnchor;
 
-        _text = _text.Remove(position, length).Insert(position, insertion);
+        Splice(position, length, insertion);
 
         CaretIndex = position + insertion.Length;
         SelectionAnchor = CaretIndex;
@@ -224,9 +299,7 @@ public sealed class TextDocument
         _applyingHistory = true;
         try
         {
-            _text = _text
-                .Remove(edit.Position, edit.InsertedText.Length)
-                .Insert(edit.Position, edit.RemovedText);
+            Splice(edit.Position, edit.InsertedText.Length, edit.RemovedText);
 
             CaretIndex = edit.CaretBefore;
             SelectionAnchor = edit.AnchorBefore;
@@ -252,9 +325,7 @@ public sealed class TextDocument
         _applyingHistory = true;
         try
         {
-            _text = _text
-                .Remove(edit.Position, edit.RemovedText.Length)
-                .Insert(edit.Position, edit.InsertedText);
+            Splice(edit.Position, edit.RemovedText.Length, edit.InsertedText);
 
             CaretIndex = edit.CaretAfter;
             SelectionAnchor = CaretIndex;
@@ -293,7 +364,7 @@ public sealed class TextDocument
         var (line, _) = ToPosition(CaretIndex);
 
         SelectionAnchor = FromPosition(line, 0);
-        SetCaret(FromPosition(line, Lines[line].Length), extendSelection: true);
+        SetCaret(FromPosition(line, LineLength(line)), extendSelection: true);
     }
 
     public void MoveWordLeft(bool extend)

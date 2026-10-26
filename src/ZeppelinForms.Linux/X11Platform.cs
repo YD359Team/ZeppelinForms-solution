@@ -231,6 +231,7 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                 if (ReferenceEquals(Clipboard.Current, _clipboard) && _previousClipboard is not null)
                     Clipboard.Current = _previousClipboard;
 
+                _clipboard.Dispose();
                 _clipboard = null;
                 _previousClipboard = null;
             }

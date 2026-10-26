@@ -10,3 +10,6 @@
 // for tests — to check internal mechanisms where they live: stepping
 // the frame clock on command instead of a stopwatch, the state of transitions
 [assembly: InternalsVisibleTo("ZeppelinForms.UnitTests")]
+// for the benchmarks — to step the frame clock as the tests do: a frame of many
+// animations is measured without a window delivering frames
+[assembly: InternalsVisibleTo("ZeppelinForms.Benchmarks")]

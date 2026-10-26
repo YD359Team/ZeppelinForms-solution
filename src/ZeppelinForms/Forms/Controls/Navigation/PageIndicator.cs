@@ -117,19 +117,25 @@ public partial class PageIndicator : DecoratedControl
 
     private void OnTargetNavigated(object? sender, Page page) => InvalidateVisual();
 
+    // the pages of the target, gathered again on every ask into the same list: drawing,
+    // the pointer's moves and the tooltip all ask, and each used to get a new one
+    private readonly List<Page> _pages = [];
+
+    /// <summary>The target's pages as they are now. The same list every time, filled
+    /// anew: read it before asking again.</summary>
     private List<Page> Pages
     {
         get
         {
-            List<Page> pages = [];
+            _pages.Clear();
 
-            if (_target is null) return pages;
+            if (_target is null) return _pages;
 
             foreach (UIElement child in _target.Children)
                 if (child is Page page)
-                    pages.Add(page);
+                    _pages.Add(page);
 
-            return pages;
+            return _pages;
         }
     }
 

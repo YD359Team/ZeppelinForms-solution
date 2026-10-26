@@ -228,13 +228,16 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
     /// <summary>Whether there is anything to fill with a gradient.</summary>
     protected bool HasBackgroundGradient => BackgroundGradient is { Count: >= 2 };
 
+    // the stops of BackgroundGradient as the array the graphics take, not copied every frame
+    private GradientStopCache _backgroundStops;
+
     /// <summary>Fill the background: with the gradient if one is set, otherwise
     /// with a solid color. Shared code for all three Decorated* bases.</summary>
     protected void FillBackground(Graphics g, Rectangle bounds)
     {
         if (HasBackgroundGradient)
         {
-            g.FillGradient(bounds, CornerRadius, [.. BackgroundGradient!], BackgroundGradientAngle);
+            g.FillGradient(bounds, CornerRadius, _backgroundStops.For(BackgroundGradient!), BackgroundGradientAngle);
             return;
         }
 

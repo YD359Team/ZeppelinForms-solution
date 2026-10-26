@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers;
+using System.Diagnostics;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls.Base;
 
@@ -40,6 +41,12 @@ internal sealed class FrameClock(Form form) : IDisposable
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
     private readonly List<IAnimation> _animations = [];
+
+    /// <summary>The same animations as a set: whether one is still running is asked of
+    /// every animation on every frame, and a search of the list made a frame of A
+    /// animations cost A² comparisons.</summary>
+    private readonly HashSet<IAnimation> _live = new(ReferenceEqualityComparer.Instance);
+
     private readonly List<Wake> _wakes = [];
     private readonly List<Wake> _due = [];
 
@@ -83,6 +90,7 @@ internal sealed class FrameClock(Form form) : IDisposable
                 continue;
 
             _animations.RemoveAt(i);
+            _live.Remove(existing);
 
             // without bringing the value to the end: the new animation starts
             // from its own from, and a jump to the end would cause a flicker
@@ -90,6 +98,7 @@ internal sealed class FrameClock(Form form) : IDisposable
         }
 
         _animations.Add(animation);
+        _live.Add(animation);
 
         Review();
     }
@@ -104,6 +113,7 @@ internal sealed class FrameClock(Form form) : IDisposable
                 continue;
 
             _animations.RemoveAt(i);
+            _live.Remove(existing);
             existing.Cancel(applyFinalValue: false);
         }
 
@@ -120,6 +130,7 @@ internal sealed class FrameClock(Form form) : IDisposable
 
             IAnimation animation = _animations[i];
             _animations.RemoveAt(i);
+            _live.Remove(animation);
 
             // the target is leaving the tree: there is no need to bring
             // the value to the end — nothing will draw it anymore.
@@ -163,13 +174,35 @@ internal sealed class FrameClock(Form form) : IDisposable
         // over a snapshot rather than the live list: Advance calls completed
         // right inside itself, and that may both remove animations and add
         // new ones — a page transition does exactly this. With that going on,
-        // the indices drift out from under you
-        IAnimation[] running = [.. _animations];
+        // the indices drift out from under you. The snapshot is a rented array,
+        // not a new one every frame; rented, not one of our own, so that a
+        // completed that leads to another Advance gets an array of its own
+        int count = _animations.Count;
+        IAnimation[] running = ArrayPool<IAnimation>.Shared.Rent(Math.Max(count, 1));
+        _animations.CopyTo(running);
 
+        try
+        {
+            AdvanceAll(running.AsSpan(0, count), elapsed, ref wholeWindow);
+        }
+        finally
+        {
+            // the pool must not keep the animations alive
+            Array.Clear(running, 0, count);
+            ArrayPool<IAnimation>.Shared.Return(running);
+        }
+
+        Review();
+
+        if (wholeWindow) form.InvalidateVisual();
+    }
+
+    private void AdvanceAll(ReadOnlySpan<IAnimation> running, TimeSpan elapsed, ref bool wholeWindow)
+    {
         foreach (IAnimation animation in running)
         {
             // may have been removed by a neighbouring animation's completed
-            if (!_animations.Contains(animation)) continue;
+            if (!_live.Contains(animation)) continue;
 
             // an animation in a hidden subtree is neither advanced nor redrawn.
             // We don't remove it: the page will come back, and the animation
@@ -189,6 +222,7 @@ internal sealed class FrameClock(Form form) : IDisposable
                 // the failed animation goes: it would fail again on every frame and
                 // call the handler sixty times a second, while its neighbours run on
                 _animations.Remove(animation);
+                _live.Remove(animation);
 
                 if (!App.OfferUnhandledException(exception)) throw;
 
@@ -205,12 +239,12 @@ internal sealed class FrameClock(Form form) : IDisposable
                 case UIElement element: element.InvalidateVisual(); break;
             }
 
-            if (!alive) _animations.Remove(animation);
+            if (!alive)
+            {
+                _animations.Remove(animation);
+                _live.Remove(animation);
+            }
         }
-
-        Review();
-
-        if (wholeWindow) form.InvalidateVisual();
     }
 
     // ===== frame delivery =====
@@ -354,6 +388,7 @@ internal sealed class FrameClock(Form form) : IDisposable
 
         _wakes.Clear();
         _animations.Clear();
+        _live.Clear();
     }
 
     private sealed class Wake(TimeSpan due, Action action) : IDisposable

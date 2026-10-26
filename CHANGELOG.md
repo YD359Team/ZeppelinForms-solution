@@ -2,10 +2,35 @@
 
 ## [0.18.1]
 
+A release of fixes: a paste on Linux that leaked or came back empty, and the per-frame and
+per-key costs an audit of the hot paths found.
+
 ### Fixes
 
+- Linux: a paste from another application no longer leaks the memory of what it read, and a
+  large text comes whole: one past the size of a single read is read to its end, and one the
+  owner sends in parts (INCR — a browser's or an IDE's large copy) is put together instead of
+  coming back as nothing. The clipboard reads into a window of its own, so an answer can't
+  get mixed with the form's events
+- Linux: the clipboard's window is destroyed with the platform
 - Fix Form.OnWindowClosed timer not disposed immediately when stopped
-- Fix Form.OnWindowClosed dont clear flyouts, toasts, overlays 
+- Fix Form.OnWindowClosed don't clear flyouts, toasts, overlays 
+
+### Performance
+
+- The frame clock's frame costs as many steps as there are animations, not their square:
+  a frame of 500 animations went from 0.46 ms to 0.02 ms, and it no longer allocates a new
+  array each time
+- A gradient background or `GradientBorder` no longer copies its stops into a new array on
+  every draw; `PageIndicator` no longer builds a new list of pages on every draw, pointer
+  move and tooltip
+- `TextDocument` keeps an index of where its lines start: the caret's line is a binary search
+  instead of a scan of the text, a key without a line break shifts the index instead of making
+  it again, and typing over a selection copies the text once instead of twice. A key in the
+  middle of a 5000-line text went from 1.6 ms to 0.08 ms
+- New benchmark scenarios guard these: `animation.frame-500`, `text.typing-long-document`,
+  `render.headless-gradients`
+
 
 ## [0.18.0] - Terra Incognita
 

@@ -1,9 +1,14 @@
 ﻿using SkiaSharp;
+using ZeppelinForms.Animation;
+using ZeppelinForms.Core.Text;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Controls.Navigation;
+using ZeppelinForms.Headless;
 using ZeppelinForms.Skia;
 
 namespace ZeppelinForms.Benchmarks;
@@ -21,6 +26,9 @@ public static class Scenarios
         ImageRetention(),
         FontFallbackRetention(),
         TextChurn(),
+        AnimationFrame(),
+        TypingLongDocument(),
+        RenderGradients(),
     ];
 
     /// <summary>
@@ -309,6 +317,143 @@ public static class Scenarios
             $"fonts {SkiaDiagnostics.FontEntries}, " +
             $"sized {SkiaDiagnostics.SizedFontEntries}",
     };
+
+    /// <summary>
+    /// One frame of the frame clock with 500 animations running — a list or a grid
+    /// whose rows all fade in at once. Guards 0.18.1: the frame used to copy the list
+    /// of animations into a new array and look each of them up in the list before
+    /// advancing it, which made a frame cost the square of their number.
+    /// </summary>
+    /// <remarks>The animations never end and do nothing but count: what is measured
+    /// is the clock's own cost per frame, not the work of the animations.</remarks>
+    private static Benchmark AnimationFrame() => new()
+    {
+        Name = "animation.frame-500",
+        Description = "FrameClock.Advance with 500 running animations",
+        Iterations = 300,
+        Setup = () =>
+        {
+            var form = new Form();
+
+            for (int i = 0; i < 500; i++)
+                form.Clock.Add(new EndlessAnimation(form, "fade" + i));
+
+            return form;
+        },
+        Body = state => ((Form)state).Clock.Advance(TimeSpan.FromMilliseconds(16)),
+    };
+
+    /// <summary>An animation that runs as long as the scenario does.</summary>
+    private sealed class EndlessAnimation(Form target, string key) : IAnimation
+    {
+        public object Target => target;
+
+        public string Key => key;
+
+        public int Steps { get; private set; }
+
+        public bool Advance(TimeSpan elapsed)
+        {
+            Steps++;
+            return true;
+        }
+
+        public void Cancel(bool applyFinalValue) { }
+    }
+
+    /// <summary>
+    /// A key typed and taken back in the middle of a 5000-line document, with the
+    /// caret's line asked for after each — what a TextBox does on every keystroke.
+    /// Guards 0.18.1: the caret's line used to be found by a scan of the text up to
+    /// it; now it is a binary search in the line index, which a key without a line
+    /// break shifts instead of making again.
+    /// </summary>
+    /// <remarks>The text is still copied once per edit — the string is immutable;
+    /// a piece table that copies nothing is planned for 0.19. The allocations per
+    /// iteration are therefore the two texts of the two edits, and nothing else: a
+    /// line index made again on a key would show up here.</remarks>
+    private static Benchmark TypingLongDocument() => new()
+    {
+        Name = "text.typing-long-document",
+        Description = "Insert + Backspace in the middle of a 5000-line TextDocument, the caret's line after each",
+        Iterations = 300,
+        Setup = () =>
+        {
+            var text = new System.Text.StringBuilder();
+
+            for (int i = 0; i < 5000; i++)
+                text.Append("Line ").Append(i).Append(": some text of an ordinary length\n");
+
+            var document = new TextDocument { IsMultiline = true, Text = text.ToString() };
+            document.SetCaret(document.FromPosition(2500, 10));
+
+            return document;
+        },
+        Body = state =>
+        {
+            var document = (TextDocument)state;
+
+            document.Insert("x");
+            _ = document.ToPosition(document.CaretIndex);
+
+            document.Backspace();
+            _ = document.ToPosition(document.CaretIndex);
+
+            // the history of the scenario's own keys is not what is measured
+            document.ClearHistory();
+        },
+    };
+
+    /// <summary>
+    /// A frame of panels with gradient backgrounds, gradient borders and a page
+    /// indicator, drawn through HeadlessGraphics: the framework's own allocations per
+    /// frame, without what a backend allocates. Guards 0.18.1: each gradient used to
+    /// copy its stops into a new array on every draw, and the indicator gathered the
+    /// pages into a new list on every ask.
+    /// </summary>
+    private static Benchmark RenderGradients() => new()
+    {
+        Name = "render.headless-gradients",
+        Description = "FormRenderer.Render of 40 gradient panels, 20 gradient borders and a page indicator into HeadlessGraphics",
+        Iterations = 300,
+        Setup = () =>
+        {
+            List<GradientStop> stops =
+            [
+                new(new Color(30, 90, 200), 0f),
+                new(new Color(120, 40, 180), 0.5f),
+                new(new Color(220, 60, 120), 1f),
+            ];
+
+            var grid = new UniformGrid { Columns = 8 };
+
+            for (int i = 0; i < 40; i++)
+                grid.Children.Add(new Panel { BackgroundGradient = stops, BackgroundGradientAngle = i * 9 });
+
+            for (int i = 0; i < 20; i++)
+                grid.Children.Add(new GradientBorder { Stops = [.. stops] });
+
+            var pages = new PageControl();
+
+            for (int i = 0; i < 8; i++)
+                pages.Children.Add(new Page());
+
+            grid.Children.Add(new PageIndicator { Target = pages });
+            grid.Children.Add(pages);
+
+            var form = new Form { Size = new Size(Scenes.DefaultWidth, Scenes.DefaultHeight), Content = grid };
+            form.UpdateLayout();
+
+            return new GradientState(form, new HeadlessGraphics());
+        },
+        Body = state =>
+        {
+            var gradients = (GradientState)state;
+            FormRenderer.Render(gradients.Form, gradients.Graphics);
+        },
+    };
+
+    private sealed record GradientState(Form Form, HeadlessGraphics Graphics);
 
     private sealed class ChurnState(SkiaTextMeasurer measurer, int next)
     {
