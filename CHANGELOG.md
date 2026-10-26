@@ -5,6 +5,7 @@
 ### Fixes
 
 - Fix Form.OnWindowClosed timer not disposed immediately when stopped
+- Fix Form.OnWindowClosed dont clear flyouts, toasts, overlays 
 
 ## [0.18.0] - Terra Incognita
 

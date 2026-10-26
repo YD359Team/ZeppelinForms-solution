@@ -1820,6 +1820,10 @@ public partial class Form : IDisposable
         _clock?.Stop();
         _clock?.Dispose();
 
+        _flyouts.Clear();
+        _overlays.Clear();
+        _toasts.Clear();
+
         _dialogClosed?.TrySetResult();
 
         // a destroyed window runs nothing: Invoke goes through the windows left
