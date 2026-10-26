@@ -48,6 +48,26 @@ in the form of Wayland and GLES.
 - A Recipes page in the wiki: close to the tray, commands, confirmations, dialogs, loading,
   live styles
 
+### Forms
+
+- `Form.Hide()` and `Show()` take the window off the screen and bring it back with its state;
+  `PlatformCapabilities.WindowHiding` tells where that works — not in the browser and on Android
+- `Form.TopMost` keeps a window above every window that isn't topmost
+- `TrayIcon`: an icon in the notification area on Windows and on a StatusNotifierItem panel on
+  Linux (KDE, XFCE, Cinnamon, LXQt, waybar, GNOME with the AppIndicator extension), with a
+  tooltip, `Click`, `DoubleClick` and the system's own menu built from `MenuItem`s;
+  `PlatformCapabilities.SystemTray` tells whether there is a tray
+
+### Controls
+
+- `ColorPicker.ShowSpectrum` adds a saturation/brightness field and a hue strip,
+  `ColorPicker.ShowEyedropper` picks a color from the form with a magnifier (both opt-in)
+- Virtual space support for text based controls
+
+### Graphics
+
+- `Graphics.DrawBezier` and `DrawBeziers` draw cubic Bézier curves
+
 ### Wayland
 
 The Wayland platform is available for Linux as an alternative to X11
