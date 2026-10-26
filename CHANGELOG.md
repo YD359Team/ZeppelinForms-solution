@@ -1,5 +1,11 @@
 # Changes
 
+## [0.18.1]
+
+### Fixes
+
+- Fix Form.OnWindowClosed timer not disposed immediately when stopped
+
 ## [0.18.0] - Terra Incognita
 
 ![Terra Incognita](assets/Logo-0.18.0.jpg)

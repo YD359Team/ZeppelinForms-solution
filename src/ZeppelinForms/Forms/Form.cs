@@ -1818,6 +1818,7 @@ public partial class Form : IDisposable
         _localizationVersionAtUnsubscribe = Localization.Version;
 
         _clock?.Stop();
+        _clock?.Dispose();
 
         _dialogClosed?.TrySetResult();
 
