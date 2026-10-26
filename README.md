@@ -25,9 +25,10 @@ The documentation is in the [wiki](https://github.com/YD359Team/ZeppelinForms-so
 | 1 | Headless    | ✅     |
 | 2 | Windows     | ✅     |
 | 3 | Linux (X11) | ✅     |
-| 4 | WebAssembly | ✅*    |
-| 5 | Android     | ✅     |
-| 6 | macOS       | 💡     |
+| 4 | Linux (Wayland) | ✅     |
+| 5 | WebAssembly | ✅*    |
+| 6 | Android     | ✅     |
+| 7 | macOS       | 💡     |
 
 \* - WebAssembly: dialogs are async-only,
 and system drag and drop is not supported — see the browser section below.
