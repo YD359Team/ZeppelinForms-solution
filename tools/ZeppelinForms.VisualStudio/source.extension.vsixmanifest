@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="ZeppelinForms.VisualStudio.f1670ea6-4af5-458a-9ce7-1475c39d00f4" Version="0.18.1" Language="en-US" Publisher="YD359Team" />
+    <Identity Id="ZeppelinForms.VisualStudio.f1670ea6-4af5-458a-9ce7-1475c39d00f4" Version="0.19.0" Language="en-US" Publisher="YD359Team" />
     <DisplayName>ZeppelinForms Tools</DisplayName>
     <Description xml:space="preserve">The ZeppelinForms previewer — live previews of [Preview] methods and forms — .zss style sheets: highlighting and problems in the Error List — and .zfml markup in the XML editor.</Description>
     <MoreInfo>https://github.com/YD359Team/ZeppelinForms-solution</MoreInfo>

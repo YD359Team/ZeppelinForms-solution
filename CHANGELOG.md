@@ -1,5 +1,8 @@
 # Changes
 
+## [0.19.0] Unknown
+
+
 ## [0.18.1]
 
 A release of fixes: a paste on Linux that leaked or came back empty, and the per-frame and
