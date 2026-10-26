@@ -5,7 +5,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Headless;
 
-public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow
+public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow, INativeControlHostWindow
 {
     private readonly HeadlessPlatform _platform;
     private readonly Form _form;
@@ -79,7 +79,37 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
     public void Show()
     {
         IsShown = true;
+        IsVisible = true;
         _form.PerformLayout();
+    }
+
+    /// <summary>The window is on the "screen": shown and not hidden. Checked in tests.</summary>
+    public bool IsVisible { get; private set; }
+
+    /// <summary>The slots native controls were given, in order — checked in tests.</summary>
+    public List<HeadlessNativeSlot> NativeSlots { get; } = [];
+
+    /// <summary>Whether the window holds native controls; false plays a Wayland window,
+    /// where a host draws its placeholder.</summary>
+    public bool SupportsNativeControls { get; set; } = true;
+
+    public INativeControlSlot? CreateNativeSlot()
+    {
+        if (!SupportsNativeControls) return null;
+
+        var slot = new HeadlessNativeSlot();
+        NativeSlots.Add(slot);
+        return slot;
+    }
+
+    /// <summary>How many times the form hid its window — checked in tests.</summary>
+    public int HideCount { get; private set; }
+
+    public void SetVisible(bool visible)
+    {
+        if (!visible) HideCount++;
+
+        IsVisible = visible;
     }
 
     public void Close()
@@ -88,6 +118,7 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
 
         IsClosed = true;
         IsShown = false;
+        IsVisible = false;
         _platform.Remove(this);
 
         _form.OnWindowClosed();
@@ -155,6 +186,11 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
     public int CenterOnScreenCount { get; private set; }
 
     public void CenterOnScreen() => CenterOnScreenCount++;
+
+
+    /// <summary>Whether the window lets itself be placed. False plays a Wayland window:
+    /// for tests of what refuses a position there. True by default.</summary>
+    public bool SupportsPositioning { get; set; } = true;
 
     /// <summary>Frames don't run by themselves in headless: nothing ticks
     /// unless a test calls Tick. The step of such a frame is still taken from

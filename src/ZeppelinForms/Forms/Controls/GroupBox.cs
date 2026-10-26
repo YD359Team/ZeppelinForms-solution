@@ -12,6 +12,15 @@ namespace ZeppelinForms.Forms.Controls;
 /// </summary>
 public partial class GroupBox : DecoratedWrapControl
 {
+    /// <summary>The header as shown: the header, or — never set — the name given to the
+    /// group, see <see cref="ZeppelinForms.Forms.Controls.Base.UIElement.NameCaption"/>.</summary>
+    internal override string? ShownText => Header ?? NameCaption;
+
+    protected override void OnNameCaptionChanged()
+    {
+        if (Header is null) Invalidate();
+    }
+
     private const float HeaderSideGap = 8f;
     private const float HeaderTextPadding = 4f;
 
@@ -76,7 +85,7 @@ public partial class GroupBox : DecoratedWrapControl
     {
         get
         {
-            if (string.IsNullOrEmpty(Header)) return 0;
+            if (string.IsNullOrEmpty(ShownText)) return 0;
 
             // height by a reference pair rather than by the text itself: otherwise
             // the border jumps when the header changes, because of ascenders and descenders
@@ -84,9 +93,9 @@ public partial class GroupBox : DecoratedWrapControl
         }
     }
 
-    private float HeaderWidth => string.IsNullOrEmpty(Header)
+    private float HeaderWidth => string.IsNullOrEmpty(ShownText)
         ? 0
-        : TextMeasurer.Current.MeasureText(ApplyTextTransform(Header), EffectiveFont).Width;
+        : TextMeasurer.Current.MeasureText(ApplyTextTransform(ShownText), EffectiveFont).Width;
 
     private Rectangle Frame
     {
@@ -120,15 +129,15 @@ public partial class GroupBox : DecoratedWrapControl
 
         if (BorderWidth > 0 && BorderColor.A > 0)
         {
-            if (string.IsNullOrEmpty(Header))
+            if (string.IsNullOrEmpty(ShownText))
                 g.DrawRoundRectangle(frame, CornerRadius, BorderColor, BorderWidth);
             else
                 DrawFrameWithGap(g, frame);
         }
 
-        if (string.IsNullOrEmpty(Header)) return;
+        if (string.IsNullOrEmpty(ShownText)) return;
 
-        g.DrawText(ApplyTextTransform(Header),
+        g.DrawText(ApplyTextTransform(ShownText),
             new Rectangle(new Point(HeaderTextX(frame), 0), new Size(HeaderWidth, HeaderHeight)),
             HeaderColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);

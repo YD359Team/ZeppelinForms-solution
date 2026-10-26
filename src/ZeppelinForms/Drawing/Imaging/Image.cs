@@ -15,7 +15,8 @@ public sealed class Image
         if (width <= 0 || height <= 0)
             throw new ArgumentException("Width and height must be positive.");
 
-        if (pixels.Length < width * height * 4)
+        long require = (long)width * height * 4L;
+        if (pixels.LongLength < require)
             throw new ArgumentException("The pixel buffer is smaller than width*height*4.", nameof(pixels));
 
         Width = width;

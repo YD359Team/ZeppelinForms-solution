@@ -28,7 +28,18 @@ internal sealed record DBusMessage(
     string? ErrorName,
     string? Sender,
     string Signature,
-    IReadOnlyList<object?> Body);
+    IReadOnlyList<object?> Body)
+{
+    /// <summary>The header's flags; <see cref="DBusWire.FlagNoReplyExpected"/> — a call
+    /// that wants no answer.</summary>
+    public byte Flags { get; init; }
+
+    /// <summary>The name the message was sent to: a well-known name or the unique one.</summary>
+    public string? Destination { get; init; }
+
+    /// <summary>The caller waits for a reply.</summary>
+    public bool ExpectsReply => (Flags & DBusWire.FlagNoReplyExpected) == 0;
+}
 
 /// <summary>A variant: a value together with its own signature.</summary>
 internal sealed record DBusVariant(string Signature, object? Value)

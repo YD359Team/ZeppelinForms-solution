@@ -184,9 +184,12 @@ public partial class ItemsControl : DecoratedPanel
 
     // the text color is not set here: it comes from the theme, and a hard-coded
     // black made rows invisible on a dark background
+    // the row spans the list's width: at the default alignment a text row stood centered
+    // at its own width, and a list of names read as a ragged column down the middle
     private static Label CreateTextContainer(string text) => new()
     {
         Text = text,
+        HorizontalAlignment = HorizontalAlignment.Stretch,
         HorizontalContentAlign = HorizontalContentAlignment.Left,
         VerticalContentAlign = VerticalContentAlignment.Center,
         Padding = new Thickness(6, 3),

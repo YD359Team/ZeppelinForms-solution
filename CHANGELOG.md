@@ -1,5 +1,87 @@
 # Changes
 
+## [0.18.0] - Terra Incognita
+
+![Terra Incognita](assets/Logo-0.18.0.jpg)
+
+> Terra incognita - unknown lands in ancient maps.
+This release name symbolizes the huge changes in this version, whole new "territories" 
+in the form of Wayland and GLES.
+
+### Fixes
+
+- Fix possible `Image` int32 overflow in constructor
+- Fix unsubscribed static event handlers in `Form`
+- Fix diagonal resize cursors in `GripBox`
+- Add `Form` `_disposed` flag and guard
+
+### Behavior
+
+- Controls with unset `Text` property will be set `Text` from his `Name` property
+- `MapControl` have cache size limit in 100MB
+
+### Dialogs
+
+- Rework file dialogs (not native) appearance: support icon for different file extension groups
+(folder, executable, image, music, ...), interactive searchbar in top panel
+
+### Styles and themes
+
+- Now `.zss` styles can use color from classes `Colors.*` and `MediaColors.*`
+- `<Type.Styles>` holds styles as XAML writes them: `<Style Selector="…">` with `<Setter>`,
+  `<Transition>` and nested styles (`^:hover`), values in the style sheets' own syntax —
+  theme references included. Checked by the build: ZF2012 for a style it can't read, ZF2013
+  for a control or a property nobody has
+- `<StyleInclude Source="Styles/app.zss"/>` adds a sheet of the assets folder in its place
+  among the styles; one that isn't among the project's `.zss` files is ZF2014. The package
+  hands the `.zss` files to the generator
+
+### Markup
+
+- `Command="Save"` takes a command of the class, `Command="AppCommands.Save"` a static one
+  of another type; a command the markup can't find is ZF2011
+- The **Visual Studio** extension checks the values of the styles in `.zfml` files when they are
+  opened or saved, and lists their problems in the Error List at their lines
+
+### Documentation
+
+- A Recipes page in the wiki: close to the tray, commands, confirmations, dialogs, loading,
+  live styles
+
+### Forms
+
+- `Form.Hide()` and `Show()` take the window off the screen and bring it back with its state;
+  `PlatformCapabilities.WindowHiding` tells where that works — not in the browser and on Android
+- `Form.TopMost` keeps a window above every window that isn't topmost
+- `TrayIcon`: an icon in the notification area on Windows and on a StatusNotifierItem panel on
+  Linux (KDE, XFCE, Cinnamon, LXQt, waybar, GNOME with the AppIndicator extension), with a
+  tooltip, `Click`, `DoubleClick` and the system's own menu built from `MenuItem`s;
+  `PlatformCapabilities.SystemTray` tells whether there is a tray
+
+### Controls
+
+- `ColorPicker.ShowSpectrum` adds a saturation/brightness field and a hue strip,
+  `ColorPicker.ShowEyedropper` picks a color from the form with a magnifier (both opt-in)
+- Virtual space support for text based controls
+
+### Graphics
+
+- `Graphics.DrawBezier` and `DrawBeziers` draw cubic Bézier curves
+
+### Wayland
+
+The Wayland platform is available for Linux as an alternative to X11
+
+### GLES
+
+The GLES graphics stack is available as an alternative to Skia
+
+### NativeControlHost
+
+For the implementation of complex controls that exist as a separate native component, appropriate
+support from the framework has been added. Added support for native controls via `NativeControlHost`. 
+Support for `HwndHost`, `X11WindowHost` and `HtmlElementHost` is currently available
+
 ## [0.17.1] - Victoria Falls
 
 ![Victoria Falls](assets/Logo-0.17.0.jpg)

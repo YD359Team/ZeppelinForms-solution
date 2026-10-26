@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Description>The OpenGL ES 3 renderer of ZeppelinForms: draws the forms on the GPU without SkiaSharp. A preview in 0.18.</Description>
+		<PackageTags>$(PackageTags);opengl;gles;gpu</PackageTags>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\ZeppelinForms\ZeppelinForms.csproj" />
+	</ItemGroup>
+
+</Project>

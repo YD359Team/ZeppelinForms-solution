@@ -1,4 +1,6 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
+using ZeppelinForms.Core.System;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
@@ -18,6 +20,7 @@ namespace ZeppelinForms.Forms.Controls.Map;
 public partial class MapControl : InteractiveControl
 {
     private const int TileSize = MercatorProjection.TileSize;
+    private const long CacheSizeLimit = 100 * FileSystemHelper.MB;
 
     private static readonly Lazy<HttpClient> Http = new(() => new()
     {
@@ -93,7 +96,28 @@ public partial class MapControl : InteractiveControl
         SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Stretch);
 
         _diskCacheDirectory = Path.Combine(Path.GetTempPath(), "ZeppelinForms", "MapTiles");
-        Directory.CreateDirectory(_diskCacheDirectory);
+        if (!Directory.Exists(_diskCacheDirectory)) 
+        {
+            Directory.CreateDirectory(_diskCacheDirectory);
+        }
+        else
+        {
+            try
+            {
+                DirectoryInfo cacheDir = new DirectoryInfo(_diskCacheDirectory);
+                if (cacheDir.GetFiles().Sum(x => x.Length) >= CacheSizeLimit)
+                {
+                    foreach (var file in cacheDir.EnumerateFiles())
+                    {
+                        file.Delete();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Fail($"Error when map cache cleaning. Message: {ex.Message}");
+            }
+        }
     }
 
     public void GoTo(double latitude, double longitude, int? zoom = null)

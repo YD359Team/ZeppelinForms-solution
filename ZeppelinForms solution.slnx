@@ -15,6 +15,7 @@
     <File Path="assets/Logo-0.15.0.jpg" />
     <File Path="assets/Logo-0.16.0.jpg" />
     <File Path="assets/Logo-0.17.0.jpg" />
+    <File Path="assets/Logo-0.18.0.jpg" />
     <File Path="assets/Logo-0.9.0.jpg" />
     <File Path="assets/zf1.jpg" />
     <File Path="assets/zf2.jpg" />
@@ -23,6 +24,29 @@
   </Folder>
   <Folder Name="/bench/">
     <Project Path="bench/ZeppelinForms.Benchmarks/ZeppelinForms.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/docs/" />
+  <Folder Name="/docs/wiki/">
+    <File Path="docs/wiki/Accessibility.md" />
+    <File Path="docs/wiki/Browser.md" />
+    <File Path="docs/wiki/Controls.md" />
+    <File Path="docs/wiki/Data-Binding.md" />
+    <File Path="docs/wiki/DataGridView.md" />
+    <File Path="docs/wiki/Forms-and-Windows.md" />
+    <File Path="docs/wiki/Getting-Started.md" />
+    <File Path="docs/wiki/Graphics-and-Effects.md" />
+    <File Path="docs/wiki/Home.md" />
+    <File Path="docs/wiki/Layout.md" />
+    <File Path="docs/wiki/Lists-and-Virtualization.md" />
+    <File Path="docs/wiki/Markup-and-Tooling.md" />
+    <File Path="docs/wiki/Public-API-and-Releases.md" />
+    <File Path="docs/wiki/README.md" />
+    <File Path="docs/wiki/Styles-and-Themes.md" />
+    <File Path="docs/wiki/Testing.md" />
+    <File Path="docs/wiki/Threading-and-Timers.md" />
+    <File Path="docs/wiki/_Footer.md" />
+    <File Path="docs/wiki/_Sidebar.md" />
+    <File Path="Recipes.md" />
   </Folder>
   <Folder Name="/examples/">
     <File Path="examples/Readme.md" />
@@ -38,6 +62,7 @@
     <Project Path="src/ZeppelinForms.Analyzers/ZeppelinForms.Analyzers.csproj" />
     <Project Path="src/ZeppelinForms.Android/ZeppelinForms.Android.csproj" />
     <Project Path="src/ZeppelinForms.Browser/ZeppelinForms.Browser.csproj" />
+    <Project Path="src/ZeppelinForms.Gles/ZeppelinForms.Gles.csproj" />
     <Project Path="src/ZeppelinForms.Linux/ZeppelinForms.Linux.csproj" />
     <Project Path="src/ZeppelinForms.Skia/ZeppelinForms.Skia.csproj" />
     <Project Path="src/ZeppelinForms.Windows/ZeppelinForms.Windows.csproj" />
@@ -49,6 +74,7 @@
   </Folder>
   <Folder Name="/tools/">
     <File Path="tools/ship-api.cs" />
+    <File Path="tools/wayland-scanner.cs" />
     <Project Path="tools/ZeppelinForms.Design/ZeppelinForms.Design.csproj" />
     <Project Path="tools/ZeppelinForms.Designer/ZeppelinForms.Designer.csproj" />
     <Project Path="tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.csproj" />

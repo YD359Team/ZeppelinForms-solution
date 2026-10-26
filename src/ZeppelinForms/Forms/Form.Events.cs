@@ -15,7 +15,8 @@ namespace ZeppelinForms.Forms;
 /// </para>
 /// <para>
 /// The life of a form: <see cref="Load"/> once, before the window is first seen;
-/// <see cref="Shown"/> on every show; <see cref="Activated"/> and
+/// <see cref="Shown"/> on every show — a hidden form shown again too, with
+/// <see cref="VisibleChanged"/>; <see cref="Activated"/> and
 /// <see cref="Deactivated"/> as the user moves between windows;
 /// <see cref="Closing"/>, which may keep the form open; <see cref="Closed"/>.
 /// </para>

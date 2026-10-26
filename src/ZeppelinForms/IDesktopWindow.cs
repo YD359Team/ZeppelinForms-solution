@@ -46,4 +46,17 @@ public interface IDesktopWindow
 
     /// <summary>Move the window to the middle of the working area of the screen it is on.</summary>
     void CenterOnScreen() { }
+
+    /// <summary>Take the shown window off the screen and the taskbar without destroying
+    /// it, or bring it back as it was and make it active: <c>Form.Hide</c> and the
+    /// <c>Form.Show</c> after it. A hidden window draws nothing. A platform of its own
+    /// that can't hide keeps the default, which refuses.</summary>
+    void SetVisible(bool visible) =>
+        throw new PlatformNotSupportedException($"{GetType().Name} can't hide a window.");
+
+
+    /// <summary>The window can be placed by the application: false where the compositor
+    /// alone decides — Wayland. The form then refuses <c>Form.Position</c> before
+    /// asking the window anything.</summary>
+    bool SupportsPositioning => true;
 }

@@ -20,6 +20,15 @@ public partial class LinkLabel : RichLabel
 
     private string? _text;
 
+    /// <summary>The text as shown: the text, or — never set — the name given to the
+    /// link, see <see cref="ZeppelinForms.Forms.Controls.Base.UIElement.NameCaption"/>.</summary>
+    internal override string? ShownText => _text ?? NameCaption;
+
+    protected override void OnNameCaptionChanged()
+    {
+        if (_text is null) RebuildInlines();
+    }
+
     public string? Url { get; set; }
 
     public Color LinkColor { get; set; } = new Color(255, 0x0D, 0x6E, 0xFD);
@@ -46,8 +55,8 @@ public partial class LinkLabel : RichLabel
 
         Inlines.Clear();
 
-        if (!string.IsNullOrEmpty(_text))
-            Inlines.Add(new TextRun(_text) { Color = color, Underline = true });
+        if (ShownText is { Length: > 0 } text)
+            Inlines.Add(new TextRun(text) { Color = color, Underline = true });
 
         Invalidate();
     }

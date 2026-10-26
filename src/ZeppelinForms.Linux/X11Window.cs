@@ -1,8 +1,8 @@
-﻿using SkiaSharp;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
@@ -18,7 +18,7 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
     private nint _display;
     private nuint _window;
     private nint _gc;
-    private X11SkiaSurface? _surface;
+    private IX11Surface? _surface;
 
     private nuint _wmDeleteWindow;
     private nuint _invokeAtom;
@@ -141,10 +141,17 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
 
         _gc = X11.XDefaultGC(_display, screen);
 
-        _surface = new X11SkiaSurface(
-            _display, _window, _gc,
+        // on the GPU through EGL where it works, an XImage in memory otherwise
+        _surface = X11SurfaceFactory.Create(
+            _platform, _window, _gc,
             X11.XDefaultVisual(_display, screen),
-            (uint)X11.XDefaultDepth(_display, screen));
+            (uint)X11.XDefaultDepth(_display, screen),
+            _platform.Graphics);
+
+        // the size the window was made with, now that there is a surface to give it to:
+        // without a window manager — Xvfb, a kiosk — no ConfigureNotify follows the
+        // mapping, the surface never got a size, and nothing was ever drawn
+        ApplySize((int)width, (int)height);
 
         X11.XStoreName(_display, _window, _form.Title ?? string.Empty);
 
@@ -165,6 +172,10 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
     public void Close()
     {
         if (_window == 0) return;
+
+        // the native controls first, while their windows are there to be destroyed:
+        // destroyed with this one, they came back as BadWindow errors
+        _form.ReleaseNativeControls();
 
         _surface?.Dispose();
         _surface = null;
@@ -264,7 +275,9 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
     private bool _fullRepaint;
     private Rectangle? _pendingDirty;
 
-    internal bool IsPaintRequested => _paintRequested;
+    // a hidden window waits with its frame until it is shown again: the loop doesn't
+    // wake for it, and nothing is drawn into a window off the screen
+    internal bool IsPaintRequested => _paintRequested && !_hidden;
 
     /// <summary>Mark an area dirty. The frame is painted by the platform loop,
     /// once, after all pending events are handled.</summary>
@@ -296,7 +309,7 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
     /// <summary>Paint what was requested since the last frame, if anything.</summary>
     internal void PaintIfRequested()
     {
-        if (!_paintRequested) return;
+        if (!_paintRequested || _hidden) return;
 
         Paint(_fullRepaint ? null : _pendingDirty);
     }
@@ -310,10 +323,13 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
         _fullRepaint = false;
         _pendingDirty = null;
 
-        if (_surface?.BeginFrame() is SKSurface skSurface)
+        if (_surface?.BeginFrame() is { } g)
         {
-            Skia.SkiaRenderer.Render(_form, skSurface.Canvas, _scale, dirty);
-            _surface.EndFrame(dirty is { } d ? ToPhysical(d) : null);
+            // after a swap the back buffer is undefined: a GL frame is always whole
+            Rectangle? clip = _surface.SupportsPartialRedraw ? dirty : null;
+
+            FormRenderer.Render(_form, g, _scale, clip);
+            _surface.EndFrame(clip is { } d ? ToPhysical(d) : null);
         }
 
         _form.TakeDirtyRegion();
@@ -439,6 +455,13 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
 
         _form.OnWindowMoved(new Point(left, top));
 
+        ApplySize(width, height);
+    }
+
+    /// <summary>The window is this size in pixels: the surface, the form's client area
+    /// and its layout follow, and a frame is asked for.</summary>
+    private void ApplySize(int width, int height)
+    {
         // ConfigureNotify comes for moves as well. A move used to cost a full layout
         // and a synchronous frame; a window that only moved changes nothing inside
         if (width == _physicalWidth && height == _physicalHeight) return;

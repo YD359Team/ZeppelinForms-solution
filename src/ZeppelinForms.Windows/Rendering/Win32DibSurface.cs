@@ -1,11 +1,16 @@
-﻿using SkiaSharp;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
+using ZeppelinForms.Core;
+using ZeppelinForms.Drawing;
 
 namespace ZeppelinForms.Windows.Rendering;
 
-internal sealed class SoftwareSkiaSurface : IWin32SkiaSurface
+/// <summary>A DIB section the backend draws into on the CPU, copied onto the window
+/// with BitBlt — the software fallback when there is no GL, or the backend draws
+/// without it.</summary>
+internal sealed class Win32DibSurface : IWin32Surface
 {
     private readonly nint _hWnd;
+    private readonly IGraphicsBackend _graphics;
 
     private nint _memDc;
     private nint _dib;
@@ -15,11 +20,15 @@ internal sealed class SoftwareSkiaSurface : IWin32SkiaSurface
     private int _width;
     private int _height;
 
-    private SKSurface? _surface;
+    private IRenderSurface? _surface;
 
     public bool SupportsPartialRedraw => true;
 
-    public SoftwareSkiaSurface(nint hWnd) => _hWnd = hWnd;
+    public Win32DibSurface(nint hWnd, IGraphicsBackend graphics)
+    {
+        _hWnd = hWnd;
+        _graphics = graphics;
+    }
 
     public void Resize(int width, int height)
     {
@@ -42,7 +51,7 @@ internal sealed class SoftwareSkiaSurface : IWin32SkiaSurface
                 biSize = (uint)Marshal.SizeOf<NativeMethods.BITMAPINFOHEADER>(),
                 biWidth = width,
                 // A negative height — a top-down DIB,
-                // so that the rows go in the same order as in the SKSurface.
+                // so that the rows go in the same order as in the backend's surface.
                 biHeight = -height,
                 biPlanes = 1,
                 biBitCount = 32,
@@ -63,15 +72,17 @@ internal sealed class SoftwareSkiaSurface : IWin32SkiaSurface
         _width = width;
         _height = height;
 
-        var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
-        _surface = SKSurface.Create(info, _pixels, width * 4);
+        _surface = _graphics.CreatePixelSurface(
+            new PixelBuffer(_pixels, width, height, width * 4, PixelFormat.Bgra8888))
+            ?? throw new ZfPlatformException(
+                $"The {_graphics.Name} backend draws on the GPU only, and there is no OpenGL on this window.");
     }
 
-    public SKSurface? BeginFrame() => _surface;
+    public Graphics? BeginFrame() => _surface?.BeginFrame();
 
     public void EndFrame()
     {
-        _surface!.Canvas.Flush();
+        _surface!.EndFrame();
 
         nint windowDc = NativeMethods.GetDC(_hWnd);
 

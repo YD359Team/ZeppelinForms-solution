@@ -12,6 +12,11 @@
 		<!-- нативный Skia перелинковывается в модуль приложения;
          требует workload wasm-tools и Emscripten -->
 		<WasmBuildNative>true</WasmBuildNative>
+		<!-- index.html gets the import map and main.js its fingerprint at publish:
+		     index.html, main.js, zf.js and _framework/dotnet.js kept their names from one
+		     deployment to the next, and a browser holding them in its cache (GitHub Pages
+		     sends max-age=600) loaded the previous version's assemblies they point to -->
+		<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
 	</PropertyGroup>
 
 	<ItemGroup>

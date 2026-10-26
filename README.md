@@ -58,7 +58,7 @@ And if the project is modern, why not take advantage of the full capabilities of
 | # | Name      | Status |
 | - | --------- | ------ |
 | 1 | SkiaSharp | ✅     |
-| 2 | DirectX   | 💡     |
+| 2 | GLES      | ✅     |
 
 ZeppelinForms itself knows nothing about Skia, because it is implemented in a separate project, `ZeppelinForms.Skia`. This means that the graphics layer is completely decoupled from the framework logic.
 
@@ -213,7 +213,7 @@ registration to call directly.
 | 22 | ToggleButton        | ✅     |  45 | DataGridView     | ✅**  |
 | 23 | TabStrip            | ✅     |     |                  |        |
 
-\* — contains bugs and is missing part of its API
+\* — contains bugs and is missing part of its API \
 \*\* — DataGridView: no frozen columns yet
 
 `Button` has the variants `PrimaryButton`, `SecondaryButton` and `DangerButton`.
@@ -523,6 +523,12 @@ C# would construct them (`Padding: 14 6`). A mistake skips its declaration and i
 reported with its file, line and column; the Visual Studio extension highlights `.zss`
 and lists the problems in the Error List. `watch: true` reloads a sheet on every save.
 
+The styles of `.zfml` markup (`<Type.Styles>`) are checked the same way when the file
+is opened or saved: the host parses them as the sheet the application builds from
+them, and a value that can't be read, an easing or a pseudo-class nobody has goes to
+the Error List at its line of the markup. Their shape and the controls and properties
+they name are the build's — ZF2012 and ZF2013 — and aren't reported twice.
+
 **Icons.** `App.Icon` is the icon of every form without one of its own and of the
 taskbar button; without it the ZeppelinForms logo is used. `Form.Icon` overrides it
 for one window and can be changed while the window is open. The icon of the executable
@@ -641,6 +647,30 @@ dotnet run --project bench/ZeppelinForms.Benchmarks -c Release -- --update-basel
 Run-to-run spread on a desktop machine reaches tens of percent, so a single run
 proves nothing: take the median of three, and record a baseline only from a quiet
 machine. Current numbers are in the release entry in `CHANGELOG.md`.
+
+### ✈️ Platform Verification
+
+The following environments have been used for manual testing and validation.
+
+**Windows**
+- Windows 11 Pro 26H2
+
+**Linux (X11)**
+- Debian under WSL2
+- Ubuntu 26.04.1 LTS (x86-64, VirtualBox)
+
+**WebAssembly (WASM)**
+- Yandex Browser (desktop)
+- Yandex Browser (mobile)
+- Brave (mobile)
+
+**Android**
+- Android Emulator (Pixel device profile, Visual Studio)
+
+**Continuous Integration**
+
+- See the CI workflow configuration for the operating systems and environments used in automated builds and tests.
+
 
 ---
 

@@ -1,4 +1,7 @@
-﻿using Xunit;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using Xunit;
 using ZeppelinForms.Animation;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;

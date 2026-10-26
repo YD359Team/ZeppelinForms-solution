@@ -9,6 +9,8 @@ namespace ZeppelinForms.VisualStudio;
 /// <summary>
 /// The problems of .zss style sheets in the Error List: checked by the previewer's
 /// host — it knows the project's own controls — whenever a sheet is opened or saved.
+/// The styles of .zfml markup too: the build checks their shape and the names they use,
+/// the host their values, parsed as the sheet the application builds from them.
 /// </summary>
 /// <remarks>
 /// The host is started for the check if the preview window hasn't started one, and
@@ -54,7 +56,11 @@ internal sealed class SheetChecker : IDisposable
 
         string path = document.FullName;
 
-        if (!path.EndsWith(".zss", StringComparison.OrdinalIgnoreCase)) return;
+        if (!path.EndsWith(".zss", StringComparison.OrdinalIgnoreCase) &&
+            !path.EndsWith(".zfml", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
 
         Check(path);
     }

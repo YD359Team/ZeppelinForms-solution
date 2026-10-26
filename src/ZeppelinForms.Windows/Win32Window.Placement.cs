@@ -28,6 +28,25 @@ internal sealed partial class Win32Window
             NativeConstants.SWP_NOMOVE | NativeConstants.SWP_NOZORDER | NativeConstants.SWP_NOACTIVATE);
     }
 
+    /// <summary>Form.Hide and the Form.Show after it. A hidden window gets no WM_PAINT,
+    /// so the animation timer's invalidations draw nothing until it is back.</summary>
+    public void SetVisible(bool visible)
+    {
+        if (_handle == 0) return;
+
+        if (!visible)
+        {
+            NativeMethods.ShowWindow(_handle, NativeConstants.SW_HIDE);
+            return;
+        }
+
+        // SW_SHOW keeps the size, the place and a minimized or maximized state; the
+        // foreground is asked for as well: a window brought back by a click on the tray
+        // icon must come to the front, not blink on the taskbar
+        NativeMethods.ShowWindow(_handle, NativeConstants.SW_SHOW);
+        NativeMethods.SetForegroundWindow(_handle);
+    }
+
     public void SetTopMost(bool topMost)
     {
         if (_handle == 0) return;

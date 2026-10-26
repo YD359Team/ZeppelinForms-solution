@@ -153,8 +153,37 @@ public partial class Form : IDisposable
         }
     }
 
-    public string Name { get; set; } = string.Empty;
-    public string? Title { get; set; }
+    /// <summary>The form's name; a form without a <see cref="Title"/> is captioned with it,
+    /// as a form the WinForms designer adds is captioned "Form1".</summary>
+    public string Name
+    {
+        get;
+        set
+        {
+            field = value ?? string.Empty;
+
+            if (Title is null) DesktopWindow?.SetTitle(ShownTitle);
+        }
+    } = string.Empty;
+
+    /// <summary>The window's caption. An open window shows a change at once.</summary>
+    public string? Title
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+
+            DesktopWindow?.SetTitle(ShownTitle);
+        }
+    }
+
+    /// <summary>The caption the window shows: the title, or — never set — the form's
+    /// <see cref="Name"/>.</summary>
+    internal string? ShownTitle => Title ?? (Name.Length > 0 ? Name : null);
+
     /// <summary>The window's icon: the title bar's, the taskbar button's. Null — the
     /// application's, <see cref="App.Icon"/>. Changing it shows at once.</summary>
     public Icon? Icon
@@ -188,6 +217,13 @@ public partial class Form : IDisposable
         set
         {
             if (_position == value) return;
+
+            // asked of the window before the value is taken: a refused move leaves
+            // the form where it was
+            if (DesktopWindow is { SupportsPositioning: false })
+                throw new PlatformNotSupportedException(
+                    "This platform doesn't let a window place itself: on Wayland the compositor " +
+                    "decides where windows go. Check App.Capabilities for WindowPositioning first.");
 
             _position = value;
             ApplyBounds();
@@ -590,7 +626,8 @@ public partial class Form : IDisposable
 
             hit?.RaiseMouseDown(downArgs);
 
-            if (e.Button == MouseButton.Left && hit is not null)
+            // a press on a scroll bar scrolls, and leaves the focus where it was
+            if (e.Button == MouseButton.Left && hit is not null && !(hit is PanelControl panel && panel.IsOverScrollBar(e.Location)))
                 FocusFromHit(hit);
         }
         finally
@@ -1037,7 +1074,9 @@ public partial class Form : IDisposable
             return;
         }
 
-        var args = new KeyEventArgs(key, modifiers);
+        // isRepeat went nowhere until 0.18: every platform reported it, and every
+        // handler saw false
+        var args = new KeyEventArgs(key, modifiers, isRepeat);
 
         // the form's preview goes before everything: a shortcut of the window
         // as a whole takes the key from menus and elements alike
@@ -1242,6 +1281,14 @@ public partial class Form : IDisposable
 
     public void Show()
     {
+        // a window shown already: one on the screen stays as it is, a hidden one comes
+        // back as it was — Load is of its first showing, Shown of every one, see Hide
+        if (TryShowAgain())
+        {
+            OnShown(EventArgs.Empty);
+            return;
+        }
+
         // once, before the window is first seen: the place to fill the form
         // with data, as WinForms' Load is
         if (!_loaded)
@@ -1251,12 +1298,13 @@ public partial class Form : IDisposable
         }
 
         DesktopWindow?.SetOpacity(_opacity);
-        DesktopWindow?.SetTitle(Title);
+        DesktopWindow?.SetTitle(ShownTitle);
 
         // before the window is seen: a dark caption must not flash white first
         ApplyTitleBar();
 
         PlatformWindow?.Show();
+        OnFirstShown();
 
         // before Shown: a handler that wants the focus elsewhere moves it after us
         if (FocusOnShow && Content is not null)
@@ -1744,6 +1792,10 @@ public partial class Form : IDisposable
 
         s_openForms.Remove(this);
 
+        // the native controls go before the window's children are destroyed with it:
+        // each host stops what draws into its control first
+        ReleaseNativeControls();
+
         // the forms this one owns close with it, and this one leaves its owner,
         // see Form.Owner
         CloseOwnedForms();
@@ -1754,6 +1806,8 @@ public partial class Form : IDisposable
         // every MessageBox, every InputBox — was never collected. The subscription
         // is dropped here and renewed if the form is shown again
         App.ThemeChanged -= OnThemeChanged;
+        App.TextScaleChanged -= OnTextScaleChanged;
+        Localization.Changed -= OnLocalizationChanged;
         _themeAtUnsubscribe = App.Theme;
 
         // the text scale's event is static too, and would hold the form the same way
@@ -1772,6 +1826,9 @@ public partial class Form : IDisposable
             _dispatcher?.Detach(window);
 
         _isActive = false;
+        // a closed window is off the screen, whether it was shown or hidden
+        _shownWindow = null;
+        SetVisibleState(false);
         OnClosed(EventArgs.Empty);
     }
 
@@ -2303,12 +2360,20 @@ public partial class Form : IDisposable
         return null;
     }
 
+    private bool _disposed;
+
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
+
         App.ThemeChanged -= OnThemeChanged;
         App.TextScaleChanged -= OnTextScaleChanged;
-
         Localization.Changed -= OnLocalizationChanged;
+
+        _focusDispatcher.FocusChanged -= OnFocusChangedForKeyboard;
+        _focusDispatcher.FocusChanged -= OnFocusChangedForAccessibility;
+        _focusDispatcher.FocusChanged -= OnFocusChangedForStyles;
 
         _toolTipWake?.Dispose();
         _clock?.Dispose();

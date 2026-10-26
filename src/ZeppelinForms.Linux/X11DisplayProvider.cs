@@ -29,7 +29,10 @@ public sealed class X11DisplayProvider : IDisplayProvider
 
         try
         {
-            nint resourcesPtr = X11.XRRGetScreenResourcesCurrent(_display, root);
+            // no libXrandr: one screen, without an exception on every listing
+            nint resourcesPtr = NativeProbe.Has(X11.RandrLib)
+                ? X11.XRRGetScreenResourcesCurrent(_display, root)
+                : 0;
 
             if (resourcesPtr != 0)
             {

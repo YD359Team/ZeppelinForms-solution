@@ -1,4 +1,6 @@
 ﻿using System.Globalization;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -11,10 +13,15 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls;
 
-public class ColorPicker : InteractiveControl
+public partial class ColorPicker : InteractiveControl
 {
     private readonly FlyoutHost _flyout;
     private Color _value = Colors.Black;
+
+    /// <summary>Brings the open editor — its sliders and spectrum — to a value set
+    /// from elsewhere: by another part of the editor, the eyedropper or the
+    /// application. Null while the editor is closed.</summary>
+    private Action? _editorSync;
 
     public Color Value
     {
@@ -24,6 +31,11 @@ public class ColorPicker : InteractiveControl
             if (_value == value) return;
 
             _value = value;
+
+            // the editor first: a handler of ValueChanged reading the sliders
+            // must find them at the new value
+            _editorSync?.Invoke();
+
             ValueChanged?.Invoke(this, EventArgs.Empty);
             InvalidateVisual();
         }
@@ -50,6 +62,28 @@ public class ColorPicker : InteractiveControl
         }
     }
 
+    /// <summary>The editor gets a spectrum above its sliders: a field of saturation
+    /// and brightness and a strip of hues, picked by the mouse. Off by default.</summary>
+    /// <remarks>The sliders stay: they are what the keyboard and the screen reader
+    /// work with, and the spectrum follows them as they follow it.</remarks>
+    public bool ShowSpectrum { get; set; }
+
+    /// <summary>The editor gets an eyedropper button: the form is captured, and a click
+    /// anywhere on it takes the color under the cursor. Off by default.</summary>
+    /// <remarks>
+    /// <para>
+    /// The form only, not the whole screen: what is outside the window belongs to
+    /// other applications, and Wayland and the browser give no way to read it.
+    /// </para>
+    /// <para>
+    /// While picking, a magnifier follows the cursor; the arrow keys move the point
+    /// by a pixel (with Shift by ten), Enter or a click takes the color, Escape or the
+    /// right button cancels. The alpha of <see cref="Value"/> is kept: a form has no
+    /// translucent pixels to take one from.
+    /// </para>
+    /// </remarks>
+    public bool ShowEyedropper { get; set; }
+
     public Color SwatchBorderColor { get; set; } = new Color(255, 140, 140, 140);
 
     public ColorPicker()
@@ -61,7 +95,11 @@ public class ColorPicker : InteractiveControl
         SetControlDefault(BorderWidthProperty, 1f);
 
         _flyout = new FlyoutHost(this);
-        _flyout.Closed += (_, _) => InvalidateVisual();
+        _flyout.Closed += (_, _) =>
+        {
+            _editorSync = null;
+            InvalidateVisual();
+        };
     }
 
     /// <summary>Whether the drop-down is open — for the accessibility peer,
@@ -132,6 +170,14 @@ public class ColorPicker : InteractiveControl
         _flyout.Toggle(BuildEditor);
     }
 
+    /// <summary>Close the editor. FlyoutHost raises no Closed for a close of its own,
+    /// so the sync is dropped here as well.</summary>
+    private void CloseEditor()
+    {
+        _flyout.Close();
+        _editorSync = null;
+    }
+
     private UIElement BuildEditor()
     {
         // drawn rather than a panel's background: a translucent color needs the
@@ -142,23 +188,31 @@ public class ColorPicker : InteractiveControl
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
 
-        TrackBar MakeChannel(byte initial, Action<byte> apply)
+        // each slider with the channel it shows: the editor sync puts them back
+        // when the value comes from elsewhere
+        var sliders = new List<(TrackBar Slider, Func<Color, byte> Channel)>();
+
+        TrackBar MakeChannel(Func<Color, byte> channel, Action<byte> apply)
         {
             var slider = new TrackBar
             {
                 Minimum = 0,
                 Maximum = 255,
                 Step = 1,
-                Value = initial,
+                Value = channel(_value),
                 Size = new Size(180, 24),
             };
 
             slider.ValueChanged += (_, _) =>
             {
+                // a slider put back by the sync applies the channel the value
+                // already has — Value ignores an equal color, nothing loops
                 apply((byte)slider.Value);
 
                 preview.InvalidateVisual();
             };
+
+            sliders.Add((slider, channel));
 
             return slider;
         }
@@ -174,23 +228,71 @@ public class ColorPicker : InteractiveControl
         {
             Spacing = 4,
             Padding = new Thickness(8),
-            Children =
-            {
-                preview,
-                Caption("R"),
-                MakeChannel(_value.R, v => Value = new Color(_value.A, v, _value.G, _value.B)),
-                Caption("G"),
-                MakeChannel(_value.G, v => Value = new Color(_value.A, _value.R, v, _value.B)),
-                Caption("B"),
-                MakeChannel(_value.B, v => Value = new Color(_value.A, _value.R, _value.G, v)),
-            },
         };
+
+        SpectrumView? spectrum = null;
+
+        if (ShowSpectrum)
+        {
+            spectrum = new SpectrumView(this)
+            {
+                Size = new Size(180, 150),
+            };
+
+            channels.Children.Add(spectrum);
+        }
+
+        if (ShowEyedropper)
+        {
+            var eyedropper = new Button
+            {
+                Icon = IconSource.FromPath(EyedropperIcon),
+                IconSize = 16,
+                Size = new Size(28, 28),
+                Padding = new Thickness(0),
+                Margin = new Thickness(6, 0, 0, 0),
+                Docking = Dock.Right,
+            };
+
+            eyedropper
+                .Localize(nameof(ToolTip), static (b, text) => b.ToolTip = text, ZfText.PickColor)
+                .Localize(nameof(AccessibleName), static (b, text) => b.AccessibleName = text, ZfText.PickColor);
+
+            eyedropper.Click += (_, _) => StartPicking();
+
+            // the button docked first, the preview fills the rest as the last child
+            channels.Children.Add(new DockPanel
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Children = { eyedropper, preview },
+            });
+        }
+        else
+        {
+            channels.Children.Add(preview);
+        }
+
+        channels.Children.Add(Caption("R"));
+        channels.Children.Add(MakeChannel(static c => c.R, v => Value = new Color(_value.A, v, _value.G, _value.B)));
+        channels.Children.Add(Caption("G"));
+        channels.Children.Add(MakeChannel(static c => c.G, v => Value = new Color(_value.A, _value.R, v, _value.B)));
+        channels.Children.Add(Caption("B"));
+        channels.Children.Add(MakeChannel(static c => c.B, v => Value = new Color(_value.A, _value.R, _value.G, v)));
 
         if (AllowAlpha)
         {
             channels.Children.Add(Caption("A"));
-            channels.Children.Add(MakeChannel(_value.A, v => Value = new Color(v, _value.R, _value.G, _value.B)));
+            channels.Children.Add(MakeChannel(static c => c.A, v => Value = new Color(v, _value.R, _value.G, _value.B)));
         }
+
+        _editorSync = () =>
+        {
+            foreach ((TrackBar slider, Func<Color, byte> channel) in sliders)
+                slider.Value = channel(_value);
+
+            spectrum?.Sync();
+            preview.InvalidateVisual();
+        };
 
         return new Border
         {
@@ -206,7 +308,7 @@ public class ColorPicker : InteractiveControl
     {
         if (e.Key == Key.Escape && _flyout.IsOpen)
         {
-            _flyout.Close();
+            CloseEditor();
             e.Handled = true;
             return;
         }

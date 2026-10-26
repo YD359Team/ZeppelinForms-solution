@@ -99,7 +99,21 @@ public partial class Label : DecoratedControl, ITextElement
     } = 1f;
 
     private string[] SplitLines() =>
-        (Text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        (ShownText ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+
+    /// <summary>The text as shown: the text, or — never set — the name given to the
+    /// label, see <see cref="ZeppelinForms.Forms.Controls.Base.UIElement.NameCaption"/>.</summary>
+    internal override string? ShownText => Text ?? NameCaption;
+
+    protected override void OnNameCaptionChanged()
+    {
+        if (Text is not null) return;
+
+        // the lines are of the name now
+        _lines = null;
+        _rows = null;
+        Invalidate();
+    }
 
     /// <summary>The split into lines. Computed once per text: both drawing
     /// and measuring ask for it many times per frame, and Split creates
@@ -221,7 +235,7 @@ public partial class Label : DecoratedControl, ITextElement
     // the background, border and corner radius are drawn by the base — only the text here
     protected override void DrawContent(Graphics g)
     {
-        if (string.IsNullOrEmpty(Text)) return;
+        if (string.IsNullOrEmpty(ShownText)) return;
 
         var content = ContentBounds;
         IReadOnlyList<LabelRow> rows = Rows(content.Width);
@@ -260,7 +274,7 @@ public partial class Label : DecoratedControl, ITextElement
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        if (string.IsNullOrEmpty(Text))
+        if (string.IsNullOrEmpty(ShownText))
             return ResolveSize(new Size(Padding.Horizontal, Padding.Vertical), availableSize);
 
         // the room for the text: the given width, or this label's own when it has one

@@ -741,3 +741,103 @@ export function downloadFile(fileName, base64) {
     // right after click() used to take it away before the download began
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// ==== native elements among the form's ====
+//
+// A NativeControlHost's slot: a div over the canvas, as large as the part of the host the
+// form shows, cutting the element inside at the host's size. Positions come in the canvas's
+// logical units — CSS pixels — and the canvas's own place on the page is added here.
+
+const slots = new Map();
+let nextSlot = 1;
+
+export function createSlot() {
+    const div = document.createElement("div");
+
+    Object.assign(div.style, {
+        position: "fixed",
+        overflow: "hidden",
+        display: "none",
+        // above the canvas and the ARIA mirror: the element takes its own clicks
+        zIndex: "1",
+    });
+
+    const id = nextSlot++;
+
+    // the element took the keyboard by itself — a click into it: the form follows
+    div.addEventListener("focusin", () => zf().OnSlotFocused(id));
+
+    document.body.appendChild(div);
+    slots.set(id, { div, element: null });
+
+    return id;
+}
+
+// The element of the slot, made from a tag and its attributes, at the slot's corner
+export function createSlotElement(id, tag, attributesJson) {
+    const slot = slots.get(id);
+    if (!slot) return null;
+
+    const element = document.createElement(tag);
+    const attributes = attributesJson ? JSON.parse(attributesJson) : {};
+
+    for (const [name, value] of Object.entries(attributes)) {
+        element.setAttribute(name, value);
+    }
+
+    Object.assign(element.style, { position: "absolute", left: "0px", top: "0px", border: "0", margin: "0" });
+
+    slot.div.appendChild(element);
+    slot.element = element;
+
+    return element;
+}
+
+export function placeSlot(id, x, y, width, height, visibleX, visibleY, visibleWidth, visibleHeight) {
+    const slot = slots.get(id);
+    if (!slot) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    Object.assign(slot.div.style, {
+        display: "block",
+        left: `${rect.left + visibleX}px`,
+        top: `${rect.top + visibleY}px`,
+        width: `${visibleWidth}px`,
+        height: `${visibleHeight}px`,
+    });
+
+    if (slot.element) {
+        Object.assign(slot.element.style, {
+            left: `${x - visibleX}px`,
+            top: `${y - visibleY}px`,
+            width: `${width}px`,
+            height: `${height}px`,
+        });
+    }
+}
+
+export function hideSlot(id) {
+    const slot = slots.get(id);
+    if (slot) slot.div.style.display = "none";
+}
+
+export function focusSlot(id) {
+    slots.get(id)?.element?.focus({ preventScroll: true });
+}
+
+export function destroySlotElement(id) {
+    const slot = slots.get(id);
+    if (!slot || !slot.element) return;
+
+    slot.element.remove();
+    slot.element = null;
+}
+
+export function destroySlot(id) {
+    const slot = slots.get(id);
+    if (!slot) return;
+
+    slot.div.remove();
+    slots.delete(id);
+}

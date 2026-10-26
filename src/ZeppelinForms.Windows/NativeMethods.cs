@@ -387,6 +387,14 @@ internal static class NativeMethods
     [DllImport("user32.dll")] public static extern uint GetDpiForWindow(nint hWnd);
     [DllImport("user32.dll")] public static extern bool EnableWindow(nint hWnd, bool enable);
     [DllImport("user32.dll")] public static extern nint SetActiveWindow(nint hWnd);
+    [DllImport("user32.dll")][return: MarshalAs(UnmanagedType.Bool)] public static extern bool SetForegroundWindow(nint hWnd);
+    // ===== native controls among the form's elements, see Win32NativeSlot =====
+    [DllImport("user32.dll")] public static extern nint GetFocus();
+    [DllImport("user32.dll")] public static extern nint SetFocus(nint hWnd);
+    [DllImport("user32.dll", SetLastError = true)] public static extern nint SetParent(nint child, nint newParent);
+    [DllImport("user32.dll")] public static extern nint GetParent(nint hWnd);
+    [DllImport("user32.dll")][return: MarshalAs(UnmanagedType.Bool)] public static extern bool IsWindow(nint hWnd);
+    [DllImport("user32.dll")][return: MarshalAs(UnmanagedType.Bool)] public static extern bool IsChild(nint parent, nint hWnd);
     [DllImport("user32.dll")]
     public static extern bool SetLayeredWindowAttributes(nint hWnd, uint crKey, byte alpha, uint flags);
     [DllImport("user32.dll")]

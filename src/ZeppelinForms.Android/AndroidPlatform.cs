@@ -4,6 +4,7 @@ using Android.Text;
 using Android.Views;
 using Android.Views.InputMethods;
 using SkiaSharp;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 
@@ -40,7 +41,7 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
     }
 
     /// <summary>The dimming under a modal dialog.</summary>
-    private static readonly SKColor s_scrim = new(0, 0, 0, 96);
+    private static readonly Color s_scrim = new(96, 0, 0, 0);
 
     private readonly Activity _activity;
     private readonly List<AndroidWindow> _windows = [];
@@ -72,9 +73,9 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
 
     public static AndroidPlatform Create(Activity activity)
     {
-        Skia.SkiaImageDecoder.Register();
-        Skia.SkiaTextMeasurer.Register();
-        Skia.SkiaOffscreenRenderer.Register();
+        // Android draws with Skia only: its view is SkiaSharp's canvas view, and
+        // another backend needs a view of its own
+        Skia.SkiaGraphicsBackend.Instance.Register();
         Displays.Current = new AndroidDisplayProvider(activity);
 
         // without it Clipboard.Current stayed the built-in stand-in, which silently
@@ -433,17 +434,22 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
 
         SKCanvas canvas = surface.Canvas;
 
+        // the view's canvas, bare: the view keeps it between frames
+        canvas.RestoreToCount(1);
+        canvas.ResetMatrix();
+
+        var g = new Skia.SkiaGraphics(canvas);
+
         for (int i = 0; i < _windows.Count; i++)
         {
             AndroidWindow window = _windows[i];
             bool isRoot = i == 0;
 
             if (!isRoot)
-                DimBelow(canvas);
+                DimBelow(g);
 
-            Skia.SkiaRenderer.Render(
-                window.Form,
-                canvas,
+            FormRenderer.Render(window.Form, 
+                g,
                 Scale,
                 clip: null,
                 clearBackground: isRoot,
@@ -453,15 +459,14 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
         }
     }
 
-    private void DimBelow(SKCanvas canvas)
+    private void DimBelow(Graphics g)
     {
-        canvas.Save();
-        canvas.Scale(Scale, Scale);
+        g.Save();
+        g.Scale(Scale, Scale);
 
-        using var paint = new SKPaint { Color = s_scrim };
-        canvas.DrawRect(new SKRect(0, 0, SurfaceSize.Width, SurfaceSize.Height), paint);
+        g.FillRectangle(new Rectangle(Point.Empty, SurfaceSize), s_scrim);
 
-        canvas.Restore();
+        g.Restore();
     }
 
     // ==== frames and the queue ====

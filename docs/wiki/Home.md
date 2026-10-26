@@ -35,6 +35,7 @@ The showcase — every control, the styles and the effects — runs in the brows
 **Start**
 - [Getting started](Getting-Started) — packages, the application per platform, the first form
 - [Forms and windows](Forms-and-Windows) — size, position, limits, dialogs, message boxes
+- [Recipes](Recipes) — close to the tray, commands, confirmations, dialogs, loading, live styles
 
 **Building the UI**
 - [Layout](Layout) — measure and arrange, sizes, alignment, panels, docking, scrolling

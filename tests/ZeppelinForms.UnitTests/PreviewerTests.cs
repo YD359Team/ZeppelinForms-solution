@@ -254,6 +254,30 @@ public class PreviewerTests
             Assert.Equal(1, problem.Line);
             Assert.Equal(10, problem.Column);
 
+            // the styles of markup: the values the build can't check, at the markup's
+            // lines; a property nobody has is the build's ZF2013, not reported twice
+            string markup = Path.Combine(folder, "Card.zfml");
+            File.WriteAllText(markup, """
+                <StackPanel x:Class="App.Card" xmlns="https://zeppelinforms.dev/markup" xmlns:x="https://zeppelinforms.dev/markup/x">
+                  <StackPanel.Styles>
+                    <Style Selector="Button">
+                      <Setter Property="Padding" Value="wide"/>
+                      <Setter Property="Nothing" Value="1"/>
+                      <Transition Property="Background" Duration="150ms" Easing="bouncy"/>
+                    </Style>
+                  </StackPanel.Styles>
+                </StackPanel>
+                """);
+
+            ide.Send(new CheckSheetMessage(markup));
+            SheetDiagnosticsMessage styles = await NextAsync<SheetDiagnosticsMessage>(ide);
+
+            Assert.Equal(markup, styles.Path);
+            Assert.Equal([4, 6], styles.Items.Select(i => i.Line));
+            Assert.All(styles.Items, i => Assert.Equal(markup, i.Source));
+            Assert.Contains("Padding", styles.Items[0].Message, StringComparison.Ordinal);
+            Assert.Contains("bouncy", styles.Items[1].Message, StringComparison.Ordinal);
+
             ide.Send(new ShutdownMessage());
             Assert.True(serverThread.Join(5000));
         }

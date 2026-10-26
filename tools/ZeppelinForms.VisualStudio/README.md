@@ -46,6 +46,12 @@ public static class ButtonPreviews
 can't be read, unknown control types and pseudo-classes — go to the Error List when
 a sheet is opened or saved.
 
+The styles of `.zfml` markup (`<Type.Styles>`) are checked the same way when the file
+is opened or saved: the host parses them as the sheet the application builds from
+them, and a value that can't be read, an easing or a pseudo-class nobody has goes to
+the Error List at its line of the markup. Their shape and the controls and properties
+they name are the build's — ZF2012 and ZF2013 — and aren't reported twice.
+
 ## How it works
 
 The extension starts a host process, `ZeppelinForms.Designer`, shipped inside the

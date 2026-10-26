@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using ZeppelinForms.Core;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
@@ -15,8 +16,64 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
 
     internal nint Display { get; private set; }
 
-    public X11Platform()
+    /// <summary>What the windows draw with.</summary>
+    public IGraphicsBackend Graphics { get; }
+
+    /// <summary>X11 lets a window place itself: the window manager is asked and obeys.
+    /// The tray is there when a panel collects StatusNotifierItems.</summary>
+    public PlatformCapabilities Capabilities =>
+        PlatformCapabilities.WindowPositioning | PlatformCapabilities.WindowHiding | TrayCapability;
+
+    private EglDisplay? _eglDisplay;
+    private bool _eglTried;
+
+    /// <summary>EGL over this connection, made on the first window's request; null
+    /// when the machine has none or it won't initialize — then the windows draw in
+    /// memory, as before 0.18.</summary>
+    internal EglDisplay? EglDisplay
     {
+        get
+        {
+            if (_eglTried) return _eglDisplay;
+
+            _eglTried = true;
+            // no libEGL is no error: the machine draws in memory, and asking the
+            // library first spares the DllNotFoundException in the debugger's output
+            if (!NativeProbe.Has(Egl.Lib))
+            {
+                System.Diagnostics.Debug.WriteLine($"No {Egl.Lib}: the windows draw in memory");
+                return null;
+            }
+
+            try
+            {
+                _eglDisplay = EglDisplay.ForX11(Display);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"EGL is unavailable ({ex.Message}): the windows draw in memory");
+            }
+
+            return _eglDisplay;
+        }
+    }
+
+    /// <summary>The platform drawing with Skia.</summary>
+    public X11Platform() : this(Skia.SkiaGraphicsBackend.Instance)
+    {
+    }
+
+    /// <summary>The platform drawing with <paramref name="graphics"/>: its services are
+    /// registered here, and every window draws through its surfaces — on the GPU
+    /// through EGL and OpenGL ES where the machine has them, into an XImage otherwise.</summary>
+    /// <remarks>ZF_RENDERING=software in the environment keeps every window in memory
+    /// even where EGL works: for a driver that draws wrong.</remarks>
+    public X11Platform(IGraphicsBackend graphics)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+
+        Graphics = graphics;
+
         Display = X11.XOpenDisplay(0);
 
         if (Display == 0)
@@ -32,9 +89,7 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
 
         _inputMethod = OpenInputMethod(Display);
 
-        Skia.SkiaImageDecoder.Register();
-        Skia.SkiaTextMeasurer.Register();
-        Skia.SkiaOffscreenRenderer.Register();
+        graphics.Register();
 
         InitAppearance();
     }
@@ -148,6 +203,17 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         }
     }
 
+    // the slots of native controls, by their windows: their focus events come here
+    private readonly Dictionary<nuint, X11NativeSlot> _slots = [];
+
+    internal void RegisterSlot(nuint window, X11NativeSlot slot) => _slots[window] = slot;
+
+    internal void UnregisterSlot(nuint window) => _slots.Remove(window);
+
+    internal X11NativeSlot? SlotOf(nuint window) => _slots.GetValueOrDefault(window);
+
+    internal bool HasSlots => _slots.Count > 0;
+
     internal void Unregister(X11Window window)
     {
         _windows.Remove(window.Handle);
@@ -256,6 +322,9 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         // the session bus: the portal's signals, handled on this thread
         App.RunGuarded(PollAppearance);
 
+        // the panels' calls to the tray icons: a click, the menu
+        _tray.Poll();
+
         DispatchTick();
 
         // one frame per pump for every window that asked for one: after the input
@@ -296,6 +365,7 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         // the session bus is waited on together with the X connection:
         // a theme change on the desktop wakes the loop like any input
         int nfds = WatchAppearance(ref readSet, fd + 1);
+        nfds = WatchTray(ref readSet, nfds);
 
         X11.select(nfds, ref readSet, 0, 0, ref timeout);
     }
@@ -368,6 +438,9 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
 
                     var point = new Point(button.x / window.Scale, button.y / window.Scale);
                     KeyModifiers modifiers = ToModifiers(button.state);
+                    // a press on the form's picture while a native control types
+                    if (button.button is >= 1 and <= 3)
+                        window.TakeKeyboardBack();
 
                     switch (button.button)
                     {
@@ -515,7 +588,14 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
 
             case X11.FocusIn:
                 {
-                    var focus = Marshal.PtrToStructure<X11.XAnyEvent>(eventPtr);
+                    var focus = Marshal.PtrToStructure<X11.XFocusChangeEvent>(eventPtr);
+
+                    // the keyboard went into a native control: its slot hears it on the way
+                    if (_slots.TryGetValue(focus.window, out X11NativeSlot? slot))
+                    {
+                        slot.OnFocusIn();
+                        break;
+                    }
 
                     if (_windows.TryGetValue(focus.window, out X11Window? window))
                     {
@@ -531,9 +611,18 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                     // we won't learn about key releases anymore — the form resets the
                     // keyboard state, as WM_KILLFOCUS does on Windows. This case used to
                     // be empty, and after Alt+Tab the modifiers stuck
-                    var focus = Marshal.PtrToStructure<X11.XAnyEvent>(eventPtr);
+                    var focus = Marshal.PtrToStructure<X11.XFocusChangeEvent>(eventPtr);
 
                     ForgetHeldKeys();
+
+                    // the keyboard went to a window inside the form's — a native control:
+                    // the window is still the active one, only its own focus moved
+                    if (focus.detail == X11.NotifyInferior && _windows.TryGetValue(focus.window, out X11Window? owner))
+                    {
+                        owner.OnFocusOut();
+                        owner.Form.OnWindowFocusLost();
+                        break;
+                    }
 
                     if (_windows.TryGetValue(focus.window, out X11Window? window))
                     {

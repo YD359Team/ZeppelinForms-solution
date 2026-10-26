@@ -10,8 +10,12 @@ namespace ZeppelinForms.Headless;
 /// A platform without windows: layout and input work, there is no drawing.
 /// Needed for tests and for running in an environment without graphics.
 /// </summary>
-public sealed class HeadlessPlatform : IPlatform, INestedLoopSupport
+public sealed partial class HeadlessPlatform : IPlatform, INestedLoopSupport
 {
+    /// <summary>A desktop in tests: windows place themselves as on Windows and X11.</summary>
+    public PlatformCapabilities Capabilities =>
+        PlatformCapabilities.WindowPositioning | PlatformCapabilities.WindowHiding | PlatformCapabilities.SystemTray;
+
     private readonly List<HeadlessWindow> _windows = [];
     private readonly Queue<Action> _pending = new();
 

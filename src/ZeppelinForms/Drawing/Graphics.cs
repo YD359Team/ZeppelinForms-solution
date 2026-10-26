@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
 using ZeppelinForms.Core.Text;
+using ZeppelinForms.Drawing.Helpers;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
@@ -21,6 +23,13 @@ public abstract class Graphics
     /// A backend that orders text by the Unicode Bidirectional Algorithm takes it as
     /// the paragraph level; Hebrew and Arabic run right to left in either.</summary>
     public FlowDirection TextDirection { get; set; }
+
+    /// <summary>Replace everything inside the current clip with a color — its alpha
+    /// included, not blended over what was there.</summary>
+    /// <remarks>A backend without a clear of its own fills a rectangle far larger than
+    /// any canvas: the same for an opaque color, which is what a form's background is.</remarks>
+    public virtual void Clear(Color color) =>
+        FillRectangle(new Rectangle(-1e6f, -1e6f, 2e6f, 2e6f), color);
 
     public abstract void DrawImage(
         Rectangle rect, Image image,
@@ -100,6 +109,42 @@ public abstract class Graphics
     public abstract void DrawEllipse(Rectangle rect, Color color, float width);
     public abstract void DrawLine(Point from, Point to, Color color, float width);
     public abstract void DrawPolyline(ReadOnlySpan<Point> points, Color color, float width);
+
+    /// <summary>A cubic Bézier curve from <paramref name="start"/> to <paramref name="end"/>,
+    /// pulled toward the two control points — as WinForms' <c>Graphics.DrawBezier</c>.</summary>
+    /// <remarks>A backend without curves of its own draws it as a polyline: the curve
+    /// is split finely enough that no segment strays from it by more than a quarter
+    /// of a unit.</remarks>
+    public virtual void DrawBezier(Point start, Point control1, Point control2, Point end, Color color, float width) =>
+        DrawBeziers([start, control1, control2, end], color, width);
+
+    /// <summary>A chain of cubic Bézier curves: the start, then three points for each
+    /// curve — two control points and its end, which is where the next one starts.
+    /// The count must be 1 + 3n, as for WinForms' <c>Graphics.DrawBeziers</c>.</summary>
+    /// <remarks>Drawn as one stroke: the joints are joined, not capped twice. An empty
+    /// chain draws nothing.</remarks>
+    /// <exception cref="ArgumentException">The count of points is not 1 + 3n.</exception>
+    public virtual void DrawBeziers(ReadOnlySpan<Point> points, Color color, float width)
+    {
+        int curves = Bezier.CountCurves(points, nameof(points));
+        if (curves == 0) return;
+
+        int length = Bezier.FlattenedLength(points, curves);
+
+        // a frame draws many curves: the buffer is rented, not allocated each time
+        Point[] buffer = ArrayPool<Point>.Shared.Rent(length);
+
+        try
+        {
+            int count = Bezier.Flatten(points, curves, buffer);
+            DrawPolyline(buffer.AsSpan(0, count), color, width);
+        }
+        finally
+        {
+            ArrayPool<Point>.Shared.Return(buffer);
+        }
+    }
+
     public abstract void DrawArc(Rectangle rect, float startAngle, float sweepAngle, Color color, float width);
     public abstract void DrawSvgPath(string pathData, Rectangle rect, Color color, float strokeWidth = 0f);
     public abstract void DrawShadow(Rectangle rect, BoxShadow shadow);

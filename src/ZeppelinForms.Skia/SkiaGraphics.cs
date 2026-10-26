@@ -1,6 +1,7 @@
 ﻿using SkiaSharp;
 using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Helpers;
 using ZeppelinForms.Drawing.Imaging;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
@@ -221,6 +222,9 @@ public sealed class SkiaGraphics : Graphics
         return Centered(rect, w * scale, h * scale);
     }
 
+    public override void Clear(Color color) =>
+    _canvas.Clear(new SKColor(color.R, color.G, color.B, color.A));
+
     public override void FillRectangle(Rectangle rect, Color color)
     {
         SKPaint paint = FillPaint(color);
@@ -359,6 +363,37 @@ public sealed class SkiaGraphics : Graphics
         using SKPath path = builder.Detach();
 
         // StrokeJoin.Round — without it the corner of a check mark looks chopped
+        SKPaint paint = StrokePaint(color, width, SKStrokeCap.Round, SKStrokeJoin.Round);
+
+        _canvas.DrawPath(path, paint);
+    }
+
+    public override void DrawBezier(Point start, Point control1, Point control2, Point end, Color color, float width) =>
+    DrawBeziers([start, control1, control2, end], color, width);
+
+    public override void DrawBeziers(ReadOnlySpan<Point> points, Color color, float width)
+    {
+        // the same check as the base's: the count is the caller's error whatever
+        // the backend
+        int curves = Bezier.CountCurves(points, nameof(points));
+        if (curves == 0) return;
+
+        // the curves stay curves: Skia flattens them itself, by the device scale
+        using var builder = new SKPathBuilder();
+        builder.MoveTo(points[0].X, points[0].Y);
+
+        for (int i = 0; i < curves; i++)
+        {
+            Point c1 = points[i * 3 + 1];
+            Point c2 = points[i * 3 + 2];
+            Point to = points[i * 3 + 3];
+
+            builder.CubicTo(c1.X, c1.Y, c2.X, c2.Y, to.X, to.Y);
+        }
+
+        using SKPath path = builder.Detach();
+
+        // as a polyline: one stroke, round joints where the curves meet
         SKPaint paint = StrokePaint(color, width, SKStrokeCap.Round, SKStrokeJoin.Round);
 
         _canvas.DrawPath(path, paint);

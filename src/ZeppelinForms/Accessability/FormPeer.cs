@@ -15,7 +15,7 @@ public class FormPeer : AccessibilityPeer
     public override AccessibilityRole Role =>
         _form.IsDialog ? AccessibilityRole.Dialog : AccessibilityRole.Window;
 
-    public override string Name => _form.Title ?? string.Empty;
+    public override string Name => _form.ShownTitle ?? string.Empty;
 
     public override AccessibilityStates States =>
         _form.IsDialog ? AccessibilityStates.Modal : AccessibilityStates.None;

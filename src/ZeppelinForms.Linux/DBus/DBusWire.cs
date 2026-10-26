@@ -3,7 +3,7 @@ using System.Text;
 
 namespace ZeppelinForms.Linux.DBus;
 
-/// <summary>The D-Bus wire format: writing method calls, reading any message.</summary>
+/// <summary>The D-Bus wire format: writing and reading any message.</summary>
 /// <remarks>
 /// <para>
 /// Every value is aligned to its own size from the start of the message: 4 for
@@ -13,9 +13,9 @@ namespace ZeppelinForms.Linux.DBus;
 /// length counts its elements only — not the padding before the first one.
 /// </para>
 /// <para>
-/// Only what the client sends is written: a call with string arguments. Reading
-/// covers every type except Unix file descriptors, which the client never asks
-/// for and the bus never sends unasked.
+/// Every type is written and read except Unix file descriptors, which nothing here
+/// asks for and the bus never sends unasked. Writing serves calls, the replies of
+/// the objects the application exports — a tray icon and its menu — and their signals.
 /// </para>
 /// </remarks>
 internal static class DBusWire
@@ -38,20 +38,72 @@ internal static class DBusWire
     /// <summary>A method call with string arguments, ready to send.</summary>
     internal static byte[] MethodCall(
         uint serial, string destination, string path, string @interface, string member,
-        params string[] arguments)
+        params string[] arguments) =>
+        Message(DBusMessageType.MethodCall, serial, flags: 0, path, @interface, member,
+            errorName: null, replySerial: null, destination,
+            new string('s', arguments.Length), [.. arguments]);
+
+    /// <summary>A method call with arguments of any type, ready to send.</summary>
+    internal static byte[] MethodCall(
+        uint serial, string destination, string path, string @interface, string member,
+        string signature, IReadOnlyList<object?> arguments) =>
+        Message(DBusMessageType.MethodCall, serial, flags: 0, path, @interface, member,
+            errorName: null, replySerial: null, destination, signature, arguments);
+
+    /// <summary>The reply to <paramref name="call"/>: its values by their signature.</summary>
+    internal static byte[] MethodReturn(
+        uint serial, DBusMessage call, string signature, IReadOnlyList<object?> values) =>
+        Message(DBusMessageType.MethodReturn, serial, FlagNoReplyExpected, path: null,
+            @interface: null, member: null, errorName: null, call.Serial, call.Sender,
+            signature, values);
+
+    /// <summary>An error in reply to <paramref name="call"/>: its name and a message.</summary>
+    internal static byte[] Error(uint serial, DBusMessage call, string name, string message) =>
+        Message(DBusMessageType.Error, serial, FlagNoReplyExpected, path: null,
+            @interface: null, member: null, name, call.Serial, call.Sender, "s", [message]);
+
+    /// <summary>A signal from the object at <paramref name="path"/>, to whoever listens.</summary>
+    internal static byte[] Signal(
+        uint serial, string path, string @interface, string member,
+        string signature, IReadOnlyList<object?> values) =>
+        Message(DBusMessageType.Signal, serial, FlagNoReplyExpected, path, @interface, member,
+            errorName: null, replySerial: null, destination: null, signature, values);
+
+    /// <summary>The flag of a message that wants no reply: replies, errors and signals
+    /// carry it, and a call with it gets no answer.</summary>
+    internal const byte FlagNoReplyExpected = 0x1;
+
+    /// <summary>Any message: the header with the fields given, then the body.</summary>
+    private static byte[] Message(
+        DBusMessageType type, uint serial, byte flags,
+        string? path, string? @interface, string? member, string? errorName,
+        uint? replySerial, string? destination,
+        string signature, IReadOnlyList<object?> values)
     {
         var body = new Writer();
+        int index = 0;
 
-        foreach (string argument in arguments)
-            body.String(argument);
+        for (int i = 0; i < signature.Length; index++)
+        {
+            int length = TypeLength(signature, i);
+
+            if (index >= values.Count)
+                throw new ArgumentException($"The signature '{signature}' asks for more values than {values.Count}.");
+
+            body.Value(signature.Substring(i, length), values[index]);
+            i += length;
+        }
+
+        if (index != values.Count)
+            throw new ArgumentException($"The signature '{signature}' takes {index} values, not {values.Count}.");
 
         byte[] bodyBytes = body.ToArray();
 
         var header = new Writer();
 
         header.Byte((byte)'l');                       // little-endian
-        header.Byte((byte)DBusMessageType.MethodCall);
-        header.Byte(0);                               // flags
+        header.Byte((byte)type);
+        header.Byte(flags);
         header.Byte(1);                               // protocol version
         header.UInt32((uint)bodyBytes.Length);
         header.UInt32(serial);
@@ -62,13 +114,15 @@ internal static class DBusWire
 
         int fieldsStart = header.Length;
 
-        header.Field(FieldPath, "o", w => w.String(path));
-        header.Field(FieldDestination, "s", w => w.String(destination));
-        header.Field(FieldInterface, "s", w => w.String(@interface));
-        header.Field(FieldMember, "s", w => w.String(member));
+        if (path is not null) header.Field(FieldPath, "o", w => w.String(path));
+        if (destination is not null) header.Field(FieldDestination, "s", w => w.String(destination));
+        if (@interface is not null) header.Field(FieldInterface, "s", w => w.String(@interface));
+        if (member is not null) header.Field(FieldMember, "s", w => w.String(member));
+        if (errorName is not null) header.Field(FieldErrorName, "s", w => w.String(errorName));
+        if (replySerial is { } reply) header.Field(FieldReplySerial, "u", w => w.UInt32(reply));
 
-        if (arguments.Length > 0)
-            header.Field(FieldSignature, "g", w => w.Signature(new string('s', arguments.Length)));
+        if (signature.Length > 0)
+            header.Field(FieldSignature, "g", w => w.Signature(signature));
 
         header.PatchUInt32(lengthAt, (uint)(header.Length - fieldsStart));
 
@@ -78,6 +132,10 @@ internal static class DBusWire
         return [.. header.ToArray(), .. bodyBytes];
     }
 
+    /// <summary>The values a message is written from — the same plain objects
+    /// <see cref="DBusMessage"/> reads, with a little more freedom: any integer for an
+    /// integer type, a byte[] for "ay", a dictionary or pairs as object[] for an array of
+    /// dict entries, object[] or a tuple for a struct.</summary>
     private sealed class Writer
     {
         private readonly List<byte> _bytes = [];
@@ -92,12 +150,32 @@ internal static class DBusWire
 
         public void Byte(byte value) => _bytes.Add(value);
 
+        private void UInt16(ushort value)
+        {
+            Align(2);
+
+            Span<byte> buffer = stackalloc byte[2];
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, value);
+
+            foreach (byte b in buffer) _bytes.Add(b);
+        }
+
         public void UInt32(uint value)
         {
             Align(4);
 
             Span<byte> buffer = stackalloc byte[4];
             BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
+
+            foreach (byte b in buffer) _bytes.Add(b);
+        }
+
+        private void UInt64(ulong value)
+        {
+            Align(8);
+
+            Span<byte> buffer = stackalloc byte[8];
+            BinaryPrimitives.WriteUInt64LittleEndian(buffer, value);
 
             foreach (byte b in buffer) _bytes.Add(b);
         }
@@ -135,9 +213,134 @@ internal static class DBusWire
             value(this);
         }
 
+        /// <summary>One value of a single complete type.</summary>
+        public void Value(string type, object? value)
+        {
+            var invariant = System.Globalization.CultureInfo.InvariantCulture;
+
+            switch (type[0])
+            {
+                case 'y': Byte(Convert.ToByte(value, invariant)); break;
+                case 'b': UInt32(value is true ? 1u : 0u); break;
+                case 'n': UInt16(unchecked((ushort)Convert.ToInt16(value, invariant))); break;
+                case 'q': UInt16(Convert.ToUInt16(value, invariant)); break;
+                case 'i': UInt32(unchecked((uint)Convert.ToInt32(value, invariant))); break;
+                case 'u': case 'h': UInt32(Convert.ToUInt32(value, invariant)); break;
+                case 'x': UInt64(unchecked((ulong)Convert.ToInt64(value, invariant))); break;
+                case 't': UInt64(Convert.ToUInt64(value, invariant)); break;
+                case 'd': UInt64(BitConverter.DoubleToUInt64Bits(Convert.ToDouble(value, invariant))); break;
+                case 's': case 'o': String((string?)value ?? string.Empty); break;
+                case 'g': Signature((string?)value ?? string.Empty); break;
+
+                case 'v':
+                    {
+                        if (value is not DBusVariant variant)
+                            throw new ArgumentException($"A variant is written from a DBusVariant, not {value?.GetType().Name ?? "null"}.");
+
+                        Signature(variant.Signature);
+                        Value(variant.Signature, variant.Value);
+                        break;
+                    }
+
+                case 'a':
+                    Array(type[1..], value);
+                    break;
+
+                case '(':
+                    {
+                        Align(8);
+
+                        string inner = type[1..^1];
+                        int index = 0;
+
+                        for (int i = 0; i < inner.Length; index++)
+                        {
+                            int length = TypeLength(inner, i);
+                            Value(inner.Substring(i, length), Part(value, index));
+                            i += length;
+                        }
+
+                        break;
+                    }
+
+                default:
+                    throw new ArgumentException($"The D-Bus type '{type[0]}' can't be written.");
+            }
+        }
+
+        /// <summary>An array: its length, the padding to its first element, the elements —
+        /// the length counts the elements only.</summary>
+        private void Array(string element, object? value)
+        {
+            UInt32(0);
+            int lengthAt = _bytes.Count - 4;
+
+            Align(Alignment(element[0]));
+            int start = _bytes.Count;
+
+            if (element[0] == '{')
+            {
+                // a dict entry: {key value}, aligned as a struct
+                int keyLength = TypeLength(element, 1);
+                string key = element.Substring(1, keyLength);
+                string item = element[(1 + keyLength)..^1];
+
+                foreach ((object? k, object? v) in Entries(value))
+                {
+                    Align(8);
+                    Value(key, k);
+                    Value(item, v);
+                }
+            }
+            else if (element == "y" && value is byte[] bytes)
+            {
+                _bytes.AddRange(bytes);
+            }
+            else if (value is System.Collections.IEnumerable items and not string)
+            {
+                foreach (object? item in items)
+                    Value(element, item);
+            }
+            else if (value is not null)
+            {
+                throw new ArgumentException($"An array is written from a collection, not {value.GetType().Name}.");
+            }
+
+            PatchUInt32(lengthAt, (uint)(_bytes.Count - start));
+        }
+
+        private static IEnumerable<(object? Key, object? Value)> Entries(object? value)
+        {
+            switch (value)
+            {
+                case null:
+                    yield break;
+
+                case System.Collections.IDictionary dictionary:
+                    foreach (System.Collections.DictionaryEntry entry in dictionary)
+                        yield return (entry.Key, entry.Value);
+                    yield break;
+
+                case System.Collections.IEnumerable pairs:
+                    foreach (object? pair in pairs)
+                        yield return (Part(pair, 0), Part(pair, 1));
+                    yield break;
+
+                default:
+                    throw new ArgumentException($"Dict entries are written from a dictionary or pairs, not {value.GetType().Name}.");
+            }
+        }
+
+        /// <summary>A field of a struct written from object[] or a tuple.</summary>
+        private static object? Part(object? value, int index) => value switch
+        {
+            object?[] fields => fields[index],
+            System.Runtime.CompilerServices.ITuple tuple => tuple[index],
+            _ => throw new ArgumentException($"A struct is written from object[] or a tuple, not {value?.GetType().Name ?? "null"}."),
+        };
+
         public byte[] ToArray() => [.. _bytes];
     }
-
     // ===== reading =====
 
     /// <summary>The full length of the message whose start is in
@@ -173,11 +376,12 @@ internal static class DBusWire
 
         reader.Skip(1);                                 // endianness, already known
         var type = (DBusMessageType)reader.Byte();
-        reader.Skip(2);                                 // flags, version
+        byte flags = reader.Byte();
+        reader.Skip(1);                                 // version
         uint bodyLength = reader.UInt32();
         uint serial = reader.UInt32();
 
-        string? path = null, @interface = null, member = null, errorName = null, sender = null;
+        string? path = null, @interface = null, member = null, errorName = null, sender = null, destination = null;
         string signature = string.Empty;
         uint? replySerial = null;
 
@@ -201,10 +405,10 @@ internal static class DBusWire
                 case FieldErrorName: errorName = value as string; break;
                 case FieldReplySerial: replySerial = value as uint?; break;
                 case FieldSender: sender = value as string; break;
+                case FieldDestination: destination = value as string; break;
                 case FieldSignature: signature = value as string ?? string.Empty; break;
 
-                // the destination and unknown fields are not needed: the bus
-                // routed the message here, and new fields must be skipped
+                // unknown fields: new ones must be skipped
                 default: break;
             }
         }
@@ -222,7 +426,11 @@ internal static class DBusWire
         }
 
         return new DBusMessage(type, serial, replySerial, path, @interface, member,
-            errorName, sender, signature, body);
+            errorName, sender, signature, body)
+        {
+            Flags = flags,
+            Destination = destination,
+        };
     }
 
     /// <summary>The length of the single complete type at <paramref name="start"/>.</summary>

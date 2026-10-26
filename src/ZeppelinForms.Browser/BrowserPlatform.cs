@@ -1,4 +1,5 @@
-﻿using SkiaSharp;
+﻿using System.Collections.Concurrent;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 
@@ -18,7 +19,7 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
 {
     /// <summary>The dimming under a modal dialog. A browser has no windows of its
     /// own, and without it it's unclear that the form below stopped taking input.</summary>
-    private static readonly SKColor s_scrim = new(0, 0, 0, 96);
+    private static readonly Color s_scrim = new(96, 0, 0, 0);
 
     public event EventHandler? Paused;
     public event EventHandler? Resumed;
@@ -48,7 +49,7 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
     internal static BrowserPlatform? Current { get; private set; }
 
     private readonly string _canvasId;
-    private readonly BrowserSkiaSurface _surface = new();
+    private readonly BrowserSurface _surface;
     private readonly List<BrowserWindow> _windows = [];
 
     /// <summary>The ARIA mirror; null when turned off by <see cref="AccessibilityMirror"/>.</summary>
@@ -59,33 +60,38 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
     /// with its own DOM for that, or a canvas that is decoration in a larger page.</summary>
     public static bool AccessibilityMirror { get; set; } = true;
 
-    private readonly Queue<Action> _invokeQueue = new();
+    private readonly ConcurrentQueue<Action> _invokeQueue = new();
 
     private int _physicalWidth;
     private int _physicalHeight;
     private bool _initialized;
     private bool _paintPending;
 
-    private BrowserPlatform(string canvasId)
+    private BrowserPlatform(string canvasId, IGraphicsBackend graphics)
     {
         _canvasId = canvasId;
+        Graphics = graphics;
+        _surface = new BrowserSurface(graphics);
     }
 
-    /// <summary>
-    /// The zf module registers the page loader through setModuleImports —
-    /// this way the path to it stays in main.js rather than depending on where
-    /// the SDK decides to put additional files.
-    /// </summary>
-    public static BrowserPlatform Create(string canvasId = "zf-canvas")
+    /// <summary>What the canvas is drawn with.</summary>
+    public IGraphicsBackend Graphics { get; }
+
+    public static BrowserPlatform Create(string canvasId = "zf-canvas") =>
+        Create(Skia.SkiaGraphicsBackend.Instance, canvasId);
+
+    /// <summary>The platform drawing with <paramref name="graphics"/>: its services are
+    /// registered here, and the canvas is drawn through its surface.</summary>
+    public static BrowserPlatform Create(IGraphicsBackend graphics, string canvasId = "zf-canvas")
     {
-        Skia.SkiaImageDecoder.Register();
-        Skia.SkiaTextMeasurer.Register();
-        Skia.SkiaOffscreenRenderer.Register();
+        ArgumentNullException.ThrowIfNull(graphics);
+
+        graphics.Register();
         BrowserClipboard.Register();
-        BrowserFilePicker.Register();
+      
         Displays.Current = new BrowserDisplayProvider();
 
-        var platform = new BrowserPlatform(canvasId);
+        var platform = new BrowserPlatform(canvasId, graphics);
         Current = platform;
 
         platform._reducedMotion = Interop.PrefersReducedMotion();
@@ -285,9 +291,7 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
 
     private void Paint()
     {
-        if (_surface.BeginFrame() is not SKSurface surface) return;
-
-        SKCanvas canvas = surface.Canvas;
+        if (_surface.BeginFrame() is not { } g) return;
 
         for (int i = 0; i < _windows.Count; i++)
         {
@@ -295,11 +299,11 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
             bool isRoot = i == 0;
 
             if (!isRoot)
-                DimBelow(canvas);
+                DimBelow(g);
 
-            Skia.SkiaRenderer.Render(
+            FormRenderer.Render(
                 window.Form,
-                canvas,
+                g,
                 Scale,
                 clip: null,
                 clearBackground: isRoot,
@@ -314,15 +318,14 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
         AriaMirror?.AfterPaint(_windows);
     }
 
-    private void DimBelow(SKCanvas canvas)
+    private void DimBelow(Graphics g)
     {
-        canvas.Save();
-        canvas.Scale(Scale, Scale);
+        g.Save();
+        g.Scale(Scale, Scale);
 
-        using var paint = new SKPaint { Color = s_scrim };
-        canvas.DrawRect(new SKRect(0, 0, CanvasSize.Width, CanvasSize.Height), paint);
+        g.FillRectangle(new Rectangle(Point.Empty, CanvasSize), s_scrim);
 
-        canvas.Restore();
+        g.Restore();
     }
 
     // ==== frames and the queue ====
@@ -357,7 +360,12 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
         // each action on its own: one that threw used to leave the rest of the queue
         // until the next microtask, which nothing would schedule
         for (int i = 0; i < pending; i++)
-            App.RunGuarded(_invokeQueue.Dequeue());
+        {
+            if (_invokeQueue.TryDequeue(out Action? result)) 
+            {
+                App.RunGuarded(result);
+            }
+        }
     }
 
     // ==== input ====

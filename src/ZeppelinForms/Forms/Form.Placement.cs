@@ -85,6 +85,11 @@ public partial class Form
     {
         if (DesktopWindow is { } window)
         {
+            if (!window.SupportsPositioning)
+                throw new PlatformNotSupportedException(
+                    "This platform doesn't let a window place itself: on Wayland the compositor " +
+                    "decides where windows go. Check App.Capabilities for WindowPositioning first.");
+
             window.CenterOnScreen();
             return;
         }

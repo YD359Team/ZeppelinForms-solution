@@ -19,7 +19,8 @@ namespace ZeppelinForms.Analyzers.Markup;
 /// </para>
 /// <para>
 /// The markup files reach the generator as AdditionalFiles; the package's build
-/// targets add every <c>*.zfml</c> of a project.
+/// targets add every <c>*.zfml</c> of a project, and every <c>*.zss</c> — for a
+/// <c>&lt;StyleInclude Source="…"/&gt;</c> to check that the sheet it names is there.
 /// </para>
 /// </remarks>
 [Generator(LanguageNames.CSharp)]
@@ -31,13 +32,19 @@ public sealed class MarkupGenerator : IIncrementalGenerator
             .Where(static file => file.Path.EndsWith(".zfml", StringComparison.OrdinalIgnoreCase))
             .Select(static (file, cancel) => (file.Path, file.GetText(cancel)?.ToString()));
 
-        context.RegisterSourceOutput(files.Combine(context.CompilationProvider), static (output, input) =>
+        // only their paths: a sheet's text is read at run time
+        IncrementalValueProvider<System.Collections.Immutable.ImmutableArray<string>> styleSheets = context.AdditionalTextsProvider
+            .Where(static file => file.Path.EndsWith(".zss", StringComparison.OrdinalIgnoreCase))
+            .Select(static (file, _) => file.Path)
+            .Collect();
+
+        context.RegisterSourceOutput(files.Combine(context.CompilationProvider).Combine(styleSheets), static (output, input) =>
         {
-            var ((path, text), compilation) = input;
+            var (((path, text), compilation), sheets) = input;
 
             if (text is null) return;
 
-            MarkupResult result = MarkupCompiler.Compile(path, text, compilation);
+            MarkupResult result = MarkupCompiler.Compile(path, text, compilation, sheets);
 
             foreach (Diagnostic diagnostic in result.Diagnostics)
                 output.ReportDiagnostic(diagnostic);
@@ -94,6 +101,22 @@ internal static class MarkupDiagnostics
     public static readonly DiagnosticDescriptor NotCreatable = Error(
         "ZF2010", "An element can't be created", "'{0}' has no public constructor without parameters");
 
+    public static readonly DiagnosticDescriptor NoCommand = Error(
+        "ZF2011", "No command for a command property", "'{0}' is not a command the markup can find: {1}");
+
+    public static readonly DiagnosticDescriptor BadStyles = Error(
+        "ZF2012", "A style in the markup can't be read", "{0}");
+
+    public static readonly DiagnosticDescriptor StyleWarning = Warning(
+        "ZF2013", "A style in the markup names what isn't there", "{0}");
+
+    public static readonly DiagnosticDescriptor NoStyleSheet = Warning(
+        "ZF2014", "An included style sheet is not among the project's files",
+        "'{0}' is not among the project's .zss files: it must reach the assets folder another way, or the form won't open");
+
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         new(id, title, message, Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
+
+    private static DiagnosticDescriptor Warning(string id, string title, string message) =>
+        new(id, title, message, Category, DiagnosticSeverity.Warning, isEnabledByDefault: true);
 }

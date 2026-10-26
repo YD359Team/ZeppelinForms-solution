@@ -24,6 +24,7 @@ internal sealed class ZfRussianStrings : StringTable
         Add(ZfText.OpenFileTitle, "Открыть файл");
         Add(ZfText.SaveFileTitle, "Сохранить файл");
         Add(ZfText.SelectFolderTitle, "Выбрать папку");
+        Add(ZfText.PathOrSearch, "Папка, файл или часть имени");
 
         // the access keys differ from each other: О, П, В, К, А, У, Д
         Add(ZfText.Undo, "&Отменить");
@@ -73,5 +74,7 @@ internal sealed class ZfRussianStrings : StringTable
         Add(ZfText.PreviousImage, "Предыдущее изображение");
         Add(ZfText.NextImage, "Следующее изображение");
         Add(ZfText.CloseViewer, "Закрыть");
+
+        Add(ZfText.PickColor, "Взять цвет с окна");
     }
 }

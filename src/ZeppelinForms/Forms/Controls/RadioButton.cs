@@ -11,6 +11,15 @@ namespace ZeppelinForms.Forms.Controls;
 
 public partial class RadioButton : InteractiveControl, ITextElement
 {
+    /// <summary>The caption as shown: the text, or — never set — the name given to the
+    /// control, see <see cref="ZeppelinForms.Forms.Controls.Base.UIElement.NameCaption"/>.</summary>
+    internal override string? ShownText => Text ?? NameCaption;
+
+    protected override void OnNameCaptionChanged()
+    {
+        if (Text is null) Invalidate();
+    }
+
     private const float Gap = 6f;
 
     /// <summary>How far the focus ring runs outside the circle.</summary>
@@ -256,15 +265,15 @@ public partial class RadioButton : InteractiveControl, ITextElement
             g.FillEllipse(dot, DotColor.A > 0 ? DotColor : CheckColor);
         }
 
-        if (string.IsNullOrEmpty(Text)) return;
+        if (string.IsNullOrEmpty(ShownText)) return;
 
         var textRect = new Rectangle(
             new Point(content.X + circleSize + Gap, content.Y),
             new Size(Math.Max(0, content.Width - circleSize - Gap), content.Height));
 
-        g.DrawText(ApplyTextTransform(Text), textRect, TextColor, EffectiveFont,
+        g.DrawText(ApplyTextTransform(ShownText), textRect, TextColor, EffectiveFont,
             this.HorizontalContentAlign, this.VerticalContentAlign);
-        DrawAccessKeyUnderline(g, Text, textRect, TextColor,
+        DrawAccessKeyUnderline(g, ShownText, textRect, TextColor,
             this.HorizontalContentAlign, this.VerticalContentAlign);
     }
 
@@ -279,9 +288,9 @@ public partial class RadioButton : InteractiveControl, ITextElement
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Size textSize = string.IsNullOrEmpty(Text)
+        Size textSize = string.IsNullOrEmpty(ShownText)
             ? Size.Empty
-            : TextMeasurer.MeasureLine(ApplyTextTransform(Text), EffectiveFont);
+            : TextMeasurer.MeasureLine(ApplyTextTransform(ShownText), EffectiveFont);
 
         float circleSize = CircleSize;
 

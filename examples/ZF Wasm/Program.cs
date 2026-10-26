@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Theming;
 using ZF_SharedLib;
+using ZF_SharedLib.Showcase;
 
 namespace ZF_Wasm;
 
@@ -15,6 +16,17 @@ public class Program
         FontFallbacks.Add("/fonts/NotoSansHebrew-Regular.ttf");
         FontFallbacks.Add("/fonts/NotoSansArabic-Regular.ttf");
         FontFallbacks.Add("/fonts/NotoSansJP-Regular.otf"); // CJK: kana and kanji
+
+        // the showcase's native control here: an element of the page — a map in an iframe
+        NativePage.Sample = () => new HtmlElementHost
+        {
+            TagName = "iframe",
+            Attributes =
+            {
+                ["src"] = "https://www.openstreetmap.org/export/embed.html?bbox=37.58,55.74,37.66,55.77&layer=mapnik",
+                ["title"] = "OpenStreetMap",
+            },
+        };
 
         return BrowserApp.RunAsync(
             () => new ExampleMainForm(),

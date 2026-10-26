@@ -5,7 +5,7 @@ namespace ZeppelinForms.Linux;
 
 internal static class X11
 {
-    private const string Lib = "libX11.so.6";
+    internal const string Lib = "libX11.so.6";
 
     public const int RevertToParent = 2;
 
@@ -20,6 +20,35 @@ internal static class X11
     public const long SubstructureRedirectMask = 1L << 20;
 
     [DllImport(Lib)] public static extern int XIconifyWindow(nint display, nuint window, int screen);
+
+    // ===== native controls among the form's elements, see X11NativeSlot =====
+
+    [DllImport(Lib)] public static extern int XReparentWindow(nint display, nuint window, nuint parent, int x, int y);
+    [DllImport(Lib)] public static extern int XSetWindowBackgroundPixmap(nint display, nuint window, nuint pixmap);
+    [DllImport(Lib)] public static extern int XGetInputFocus(nint display, out nuint focus, out int revertTo);
+
+    /// <summary>FocusIn and FocusOut with the fields that tell where the focus went.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct XFocusChangeEvent
+    {
+        public int type;
+        public nuint serial;
+        public int send_event;
+        public nint display;
+        public nuint window;
+        public int mode;
+        public int detail;
+    }
+
+    /// <summary>The focus went to — or came from — a window inside this one.</summary>
+    public const int NotifyInferior = 2;
+
+    /// <summary>XGetInputFocus: the focus follows the pointer, no window holds it.</summary>
+    public const nuint PointerRoot = 1;
+
+    /// <summary>Unmap a top-level window and tell the manager it is withdrawn, as ICCCM
+    /// asks: a bare XUnmapWindow leaves some managers thinking it was minimized.</summary>
+    [DllImport(Lib)] public static extern int XWithdrawWindow(nint display, nuint window, int screen);
 
     [DllImport(Lib)]
     public static extern int XTranslateCoordinates(
@@ -82,6 +111,8 @@ internal static class X11
     [DllImport(Lib)] public static extern nuint XRootWindow(nint display, int screen);
     [DllImport(Lib)] public static extern nuint XWhitePixel(nint display, int screen);
     [DllImport(Lib)] public static extern nint XDefaultVisual(nint display, int screen);
+    /// <summary>The id of a visual: what EGL's configs name as their native visual.</summary>
+    [DllImport(Lib)] public static extern nuint XVisualIDFromVisual(nint visual);
     [DllImport(Lib)] public static extern int XDefaultDepth(nint display, int screen);
     [DllImport(Lib)] public static extern nint XDefaultGC(nint display, int screen);
 
@@ -384,7 +415,7 @@ internal static class X11
     [DllImport(Lib)] public static extern nuint XCreateFontCursor(nint display, uint shape);
     [DllImport(Lib)] public static extern int XDefineCursor(nint display, nuint window, nuint cursor);
 
-    private const string RandrLib = "libXrandr.so.2";
+    internal const string RandrLib = "libXrandr.so.2";
 
     [DllImport(RandrLib)] public static extern nint XRRGetScreenResourcesCurrent(nint display, nuint window);
     [DllImport(RandrLib)] public static extern void XRRFreeScreenResources(nint resources);

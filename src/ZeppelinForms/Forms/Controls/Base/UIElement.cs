@@ -1203,18 +1203,58 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
     /// <summary>The element's name: unique in its form, and what <c>#name</c>
     /// in a style selector matches.</summary>
+    /// <remarks>An element given no name gets one when it joins a form — "button3", as
+    /// WinForms' designer names them. A name given here, by markup's <c>x:Name</c> or by
+    /// code, is the element's own: a control with a caption shows it until it is given a
+    /// text of its own, see <see cref="NameCaption"/>.</remarks>
     public string Name
     {
-        get;
-        set
-        {
-            if (string.Equals(field, value, StringComparison.Ordinal)) return;
+        get => _name;
+        set => SetName(value, generated: false);
+    }
 
-            field = value;
+    private string _name = string.Empty;
+
+    /// <summary>The name was made by the form's name scope, not given.</summary>
+    private bool _nameGenerated;
+
+    /// <summary>A name the form's name scope made up for an element given none: it
+    /// identifies the element, it isn't shown as a caption.</summary>
+    internal void AssignGeneratedName(string name) => SetName(name, generated: true);
+
+    private void SetName(string? value, bool generated)
+    {
+        value ??= string.Empty;
+
+        string? caption = NameCaption;
+
+        _nameGenerated = generated;
+
+        if (!string.Equals(_name, value, StringComparison.Ordinal))
+        {
+            _name = value;
 
             if (StyleUsage.UsesIds) Restyle(subtree: false);
         }
-    } = string.Empty;
+
+        if (!string.Equals(caption, NameCaption, StringComparison.Ordinal)) OnNameCaptionChanged();
+    }
+
+    /// <summary>The caption a control with one shows while its own text was never set:
+    /// the name given to it — markup's <c>x:Name</c>, or <see cref="Name"/> set in code —
+    /// as a control the WinForms designer adds shows "label1" until it gets a text. Null
+    /// for an element without a name of its own.</summary>
+    /// <remarks>Only "never set" falls back: a text of null. An empty text set on purpose
+    /// shows nothing, as does an element named only by its form.</remarks>
+    protected internal string? NameCaption => !_nameGenerated && Name.Length > 0 ? Name : null;
+
+    /// <summary>The name shown as a caption changed: a control showing it, its text not
+    /// set, measures and draws again.</summary>
+    protected virtual void OnNameCaptionChanged() { }
+
+    /// <summary>The caption as a captioned control shows it — its text, or the name it
+    /// falls back to; null for an element without one. What assistive technology reads.</summary>
+    internal virtual string? ShownText => null;
 
     /// <summary>The backdrop color for the current state. Override it here rather
     /// than drawing the background by hand: the border and corner radius

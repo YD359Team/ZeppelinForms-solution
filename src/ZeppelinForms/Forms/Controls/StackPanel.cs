@@ -220,25 +220,33 @@ public class StackPanel : DecoratedPanel
                 _ => 0f,
             };
 
+            // a flexible child takes its whole share along the axis: its alignment there
+            // has nothing left to align in — a field of FlexGrow 1 and the default
+            // alignment used to stand centered in its share at its own width, and the
+            // next child, placed after that width, was drawn over its end
+            bool flexible = child.FlexGrow > 0 && totalFlex > 0;
+            bool fill = child.Docking == Dock.Fill;
+
             if (IsVertical)
             {
                 offset += m.Top;
 
-                child.Arrange(new Rectangle(
-                    new Point(content.X + m.Left + crossOffset, offset),
-                    new Size(Math.Max(0, cross), main)));
+                child.Arrange(
+                    new Rectangle(new Point(content.X + m.Left + crossOffset, offset), new Size(Math.Max(0, cross), main)),
+                    fill, spanHeight: flexible);
 
-                offset += child.ActualSize.Height + m.Bottom;
+                // the next child starts after the slot, not after what the child made of it
+                offset += main + m.Bottom;
             }
             else
             {
                 offset += m.Left;
 
-                child.Arrange(new Rectangle(
-                    new Point(offset, content.Y + m.Top + crossOffset),
-                    new Size(main, Math.Max(0, cross))));
+                child.Arrange(
+                    new Rectangle(new Point(offset, content.Y + m.Top + crossOffset), new Size(main, Math.Max(0, cross))),
+                    fill, spanWidth: flexible);
 
-                offset += child.ActualSize.Width + m.Right;
+                offset += main + m.Right;
             }
         }
     }

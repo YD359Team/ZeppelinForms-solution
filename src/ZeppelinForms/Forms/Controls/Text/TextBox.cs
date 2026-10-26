@@ -135,6 +135,8 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
             RevalidateWhileShown();
 
+            // the text moved under the caret: no room past a line is kept over it
+            ForgetVirtualSpace();
             InvalidateVisual();
         };
 
@@ -143,7 +145,10 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
             // moving along the rows keeps the x it started from; anything else forgets it
             if (!_movingByRows) _desiredX = null;
 
-            ResetCaretBlink();     // ← from the base
+            // the caret went elsewhere in the text: out of the room past the line
+            ForgetVirtualSpace();
+
+            ResetCaretBlink();
             InvalidateVisual();
         };
     }
@@ -716,6 +721,11 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
         if (text.Length > 0 && !IsComposing && _document.SelectionLength > 0)
             _document.DeleteSelection();
 
+        // past the line's end the gap becomes text first: the composition is shown
+        // where the caret stands, and the text has no room to show it in
+        if (text.Length > 0 && !IsComposing && _virtualSpaces > 0 && TakeVirtualFill() is { Length: > 0 } fill)
+            _document.Insert(fill);
+
         _composition = text;
         _compositionCursor = cursor;
 
@@ -1072,14 +1082,16 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
         {
             _pendingHighSurrogate = null;
 
-            if (System.Text.Rune.TryCreate(high, c, out Rune rune))
+            if (Rune.TryCreate(high, c, out Rune rune))
             {
-                _document.Insert(CaseInput(rune.ToString()));
+                // past the line's end the gap is filled with spaces first (see TextBox.VirtualSpace)
+                InsertAtCaret(CaseInput(c.ToString()));
                 return;
             }
         }
 
-        _document.Insert(CaseInput(c.ToString()));
+        // past the line's end the gap is filled with spaces first (see TextBox.VirtualSpace)
+        InsertAtCaret(CaseInput(c.ToString()));
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -1094,6 +1106,12 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
         bool shift = e.Modifiers.HasFlag(KeyModifiers.Shift);
         bool ctrl = e.Modifiers.HasFlag(KeyModifiers.Control);
+
+        // the room past the line's end (see TextBox.VirtualSpace): taken before the key,
+        // given back or moved by the keys that keep the caret there — any other key
+        // that acts leaves it
+        int virtualBefore = VirtualSpaceActive ? _virtualSpaces : 0;
+        _virtualSpaces = 0;
 
         switch (e.Key)
         {
@@ -1113,7 +1131,26 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
                 break;
 
             case Key.Tab when IsTabAccepted && !IsReadOnly:
-                _document.Insert("\t");
+                _document.Insert(new string(' ', virtualBefore) + "\t");
+                break;
+
+            // in the room past the line Backspace only steps back: there is nothing to delete
+            case Key.Backspace when !IsReadOnly && virtualBefore > 0:
+                _virtualSpaces = virtualBefore - 1;
+                VirtualSpaceChanged();
+                break;
+
+            // the next line comes up to where the caret stands, the gap filled; past the
+            // last line there is nothing to bring up, and nothing changes
+            case Key.Delete when !IsReadOnly && virtualBefore > 0:
+                if (_document.CaretIndex >= _document.Text.Length)
+                {
+                    _virtualSpaces = virtualBefore;
+                    break;
+                }
+
+                _document.Insert(new string(' ', virtualBefore));
+                _document.Delete();
                 break;
 
             case Key.Backspace when !IsReadOnly:
@@ -1122,6 +1159,16 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
             case Key.Delete when !IsReadOnly:
                 _document.Delete();
+                break;
+
+            case Key.Left when !shift && virtualBefore > 0:
+                _virtualSpaces = virtualBefore - 1;
+                VirtualSpaceChanged();
+                break;
+
+            case Key.Right when !shift && VirtualSpaceActive && CaretAtLineEnd():
+                _virtualSpaces = virtualBefore + 1;
+                VirtualSpaceChanged();
                 break;
 
             case Key.Left when ctrl:
@@ -1138,6 +1185,14 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
             case Key.Right:
                 MoveAcross(right: true, shift);
+                break;
+
+            case Key.Up when !shift && VirtualSpaceActive:
+                MoveVerticalInVirtualSpace(-1, virtualBefore);
+                break;
+
+            case Key.Down when !shift && VirtualSpaceActive:
+                MoveVerticalInVirtualSpace(1, virtualBefore);
                 break;
 
             case Key.Up when IsMultiline && WordWrap:
@@ -1181,6 +1236,8 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
                 break;
 
             case Key.C when ctrl:
+                // copying moves nothing: the caret stays where it stood
+                _virtualSpaces = virtualBefore;
                 Copy();
                 break;
 
@@ -1189,6 +1246,8 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
                 break;
 
             case Key.V when ctrl && !IsReadOnly:
+                // the paste goes where the caret stands, past the line's end too
+                _virtualSpaces = virtualBefore;
                 Paste();
                 break;
 
@@ -1207,6 +1266,8 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
                 break;
 
             default:
+                // a Shift pressed on its own mustn't take the caret out of the room
+                _virtualSpaces = virtualBefore;
                 return;   // not our key — don't mark it as handled
         }
 
@@ -1240,7 +1301,7 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
         if (text.Length == 0) return;
 
-        _document.Insert(CaseInput(text));
+        InsertAtCaret(CaseInput(text));
     }
 
     // ===== mouse =====
@@ -1297,7 +1358,9 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
         ClearComposition();
 
-        _document.SetCaret(IndexFromPoint(e.Location));
+        // beyond a line's last character the caret may stand in the room past it
+        (int pressed, int spaces) = CaretFromPoint(e.Location);
+        PlaceCaret(pressed, spaces, byRows: false);
         _isDragging = true;
     }
 
@@ -1354,8 +1417,12 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
         float caretX = RowShift(caretLayout, content.Width) + caretLayout.CaretX(caretColumn);
         float caretY = caretRow * lineHeight;
 
+        // past the line's end: the room after it, in spaces of the font
+        if (_virtualSpaces > 0 && VirtualSpaceActive && !IsComposing)
+            caretX += _virtualSpaces * SpaceWidth;
+
         UpdateScroll(content, caretX, caretY, lineHeight, rows.Count, ContentWidth(rows),
-            followCaret: TakeCaretFollow(shownCaret, rows, content));
+            followCaret: TakeCaretFollow(shownCaret, _virtualSpaces, rows, content));
 
         g.Save();
         g.ClipRect(content);

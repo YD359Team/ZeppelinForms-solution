@@ -1,36 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A card written in markup: the generator compiles it into SignUpCard's
      InitializeComponent, with a field for every x:Name. The behaviour is in
-     SignUpCard.cs; the look comes from the theme and the showcase's sheet -->
+     SignUpCard.cs; the look comes from the theme, the showcase's sheet and the
+     card's own styles below -->
 <StackPanel x:Class="ZF_SharedLib.Showcase.SignUpCard"
             xmlns="https://zeppelinforms.dev/markup"
             xmlns:x="https://zeppelinforms.dev/markup/x"
             Orientation="Vertical" Spacing="10" CrossAxisAlignment="Start">
 
-  <Label Text="Create an account" TextStyle="Subtitle"/>
+	<!-- styles of the card alone: they style what is inside it. Checked by the build
+       like the rest of the markup; values are the style sheets' own, theme included -->
+	<StackPanel.Styles>
+		<Style Selector="#Result">
+			<Setter Property="TextColor" Value="@Accent"/>
+		</Style>
 
-  <StackPanel Orientation="Vertical" Spacing="4">
-    <Label Text="Name" TextStyle="Caption"/>
-    <TextBox x:Name="NameBox" Watermark="Your name" Size="260,NaN"/>
-  </StackPanel>
+		<Style Selector="Button.quiet">
+			<Setter Property="Background" Value="transparent"/>
+			<Transition Property="Background" Duration="120ms"/>
 
-  <StackPanel Orientation="Vertical" Spacing="4">
-    <Label Text="E-mail" TextStyle="Caption"/>
-    <TextBox x:Name="EmailBox" Watermark="you@example.com" Size="260,NaN"/>
-  </StackPanel>
+			<Style Selector="^:hover">
+				<Setter Property="Background" Value="alpha(@Accent, 0.1)"/>
+			</Style>
+		</Style>
+	</StackPanel.Styles>
+	
+	<Label Text="Create an account" TextStyle="Subtitle"/>
 
-  <CheckBox x:Name="Terms" Text="I accept the terms"/>
+	<StackPanel Orientation="Vertical" Spacing="4">
+		<Label Text="Name" TextStyle="Caption"/>
+		<TextBox x:Name="NameBox" Watermark="Your name" Size="260,NaN"/>
+	</StackPanel>
 
-  <!-- a binding to a named element: the greeting follows the name as it is typed -->
-  <StackPanel Orientation="Horizontal" Spacing="6">
-    <Label Text="Hello," Classes="demo-note"/>
-    <Label x:Name="Greeting" Text="{Bind NameBox.Text}"/>
-  </StackPanel>
+	<StackPanel Orientation="Vertical" Spacing="4">
+		<Label Text="E-mail" TextStyle="Caption"/>
+		<TextBox x:Name="EmailBox" Watermark="you@example.com" Size="260,NaN"/>
+	</StackPanel>
 
-  <StackPanel Orientation="Horizontal" Spacing="8">
-    <PrimaryButton x:Name="Submit" Text="Sign up" Click="OnSubmit"/>
-    <Button Text="Clear" Click="OnClear"/>
-  </StackPanel>
+	<CheckBox x:Name="Terms" Text="I accept the terms"/>
 
-  <Label x:Name="Result" Classes="demo-note"/>
+	<!-- a binding to a named element: the greeting follows the name as it is typed -->
+	<StackPanel Orientation="Horizontal" Spacing="6">
+		<Label Text="Hello," Classes="demo-note"/>
+		<Label x:Name="Greeting" Text="{Bind NameBox.Text}"/>
+	</StackPanel>
+
+	<StackPanel Orientation="Horizontal" Spacing="8">
+		<PrimaryButton x:Name="Submit" Text="Sign up" Click="OnSubmit"/>
+
+		<!-- a command of the class: the button is off while there is nothing to clear -->
+		<Button Text="Clear" Classes="quiet" Command="Clear"/>
+	</StackPanel>
+
+	<Label x:Name="Result" Classes="demo-note" Text=""/>
 </StackPanel>

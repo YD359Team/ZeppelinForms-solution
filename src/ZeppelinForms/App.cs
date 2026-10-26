@@ -20,7 +20,18 @@ public partial class App
     /// <remarks>The executable's own icon — the one Explorer shows, and a pinned
     /// taskbar button — is not this: it is <c>&lt;ApplicationIcon&gt;</c> in the
     /// project file.</remarks>
-    public Icon? Icon { get; init; }
+    public Icon? Icon
+    {
+        get;
+        init
+        {
+            field = value;
+
+            // in place for what is built in the same initializer: a tray icon of the
+            // main form takes it before Run
+            DefaultIcon = value;
+        }
+    }
 
     /// <summary>The icon of the running application, for forms without their own:
     /// <see cref="Icon"/>, or the logo. Null before <see cref="Run"/>.</summary>
@@ -236,11 +247,26 @@ public partial class App
         SetTheme(theme);
     }
 
-
     public App(IPlatform platform)
     {
         _platform = platform;
+        CurrentPlatform = platform;
+
+        // a new application starts without the icon of the one before it: the icon is
+        // static, and an earlier App's — a test's, a restart's — went on to the forms and
+        // the tray icons of this one until Run. The Icon initializer runs after this
+        DefaultIcon = null;
     }
+
+    /// <summary>The platform of the application being built or run: what a
+    /// <see cref="TrayIcon"/> asks for its tray. Set by the constructor, so the main form
+    /// built in the same initializer finds it.</summary>
+    internal static IPlatform? CurrentPlatform { get; private set; }
+
+    /// <summary>What the platform the application runs on can do: ask before relying
+    /// on it — <see cref="PlatformCapabilities.WindowPositioning"/> before placing a
+    /// window by <see cref="Form.Position"/>.</summary>
+    public PlatformCapabilities Capabilities => _platform.Capabilities;
 
     public void Run()
     {
@@ -267,7 +293,18 @@ public partial class App
 
         this.MainForm.Show();
 
-        _platform.Start();
+        // icons made visible before the application existed go into the tray now
+        TrayIcon.OnAppStarted();
+
+        try
+        {
+            _platform.Start();
+        }
+        finally
+        {
+            // an icon left in the Windows tray stays there until the mouse passes over it
+            TrayIcon.OnAppEnded();
+        }
     }
 
     private static void AttachLifecycle(IAppLifecycle lifecycle)
