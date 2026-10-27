@@ -164,8 +164,9 @@ jobs:
 
       - uses: microsoft/setup-msbuild@v2
 
-      # the version follows the tag, as the packages' does. A VSIX version has no
-      # prerelease part: v0.14.0-preview.1 gives 0.14.0
+      # the version follows the tag, as the packages' does. The build takes it as
+      # /p:Version and the manifest reads it from the project (GetVsixVersion), which
+      # drops the prerelease part a VSIX version can't have: v0.14.0-preview.1 gives 0.14.0
       - name: Версия расширения из тега
         id: vsixversion
         shell: pwsh
@@ -173,12 +174,6 @@ jobs:
           # the host inside the extension gets the full version, as the packages do:
           # a host of another version can't bind a project built against them
           "full=$('${{ github.ref_name }}'.TrimStart('v'))" >> $env:GITHUB_OUTPUT
-          $version = '${{ github.ref_name }}'.TrimStart('v').Split('-')[0]
-          $manifest = 'tools/ZeppelinForms.VisualStudio/source.extension.vsixmanifest'
-          $text = Get-Content $manifest -Raw
-          $text = $text -replace '(<Identity [^>]*Version=")[^"]*(")', "`${1}$version`${2}"
-          Set-Content $manifest $text -NoNewline
-          Select-String -Path $manifest -Pattern '<Identity '
 
       # DeployExtension=false: the build would install the extension into an
       # experimental instance of Visual Studio, which a build machine has no use for

@@ -1,4 +1,4 @@
-﻿<Project>
+﻿﻿<Project>
 
 	<!-- The Visual Studio extension: the previewer's tool window, .zss highlighting
 	     and .zss problems in the Error List. Builds with Visual Studio's MSBuild on
@@ -114,6 +114,13 @@
 			<Content Include="@(_DesignerHostFile)" IncludeInVSIX="true" VSIXSubPath="Designer\%(_DesignerHostFile.RecursiveDir)" />
 		</ItemGroup>
 	</Target>
+
+	<!-- The extension's version for the manifest: its Identity asks for
+	     |%CurrentProject%;GetVsixVersion|, and the VS SDK calls this target while it
+	     detokenizes the manifest. A VSIX version is numbers only, so it is
+	     VersionNumbers of Directory.Build.props — the release's version, or the tag's
+	     when CI passes /p:Version, without a prerelease part -->
+	<Target Name="GetVsixVersion" Returns="$(VersionNumbers)" />
 
 	<Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 
