@@ -71,6 +71,25 @@
 - `PlatformCapabilities.Notifications`; the headless platform keeps the notifications, and
   plays their clicks and closings for tests
 
+### File dialogs
+
+- The system's file dialog before the framework's own: IFileOpenDialog and IFileSaveDialog
+  on Windows, the XDG desktop portal's FileChooser on Linux, X11 and Wayland — GTK's dialog
+  on GNOME, KDE's on Plasma, and the one a Flatpak or a Snap can reach the user's files
+  with. Modal to the form, the synchronous `FileDialog` calls included. Without one — no
+  portal on the bus — the framework's dialog is shown as before;
+  `FileDialogOptions.UseNative = false` asks for it
+- `PickedFile`: a picked file as a name, the `Path` where there is one, and
+  `OpenReadAsync`/`OpenWriteAsync` — the same code for the desktop and the browser.
+  `FileDialog.PickFileAsync`, `PickFilesAsync`, `PickSaveFileAsync`; `PickedFile.FromPath`
+- The browser saves through its own save dialog where it has one (the File System Access
+  API, Chromium on the desktop) and writes the file the user chose; elsewhere as a download,
+  when the stream is disposed. `IFilePicker.PickOpenAsync` and `PickSaveAsync` for a picker
+  of one's own
+- `HeadlessPlatform.NativeFileDialog` answers the file dialogs in tests
+- The framework's dialog opens in the home folder where there is no Documents folder — a
+  Linux without the XDG user directories — instead of failing
+
 ### Inside
 
 - `Form` and `UIElement` are split by concern into partial files — `Form.Pointer`,

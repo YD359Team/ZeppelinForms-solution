@@ -88,3 +88,20 @@ ZeppelinForms.Headless.HeadlessPlatform.Notifications.get -> System.Collections.
 ZeppelinForms.Headless.HeadlessPlatform.RefuseNotifications.get -> bool
 ZeppelinForms.Headless.HeadlessPlatform.RefuseNotifications.set -> void
 ZeppelinForms.PlatformCapabilities.Notifications = 64 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.Forms.Dialogs.FileDialogOptions.UseNative.get -> bool
+ZeppelinForms.Forms.Dialogs.FileDialogOptions.UseNative.set -> void
+ZeppelinForms.Forms.Dialogs.IFilePicker.PickOpenAsync(ZeppelinForms.Forms.Dialogs.FileDialogOptions! options) -> System.Threading.Tasks.Task<ZeppelinForms.Forms.Dialogs.PickedFile![]!>!
+ZeppelinForms.Forms.Dialogs.IFilePicker.PickSaveAsync(ZeppelinForms.Forms.Dialogs.FileDialogOptions! options) -> System.Threading.Tasks.Task<ZeppelinForms.Forms.Dialogs.PickedFile?>!
+ZeppelinForms.Forms.Dialogs.PickedFile
+ZeppelinForms.Forms.Dialogs.PickedFile.Name.get -> string!
+ZeppelinForms.Forms.Dialogs.PickedFile.Path.get -> string?
+ZeppelinForms.Forms.Dialogs.PickedFile.PickedFile(string! name, string? path) -> void
+abstract ZeppelinForms.Forms.Dialogs.PickedFile.OpenReadAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IO.Stream!>!
+abstract ZeppelinForms.Forms.Dialogs.PickedFile.OpenWriteAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IO.Stream!>!
+override ZeppelinForms.Forms.Dialogs.PickedFile.ToString() -> string!
+static ZeppelinForms.Forms.Dialogs.PickedFile.FromPath(string! path) -> ZeppelinForms.Forms.Dialogs.PickedFile!
+static ZeppelinForms.Forms.Dialogs.FileDialog.PickFileAsync(ZeppelinForms.Forms.Form! owner, ZeppelinForms.Forms.Dialogs.FileDialogOptions? options = null) -> System.Threading.Tasks.Task<ZeppelinForms.Forms.Dialogs.PickedFile?>!
+static ZeppelinForms.Forms.Dialogs.FileDialog.PickFilesAsync(ZeppelinForms.Forms.Form! owner, ZeppelinForms.Forms.Dialogs.FileDialogOptions? options = null) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Dialogs.PickedFile!>!>!
+static ZeppelinForms.Forms.Dialogs.FileDialog.PickSaveFileAsync(ZeppelinForms.Forms.Form! owner, ZeppelinForms.Forms.Dialogs.FileDialogOptions? options = null) -> System.Threading.Tasks.Task<ZeppelinForms.Forms.Dialogs.PickedFile?>!
+ZeppelinForms.Headless.HeadlessPlatform.NativeFileDialog.get -> System.Func<ZeppelinForms.Forms.Dialogs.FileDialogMode, ZeppelinForms.Forms.Dialogs.FileDialogOptions!, string![]!>?
+ZeppelinForms.Headless.HeadlessPlatform.NativeFileDialog.set -> void

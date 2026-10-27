@@ -114,6 +114,53 @@ decimal? amount = await InputBox.ShowNumberAsync(this, "Amount");
 The boxes are sized to their message and buttons, take the theme's colors and follow
 the interface language.
 
+### File dialogs
+
+```csharp
+string? path = FileDialog.OpenFile(this, new FileDialogOptions
+{
+    Title = "Open an order",
+    Filters = [new FileFilter("Orders", "csv", "json"), new FileFilter("All files")],
+});
+
+string[] images = await FileDialog.OpenFilesAsync(this, new() { Filters = [new("Images", "png", "jpg")] });
+string? target = await FileDialog.SaveFileAsync(this, new() { FileName = "report.csv" });
+string? folder = await FileDialog.SelectFolderAsync(this);
+```
+
+The dialog is the system's where there is one: Explorer's own on Windows (IFileDialog),
+the desktop's on Linux through the XDG portal — GTK's on GNOME, KDE's on Plasma, the only
+one that sees the user's files from a Flatpak or a Snap. Both are modal to the form, and
+the synchronous calls show them too, the forms painting under them. Without a system dialog
+— no portal, a bare window manager — or with `UseNative = false` in the options, the
+framework's own is shown, styled by the theme. On Windows the system's dialog wants
+`[STAThread]` on `Main`, as drag and drop does; without it the framework's own is shown.
+
+#### Picked files
+
+A path is a desktop thing: in the browser a picked file has none, and a file to save is
+written by the browser. `PickedFile` is the way to files the same everywhere — a name, the
+`Path` where there is one, and streams:
+
+```csharp
+if (await FileDialog.PickFileAsync(this, options) is { } file)
+{
+    await using Stream input = await file.OpenReadAsync();
+    Load(input);
+}
+
+if (await FileDialog.PickSaveFileAsync(this, new() { FileName = "orders.csv" }) is { } target)
+{
+    await using Stream output = await target.OpenWriteAsync();
+    await Export(output);
+}   // disposed: in the browser the file is written now
+```
+
+In the browser the save goes through the browser's save dialog where it has one — Chromium
+on the desktop — and writes the file the user chose; elsewhere it is a download under the
+suggested name. `PickedFile.FromPath` makes one of a path got another way — a list of
+recent files, the command line.
+
 ### Overlays, flyouts and toasts
 
 | Member | Shows |

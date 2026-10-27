@@ -86,7 +86,10 @@ application needs is lighter.
 - **No system drag and drop** — drag and drop inside the application works.
 - **No windows**: one form fills the canvas; `Position`, `TopMost` and the size limits are
   accepted and do nothing.
-- **File pickers** are the browser's own, through `IFilePicker`.
+- **File pickers** are the browser's own, through `IFilePicker`. A picked file is read
+  from the copy the page was given; `FileDialog.PickSaveFileAsync` writes through the
+  browser's save dialog (Chromium) or as a download (elsewhere) — see
+  [Picked files](Forms-and-Windows#picked-files).
 - Trimmed publishing (`PublishTrimmed`) is supported: the framework is annotated for the
   trimmer.
 

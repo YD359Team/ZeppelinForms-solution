@@ -1,5 +1,18 @@
 ﻿namespace ZeppelinForms.Forms.Dialogs;
 
+/// <summary>
+/// Picking files and folders: the system's dialog where the platform has one, the
+/// framework's own otherwise — or when <see cref="FileDialogOptions.UseNative"/> is false.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The methods of paths — <see cref="OpenFileAsync"/>, <see cref="SaveFileAsync"/> — are
+/// for the desktop. <see cref="PickFileAsync"/>, <see cref="PickFilesAsync"/> and
+/// <see cref="PickSaveFileAsync"/> give <see cref="PickedFile"/>s, read and written as
+/// streams, and work the same in the browser, where a file has no path and a saved one is
+/// written by the browser.
+/// </para>
+/// </remarks>
 public static class FileDialog
 {
     public static string? OpenFile(Form owner, FileDialogOptions? options = null) =>
@@ -26,6 +39,38 @@ public static class FileDialog
     public static async Task<string?> SelectFolderAsync(Form owner, FileDialogOptions? options = null) =>
         First(await RunAsync(owner, options, FileDialogMode.Folder));
 
+    /// <summary>One file to read; null — cancelled.</summary>
+    public static async Task<PickedFile?> PickFileAsync(Form owner, FileDialogOptions? options = null) =>
+        (await PickFilesCoreAsync(owner, WithMultiple(options, multiple: false))) is [var single, ..] ? single : null;
+
+    /// <summary>Files to read; empty — cancelled.</summary>
+    public static async Task<IReadOnlyList<PickedFile>> PickFilesAsync(Form owner, FileDialogOptions? options = null) =>
+        await PickFilesCoreAsync(owner, WithMultiple(options, multiple: true));
+
+    /// <summary>A file to write; null — cancelled. In the browser it is written by the
+    /// browser's save dialog or as a download when its stream is disposed.</summary>
+    public static async Task<PickedFile?> PickSaveFileAsync(Form owner, FileDialogOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+
+        FileDialogOptions settings = options ?? new FileDialogOptions();
+
+        if (FilePicker.Current is { } picker)
+            return await picker.PickSaveAsync(settings);
+
+        return First(await RunAsync(owner, settings, FileDialogMode.Save)) is { } path ? PickedFile.FromPath(path) : null;
+    }
+
+    private static async Task<PickedFile[]> PickFilesCoreAsync(Form owner, FileDialogOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+
+        if (FilePicker.Current is { } picker)
+            return await picker.PickOpenAsync(options);
+
+        return [.. (await RunAsync(owner, options, FileDialogMode.Open)).Select(PickedFile.FromPath)];
+    }
+
     private static string[] Open(Form owner, FileDialogOptions? options, bool multiple) =>
         Run(owner, WithMultiple(options, multiple), FileDialogMode.Open);
 
@@ -41,10 +86,20 @@ public static class FileDialog
                 "File picking on this platform is asynchronous only: use OpenFileAsync, " +
                 "OpenFilesAsync, SaveFileAsync or SelectFolderAsync.");
 
-        var dialog = new FileDialogForm(options ?? new FileDialogOptions(), mode);
+        FileDialogOptions settings = options ?? new FileDialogOptions();
+
+        // the system's dialog, where it can be waited for: modal on Windows
+        if (Native(owner, settings) is { } native && native.Show(owner, settings, mode) is { } chosen)
+            return chosen;
+
+        var dialog = new FileDialogForm(settings, mode);
 
         return Unwrap(dialog.ShowDialog<string[]>(owner));
     }
+
+    /// <summary>The platform's own dialogs, when asked for and the platform has them.</summary>
+    private static INativeFileDialogs? Native(Form owner, FileDialogOptions options) =>
+        options.UseNative ? (owner.Platform ?? App.CurrentPlatform) as INativeFileDialogs : null;
 
     private static async Task<string[]> RunAsync(Form owner, FileDialogOptions? options, FileDialogMode mode)
     {
@@ -53,6 +108,10 @@ public static class FileDialog
         // the system picker, if the platform provides one
         if (FilePicker.Current is { } picker)
             return await PickAsync(picker, settings, mode);
+
+        // the system's dialog: IFileDialog, the desktop portal
+        if (Native(owner, settings) is { } native && await native.ShowAsync(owner, settings, mode) is { } chosen)
+            return chosen;
 
         var dialog = new FileDialogForm(settings, mode);
 
@@ -84,6 +143,7 @@ public static class FileDialog
         FileName = options?.FileName,
         Filters = options?.Filters ?? [],
         AllowMultiple = multiple,
+        UseNative = options?.UseNative ?? true,
     };
 
     // an empty array instead of null: "cancelled" and "nothing selected"

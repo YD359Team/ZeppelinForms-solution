@@ -24,7 +24,7 @@ internal static class OverlaysPage
             Demo.Section("Context menu", ContextMenu(), "UIElement.ContextMenu: right click, the menu key or a long press; looked up the tree"),
             Demo.Section("Message box", Messages(form), "await MessageBox.ShowAsync works everywhere, the browser included"),
             Demo.Section("Input box and own dialogs", Dialogs(form), "Any form is a dialog: ShowDialogAsync<T> waits for Accept(value) or Cancel()"),
-            Demo.Section("Files", Files(form), "FileDialog.OpenFileAsync, OpenFilesAsync, SaveFileAsync, SelectFolderAsync: the framework's own dialog"),
+            Demo.Section("Files", Files(form), "FileDialog: the system's dialog — Explorer's, the desktop portal's, the browser's — or the framework's own; PickSaveFileAsync writes through a stream everywhere"),
             Demo.Section("Hiding the window", Hiding(form), "form.Hide() keeps the window and its state; Show() brings it back — the ground of a tray icon"),
             Demo.Section("Tray icon", Tray(form), "TrayIcon: an icon in the notification area or on the panel, with a tooltip, a click and the system's menu"),
             Demo.Section("Taskbar button", Taskbar(form), "form.Taskbar: progress and a badge on the taskbar or the dock; form.RequestAttention() for a window in the background"),
@@ -215,6 +215,10 @@ internal static class OverlaysPage
             Filters = { new FileFilter("Images", "png", "jpg", "jpeg", "gif"), new FileFilter("Text", "txt", "md", "json") },
         };
 
+        // the system's dialog by default; the framework's own on request
+        var own = new CheckBox { Text = "The framework's own dialog" };
+        own.CheckedChanged += (_, _) => options.UseNative = !own.IsChecked;
+
         var open = new PrimaryButton { Text = "Open a file" };
         open.Click += async (_, _) =>
             chosen.Text = await FileDialog.OpenFileAsync(form, options) is { } file ? file : "Cancelled";
@@ -226,17 +230,36 @@ internal static class OverlaysPage
             chosen.Text = files.Length == 0 ? "Cancelled" : $"{files.Length} file(s): {string.Join(", ", files.Select(Path.GetFileName))}";
         };
 
+        // a picked file rather than a path: the same code writes it on the desktop and in
+        // the browser — through its save dialog, or as a download
         var save = new Button { Text = "Save as" };
         save.Click += async (_, _) =>
-            chosen.Text = await FileDialog.SaveFileAsync(form, new FileDialogOptions { FileName = "notes.txt" }) is { } file
-                ? $"Would save to {file}"
-                : "Cancelled";
+        {
+            var saveOptions = new FileDialogOptions
+            {
+                FileName = "notes.txt",
+                Filters = { new FileFilter("Text", "txt") },
+                UseNative = options.UseNative,
+            };
+
+            if (await FileDialog.PickSaveFileAsync(form, saveOptions) is not { } file)
+            {
+                chosen.Text = "Cancelled";
+                return;
+            }
+
+            await using (Stream output = await file.OpenWriteAsync())
+            await using (var writer = new StreamWriter(output))
+                await writer.WriteLineAsync($"Saved by the ZeppelinForms showcase at {DateTime.Now:t}");
+
+            chosen.Text = $"Saved {file}";
+        };
 
         var folder = new Button { Text = "Pick a folder" };
         folder.Click += async (_, _) =>
             chosen.Text = await FileDialog.SelectFolderAsync(form) is { } path ? path : "Cancelled";
 
-        return Demo.Column(Demo.Row(open, many, save, folder), chosen);
+        return Demo.Column(Demo.Row(open, many, save, folder), own, chosen);
     }
 
     private static UIElement Hiding(Form form)

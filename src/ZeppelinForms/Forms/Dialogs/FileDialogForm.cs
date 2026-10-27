@@ -88,7 +88,21 @@ internal sealed class FileDialogForm : Form
 
         Navigate(options.InitialDirectory is { Length: > 0 } start && Directory.Exists(start)
             ? start
-            : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+            : DefaultDirectory());
+    }
+
+    /// <summary>Documents, or home, or where the application runs: Documents is ""
+    /// on a Linux without the XDG user directories — a container, a fresh server.</summary>
+    private static string DefaultDirectory()
+    {
+        foreach (Environment.SpecialFolder folder in (Environment.SpecialFolder[])
+            [Environment.SpecialFolder.MyDocuments, Environment.SpecialFolder.UserProfile])
+        {
+            if (Environment.GetFolderPath(folder) is { Length: > 0 } path && Directory.Exists(path))
+                return path;
+        }
+
+        return Directory.GetCurrentDirectory();
     }
 
     private IEnumerable<FileFilter> Filters()

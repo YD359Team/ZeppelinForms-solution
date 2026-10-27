@@ -42,6 +42,16 @@ The headless window records what the form asked of it — `HeadlessWindow.IsTopM
 `MinimumSizeLimit`, `MaximumSizeLimit`, `CenterOnScreenCount` — so window behaviour is tested
 too.
 
+A file dialog is answered by the test: `HeadlessPlatform.NativeFileDialog` plays the system's
+dialog, given what it was asked and returning the paths chosen — an empty array for a cancel.
+
+```csharp
+platform.NativeFileDialog = (mode, options) => [Path.Combine(dataFolder, "orders.csv")];
+
+Point at = form.ImportButton.GetAbsolutePosition();
+HeadlessInput.Click(form, at.X + 4, at.Y + 4);   // FileDialog.OpenFile inside gets the file
+```
+
 Tests that open headless windows share the process-wide state of the UI thread and the
 keyboard: run them in one xUnit collection, not in parallel.
 

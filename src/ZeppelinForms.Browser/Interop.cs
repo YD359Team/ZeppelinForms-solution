@@ -140,6 +140,16 @@ internal static partial class Interop
     [JSImport("downloadFile", ModuleName)]
     internal static partial void DownloadFile(string fileName, string base64);
 
+    /// <summary>The browser's save dialog where it has one: "id\nname", an empty string
+    /// when cancelled. Id 0 — no dialog, the file is to go out as a download.</summary>
+    [JSImport("pickSaveFile", ModuleName)]
+    internal static partial Task<string> PickSaveFileAsync(string suggestedName, string filters);
+
+    /// <summary>Write a file picked by <see cref="PickSaveFileAsync"/>: through its handle,
+    /// or as a download for id 0.</summary>
+    [JSImport("writePickedFile", ModuleName)]
+    internal static partial Task WritePickedFileAsync(int id, string fileName, string base64);
+
     [JSImport("readClipboard", ModuleName)]
     internal static partial Task<string> ReadClipboardAsync();
 

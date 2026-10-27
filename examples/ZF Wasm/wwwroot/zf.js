@@ -855,6 +855,56 @@ export function downloadFile(fileName, base64) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// ==== files to save: the browser's save dialog, or a download ====
+//
+// Where the File System Access API is — Chromium on the desktop — showSaveFilePicker is
+// the system's own save dialog, and its handle writes the very file the user chose. Its
+// handles are kept here by an id, and the application names them by it. Elsewhere — Firefox,
+// Safari, phones — the id is 0 and the file goes out as a download when it is written.
+
+const savedFiles = new Map();
+let nextSavedFile = 1;
+
+// "id\nname"; an empty string — cancelled. The filters: JSON [{description, extensions}]
+export async function pickSaveFile(suggestedName, filters) {
+    if (typeof window.showSaveFilePicker !== "function") {
+        return `0\n${suggestedName}`;
+    }
+
+    const types = JSON.parse(filters || "[]")
+        .filter(f => f.extensions.length > 0)
+        .map(f => ({ description: f.description, accept: { "application/octet-stream": f.extensions } }));
+
+    try {
+        const handle = await window.showSaveFilePicker({ suggestedName, types });
+        const id = nextSavedFile++;
+        savedFiles.set(id, handle);
+        return `${id}\n${handle.name}`;
+    } catch (error) {
+        // the user closed the dialog
+        if (error.name === "AbortError") {
+            return "";
+        }
+
+        // refused — no user gesture behind the call, a sandboxed frame: a download then
+        return `0\n${suggestedName}`;
+    }
+}
+
+export async function writePickedFile(id, fileName, base64) {
+    const handle = savedFiles.get(id);
+
+    if (!handle) {
+        downloadFile(fileName, base64);
+        return;
+    }
+
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const writable = await handle.createWritable();
+    await writable.write(bytes);
+    await writable.close();
+}
+
 // ==== native elements among the form's ====
 //
 // A NativeControlHost's slot: a div over the canvas, as large as the part of the host the

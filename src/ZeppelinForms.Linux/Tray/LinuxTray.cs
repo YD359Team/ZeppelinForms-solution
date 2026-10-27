@@ -20,14 +20,19 @@ internal sealed class LinuxTray
     /// <summary>The desktop's notifications: on the session bus too, and polled with the icons.</summary>
     public LinuxNotifications Notifications { get; } = new();
 
+    /// <summary>The desktop's file dialogs: the portal's, on the session bus too, and
+    /// polled with the icons.</summary>
+    public LinuxFileChooser FileChooser { get; } = new();
+
     /// <summary>The sockets the loop waits on for the session bus's calls and signals:
-    /// each icon's and the notifications'. −1 for one that isn't open.</summary>
+    /// each icon's, the notifications' and the file dialogs'. −1 for one that isn't open.</summary>
     public void CollectFileDescriptors(List<int> into)
     {
         foreach (StatusNotifierItem item in _items)
             into.Add(item.FileDescriptor);
 
         into.Add(Notifications.FileDescriptor);
+        into.Add(FileChooser.FileDescriptor);
     }
 
     /// <summary>The icon on the bus; null without a session bus. Without a panel yet it
@@ -49,5 +54,6 @@ internal sealed class LinuxTray
             App.RunGuarded(item.Poll);
 
         App.RunGuarded(Notifications.Poll);
+        App.RunGuarded(FileChooser.Poll);
     }
 }
