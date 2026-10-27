@@ -113,6 +113,32 @@ public class MainForm : Form
 }
 ```
 
+The same form in markup — `MainForm.zfml`, with nothing to declare before the root:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Form Class="MyApp.MainForm" Title="Hello" Size="480,320" WindowStartupLocation="CenterScreen">
+  <StackPanel Orientation="Vertical" Spacing="10" Padding="24">
+    <Label Text="What is your name?"/>
+    <TextBox Name="NameBox" Watermark="Your name"/>
+    <PrimaryButton Text="Greet" Click="OnGreet"/>
+  </StackPanel>
+</Form>
+```
+
+and its behaviour in `MainForm.cs`:
+
+```csharp
+public partial class MainForm
+{
+    private async void OnGreet(object? sender, MouseClickEventArgs e) =>
+        await MessageBox.ShowAsync(this, $"Hello, {NameBox.Text}!");
+}
+```
+
+The generator writes the rest: the base class, a field for `NameBox` and a constructor
+that builds the markup. See [Markup](Markup-and-Tooling#a-form-in-markup).
+
 ## Files and assets
 
 | File | What it is | How it is used |

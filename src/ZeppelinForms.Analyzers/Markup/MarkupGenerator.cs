@@ -75,7 +75,7 @@ internal static class MarkupDiagnostics
 
     public static readonly DiagnosticDescriptor NoClass = Error(
         "ZF2002", "The markup names no class",
-        "The root element needs x:Class=\"Namespace.Name\": the class the markup builds");
+        "The root element needs Class=\"Namespace.Name\" or x:Class=\"Namespace.Name\": the class the markup builds");
 
     public static readonly DiagnosticDescriptor UnknownType = Error(
         "ZF2003", "Unknown element", "There is no type '{0}'{1}");
@@ -96,7 +96,7 @@ internal static class MarkupDiagnostics
         "ZF2008", "A binding can't be made", "{0}");
 
     public static readonly DiagnosticDescriptor DuplicateName = Error(
-        "ZF2009", "A name is used twice", "x:Name '{0}' is already given to another element");
+        "ZF2009", "A name is used twice", "The name '{0}' is already given to another element");
 
     public static readonly DiagnosticDescriptor NotCreatable = Error(
         "ZF2010", "An element can't be created", "'{0}' has no public constructor without parameters");

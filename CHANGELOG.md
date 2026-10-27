@@ -1,6 +1,22 @@
 # Changes
 
-## [0.19.0] Unknown
+## [0.19.0] Nevada
+
+### Breaking changes
+
+- In markup a plain `Name="…"` makes a field of the element, as `x:Name` does (and as WPF
+  and Avalonia take `Name`). A class whose code already has a member of that name gets
+  the compiler's CS0102; a name that can't be a field — `main-panel` — still only names
+  the element
+
+### Markup
+
+- A `.zfml` file needs no namespace declarations: `<Form Class="MyApp.MainForm" Title="…">`
+  is a whole root. `Class` names the class as `x:Class` does; `x:Class`, `x:Name` and the
+  `xmlns` lines are still understood
+- A class the markup alone declares is public
+- A wiki section and a README example of a whole form in markup; the showcase's Markup
+  page opens one, `FeedbackForm.zfml`
 
 
 ## [0.18.1]

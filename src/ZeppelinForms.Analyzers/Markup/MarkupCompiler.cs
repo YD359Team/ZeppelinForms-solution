@@ -10,6 +10,12 @@ namespace ZeppelinForms.Analyzers.Markup;
 /// <summary>One markup file into the C# of its class.</summary>
 /// <remarks>
 /// <para>
+/// The file needs no namespace declarations: <see cref="MarkupDocument"/> reads it as if
+/// the root declared the framework's namespace and <c>x:</c>. The class is named by
+/// <c>x:Class</c> or a plain <c>Class</c> on the root, a field by <c>x:Name</c> or a plain
+/// <c>Name</c> — as WPF and Avalonia take Name.
+/// </para>
+/// <para>
 /// Elements of the default namespace are the framework's types, found by their short
 /// names; <c>xmlns:my="using:App.Controls"</c> names a namespace of the application's.
 /// An attribute is a property — set from its text by <see cref="MarkupValues"/> — or
@@ -80,6 +86,7 @@ internal sealed class MarkupCompiler
     private INamedTypeSymbol? _class;
     private string _namespace = string.Empty;
     private XElement? _root;
+    private XAttribute? _classAttribute;
     private INamedTypeSymbol? _element;
     private StyleNames? _styleNames;
     private int _counter;
@@ -128,7 +135,8 @@ internal sealed class MarkupCompiler
 
         try
         {
-            document = XDocument.Parse(_text, LoadOptions.SetLineInfo);
+            // the namespaces are declared for the file: <Form Class="…"> is a whole root
+            document = MarkupDocument.Parse(_text);
         }
         catch (XmlException e)
         {
@@ -146,16 +154,16 @@ internal sealed class MarkupCompiler
 
         CollectFrameworkTypes(element.ContainingAssembly);
 
-        string? className = (string?)root.Attribute(XName.Get("Class", XNamespace));
+        INamedTypeSymbol? rootType = ResolveType(root.Name, root);
+        if (rootType is null) return null;
+
+        string? className = ClassName(root, rootType);
 
         if (string.IsNullOrWhiteSpace(className))
         {
             Report(MarkupDiagnostics.NoClass, root);
             return null;
         }
-
-        INamedTypeSymbol? rootType = ResolveType(root.Name, root);
-        if (rootType is null) return null;
 
         int dot = className!.LastIndexOf('.');
         string ns = dot < 0 ? string.Empty : className.Substring(0, dot);
@@ -174,6 +182,23 @@ internal sealed class MarkupCompiler
         return Emit(ns, name, rootType);
     }
 
+    /// <summary>The class the markup builds: <c>x:Class="App.MainForm"</c>, as XAML names
+    /// it, or a plain <c>Class="App.MainForm"</c> — unless the root's type has a property
+    /// of that name, which the plain attribute then sets.</summary>
+    private string? ClassName(XElement root, INamedTypeSymbol rootType)
+    {
+        if ((string?)root.Attribute(XName.Get("Class", XNamespace)) is { } written)
+            return written.Trim();
+
+        if (root.Attribute("Class") is { } plain && FindProperty(rootType, "Class") is null && FindEvent(rootType, "Class") is null)
+        {
+            _classAttribute = plain;
+            return plain.Value.Trim();
+        }
+
+        return null;
+    }
+
     private string Emit(string ns, string name, INamedTypeSymbol rootType)
     {
         var source = new StringBuilder();
@@ -189,7 +214,9 @@ internal sealed class MarkupCompiler
             source.AppendLine("{");
         }
 
-        source.Append("    partial class ").Append(name).Append(" : ").AppendLine(rootType.ToDisplayString(TypeFormat));
+        // a class the markup alone declares is public, as XAML's are; one with code of its
+        // own has its accessibility there, and a partial part may leave it out
+        source.Append(_class is null ? "    public partial class " : "    partial class ").Append(name).Append(" : ").AppendLine(rootType.ToDisplayString(TypeFormat));
         source.AppendLine("    {");
 
         foreach (var (field, type, modifier) in _fields)
@@ -269,13 +296,32 @@ internal sealed class MarkupCompiler
         Line(node);
         _body.Append("            var ").Append(variable).Append(" = new ").Append(type.ToDisplayString(TypeFormat)).AppendLine("();");
 
-        if ((string?)node.Attribute(XName.Get("Name", XNamespace)) is { } name)
+        if (FieldName(node, type) is { } name)
             DeclareName(node, name, variable, type);
 
         ApplyAttributes(node, variable, type, isRoot: false);
         ApplyChildren(node, variable, type, isRoot: false);
 
         return variable;
+    }
+
+    /// <summary>The field an element is kept in: <c>x:Name</c>, or — as WPF and Avalonia
+    /// take it — a plain <c>Name</c> of an element whose type has one and that can name a
+    /// field. A name that can't, <c>Name="main-panel"</c>, is only the element's own, for
+    /// <c>#main-panel</c> in a style sheet.</summary>
+    private static string? FieldName(XElement node, INamedTypeSymbol type)
+    {
+        if ((string?)node.Attribute(XName.Get("Name", XNamespace)) is { } written)
+            return written;
+
+        if ((string?)node.Attribute("Name") is { } plain &&
+            SyntaxFacts.IsValidIdentifier(plain) &&
+            FindProperty(type, "Name") is { Type.SpecialType: SpecialType.System_String })
+        {
+            return plain;
+        }
+
+        return null;
     }
 
     private void DeclareName(XElement node, string name, string variable, INamedTypeSymbol type)
@@ -310,6 +356,7 @@ internal sealed class MarkupCompiler
         {
             if (attribute.IsNamespaceDeclaration) continue;
             if (attribute.Name.NamespaceName == XNamespace) continue;
+            if (isRoot && ReferenceEquals(attribute, _classAttribute)) continue;
 
             // Grid.Row="1": the element's own Row
             string memberName = attribute.Name.LocalName;

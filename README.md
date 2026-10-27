@@ -558,29 +558,38 @@ the Error List. See `tools/ZeppelinForms.VisualStudio/README.md`.
 ### 📝 Markup
 
 Code-first is the main way, and markup is an option for the parts that read better as a
-tree. A `.zfml` file names its class with `x:Class`; at build time the generator turns it
-into C# — a field for every `x:Name` and an `InitializeComponent()` of plain `new`,
-assignments, `+=` and `Add`. No reflection, so trimming and native AOT keep it all.
+tree — a whole window included. A `.zfml` file names its class with `Class`; at build time
+the generator turns it into C# — a field for every `Name` and an `InitializeComponent()` of
+plain `new`, assignments, `+=` and `Add`. No reflection, so trimming and native AOT keep it
+all.
+
+A form, `MainForm.zfml` — the root is the `Form`, with nothing before it but the XML
+declaration:
 
 ```xml
-<StackPanel x:Class="MyApp.SignUpCard"
-            xmlns="https://zeppelinforms.dev/markup"
-            xmlns:x="https://zeppelinforms.dev/markup/x"
-            xmlns:my="using:MyApp.Controls"
-            Orientation="Vertical" Spacing="10">
-  <TextBox x:Name="NameBox" Watermark="Your name" Size="260,NaN"/>
-  <Label Text="{Bind NameBox.Text}"/>
-  <PrimaryButton Text="Sign up" Classes="wide" Click="OnSubmit"/>
-  <my:Gauge Level="0.5"/>
-</StackPanel>
+<?xml version="1.0" encoding="utf-8"?>
+<Form Class="MyApp.MainForm" Title="Hello" Size="480,320" WindowStartupLocation="CenterScreen">
+  <StackPanel Orientation="Vertical" Spacing="10" Padding="24">
+    <Label Text="What is your name?"/>
+    <TextBox Name="NameBox" Watermark="Your name"/>
+    <PrimaryButton Text="Greet" Click="OnGreet"/>
+  </StackPanel>
+</Form>
 ```
 
+and its behaviour, `MainForm.cs`:
+
 ```csharp
-public partial class SignUpCard
+public partial class MainForm
 {
-    private void OnSubmit(object? sender, MouseClickEventArgs e) { /* NameBox.Text … */ }
+    private async void OnGreet(object? sender, MouseClickEventArgs e) =>
+        await MessageBox.ShowAsync(this, $"Hello, {NameBox.Text}!");
 }
 ```
+
+The generator writes the base class, the fields and a constructor that builds the markup;
+`new MainForm()` is run as any form. Any element can be the root as well — a card, a page:
+`<StackPanel Class="MyApp.SignUpCard" …>`.
 
 - Values are written as in style sheets: `Padding="14 6"` is `new Thickness(14, 6)`,
   `Size="260,NaN"`, `Background="#0d6efd"`, enum members, static members by name
@@ -588,6 +597,8 @@ public partial class SignUpCard
   `Children`, `Items`, `Nodes`, `Content`, `Child`; `<Border.Child>` names one
 - `{Bind Name.Property}` binds a styled property to a named element, `Mode=TwoWay`
   both ways; `{x:Null}` is null; `<x:String>` is a text item of a list
+- `x:Class`, `x:Name` and the `xmlns` lines of XAML are understood too, and needed by none;
+  `xmlns:my="using:MyApp.Controls"` brings the application's controls in as `<my:Gauge>`
 - An unknown type, property, event or value is a ZF2xxx error at its line of the
   markup, and so is a handler of the wrong signature
 - A class whose code declares no constructor gets one that calls

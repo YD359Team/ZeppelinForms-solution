@@ -533,4 +533,107 @@ public class MarkupGeneratorTests
         Assert.Equal("ZF2014", warning.Id);
         Assert.Equal(7, warning.Location.GetLineSpan().StartLinePosition.Line + 1);
     }
+
+    // ===== a form with nothing around it =====
+
+    [Fact]
+    public void AFormNeedsNoNamespacesOfItsOwn()
+    {
+        Result result = Build("""
+            <?xml version="1.0" encoding="utf-8"?>
+            <Form Class="App.MainForm" Title="Orders" Size="800,600">
+              <StackPanel Spacing="8">
+                <TextBox Name="Search" Watermark="Search"/>
+                <Button Text="Find" Click="OnFind"/>
+              </StackPanel>
+            </Form>
+            """, """
+            namespace App;
+            public partial class MainForm
+            {
+                public int Clicks;
+                private void OnFind(object? sender, ZeppelinForms.Input.Mouse.MouseClickEventArgs e) => Clicks++;
+            }
+            """);
+
+        Assert.Empty(result.Errors);
+
+        var form = (Form)result.Create("App.MainForm");
+        Assert.Equal("Orders", form.Title);
+        Assert.Equal(new Size(800, 600), form.Size);
+
+        // a plain Name is a field, as x:Name is
+        var panel = Assert.IsType<StackPanel>(form.Content);
+        var search = Field<TextBox>(form, "Search");
+        Assert.Same(panel.Children[0], search);
+        Assert.Equal("Search", search.Name);
+        Assert.Contains("e3.Click += this.OnFind;", result.Source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void XNeedsNoDeclaration()
+    {
+        Result result = Build("""
+            <Form x:Class="App.MainForm">
+              <Label x:Name="Hello" Text="Hi"/>
+            </Form>
+            """);
+
+        Assert.Empty(result.Errors);
+
+        var form = (Form)result.Create("App.MainForm");
+        Assert.Same(form.Content, Field<Label>(form, "Hello"));
+    }
+
+    [Fact]
+    public void AClassOfMarkupAloneIsPublic()
+    {
+        Result result = Build("""<Form Class="App.About" Title="About"><Label Text="ZeppelinForms"/></Form>""");
+
+        Assert.Empty(result.Errors);
+        Assert.True(result.Assembly!.GetType("App.About", throwOnError: true)!.IsPublic);
+        Assert.Equal("About", ((Form)result.Create("App.About")).Title);
+    }
+
+    [Fact]
+    public void ANameThatCantBeAFieldIsTheElementsOwn()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.Panel">
+              <Label Name="main-label" Text="x"/>
+            </StackPanel>
+            """);
+
+        Assert.Empty(result.Errors);
+        Assert.DoesNotContain("main-label =", result.Source, StringComparison.Ordinal);
+
+        var panel = (StackPanel)result.Create("App.Panel");
+        Assert.Equal("main-label", panel.Children[0].Name);
+    }
+
+    [Fact]
+    public void APlainNameIsABindingSource()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.Echo">
+              <Label Name="Shown" Text="{Bind Typed.Text}"/>
+              <TextBox Name="Typed"/>
+            </StackPanel>
+            """);
+
+        Assert.Empty(result.Errors);
+
+        object echo = result.Create("App.Echo");
+        Field<TextBox>(echo, "Typed").Text = "hello";
+
+        Assert.Equal("hello", Field<Label>(echo, "Shown").Text);
+    }
+
+    [Fact]
+    public void ARootWithoutAClassIsReported()
+    {
+        Result result = Build("""<Form Title="Orders"/>""");
+
+        Assert.Equal("ZF2002", Assert.Single(result.Errors).Id);
+    }
 }

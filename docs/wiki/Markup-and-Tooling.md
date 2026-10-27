@@ -3,17 +3,71 @@
 ## Markup
 
 Code-first is the main way to build a UI; markup is an option for the parts that read better
-as a tree. A `.zfml` file names its class with `x:Class`; at build time a source generator
-turns it into C# — a field for every `x:Name` and an `InitializeComponent()` of plain `new`,
-assignments, `+=` and `Add`. No reflection, so trimming and native AOT keep it all.
+as a tree — a whole window included. A `.zfml` file names its class with `Class`; at build
+time a source generator turns it into C# — a field for every `Name` and an
+`InitializeComponent()` of plain `new`, assignments, `+=` and `Add`. No reflection, so
+trimming and native AOT keep it all.
+
+### A form in markup
+
+The root element is the class's base type — for a window, `Form` — and nothing has to come
+before it but the optional XML declaration:
 
 ```xml
-<StackPanel x:Class="MyApp.SignUpCard"
-            xmlns="https://zeppelinforms.dev/markup"
-            xmlns:x="https://zeppelinforms.dev/markup/x"
-            xmlns:my="using:MyApp.Controls"
+<?xml version="1.0" encoding="utf-8"?>
+<Form Class="MyApp.MainForm" Title="Hello" Size="480,320" WindowStartupLocation="CenterScreen">
+  <StackPanel Orientation="Vertical" Spacing="10" Padding="24">
+    <Label Text="What is your name?"/>
+    <TextBox Name="NameBox" Watermark="Your name"/>
+    <PrimaryButton Text="Greet" Click="OnGreet"/>
+  </StackPanel>
+</Form>
+```
+
+`MainForm.zfml` next to `MainForm.cs`, which holds the behaviour:
+
+```csharp
+using ZeppelinForms.Forms.Dialogs;
+using ZeppelinForms.Input.Mouse;
+
+namespace MyApp;
+
+public partial class MainForm
+{
+    private async void OnGreet(object? sender, MouseClickEventArgs e) =>
+        await MessageBox.ShowAsync(this, $"Hello, {NameBox.Text}!");
+}
+```
+
+and the form is run as any other:
+
+```csharp
+new App(new WindowsPlatform()) { MainForm = new MainForm() }.Run();
+```
+
+- The markup declares the class — `partial class MainForm : Form` — and its fields. The
+  code part needs neither the base class nor a constructor: a class whose code declares no
+  constructor gets one that calls `InitializeComponent`. One that declares its own calls
+  `InitializeComponent()` itself.
+- A form with no behaviour needs no code at all: the markup alone makes a public class.
+- The form's own properties are attributes of the root, `<Form.Styles>` its styles,
+  and its child is its `Content`.
+- `x:Class`, `x:Name` and the `xmlns` lines of XAML are understood too, and needed by
+  none: the file is read as if it declared the framework's namespace and `x:`. A file
+  that writes `x:` without declaring it builds, but the XML editor of Visual Studio
+  underlines the undeclared prefix — write `Class`/`Name`, or declare
+  `xmlns:x="https://zeppelinforms.dev/markup/x"`.
+
+`examples/ZF SharedLib/Showcase/FeedbackForm.zfml` is a dialog written this way.
+
+### Parts of a window
+
+Any element can be the root — a card, a page, a panel reused in several forms:
+
+```xml
+<StackPanel Class="MyApp.SignUpCard" xmlns:my="using:MyApp.Controls"
             Orientation="Vertical" Spacing="10">
-  <TextBox x:Name="NameBox" Watermark="Your name" Size="260,NaN"/>
+  <TextBox Name="NameBox" Watermark="Your name" Size="260,NaN"/>
   <Label Text="{Bind NameBox.Text}"/>
   <PrimaryButton Text="Sign up" Classes="wide" Click="OnSubmit"/>
   <my:Gauge Level="0.5"/>
@@ -27,12 +81,19 @@ public partial class SignUpCard
 }
 ```
 
+### What the markup understands
+
+- `Name="NameBox"` names the element and makes a field of it, as `x:Name` does. A name
+  that can't be a field, `Name="main-panel"`, only names the element — for `#main-panel`
+  in a style sheet.
+
 - Values are written as in style sheets: `Padding="14 6"`, `Size="260,NaN"`,
   `Background="#0d6efd"`, enum members, static members by name.
 - Children go to the first property that takes them — one marked `[Content]`, then
   `Children`, `Items`, `Nodes`, `Content`, `Child`; `<Border.Child>` names one.
 - `{Bind Name.Property}` binds a styled property to a named element, `Mode=TwoWay` both
   ways; `{x:Null}` is null; `<x:String>` is a text item of a list.
+- `xmlns:my="using:MyApp.Controls"` brings the application's controls in as `<my:Gauge>`.
 - `Command="Save"` takes a command of the class — a property or a field — and
   `Command="AppCommands.Save"` a static one of another type, found in the class's
   namespace, in a `using:` namespace of the markup or by its full name.
