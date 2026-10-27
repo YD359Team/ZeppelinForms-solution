@@ -2,6 +2,8 @@
 
 ## [0.19.0] Nevada
 
+![Nevada](assets/Logo-0.19.0.jpg)
+
 ### Breaking changes
 
 - In markup a plain `Name="…"` makes a field of the element, as `x:Name` does (and as WPF
