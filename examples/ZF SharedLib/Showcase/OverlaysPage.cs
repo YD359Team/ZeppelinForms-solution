@@ -1,3 +1,4 @@
+using ZeppelinForms;
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
@@ -25,7 +26,8 @@ internal static class OverlaysPage
             Demo.Section("Input box and own dialogs", Dialogs(form), "Any form is a dialog: ShowDialogAsync<T> waits for Accept(value) or Cancel()"),
             Demo.Section("Files", Files(form), "FileDialog.OpenFileAsync, OpenFilesAsync, SaveFileAsync, SelectFolderAsync: the framework's own dialog"),
             Demo.Section("Hiding the window", Hiding(form), "form.Hide() keeps the window and its state; Show() brings it back — the ground of a tray icon"),
-            Demo.Section("Tray icon", Tray(form), "TrayIcon: an icon in the notification area or on the panel, with a tooltip, a click and the system's menu"));
+            Demo.Section("Tray icon", Tray(form), "TrayIcon: an icon in the notification area or on the panel, with a tooltip, a click and the system's menu"),
+            Demo.Section("Taskbar button", Taskbar(form), "form.Taskbar: progress and a badge on the taskbar or the dock; form.RequestAttention() for a window in the background"));
 
     private static UIElement Tooltips() => Demo.Row(
         new Button { Text = "Hover me", ToolTip = "A tooltip: a short hint about the control" },
@@ -259,6 +261,62 @@ internal static class OverlaysPage
         };
 
         return Demo.Column(hide, note);
+    }
+
+    /// <summary>The taskbar button: a pretend task with its progress, a badge, and a request
+    /// for attention a few seconds later — time to switch to another window.</summary>
+    private static UIElement Taskbar(Form form)
+    {
+        Label note = Demo.Note($"{App.DisplayName} {App.Version}, id {App.Id}");
+
+        var run = new PrimaryButton { Text = "Run a task" };
+        run.Click += async (_, _) =>
+        {
+            run.IsEnabled = false;
+
+            for (int step = 0; step <= 50; step++)
+            {
+                form.Taskbar.ProgressValue = step / 50.0;
+                note.Text = $"Working: {step * 2} %";
+                await Task.Delay(100);
+            }
+
+            form.Taskbar.ProgressState = TaskbarProgressState.None;
+            note.Text = "Done — and the button asks for attention, if the window is in the background";
+            form.RequestAttention();
+
+            run.IsEnabled = true;
+        };
+
+        var paused = new Button { Text = "Paused" };
+        paused.Click += (_, _) =>
+        {
+            form.Taskbar.ProgressValue = Math.Max(form.Taskbar.ProgressValue, 0.6);
+            form.Taskbar.ProgressState = TaskbarProgressState.Paused;
+        };
+
+        var failed = new Button { Text = "Failed" };
+        failed.Click += (_, _) =>
+        {
+            form.Taskbar.ProgressValue = Math.Max(form.Taskbar.ProgressValue, 0.6);
+            form.Taskbar.ProgressState = TaskbarProgressState.Error;
+        };
+
+        var badge = new Button { Text = "Badge + 1" };
+        badge.Click += (_, _) => form.Taskbar.Badge = (form.Taskbar.Badge ?? 0) + 1;
+
+        var clear = new Button { Text = "Clear" };
+        clear.Click += (_, _) => form.Taskbar.Clear();
+
+        var attention = new Button { Text = "Attention in 3 s" };
+        attention.Click += async (_, _) =>
+        {
+            note.Text = "Switch to another window: in three seconds this one asks for attention";
+            await Task.Delay(3000);
+            form.RequestAttention();
+        };
+
+        return Demo.Column(Demo.Row(run, paused, failed, badge, clear, attention), note);
     }
 
     // one icon for the application, whatever times the page is made again

@@ -80,6 +80,9 @@ public partial class Form : IDisposable
             // the same with animations: those added before the window was created
             // sit in the clock, but there was nobody to deliver frames — ask for them here
             ReviewFrames();
+
+            // and with the taskbar button: a progress or a badge set before showing
+            _taskbar?.ApplyAll();
         }
     }
 

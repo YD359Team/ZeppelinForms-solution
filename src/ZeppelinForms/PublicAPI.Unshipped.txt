@@ -26,3 +26,38 @@ ZeppelinForms.Forms.Controls.ToolTip.ToolTip(string? text) -> void
 ZeppelinForms.Forms.Controls.ToolTip.ToolTip(ZeppelinForms.Forms.Controls.Base.UIElement! content) -> void
 override ZeppelinForms.Forms.Controls.ToolTip.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
 static readonly ZeppelinForms.Forms.Controls.ToolTip.MaxContentWidthProperty -> ZeppelinForms.Forms.Styling.StyledProperty<float>!
+static ZeppelinForms.App.DisplayName.get -> string!
+static ZeppelinForms.App.DisplayName.set -> void
+static ZeppelinForms.App.Id.get -> string!
+static ZeppelinForms.App.Id.set -> void
+static ZeppelinForms.App.Version.get -> string!
+static ZeppelinForms.App.Version.set -> void
+ZeppelinForms.Forms.Form.RequestAttention() -> void
+ZeppelinForms.Forms.Form.Taskbar.get -> ZeppelinForms.Forms.TaskbarItem!
+ZeppelinForms.Forms.TaskbarItem
+ZeppelinForms.Forms.TaskbarItem.Badge.get -> int?
+ZeppelinForms.Forms.TaskbarItem.Badge.set -> void
+ZeppelinForms.Forms.TaskbarItem.Clear() -> void
+ZeppelinForms.Forms.TaskbarItem.ProgressState.get -> ZeppelinForms.Forms.TaskbarProgressState
+ZeppelinForms.Forms.TaskbarItem.ProgressState.set -> void
+ZeppelinForms.Forms.TaskbarItem.ProgressValue.get -> double
+ZeppelinForms.Forms.TaskbarItem.ProgressValue.set -> void
+ZeppelinForms.Forms.TaskbarProgressState
+ZeppelinForms.Forms.TaskbarProgressState.Error = 4 -> ZeppelinForms.Forms.TaskbarProgressState
+ZeppelinForms.Forms.TaskbarProgressState.Indeterminate = 1 -> ZeppelinForms.Forms.TaskbarProgressState
+ZeppelinForms.Forms.TaskbarProgressState.None = 0 -> ZeppelinForms.Forms.TaskbarProgressState
+ZeppelinForms.Forms.TaskbarProgressState.Normal = 2 -> ZeppelinForms.Forms.TaskbarProgressState
+ZeppelinForms.Forms.TaskbarProgressState.Paused = 3 -> ZeppelinForms.Forms.TaskbarProgressState
+ZeppelinForms.Headless.HeadlessWindow.AttentionRequests.get -> int
+ZeppelinForms.Headless.HeadlessWindow.RequestAttention() -> void
+ZeppelinForms.Headless.HeadlessWindow.SetTaskbarBadge(int? count) -> void
+ZeppelinForms.Headless.HeadlessWindow.SetTaskbarProgress(ZeppelinForms.Forms.TaskbarProgressState state, double value) -> void
+ZeppelinForms.Headless.HeadlessWindow.TaskbarBadge.get -> int?
+ZeppelinForms.Headless.HeadlessWindow.TaskbarProgress.get -> (ZeppelinForms.Forms.TaskbarProgressState State, double Value)
+ZeppelinForms.ITaskbarWindow
+ZeppelinForms.ITaskbarWindow.RequestAttention() -> void
+ZeppelinForms.ITaskbarWindow.SetTaskbarBadge(int? count) -> void
+ZeppelinForms.ITaskbarWindow.SetTaskbarProgress(ZeppelinForms.Forms.TaskbarProgressState state, double value) -> void
+ZeppelinForms.PlatformCapabilities.TaskbarBadge = 16 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.PlatformCapabilities.TaskbarProgress = 8 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.PlatformCapabilities.WindowAttention = 32 -> ZeppelinForms.PlatformCapabilities

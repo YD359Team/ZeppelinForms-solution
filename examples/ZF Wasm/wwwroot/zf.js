@@ -608,8 +608,71 @@ export function setCursor(cssCursor) {
 
 export function setTitle(title) {
     if (title) {
-        document.title = title;
+        // while the title blinks for attention, the page's own title is the one kept
+        // aside: the blinking goes on with the new one, and it comes back when it stops
+        if (attentionTimer) {
+            attentionTitle = title;
+        } else {
+            document.title = title;
+        }
     }
+}
+
+// ===== attention and badge =====
+
+let attentionTimer = 0;
+let attentionTitle = "";
+
+// Form.RequestAttention: the tab's title blinks with a mark while the page is in the
+// background, and stops when the page is shown or focused. A page in front has the
+// attention already, and nothing happens.
+export function requestAttention() {
+    if (attentionTimer || (!document.hidden && document.hasFocus())) {
+        return;
+    }
+
+    attentionTitle = document.title;
+
+    let marked = false;
+
+    attentionTimer = setInterval(() => {
+        marked = !marked;
+        document.title = marked ? "\u25CF " + attentionTitle : attentionTitle;
+    }, 1000);
+
+    const stop = () => {
+        // going to the background is a visibilitychange too: that one doesn't stop it
+        if (document.hidden) {
+            return;
+        }
+
+        clearInterval(attentionTimer);
+        attentionTimer = 0;
+        document.title = attentionTitle;
+
+        window.removeEventListener("focus", stop);
+        document.removeEventListener("visibilitychange", stop);
+    };
+
+    window.addEventListener("focus", stop);
+    document.addEventListener("visibilitychange", stop);
+}
+
+// The Badging API: the badge of an installed web application — on its icon in the
+// taskbar or the dock. Chromium browsers have it; in a tab it does nothing.
+export function supportsAppBadge() {
+    return "setAppBadge" in navigator;
+}
+
+export function setAppBadge(count) {
+    if (!("setAppBadge" in navigator)) {
+        return;
+    }
+
+    const done = count > 0 ? navigator.setAppBadge(count) : navigator.clearAppBadge();
+
+    // not installed, or not allowed: no badge, and no unhandled rejection either
+    done?.catch?.(() => { });
 }
 
 export function viewportWidth() {

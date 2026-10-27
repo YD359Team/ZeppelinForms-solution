@@ -155,6 +155,10 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
 
         X11.XStoreName(_display, _window, _form.Title ?? string.Empty);
 
+        // the application's class, before mapping: the manager reads it when it takes
+        // the window (see X11Window.Taskbar)
+        ApplyWindowClass();
+
         // before the window is mapped: the window type and the initial state are
         // read by the manager when it takes the window (see X11Window.Chrome)
         ApplyChrome(mapped: false);

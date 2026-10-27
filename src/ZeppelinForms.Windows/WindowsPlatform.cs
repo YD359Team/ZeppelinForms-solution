@@ -45,7 +45,8 @@ public partial class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMot
 
     /// <summary>A Win32 window places itself.</summary>
     public PlatformCapabilities Capabilities => PlatformCapabilities.WindowPositioning 
-        | PlatformCapabilities.WindowHiding | PlatformCapabilities.SystemTray;
+        | PlatformCapabilities.WindowHiding | PlatformCapabilities.SystemTray
+        | PlatformCapabilities.TaskbarProgress | PlatformCapabilities.TaskbarBadge | PlatformCapabilities.WindowAttention;
 
     public bool PrefersReducedMotion => _reducedMotion;
 
@@ -78,12 +79,32 @@ public partial class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMot
 
     public IPlatformWindow CreateWindow(Form form)
     {
+        ApplyAppId();
+
         var window = new Win32Window(this, form);
         window.Create();
         form.PlatformWindow = window;
         form.Platform = this;
         _windowCount++;
         return window;
+    }
+
+    private static bool s_appIdApplied;
+
+    /// <summary>The application's id as the process's application user model id, before
+    /// the first window: the taskbar groups the windows by it. Only an id the application
+    /// set (see <see cref="App.Id"/>): one taken from the assembly would part the running
+    /// window from the button pinned from a shortcut made without an id.</summary>
+    private static void ApplyAppId()
+    {
+        if (s_appIdApplied || !App.IsIdSet) return;
+
+        s_appIdApplied = true;
+
+        int hr = TaskbarNative.SetCurrentProcessExplicitAppUserModelID(App.Id);
+
+        if (hr < 0)
+            System.Diagnostics.Debug.WriteLine($"ZeppelinForms: the application user model id was refused: 0x{hr:X8}");
     }
 
     internal void WindowDestroyed()

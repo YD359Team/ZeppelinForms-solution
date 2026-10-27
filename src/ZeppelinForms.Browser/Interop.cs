@@ -83,6 +83,19 @@ internal static partial class Interop
     [JSImport("setFavicon", ModuleName)]
     internal static partial void SetFavicon(string dataUrl);
 
+    /// <summary>Blink the tab's title while the page is in the background, until it is
+    /// shown or focused.</summary>
+    [JSImport("requestAttention", ModuleName)]
+    internal static partial void RequestAttention();
+
+    /// <summary>The browser has the Badging API: an installed web application's badge.</summary>
+    [JSImport("supportsAppBadge", ModuleName)]
+    internal static partial bool SupportsAppBadge();
+
+    /// <summary>The installed application's badge; 0 clears it.</summary>
+    [JSImport("setAppBadge", ModuleName)]
+    internal static partial void SetAppBadge(int count);
+
     /// <summary>The page's color scheme and theme color; an empty background gives the
     /// theme color back to the page's own.</summary>
     [JSImport("setTitleBarAppearance", ModuleName)]

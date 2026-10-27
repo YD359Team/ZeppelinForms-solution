@@ -37,6 +37,25 @@
   under the element; a key closes a tooltip as a pointer press does, a modifier alone doesn't
 - A tooltip goes away with its element instead of hanging where the element was
 
+### The application and its taskbar button
+
+- `App.Id`, `App.DisplayName` and `App.Version` — read from the entry assembly until set:
+  `App.Version` is the project's `<Version>` without the SDK's "+commit". The id is the
+  window class on X11 (there was none, and docks showed the window apart from its launcher),
+  the app_id on Wayland (it was the assembly's name, spaces and all: "ZF Linux" is "ZF-Linux"
+  now) and, when set, the application user model id on Windows
+- `Form.Taskbar`: `ProgressState`, `ProgressValue` and `Badge` of the form's taskbar button —
+  ITaskbarList3 and an overlay badge on Windows; the launcher entry
+  (`com.canonical.Unity.LauncherEntry`) on Linux, X11 and Wayland; an installed web app's
+  badge in the browser
+- `Form.RequestAttention()`: the taskbar button flashes on Windows, the window is marked as
+  demanding attention on X11 and, through xdg-activation, on Wayland; the tab's title blinks
+  in the browser
+- `PlatformCapabilities.TaskbarProgress`, `TaskbarBadge`, `WindowAttention`; `ITaskbarWindow`
+  for the windows of a platform of one's own
+- The version in one place: Directory.Build.props' `<Version>` is the extension's and the
+  Android example's version too
+
 ### Inside
 
 - `Form` and `UIElement` are split by concern into partial files — `Form.Pointer`,

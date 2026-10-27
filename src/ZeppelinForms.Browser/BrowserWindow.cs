@@ -15,7 +15,7 @@ namespace ZeppelinForms.Browser;
 /// doesn't implement IDesktopWindow: a browser has no title bar, transparency or
 /// window state, and Form skips those calls by itself when it sees null.
 /// </summary>
-internal sealed class BrowserWindow : IPlatformWindow, ITextInputMethodWindow, INativeControlHostWindow
+internal sealed partial class BrowserWindow : IPlatformWindow, ITextInputMethodWindow, INativeControlHostWindow
 {
     private readonly BrowserPlatform _platform;
     private readonly Form _form;

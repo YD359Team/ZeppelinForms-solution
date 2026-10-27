@@ -5,7 +5,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Headless;
 
-public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow, INativeControlHostWindow
+public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow, INativeControlHostWindow, ITaskbarWindow
 {
     private readonly HeadlessPlatform _platform;
     private readonly Form _form;
@@ -186,6 +186,21 @@ public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInput
     public int CenterOnScreenCount { get; private set; }
 
     public void CenterOnScreen() => CenterOnScreenCount++;
+
+    /// <summary>The taskbar button's progress, as the form last gave it.</summary>
+    public (TaskbarProgressState State, double Value) TaskbarProgress { get; private set; }
+
+    /// <summary>The taskbar button's badge, as the form last gave it.</summary>
+    public int? TaskbarBadge { get; private set; }
+
+    /// <summary>How many times the form asked for the user's attention.</summary>
+    public int AttentionRequests { get; private set; }
+
+    public void SetTaskbarProgress(TaskbarProgressState state, double value) => TaskbarProgress = (state, value);
+
+    public void SetTaskbarBadge(int? count) => TaskbarBadge = count;
+
+    public void RequestAttention() => AttentionRequests++;
 
 
     /// <summary>Whether the window lets itself be placed. False plays a Wayland window:

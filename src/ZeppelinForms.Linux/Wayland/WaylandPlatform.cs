@@ -56,7 +56,9 @@ public sealed partial class WaylandPlatform : IPlatform, INestedLoopSupport
 
     /// <summary>Nothing beyond the minimum: the compositor alone places windows. The tray
     /// is there when a panel collects StatusNotifierItems.</summary>
-    public PlatformCapabilities Capabilities => PlatformCapabilities.WindowHiding | TrayCapability;
+    public PlatformCapabilities Capabilities => PlatformCapabilities.WindowHiding | TrayCapability
+        | (Activation is not null ? PlatformCapabilities.WindowAttention : PlatformCapabilities.None)
+        | X11Platform.LauncherCapability;
 
     internal WlCompositor Compositor { get; }
     internal WlShm Shm { get; }

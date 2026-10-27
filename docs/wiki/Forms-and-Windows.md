@@ -126,6 +126,53 @@ the interface language.
 A flyout that doesn't fit on its side opens on the opposite one and stays inside the
 window.
 
+## The taskbar button
+
+`form.Taskbar` is the form's button on the taskbar or the dock: the progress of a long work
+and a count, seen without opening the window. `form.RequestAttention()` asks for the user
+without taking the focus — the button flashes until the window is activated.
+
+```csharp
+form.Taskbar.ProgressValue = done / (double)total;          // 0..1, turns the bar on
+form.Taskbar.ProgressState = TaskbarProgressState.Paused;   // Indeterminate, Normal, Paused, Error
+form.Taskbar.Badge = unread;                                 // null or 0 — none
+
+form.Taskbar.Clear();                                        // a plain button again
+form.RequestAttention();                                     // a background window only
+```
+
+| | Windows | Linux (X11, Wayland) | Browser |
+| --- | --- | --- | --- |
+| Progress | the taskbar button | the launcher entry | — |
+| Badge | an overlay in the button's corner | the launcher entry's count | an installed web app's badge |
+| Attention | the button flashes | the window is marked | the tab's title blinks |
+
+On Linux the progress and the badge go to the dock as the launcher entry
+(`com.canonical.Unity.LauncherEntry`) of `application://{App.Id}.desktop` — KDE's task
+manager, Dash to Dock and Plank show it, GNOME's own dash doesn't. It is the application's:
+every form shows on the one entry, and `App.Id` has to be the name of its .desktop file.
+`PlatformCapabilities.TaskbarProgress`, `TaskbarBadge` and `WindowAttention` tell what the
+platform can. Values set before the form is shown come with its window.
+
+## The application's identity
+
+`App.Id`, `App.DisplayName` and `App.Version` say who the application is. Each is read from
+the entry assembly until set — `App.Version` is its `<Version>`, without the "+commit" the SDK
+appends — so a version kept in one place, the project file or Directory.Build.props, is
+there without writing it again:
+
+```csharp
+App.Id = "com.example.Orders";              // before Run: the windows are made with it
+new App(new WindowsPlatform()) { MainForm = new MainForm() }.Run();
+
+aboutLabel.Text = $"{App.DisplayName} {App.Version}";
+```
+
+The id groups the windows on the taskbar and finds the application's .desktop file: it is
+the window class (WM_CLASS) on X11, the app_id on Wayland and the application user model id
+on Windows. Windows gets it only when it is set — a running window with an id no longer
+groups with a button pinned from a shortcut made without one.
+
 ## Invoking on the window's thread
 
 The window belongs to the UI thread. Work from another thread reaches it through
