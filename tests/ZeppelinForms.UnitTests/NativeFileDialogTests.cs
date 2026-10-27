@@ -137,14 +137,14 @@ public sealed class NativeFileDialogTests : IDisposable
         Assert.Equal("orders.csv", picked.Name);
         Assert.Equal(path, picked.Path);
 
-        await using (Stream read = await picked.OpenReadAsync())
-            Assert.Equal("a,b", await new StreamReader(read).ReadToEndAsync());
+        await using (Stream read = await picked.OpenReadAsync(TestContext.Current.CancellationToken))
+            Assert.Equal("a,b", await new StreamReader(read).ReadToEndAsync(TestContext.Current.CancellationToken));
 
-        await using (Stream write = await picked.OpenWriteAsync())
-            await write.WriteAsync("1"u8.ToArray());
+        await using (Stream write = await picked.OpenWriteAsync(TestContext.Current.CancellationToken))
+            await write.WriteAsync("1"u8.ToArray(), TestContext.Current.CancellationToken);
 
         // the new content only: what was there goes
-        Assert.Equal("1", await System.IO.File.ReadAllTextAsync(path));
+        Assert.Equal("1", await System.IO.File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -157,10 +157,10 @@ public sealed class NativeFileDialogTests : IDisposable
 
         Assert.NotNull(picked);
 
-        await using (Stream write = await picked.OpenWriteAsync())
-            await write.WriteAsync("done"u8.ToArray());
+        await using (Stream write = await picked.OpenWriteAsync(TestContext.Current.CancellationToken))
+            await write.WriteAsync("done"u8.ToArray(), TestContext.Current.CancellationToken);
 
-        Assert.Equal("done", await System.IO.File.ReadAllTextAsync(path));
+        Assert.Equal("done", await System.IO.File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
         Assert.Equal(FileDialogMode.Save, _asked.Single().Mode);
     }
 
