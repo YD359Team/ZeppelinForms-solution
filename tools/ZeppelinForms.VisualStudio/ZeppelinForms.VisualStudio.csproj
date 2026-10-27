@@ -1,4 +1,4 @@
-﻿﻿<Project>
+﻿<Project>
 
 	<!-- The Visual Studio extension: the previewer's tool window, .zss highlighting
 	     and .zss problems in the Error List. Builds with Visual Studio's MSBuild on
