@@ -82,11 +82,33 @@ public sealed class TreeNode
             if (field == value) return;
 
             field = value;
+
+            // before the rows are rebuilt: a handler that fills the children in place
+            // gets them into the very rebuild the expansion makes
+            if (value) RaiseExpanding();
+
             RaiseChanged(TreeChangeKind.Structure);
         }
     }
 
-    public bool HasChildren => Children.Count > 0;
+    /// <summary>The node has children that are not made yet — a folder not read, a
+    /// record not loaded. It shows the expander as a node with children does, and
+    /// <see cref="TreeView.NodeExpanding"/> is where the children are made.</summary>
+    /// <remarks>Reset it once the children are known: a node that turned out to be
+    /// empty loses the expander only then.</remarks>
+    public bool HasUnrealizedChildren
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            RaiseChanged(TreeChangeKind.Content);
+        }
+    }
+
+    public bool HasChildren => Children.Count > 0 || HasUnrealizedChildren;
 
     /// <summary>The depth from the root. Computed by walking up rather than stored:
     /// a stored field would have to be updated on every subtree move,
@@ -113,6 +135,10 @@ public sealed class TreeNode
     /// <summary>A node of the subtree was checked or unchecked — raised at the root,
     /// as <see cref="Changed"/> is.</summary>
     internal event Action<TreeNode>? CheckedChanged;
+
+    /// <summary>A node of the subtree is being expanded — raised at the root,
+    /// as <see cref="Changed"/> is.</summary>
+    internal event Action<TreeNode>? Expanding;
 
     public void Expand() => IsExpanded = true;
 
@@ -146,6 +172,16 @@ public sealed class TreeNode
         }
 
         RaiseChanged(TreeChangeKind.Structure);
+    }
+
+    private void RaiseExpanding()
+    {
+        TreeNode root = this;
+
+        while (root.Parent is not null)
+            root = root.Parent;
+
+        root.Expanding?.Invoke(this);
     }
 
     private void RaiseCheckedChanged()
