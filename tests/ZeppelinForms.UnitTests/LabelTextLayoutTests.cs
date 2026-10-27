@@ -207,18 +207,4 @@ public class LabelTextLayoutTests
         Assert.Equal(10 + 40 - 4, metrics.Baseline(10, 40, VerticalContentAlignment.Bottom), 0.01f);
         Assert.Equal(10 + 10 + 16, metrics.Baseline(10, 40, VerticalContentAlignment.Center), 0.01f);
     }
-
-    [Fact]
-    public void RichLabelKeepsItsOldNamesWorking()
-    {
-        var label = new RichLabel();
-
-#pragma warning disable CS0618 // the old names stay for one release, forwarding
-        label.ContentAlign = HorizontalContentAlignment.Right;
-        label.ContentVerticalAlign = VerticalContentAlignment.Bottom;
-#pragma warning restore CS0618
-
-        Assert.Equal(HorizontalContentAlignment.Right, label.HorizontalContentAlign);
-        Assert.Equal(VerticalContentAlignment.Bottom, label.VerticalContentAlign);
-    }
 }

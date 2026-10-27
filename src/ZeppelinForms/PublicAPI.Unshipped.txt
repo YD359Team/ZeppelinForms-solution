@@ -5,3 +5,10 @@ ZeppelinForms.Forms.Controls.Tree.TreeNode.HasUnrealizedChildren.set -> void
 ZeppelinForms.Forms.Controls.Tree.TreeView.BeginUpdate() -> void
 ZeppelinForms.Forms.Controls.Tree.TreeView.EndUpdate() -> void
 ZeppelinForms.Forms.Controls.Tree.TreeView.NodeExpanding -> System.EventHandler<ZeppelinForms.Forms.Controls.Tree.TreeNode!>?
+*REMOVED*ZeppelinForms.Forms.Controls.PropertyGrid.RowTextColor.get -> ZeppelinForms.Drawing.Primitives.Color
+*REMOVED*ZeppelinForms.Forms.Controls.PropertyGrid.RowTextColor.set -> void
+*REMOVED*ZeppelinForms.Forms.Controls.Text.RichLabel.ContentAlign.get -> ZeppelinForms.Forms.Enums.HorizontalContentAlignment
+*REMOVED*ZeppelinForms.Forms.Controls.Text.RichLabel.ContentAlign.set -> void
+*REMOVED*ZeppelinForms.Forms.Controls.Text.RichLabel.ContentVerticalAlign.get -> ZeppelinForms.Forms.Enums.VerticalContentAlignment
+*REMOVED*ZeppelinForms.Forms.Controls.Text.RichLabel.ContentVerticalAlign.set -> void
+*REMOVED*static ZeppelinForms.Forms.Controls.Text.MaskDefinition.Phone.get -> ZeppelinForms.Forms.Controls.Text.MaskDefinition!

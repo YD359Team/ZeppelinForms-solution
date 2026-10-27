@@ -137,7 +137,13 @@ public partial class RadarChart : ChartBase
         DrawLabels(g, center, radius, axes);
 
         float scale = Scale;
-        Span<Point> vertices = axes <= 32 ? stackalloc Point[axes] : new Point[axes];
+
+        // one buffer for every series, taken outside the loop (a stackalloc inside it
+        // would grow the stack with each series, CA2014): the polygon is its first
+        // points, the outline the same points with the first repeated at the end —
+        // DrawPolyline doesn't close the line
+        Span<Point> outline = axes + 1 <= 33 ? stackalloc Point[axes + 1] : new Point[axes + 1];
+        Span<Point> vertices = outline[..axes];
 
         for (int s = 0; s < Series.Count; s++)
         {
@@ -155,11 +161,7 @@ public partial class RadarChart : ChartBase
 
             g.FillPolygon(vertices, color.WithA((byte)(255 * Math.Clamp(FillOpacity, 0f, 1f))));
 
-#pragma warning disable CA2014
             // the outline is closed by us: DrawPolyline doesn't close the line
-            Span<Point> outline = axes + 1 <= 33 ? stackalloc Point[axes + 1] : new Point[axes + 1];
-#pragma warning restore CA2014
-            vertices.CopyTo(outline);
             outline[axes] = vertices[0];
 
             g.DrawPolyline(outline, color, 2f);

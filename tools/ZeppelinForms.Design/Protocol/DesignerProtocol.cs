@@ -615,9 +615,9 @@ namespace ZeppelinForms.Design.Protocol
 
         public void Send(DesignerMessage message)
         {
-#pragma warning disable CA1510
-            if (message == null) throw new ArgumentNullException(nameof(message));
-#pragma warning restore CA1510
+            // as the constructor checks its stream: ThrowIfNull isn't in netstandard2.0,
+            // and this form isn't what CA1510 asks to replace
+            _ = message ?? throw new ArgumentNullException(nameof(message));
 
             byte[] payload;
 

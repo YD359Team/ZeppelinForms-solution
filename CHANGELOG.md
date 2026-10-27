@@ -8,6 +8,10 @@
   and Avalonia take `Name`). A class whose code already has a member of that name gets
   the compiler's CS0102; a name that can't be a field — `main-panel` — still only names
   the element
+- Removed what was obsolete since 0.13–0.16: `MaskDefinition.Phone` (use `RussianPhone` or a
+  pattern of your own), `RichLabel.ContentAlign` and `ContentVerticalAlign` (use
+  `HorizontalContentAlign` and `VerticalContentAlign`), `PropertyGrid.RowTextColor` (the
+  names take `NameColor`, which the theme sets)
 
 ### Markup
 
@@ -17,6 +21,16 @@
 - A class the markup alone declares is public
 - A wiki section and a README example of a whole form in markup; the showcase's Markup
   page opens one, `FeedbackForm.zfml`
+
+### Inside
+
+- `Form` and `UIElement` are split by concern into partial files — `Form.Pointer`,
+  `Form.KeyboardInput`, `Form.Layout`, `Form.Overlays`, `Form.Dialogs`, `Form.ToolTip`,
+  `Form.Inspector`, `Form.DragDrop`, `Form.Theme`, `Form.Localization`; `UIElement.Input`,
+  `UIElement.Bindings`, `UIElement.Values`, `UIElement.Transitions`, `UIElement.Layout`,
+  `UIElement.Localization`. Nothing in them changed but the place
+- `RadarChart` takes one stack buffer for all its series instead of one per series (CA2014),
+  and the designer protocol checks its argument without a suppressed warning
 
 
 ## [0.18.1]
