@@ -367,6 +367,7 @@ public partial class Form : IDisposable
         _focusDispatcher.FocusChanged += OnFocusChangedForKeyboard;
         _focusDispatcher.FocusChanged += OnFocusChangedForAccessibility;
         _focusDispatcher.FocusChanged += OnFocusChangedForStyles;
+        _focusDispatcher.FocusChanged += OnFocusChangedForToolTip;
     }
 
     /// <summary>Give focus to the first text field when the form is shown.

@@ -42,6 +42,12 @@ public partial class Form
         // already find the form in keyboard mode, and the new focus shown
         NoteKeyboardInput(key);
 
+        // a key closes a tooltip, as a pointer press does: the user is doing something
+        // now, and the tip would cover what the key changes. Modifiers alone don't count
+        // — Ctrl held over a button is not an answer to its tooltip. Tab closes the old
+        // focus's tip here and the new focus opens its own (OnFocusChangedForToolTip)
+        if (!IsModifierKey(key)) HideToolTip();
+
         if (key == Key.F12 || (key == Key.I && modifiers.HasFlag(KeyModifiers.Control) && modifiers.HasFlag(KeyModifiers.Shift)))
         {
             ToggleInspector();

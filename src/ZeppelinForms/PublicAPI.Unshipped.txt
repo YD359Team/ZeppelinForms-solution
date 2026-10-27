@@ -12,3 +12,17 @@ ZeppelinForms.Forms.Controls.Tree.TreeView.NodeExpanding -> System.EventHandler<
 *REMOVED*ZeppelinForms.Forms.Controls.Text.RichLabel.ContentVerticalAlign.get -> ZeppelinForms.Forms.Enums.VerticalContentAlignment
 *REMOVED*ZeppelinForms.Forms.Controls.Text.RichLabel.ContentVerticalAlign.set -> void
 *REMOVED*static ZeppelinForms.Forms.Controls.Text.MaskDefinition.Phone.get -> ZeppelinForms.Forms.Controls.Text.MaskDefinition!
+ZeppelinForms.Forms.Controls.Base.UIElement.ToolTipContent.get -> ZeppelinForms.Forms.Controls.Base.UIElement?
+ZeppelinForms.Forms.Controls.Base.UIElement.ToolTipContent.set -> void
+ZeppelinForms.Forms.Controls.Base.UIElement.ToolTipDelay.get -> int?
+ZeppelinForms.Forms.Controls.Base.UIElement.ToolTipDelay.set -> void
+ZeppelinForms.Forms.Controls.ToolTip
+ZeppelinForms.Forms.Controls.ToolTip.MaxContentWidth.get -> float
+ZeppelinForms.Forms.Controls.ToolTip.MaxContentWidth.set -> void
+ZeppelinForms.Forms.Controls.ToolTip.Text.get -> string?
+ZeppelinForms.Forms.Controls.ToolTip.Text.set -> void
+ZeppelinForms.Forms.Controls.ToolTip.ToolTip() -> void
+ZeppelinForms.Forms.Controls.ToolTip.ToolTip(string? text) -> void
+ZeppelinForms.Forms.Controls.ToolTip.ToolTip(ZeppelinForms.Forms.Controls.Base.UIElement! content) -> void
+override ZeppelinForms.Forms.Controls.ToolTip.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
+static readonly ZeppelinForms.Forms.Controls.ToolTip.MaxContentWidthProperty -> ZeppelinForms.Forms.Styling.StyledProperty<float>!

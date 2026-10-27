@@ -577,6 +577,21 @@ public static partial class Themes
                 presenter.BorderWidth = 1f;
                 presenter.CornerRadius = t.Metrics.OverlayCornerRadius;
                 presenter.BoxShadow = BoxShadow.Medium;
-            });
+            })
+
+            // a tooltip is a small overlay: the same surface and edge as a flyout, the
+            // overlay rounding, and a lighter shadow — it is a hint, not a panel to work in.
+            // The text is the theme's text, not black on a pale yellow: in a dark theme
+            // the old fixed colors stayed light
+            .For<ToolTip>((tip, t) =>
+            {
+                ThemeColors c = t.Colors;
+
+                tip.Background = c.Surface;
+                tip.BorderColor = c.Border;
+                tip.BorderWidth = t.Metrics.StrokeThickness;
+                tip.CornerRadius = t.Metrics.OverlayCornerRadius;
+                tip.BoxShadow = BoxShadow.Small;
+            }); ;
     }
 }

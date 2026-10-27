@@ -306,6 +306,10 @@ public abstract partial class UIElement
         }
     }
 
+    /// <summary>Play <see cref="EnterTransition"/> now, for an element that appears without
+    /// a parent's arrange to bring it in: an overlay of the form.</summary>
+    internal void PlayEnterTransition() => StartEnterTransition();
+
     private void StartEnterTransition()
     {
         if (!TransitionsActive) return;

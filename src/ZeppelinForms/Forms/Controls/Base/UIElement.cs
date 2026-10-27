@@ -446,6 +446,18 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
     public string? ToolTip { get; set; }
 
+    /// <summary>A tooltip of any content — an image, a few lines of different weight —
+    /// shown instead of <see cref="ToolTip"/>. The element is lent to the tooltip while
+    /// it is shown and given back when it closes, so one instance serves every showing.</summary>
+    /// <remarks>Set <see cref="ToolTip"/> too where there is a text to say: it is what
+    /// a screen reader reads as the element's description.</remarks>
+    public UIElement? ToolTipContent { get; set; }
+
+    /// <summary>How long the pointer rests on the element, or the keyboard focus
+    /// stays on it, before its tooltip shows, in milliseconds. Null — the form's
+    /// <see cref="Form.ToolTipDelay"/>.</summary>
+    public int? ToolTipDelay { get; set; }
+
     /// <summary>The tooltip at a point of the form: <see cref="ToolTip"/> by default.
     /// An element that draws parts of its own — dots, cells, chart points — answers
     /// with the part's text, and calls <see cref="RefreshToolTip"/> when the part

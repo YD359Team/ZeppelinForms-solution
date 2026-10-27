@@ -43,6 +43,10 @@ public partial class Form
 
         _overlays.Add(content);
         RaiseOverlaysChanged();
+
+        // an overlay has no parent whose arrange would bring it in: one that asks to
+        // appear with a transition — a tooltip fades in — starts it here
+        content.PlayEnterTransition();
     }
 
     /// <summary>Remove an overlay and detach the subtree. Without detaching,
@@ -123,8 +127,13 @@ public partial class Form
         if (InspectedElement is not null && IsInTree(root, InspectedElement))
             InspectedElement = null;
 
+        // the element whose tooltip is waited for or shown left: the tooltip goes too,
+        // or it would hang over the place the element was until the pointer moved
         if (_toolTipOwner is not null && IsInTree(root, _toolTipOwner))
+        {
+            HideToolTip();
             _toolTipOwner = null;
+        }
 
         CancelAnimationsIn(root);
     }
