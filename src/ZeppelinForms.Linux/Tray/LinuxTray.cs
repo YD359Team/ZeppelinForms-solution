@@ -14,8 +14,21 @@ internal sealed class LinuxTray
     /// time it is asked.</summary>
     public bool IsHostPresent => _hostPresent ??= StatusNotifierItem.IsHostPresent();
 
-    /// <summary>The icons, for the loop's poll.</summary>
+    /// <summary>The icons.</summary>
     public IReadOnlyList<StatusNotifierItem> Items => _items;
+
+    /// <summary>The desktop's notifications: on the session bus too, and polled with the icons.</summary>
+    public LinuxNotifications Notifications { get; } = new();
+
+    /// <summary>The sockets the loop waits on for the session bus's calls and signals:
+    /// each icon's and the notifications'. −1 for one that isn't open.</summary>
+    public void CollectFileDescriptors(List<int> into)
+    {
+        foreach (StatusNotifierItem item in _items)
+            into.Add(item.FileDescriptor);
+
+        into.Add(Notifications.FileDescriptor);
+    }
 
     /// <summary>The icon on the bus; null without a session bus. Without a panel yet it
     /// waits on the bus and appears when one comes.</summary>
@@ -34,5 +47,7 @@ internal sealed class LinuxTray
     {
         foreach (StatusNotifierItem item in _items.ToArray())
             App.RunGuarded(item.Poll);
+
+        App.RunGuarded(Notifications.Poll);
     }
 }

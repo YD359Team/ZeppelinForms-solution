@@ -658,6 +658,56 @@ export function requestAttention() {
     document.addEventListener("visibilitychange", stop);
 }
 
+// ===== notifications =====
+
+// The Notification API: the page's own notifications, which the browser shows as the
+// system's. The first one asks the user's permission; refused, it closes at once.
+export function supportsNotifications() {
+    return "Notification" in globalThis && Notification.permission !== "denied";
+}
+
+export function showNotification(id, title, body, icon) {
+    if (!("Notification" in globalThis)) {
+        zf().OnNotificationClosed(id);
+        return;
+    }
+
+    const show = () => {
+        const options = { body: body || undefined };
+
+        if (icon) {
+            options.icon = icon;
+        }
+
+        const notification = new Notification(title, options);
+
+        notification.onclick = () => {
+            // the page the notification is of comes forward, as a desktop application's
+            // window would. The click is told before closing it: close() fires onclose at
+            // once, and a notification closed first has no click to come
+            window.focus();
+            zf().OnNotificationClicked(id);
+            notification.close();
+        };
+
+        notification.onclose = () => zf().OnNotificationClosed(id);
+        notification.onerror = () => zf().OnNotificationClosed(id);
+    };
+
+    if (Notification.permission === "granted") {
+        show();
+        return;
+    }
+
+    Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+            show();
+        } else {
+            zf().OnNotificationClosed(id);
+        }
+    });
+}
+
 // The Badging API: the badge of an installed web application — on its icon in the
 // taskbar or the dock. Chromium browsers have it; in a tab it does nothing.
 export function supportsAppBadge() {

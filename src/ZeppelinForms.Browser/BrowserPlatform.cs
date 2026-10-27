@@ -34,7 +34,8 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
     /// place or hide, no tray and no progress on a taskbar.</summary>
     public PlatformCapabilities Capabilities =>
         PlatformCapabilities.WindowAttention
-        | (_supportsAppBadge ??= Interop.SupportsAppBadge() ? PlatformCapabilities.TaskbarBadge : PlatformCapabilities.None);
+        | (_supportsAppBadge ??= Interop.SupportsAppBadge() ? PlatformCapabilities.TaskbarBadge : PlatformCapabilities.None)
+        | (Interop.SupportsNotifications() ? PlatformCapabilities.Notifications : PlatformCapabilities.None);
 
     private PlatformCapabilities? _supportsAppBadge;
 

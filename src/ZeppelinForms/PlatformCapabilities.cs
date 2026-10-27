@@ -43,4 +43,9 @@ public enum PlatformCapabilities
     /// Windows, the window is marked on X11 and, through xdg-activation, on Wayland; the
     /// tab's title blinks in the browser. Not on Android.</summary>
     WindowAttention = 1 << 5,
+
+    /// <summary><see cref="Forms.Notifications"/> shows: a toast through the tray on Windows;
+    /// a notification daemon on the session bus on Linux; the Notification API in the
+    /// browser, where the user may still refuse the permission. Not on Android yet.</summary>
+    Notifications = 1 << 6,
 }

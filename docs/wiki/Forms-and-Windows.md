@@ -154,6 +154,42 @@ every form shows on the one entry, and `App.Id` has to be the name of its .deskt
 `PlatformCapabilities.TaskbarProgress`, `TaskbarBadge` and `WindowAttention` tell what the
 platform can. Values set before the form is shown come with its window.
 
+## Notifications
+
+`Notifications.Show` shows the system's notification — outside the windows, in the corner
+of the screen and in the notification center. `Clicked` comes on the UI thread; `Activate`
+brings the form forward from there.
+
+```csharp
+var done = new Notification("Export finished", "orders.csv — 1 248 rows")
+{
+    Kind = NotificationKind.Information,     // None, Information, Warning, Error
+};
+
+done.Clicked += (_, _) => form.Activate();
+Notifications.Show(done);
+
+// or in one line; null — the platform has none
+Notifications.Show("Sync failed", "The server didn't answer", NotificationKind.Error);
+
+// from a tray icon: its balloon on Windows, as NotifyIcon.ShowBalloonTip
+tray.ShowNotification("Synced", "3 files");
+```
+
+| Platform | Shown as |
+| --- | --- |
+| Windows | a balloon of a tray icon, which Windows 10 and 11 show as a toast. A visible `TrayIcon` of the application carries it; without one the application's icon is put into the tray for as long as the notification lasts |
+| Linux, X11 and Wayland | `org.freedesktop.Notifications` on the session bus — GNOME, KDE, XFCE, mako, dunst. The `desktop-entry` hint is `App.Id`, so the application's .desktop file gives it its name and icon; an error stays until dismissed |
+| Browser | the Notification API; the first notification asks the user's permission, and a refusal closes it |
+
+`Closed` comes once: clicked, dismissed, timed out, or replaced by a newer balloon of the
+same tray icon. `PlatformCapabilities.Notifications` tells whether there is a way; Android
+has none yet.
+
+`form.Activate()` brings a window forward and gives it the keyboard — a hidden form is
+shown again first. The systems let an application do it after the user's own input, such
+as a click on its notification or tray icon; otherwise the button flashes instead.
+
 ## The application's identity
 
 `App.Id`, `App.DisplayName` and `App.Version` say who the application is. Each is read from

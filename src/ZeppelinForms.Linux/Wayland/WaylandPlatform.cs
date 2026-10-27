@@ -58,7 +58,7 @@ public sealed partial class WaylandPlatform : IPlatform, INestedLoopSupport
     /// is there when a panel collects StatusNotifierItems.</summary>
     public PlatformCapabilities Capabilities => PlatformCapabilities.WindowHiding | TrayCapability
         | (Activation is not null ? PlatformCapabilities.WindowAttention : PlatformCapabilities.None)
-        | X11Platform.LauncherCapability;
+        | X11Platform.LauncherCapability | NotificationCapability;
 
     internal WlCompositor Compositor { get; }
     internal WlShm Shm { get; }
@@ -397,15 +397,18 @@ public sealed partial class WaylandPlatform : IPlatform, INestedLoopSupport
 
         _connection.Flush();
 
-        // the display, the wake pipe, the portal's bus, then the tray icons' buses
-        IReadOnlyList<StatusNotifierItem> trayItems = _tray.Items;
-        Span<Poll.Entry> entries = stackalloc Poll.Entry[3 + trayItems.Count];
+        // the display, the wake pipe, the portal's bus, then the tray icons' and the
+        // notifications' buses
+        _trayDescriptors.Clear();
+        _tray.CollectFileDescriptors(_trayDescriptors);
+
+        Span<Poll.Entry> entries = stackalloc Poll.Entry[3 + _trayDescriptors.Count];
         entries[0] = new Poll.Entry { Fd = _connection.FileDescriptor, Events = Poll.In };
         entries[1] = new Poll.Entry { Fd = _wake.FileDescriptor, Events = Poll.In };
         entries[2] = new Poll.Entry { Fd = _appearance?.FileDescriptor ?? -1, Events = Poll.In };
 
-        for (int i = 0; i < trayItems.Count; i++)
-            entries[3 + i] = new Poll.Entry { Fd = trayItems[i].FileDescriptor, Events = Poll.In };
+        for (int i = 0; i < _trayDescriptors.Count; i++)
+            entries[3 + i] = new Poll.Entry { Fd = _trayDescriptors[i], Events = Poll.In };
 
         Poll.Wait(entries, WaitTimeout());
 

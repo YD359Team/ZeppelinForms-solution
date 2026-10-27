@@ -56,6 +56,21 @@
 - The version in one place: Directory.Build.props' `<Version>` is the extension's and the
   Android example's version too
 
+### Notifications
+
+- `Notifications.Show(notification)` and `Notifications.Show(title, text, kind)`: the system's
+  notification with a title, a text and a kind (`None`, `Information`, `Warning`, `Error`),
+  its `Clicked` on the UI thread and `Closed` once. A balloon of a tray icon on Windows —
+  shown as a toast by Windows 10 and 11 — with the application's icon put into the tray for
+  it when the application shows none; `org.freedesktop.Notifications` on Linux, X11 and
+  Wayland; the Notification API in the browser, permission asked with the first
+- `TrayIcon.ShowNotification`: the icon's own balloon on Windows, as WinForms'
+  `NotifyIcon.ShowBalloonTip`; a notification as any other elsewhere
+- `Form.Activate()`: the window forward with the keyboard, a hidden form shown again —
+  the answer to a click on a notification or a tray icon
+- `PlatformCapabilities.Notifications`; the headless platform keeps the notifications, and
+  plays their clicks and closings for tests
+
 ### Inside
 
 - `Form` and `UIElement` are split by concern into partial files — `Form.Pointer`,

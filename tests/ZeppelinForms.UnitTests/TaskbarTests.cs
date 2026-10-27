@@ -81,6 +81,29 @@ public class TaskbarTests
         Assert.Equal(1, window.AttentionRequests);
     }
 
+    [Fact]
+    public void ActivateBringsAHiddenFormBackAndForward()
+    {
+        var (form, window) = Show();
+        form.Show();
+        form.Hide();
+
+        form.Activate();
+
+        Assert.True(form.Visible);
+        Assert.True(window.IsActive);
+    }
+
+    [Fact]
+    public void ActivateLeavesAFormNeverShown()
+    {
+        var form = new Form();
+
+        form.Activate();
+
+        Assert.False(form.Visible);
+    }
+
     [Theory]
     [InlineData("ZF Linux", "ZF-Linux")]
     [InlineData("com.example.Orders", "com.example.Orders")]

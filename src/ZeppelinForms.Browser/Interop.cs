@@ -96,6 +96,25 @@ internal static partial class Interop
     [JSImport("setAppBadge", ModuleName)]
     internal static partial void SetAppBadge(int count);
 
+    /// <summary>The browser has the Notification API, and the user hasn't refused it.</summary>
+    [JSImport("supportsNotifications", ModuleName)]
+    internal static partial bool SupportsNotifications();
+
+    /// <summary>Show a web notification, asking the permission first where it wasn't
+    /// given yet. Its click and its closing come back by the id.</summary>
+    [JSImport("showNotification", ModuleName)]
+    internal static partial void ShowNotification(int id, string title, string body, string icon);
+
+    /// <summary>A notification was clicked: the page is brought forward by the script.</summary>
+    [JSExport]
+    internal static void OnNotificationClicked(int id) =>
+        App.RunGuarded(() => Platform?.HandleNotificationClicked(id));
+
+    /// <summary>A notification went — or never came: the permission was refused.</summary>
+    [JSExport]
+    internal static void OnNotificationClosed(int id) =>
+        App.RunGuarded(() => Platform?.HandleNotificationClosed(id));
+
     /// <summary>The page's color scheme and theme color; an empty background gives the
     /// theme color back to the page's own.</summary>
     [JSImport("setTitleBarAppearance", ModuleName)]

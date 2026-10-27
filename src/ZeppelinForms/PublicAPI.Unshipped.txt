@@ -61,3 +61,30 @@ ZeppelinForms.ITaskbarWindow.SetTaskbarProgress(ZeppelinForms.Forms.TaskbarProgr
 ZeppelinForms.PlatformCapabilities.TaskbarBadge = 16 -> ZeppelinForms.PlatformCapabilities
 ZeppelinForms.PlatformCapabilities.TaskbarProgress = 8 -> ZeppelinForms.PlatformCapabilities
 ZeppelinForms.PlatformCapabilities.WindowAttention = 32 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.Forms.Form.Activate() -> void
+ZeppelinForms.Forms.Notification
+ZeppelinForms.Forms.Notification.Clicked -> System.EventHandler?
+ZeppelinForms.Forms.Notification.Closed -> System.EventHandler?
+ZeppelinForms.Forms.Notification.IsShown.get -> bool
+ZeppelinForms.Forms.Notification.Kind.get -> ZeppelinForms.Forms.NotificationKind
+ZeppelinForms.Forms.Notification.Kind.init -> void
+ZeppelinForms.Forms.Notification.Notification(string! title, string? text = null) -> void
+ZeppelinForms.Forms.Notification.Text.get -> string?
+ZeppelinForms.Forms.Notification.Text.init -> void
+ZeppelinForms.Forms.Notification.Title.get -> string!
+ZeppelinForms.Forms.NotificationKind
+ZeppelinForms.Forms.NotificationKind.Error = 3 -> ZeppelinForms.Forms.NotificationKind
+ZeppelinForms.Forms.NotificationKind.Information = 1 -> ZeppelinForms.Forms.NotificationKind
+ZeppelinForms.Forms.NotificationKind.None = 0 -> ZeppelinForms.Forms.NotificationKind
+ZeppelinForms.Forms.NotificationKind.Warning = 2 -> ZeppelinForms.Forms.NotificationKind
+ZeppelinForms.Forms.Notifications
+static ZeppelinForms.Forms.Notifications.Show(ZeppelinForms.Forms.Notification! notification) -> bool
+static ZeppelinForms.Forms.Notifications.Show(string! title, string? text = null, ZeppelinForms.Forms.NotificationKind kind = ZeppelinForms.Forms.NotificationKind.Information) -> ZeppelinForms.Forms.Notification?
+ZeppelinForms.Forms.TrayIcon.ShowNotification(ZeppelinForms.Forms.Notification! notification) -> bool
+ZeppelinForms.Forms.TrayIcon.ShowNotification(string! title, string? text = null, ZeppelinForms.Forms.NotificationKind kind = ZeppelinForms.Forms.NotificationKind.Information) -> ZeppelinForms.Forms.Notification?
+ZeppelinForms.Headless.HeadlessPlatform.ClickNotification(ZeppelinForms.Forms.Notification! notification) -> void
+ZeppelinForms.Headless.HeadlessPlatform.CloseNotification(ZeppelinForms.Forms.Notification! notification) -> void
+ZeppelinForms.Headless.HeadlessPlatform.Notifications.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Notification!>!
+ZeppelinForms.Headless.HeadlessPlatform.RefuseNotifications.get -> bool
+ZeppelinForms.Headless.HeadlessPlatform.RefuseNotifications.set -> void
+ZeppelinForms.PlatformCapabilities.Notifications = 64 -> ZeppelinForms.PlatformCapabilities

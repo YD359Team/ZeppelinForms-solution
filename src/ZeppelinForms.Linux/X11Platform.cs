@@ -23,7 +23,7 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
     /// The tray is there when a panel collects StatusNotifierItems.</summary>
     public PlatformCapabilities Capabilities =>
         PlatformCapabilities.WindowPositioning | PlatformCapabilities.WindowHiding | TrayCapability
-        | PlatformCapabilities.WindowAttention | LauncherCapability;
+        | PlatformCapabilities.WindowAttention | LauncherCapability | NotificationCapability;
 
     /// <summary>The launcher entry goes on the session bus: the progress and the badge are
     /// sent where there is one. Whether a dock shows them is the dock's.</summary>

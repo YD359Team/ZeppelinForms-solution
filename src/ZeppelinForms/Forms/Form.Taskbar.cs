@@ -1,6 +1,7 @@
 ﻿namespace ZeppelinForms.Forms;
 
-/// <summary>The form's button on the taskbar or the dock, and asking for attention.</summary>
+/// <summary>The form's button on the taskbar or the dock, asking for attention, and
+/// coming forward.</summary>
 public partial class Form
 {
     /// <summary>The form's button on the taskbar or the dock: progress and a badge.
@@ -20,5 +21,21 @@ public partial class Form
         if (IsActive) return;
 
         (PlatformWindow as ITaskbarWindow)?.RequestAttention();
+    }
+
+    /// <summary>Bring the window forward and give it the keyboard, as WinForms'
+    /// <c>Form.Activate</c> does: the answer to a click on a notification or on a tray icon.
+    /// A hidden form is shown again first; a form never shown is left as it is.</summary>
+    /// <remarks>The systems don't let an application take the focus whenever it likes:
+    /// Windows from the background and Wayland without the user's input may only flash
+    /// the button or mark the window instead. A click on a notification or a tray icon is
+    /// such input, and there it works.</remarks>
+    public void Activate()
+    {
+        if (PlatformWindow is null) return;
+
+        if (!Visible) Show();
+
+        PlatformWindow?.Activate();
     }
 }

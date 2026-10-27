@@ -40,6 +40,10 @@ internal sealed class Win32TrayIcon : ITrayIconImpl
     private nint _window;
     private nint _icon;
 
+    /// <summary>The notification the icon's balloon shows now: a newer one replaces it,
+    /// as the shell does.</summary>
+    private Notification? _balloon;
+
     public Win32TrayIcon(TrayIcon owner)
     {
         _owner = owner;
@@ -121,9 +125,63 @@ internal sealed class Win32TrayIcon : ITrayIconImpl
         if (previous != 0) NativeMethods.DestroyIcon(previous);
     }
 
+    // ===== the balloon =====
+
+    /// <summary>The icon's balloon — a toast on Windows 10 and 11, attributed to the icon.
+    /// The shell shows one balloon of an icon at a time: a new one replaces the one shown,
+    /// which closes.</summary>
+    public bool ShowNotification(Notification notification)
+    {
+        if (_window == 0) return false;
+
+        // the shell shows nothing without a text: a notification of a title alone
+        // gives the title as the text
+        string text = string.IsNullOrEmpty(notification.Text) ? notification.Title : notification.Text;
+        string title = string.IsNullOrEmpty(notification.Text) ? string.Empty : notification.Title;
+
+        NOTIFYICONDATAW data = Data(NIF_INFO);
+        data.szInfo = Truncate(text, 255);
+        data.szInfoTitle = Truncate(title, 63);
+
+        // quiet time: no balloon in the first hour after a user's first sign-in, as asked
+        data.dwInfoFlags = NIIF_RESPECT_QUIET_TIME | notification.Kind switch
+        {
+            NotificationKind.Information => NIIF_INFO,
+            NotificationKind.Warning => NIIF_WARNING,
+            NotificationKind.Error => NIIF_ERROR,
+            _ => NIIF_NONE,
+        };
+
+        if (!Shell_NotifyIcon(NIM_MODIFY, ref data)) return false;
+
+        Notification? replaced = _balloon;
+
+        _balloon = notification;
+        notification.MarkShown();
+
+        replaced?.RaiseClosed();
+
+        return true;
+    }
+
+    /// <summary>The balloon went: clicked, closed by the user, timed out or hidden.</summary>
+    private void OnBalloonGone(bool clicked)
+    {
+        Notification? balloon = _balloon;
+        _balloon = null;
+
+        if (balloon is null) return;
+
+        if (clicked) balloon.RaiseClicked();
+        balloon.RaiseClosed();
+    }
+
     public void Dispose()
     {
         if (_window == 0) return;
+
+        // the icon leaves the tray, and its balloon with it
+        OnBalloonGone(clicked: false);
 
         NOTIFYICONDATAW data = Data(0);
         Shell_NotifyIcon(NIM_DELETE, ref data);
@@ -162,6 +220,15 @@ internal sealed class Win32TrayIcon : ITrayIconImpl
 
                 case WM_CONTEXTMENU:
                     ShowMenu((short)(wParam.ToInt64() & 0xFFFF), (short)((wParam.ToInt64() >> 16) & 0xFFFF));
+                    break;
+
+                case NIN_BALLOONUSERCLICK:
+                    OnBalloonGone(clicked: true);
+                    break;
+
+                case NIN_BALLOONHIDE:
+                case NIN_BALLOONTIMEOUT:
+                    OnBalloonGone(clicked: false);
                     break;
             }
 
@@ -302,6 +369,9 @@ internal sealed class Win32TrayIcon : ITrayIconImpl
     private const uint NIF_MESSAGE = 0x1, NIF_ICON = 0x2, NIF_TIP = 0x4, NIF_SHOWTIP = 0x80;
     private const uint NOTIFYICON_VERSION_4 = 4;
     private const uint NIN_SELECT = 0x0400, NIN_KEYSELECT = 0x0401;
+    private const uint NIN_BALLOONHIDE = 0x0403, NIN_BALLOONTIMEOUT = 0x0404, NIN_BALLOONUSERCLICK = 0x0405;
+    private const uint NIF_INFO = 0x10;
+    private const uint NIIF_NONE = 0x0, NIIF_INFO = 0x1, NIIF_WARNING = 0x2, NIIF_ERROR = 0x3, NIIF_RESPECT_QUIET_TIME = 0x80;
     private const uint WM_CONTEXTMENU = 0x007B, WM_LBUTTONDBLCLK = 0x0203, WM_NULL = 0x0000;
     private const int SM_CXSMICON = 49;
 

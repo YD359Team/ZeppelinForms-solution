@@ -27,7 +27,8 @@ internal static class OverlaysPage
             Demo.Section("Files", Files(form), "FileDialog.OpenFileAsync, OpenFilesAsync, SaveFileAsync, SelectFolderAsync: the framework's own dialog"),
             Demo.Section("Hiding the window", Hiding(form), "form.Hide() keeps the window and its state; Show() brings it back — the ground of a tray icon"),
             Demo.Section("Tray icon", Tray(form), "TrayIcon: an icon in the notification area or on the panel, with a tooltip, a click and the system's menu"),
-            Demo.Section("Taskbar button", Taskbar(form), "form.Taskbar: progress and a badge on the taskbar or the dock; form.RequestAttention() for a window in the background"));
+            Demo.Section("Taskbar button", Taskbar(form), "form.Taskbar: progress and a badge on the taskbar or the dock; form.RequestAttention() for a window in the background"),
+            Demo.Section("Notifications", NotificationsDemo(form), "Notifications.Show: a toast on Windows, the desktop's notification on Linux, a web notification in the browser; TrayIcon.ShowNotification from the tray icon"));
 
     private static UIElement Tooltips() => Demo.Row(
         new Button { Text = "Hover me", ToolTip = "A tooltip: a short hint about the control" },
@@ -317,6 +318,53 @@ internal static class OverlaysPage
         };
 
         return Demo.Column(Demo.Row(run, paused, failed, badge, clear, attention), note);
+    }
+
+    /// <summary>The system's notifications: one of each kind, and one from the tray icon;
+    /// a click brings the form forward.</summary>
+    private static UIElement NotificationsDemo(Form form)
+    {
+        Label note = Demo.Note("A click on a notification comes back here");
+
+        void Watch(Notification? notification)
+        {
+            if (notification is null)
+            {
+                note.Text = "No notifications here — or they are turned off";
+                return;
+            }
+
+            note.Text = $"Shown: {notification.Title}";
+
+            notification.Clicked += (_, _) =>
+            {
+                note.Text = $"Clicked: {notification.Title}";
+                form.Show();
+                form.Activate();
+            };
+
+            notification.Closed += (_, _) =>
+            {
+                if (note.Text == $"Shown: {notification.Title}") note.Text = $"Closed: {notification.Title}";
+            };
+        }
+
+        var info = new PrimaryButton { Text = "Information" };
+        info.Click += (_, _) => Watch(Notifications.Show("Export finished", "orders.csv — 1 248 rows"));
+
+        var warning = new Button { Text = "Warning" };
+        warning.Click += (_, _) => Watch(Notifications.Show("Disk almost full", "2 GB left on C:", NotificationKind.Warning));
+
+        var error = new Button { Text = "Error" };
+        error.Click += (_, _) => Watch(Notifications.Show("Sync failed", "The server didn't answer", NotificationKind.Error));
+
+        var fromTray = new Button { Text = "From the tray icon" };
+        fromTray.Click += (_, _) =>
+            Watch(s_tray is { IsShown: true } tray
+                ? tray.ShowNotification("From the tray", "TrayIcon.ShowNotification — the icon's balloon on Windows")
+                : Notifications.Show("No tray icon yet", "Show it in the Tray icon section first"));
+
+        return Demo.Column(Demo.Row(info, warning, error, fromTray), note);
     }
 
     // one icon for the application, whatever times the page is made again
