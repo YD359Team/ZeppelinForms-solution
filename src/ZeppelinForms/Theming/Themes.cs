@@ -592,6 +592,6 @@ public static partial class Themes
                 tip.BorderWidth = t.Metrics.StrokeThickness;
                 tip.CornerRadius = t.Metrics.OverlayCornerRadius;
                 tip.BoxShadow = BoxShadow.Small;
-            }); ;
+            });
     }
 }

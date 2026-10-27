@@ -17,7 +17,7 @@ internal static class OverlaysPage
 {
     public static UIElement Create(Form form) =>
         Demo.Page("Dialogs and overlays", "Messages, questions and menus over the window, and windows over windows.",
-            Demo.Section("Tooltips", Tooltips(), "UIElement.ToolTip: on hover with a mouse, on a long press with a finger"),
+            Demo.Section("Tooltips", Tooltips(), "UIElement.ToolTip or ToolTipContent: on hover, and for the keyboard focus — Tab onto a button. Styled as ToolTip in a sheet"),
             Demo.Section("Toasts", Toasts(form), "form.ShowToast(message, duration, position): a note that goes away by itself"),
             Demo.Section("Flyout", Flyout(form), "form.ShowFlyout(anchor, content, placement): closes on a click outside or Esc"),
             Demo.Section("Context menu", ContextMenu(), "UIElement.ContextMenu: right click, the menu key or a long press; looked up the tree"),
@@ -30,7 +30,31 @@ internal static class OverlaysPage
     private static UIElement Tooltips() => Demo.Row(
         new Button { Text = "Hover me", ToolTip = "A tooltip: a short hint about the control" },
         new Button { Icon = Icons.Trash, ToolTip = "Delete — an icon button names itself in its tooltip" },
-        new Label { Text = "Labels have them too", ToolTip = "Any element can have one" });
+        new Label { Text = "Labels have them too", ToolTip = "Any element can have one" },
+        new Button
+        {
+            Text = "A long one",
+            ToolTip = "A long tooltip doesn't run across the window: past its MaxContentWidth, 320 by default, " +
+                      "the text wraps into rows, as tooltips do in WinUI.",
+        },
+        new Button
+        {
+            Text = "Rich content",
+
+            // the text is still there: a screen reader reads it as the description
+            ToolTip = "Ctrl+S saves the document",
+            ToolTipContent = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Spacing = 2,
+                Children =
+                {
+                    new Label { Text = "Save", TextStyle = TextStyle.BodyStrong },
+                    new Label { Text = "Ctrl+S", TextStyle = TextStyle.Caption, Classes = { "demo-note" } },
+                },
+            },
+        },
+        new Button { Text = "At once", ToolTip = "ToolTipDelay = 0: no waiting for this one", ToolTipDelay = 0 });
 
     private static UIElement Toasts(Form form)
     {

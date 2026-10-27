@@ -22,6 +22,21 @@
 - A wiki section and a README example of a whole form in markup; the showcase's Markup
   page opens one, `FeedbackForm.zfml`
 
+### Tooltips
+
+- A tooltip is a `ToolTip` control, styled by the theme: the surface, a hairline edge, the
+  overlay rounding (8 in Fluent) and a soft shadow, the text as the type ramp's caption in
+  the theme's text color. It was a border with a black edge and a fixed pale fill, light in
+  a dark theme too. A style sheet reaches it by its type: `ToolTip { … }`, `ToolTip Label { … }`
+- A long text wraps at `ToolTip.MaxContentWidth`, 320 by default, instead of running across
+  the window
+- It fades in, unless motion is reduced. Any overlay with an `EnterTransition` now does
+- `UIElement.ToolTipContent`: a tooltip of any content, lent to it while shown
+- `UIElement.ToolTipDelay`: an element's own delay over the form's `ToolTipDelay`
+- The keyboard focus shows its element's tooltip while the form is worked from the keyboard,
+  under the element; a key closes a tooltip as a pointer press does, a modifier alone doesn't
+- A tooltip goes away with its element instead of hanging where the element was
+
 ### Inside
 
 - `Form` and `UIElement` are split by concern into partial files — `Form.Pointer`,
