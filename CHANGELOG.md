@@ -109,6 +109,11 @@
 - The framework's dialog opens in the home folder where there is no Documents folder — a
   Linux without the XDG user directories — instead of failing
 
+### Others
+
+- Add `TreeViewItem` expanded event and lazy load trees support
+- Now `DataGridView.RowAt` is public
+
 ### Inside
 
 - `Form` and `UIElement` are split by concern into partial files — `Form.Pointer`,
