@@ -1,6 +1,6 @@
 # ZeppelinForms
 
-![Logo](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/ZF_13_medium.jpg)
+![Logo](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/ZF_13_medium.jpg)
 
 **ZeppelinForms** (ZF) is an experimental project aimed at creating a simple, platform-independent UI framework with hardware acceleration (on Windows) and straightforward code-behind UI development.
 
@@ -8,9 +8,9 @@
 
 ![CI](https://github.com/YD359Team/ZeppelinForms-solution/actions/workflows/ci.yml/badge.svg)
 
-![Example 1](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/zf1.jpg)
-![Example 2](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/zf2.jpg)
-![Example 3](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/zf3.jpg)
+![Example 1](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/zf1.jpg)
+![Example 2](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/zf2.jpg)
+![Example 3](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/zf3.jpg)
 
 The project is under active development.
 
@@ -29,7 +29,7 @@ The documentation is in the [wiki](https://github.com/YD359Team/ZeppelinForms-so
 | 5 | WebAssembly | ✅*    |
 | 6 | Android     | ✅     |
 | 7 | macOS       | 💡     |
-| 8 | iOS       | 💡     |
+| 8 | iOS         | 💡     |
 
 \* - WebAssembly: dialogs are async-only,
 and system drag and drop is not supported — see the browser section below.

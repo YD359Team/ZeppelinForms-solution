@@ -2,7 +2,7 @@
 
 ## [0.19.0] Nevada
 
-![Nevada](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/Logo-0.19.0.jpg)
+![Nevada](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.19.0.jpg)
 
 > Nevada is the release of the tools and of the phone. Forms in markup with bindings checked
 at build time, completion and previews in Visual Studio, VS Code and Rider, design kept apart
@@ -297,7 +297,7 @@ per-key costs an audit of the hot paths found.
 
 ## [0.18.0] - Terra Incognita
 
-![Terra Incognita](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/Logo-0.18.0.jpg)
+![Terra Incognita](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.18.0.jpg)
 
 > Terra incognita - unknown lands in ancient maps.
 This release name symbolizes the huge changes in this version, whole new "territories" 
@@ -379,7 +379,7 @@ Support for `HwndHost`, `X11WindowHost` and `HtmlElementHost` is currently avail
 
 ## [0.17.1] - Victoria Falls
 
-![Victoria Falls](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/Logo-0.17.0.jpg)
+![Victoria Falls](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.17.0.jpg)
 
 > This release provides one of the most important things for application software 
 development - binding to collections and significant improvements to DataGridView. 
@@ -585,7 +585,7 @@ Victoria Falls. Victoria is also my wife's name.
 
 ## [0.16.0] - Stonehenge
 
-![Stonehenge](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/Logo-0.16.0.jpg)
+![Stonehenge](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.16.0.jpg)
 
 > The codename "Stonehenge" symbolizes the solid and powerful foundation of the framework
 
@@ -882,7 +882,7 @@ from the framework is public now; the built-in controls reached it as internals
 
 ## [0.15.0] - Lake Baikal
 
-![Lake Baikal](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/Logo-0.15.0.jpg)
+![Lake Baikal](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.15.0.jpg)
 
 > Codename "Lake Baikal" is the deepest lake in the world. Because this release develops 
 what is already embedded in the framework, i.e. "goes deep".
@@ -1200,7 +1200,7 @@ what is already embedded in the framework, i.e. "goes deep".
 
 ## [0.14.0] - Eye of Sahara
 
-![Eye of Sahara](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/Logo-0.14.0.jpg)
+![Eye of Sahara](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.14.0.jpg)
 
 ### Breaking changes
 
@@ -1369,7 +1369,7 @@ what is already embedded in the framework, i.e. "goes deep".
 
 ## [0.13.0] - Siberia
 
-![Siberia](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/Logo-0.13.0.jpg)
+![Siberia](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.13.0.jpg)
 
 Accessibility, and the look and manners of a native application. Every control
 now speaks to screen readers on Windows and in the browser and works from the
@@ -1559,7 +1559,7 @@ and the framework's own texts can be translated.
 
 ## [0.12.0] - El Dorado
 
-![El Dorado](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/Logo-0.12.0.jpg)
+![El Dorado](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.12.0.jpg)
 
 Smooth motion became part of the framework rather than something each control
 arranges for itself, and the frame pipeline underneath it was rebuilt: one clock,
@@ -1751,7 +1751,7 @@ where the next round of optimization belongs — not in layout.
 
 ## [0.11.0] - Atlantida
 
-![Atlantida](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/Logo-0.11.0.jpg)
+![Atlantida](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.11.0.jpg)
 
 ### Breaking changes
 
@@ -1901,7 +1901,7 @@ where the next round of optimization belongs — not in layout.
 
 ## [0.10.0] - Hyperborea
 
-![Hyperborea](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/Logo-0.10.0.jpg)
+![Hyperborea](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.10.0.jpg)
 
 ### Breaking changes
 
@@ -2027,7 +2027,7 @@ Measured on a 1280x800 offscreen surface, Windows, workstation GC:
 
 ## [0.9.0] - Antarctica
 
-![Antarctica](https://github.com/YD359Team/ZeppelinForms-solution/tree/master/assets/Logo-0.9.0.jpg)
+![Antarctica](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.9.0.jpg)
 
 ### Breaking changes
 - Platform rework
