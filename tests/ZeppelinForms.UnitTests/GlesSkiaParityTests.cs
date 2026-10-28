@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Xunit;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
@@ -456,13 +457,18 @@ public sealed class GlesSkiaParityTests : IClassFixture<SnapshotFixture>, IClass
             }
         }
 
-        private unsafe nint GetSurfacelessDisplay()
-        {
-            nint getPlatformDisplay = Egl.eglGetProcAddress("eglGetPlatformDisplayEXT");
-            if (getPlatformDisplay == 0) return 0;
+        /// <summary>eglGetPlatformDisplayEXT: an extension's function, found by name.</summary>
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate nint GetPlatformDisplay(uint platform, nint nativeDisplay, nint attributes);
 
-            var get = (delegate* unmanaged<uint, nint, int*, nint>)getPlatformDisplay;
-            return get(EGL_PLATFORM_SURFACELESS_MESA, 0, null);
+        // a delegate rather than a function pointer: the test project compiles no unsafe code
+        private static nint GetSurfacelessDisplay()
+        {
+            nint address = Egl.eglGetProcAddress("eglGetPlatformDisplayEXT");
+            if (address == 0) return 0;
+
+            var get = Marshal.GetDelegateForFunctionPointer<GetPlatformDisplay>(address);
+            return get(EGL_PLATFORM_SURFACELESS_MESA, 0, 0);
         }
 
         private bool MakeCurrent() => Egl.eglMakeCurrent(_display, 0, 0, _context) != 0;

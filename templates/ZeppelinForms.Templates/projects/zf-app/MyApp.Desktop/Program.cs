@@ -2,6 +2,10 @@ using ZeppelinForms;
 using ZeppelinForms.Linux;
 using ZeppelinForms.Windows;
 
+// ZfApp, not App: in a project named Contoso.App the namespace Contoso.App would be found
+// first, and App.Theme would be looked for in it
+using ZfApp = ZeppelinForms.App;
+
 namespace MyApp.Desktop;
 
 public static class Program
@@ -15,7 +19,7 @@ public static class Program
             : OperatingSystem.IsLinux() ? LinuxPlatform.Create()
             : throw new PlatformNotSupportedException("ZeppelinForms runs on Windows and Linux on a desktop.");
 
-        App app = new(platform) { MainForm = new MainForm() };
+        ZfApp app = new(platform) { MainForm = new MainForm() };
         app.Run();
     }
 }
