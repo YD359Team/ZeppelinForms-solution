@@ -249,10 +249,6 @@ public class NavigationHost : DecoratedPanel, IBackHandler
         return Switch(from, page, NavigationKind.Push, isPop: false, animated);
     }
 
-    /// <summary>Push a page of <paramref name="content"/>.</summary>
-    public Task PushAsync(UIElement content, string? title = null, bool animated = true) =>
-        PushAsync(new Page(content, title), animated);
-
     /// <summary>Push <paramref name="page"/> and wait until it is left: the result it
     /// gives to <see cref="Page.ReturnAsync"/>, or the default when it was left another way.</summary>
     public async Task<TResult?> PushForResultAsync<TResult>(Page page, bool animated = true)

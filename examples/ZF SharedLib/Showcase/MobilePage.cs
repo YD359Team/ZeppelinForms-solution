@@ -48,7 +48,7 @@ internal static class MobilePage
         };
 
         write.Classes.Add("accent");
-        write.Click += (_, _) => _ = inbox.PushAsync(Compose(), "New message");
+        write.Click += (_, _) => _ = inbox.PushAsync(new Page(Compose(), "New message"));
 
         var scaffold = new Scaffold
         {
@@ -131,7 +131,7 @@ internal static class MobilePage
         body.Children.Add(reply);
 
         var page = new Page(body, sender);
-        reply.Click += (_, _) => _ = page.NavigationHost?.PushAsync(Compose(), $"Re: {sender}");
+        reply.Click += (_, _) => _ = page.NavigationHost?.PushAsync(new Page(Compose(), $"Re: {sender}"));
 
         page.Actions.Add(new AppBarButton(Icons.Heart, "Star"));
         page.Actions.Add(new AppBarButton(Icons.Trash, "Delete", (_, _) => _ = page.NavigationHost?.PopAsync()));

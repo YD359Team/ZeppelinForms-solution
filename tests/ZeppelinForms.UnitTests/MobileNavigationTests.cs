@@ -85,10 +85,11 @@ public class MobileNavigationTests
         Assert.Equal(["from:Push"], root.Log.Skip(1));
         Assert.Equal(["to:Push"], details.Log);
 
-        bool pop = await host.PopAsync();
+        // started, not awaited yet: the transition ends only when the clock moves
+        Task<bool> pop = host.PopAsync();
         form.Clock.Advance(Done);
 
-        Assert.True(pop);
+        Assert.True(await pop);
         Assert.Same(root, host.CurrentPage);
         Assert.True(root.IsVisible);
         Assert.DoesNotContain(details, host.Children);
@@ -126,10 +127,10 @@ public class MobileNavigationTests
         var editor = new ProbePage("Editor") { MayLeave = false };
         _ = host.PushAsync(editor, animated: false);
 
-        bool pop = await host.PopAsync();
+        Task<bool> pop = host.PopAsync();
         form.Clock.Advance(Done);
 
-        Assert.False(pop);
+        Assert.False(await pop);
         Assert.Same(editor, host.CurrentPage);
     }
 

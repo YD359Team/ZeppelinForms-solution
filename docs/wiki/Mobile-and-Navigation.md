@@ -44,7 +44,7 @@ Without a `Host` of its own, the app bar follows the stack of the destination sh
 | | |
 | --- | --- |
 | `RootPage`, `SetRoot(page)` | the first page; starts the stack anew |
-| `PushAsync(page)`, `PushAsync(content, title)` | a page over the current one |
+| `PushAsync(page)` | a page over the current one — `new Page(content, title)` for ready content |
 | `PopAsync()` | back to the previous page; false if there is none or the page stayed |
 | `PopToRootAsync()` | back to the root in one step |
 | `ReplaceAsync(page)` | in place of the current page — sign-in replaced by the account |

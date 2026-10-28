@@ -237,7 +237,6 @@ ZeppelinForms.Forms.Controls.Navigation.NavigationHost.Navigating -> System.Even
 ZeppelinForms.Forms.Controls.Navigation.NavigationHost.NavigationHost() -> void
 ZeppelinForms.Forms.Controls.Navigation.NavigationHost.PopAsync(bool animated = true) -> System.Threading.Tasks.Task<bool>!
 ZeppelinForms.Forms.Controls.Navigation.NavigationHost.PopToRootAsync(bool animated = true) -> System.Threading.Tasks.Task!
-ZeppelinForms.Forms.Controls.Navigation.NavigationHost.PushAsync(ZeppelinForms.Forms.Controls.Base.UIElement! content, string? title = null, bool animated = true) -> System.Threading.Tasks.Task!
 ZeppelinForms.Forms.Controls.Navigation.NavigationHost.PushAsync(ZeppelinForms.Forms.Controls.Navigation.Page! page, bool animated = true) -> System.Threading.Tasks.Task!
 ZeppelinForms.Forms.Controls.Navigation.NavigationHost.PushForResultAsync<TResult>(ZeppelinForms.Forms.Controls.Navigation.Page! page, bool animated = true) -> System.Threading.Tasks.Task<TResult?>!
 ZeppelinForms.Forms.Controls.Navigation.NavigationHost.RegisterRoute(string! route, System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!, ZeppelinForms.Forms.Controls.Navigation.Page!>! factory) -> void
