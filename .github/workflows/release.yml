@@ -237,6 +237,13 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
 
+    # id-token: the Marketplace's trusted publishing trades this job's OIDC token for a
+    # credential of the publisher, no PAT stored. contents: the files go into the release —
+    # a job's own permissions replace the workflow's, they don't add to them
+    permissions:
+      contents: write
+      id-token: write
+
     steps:
       - uses: actions/checkout@v5
 
@@ -283,19 +290,13 @@ jobs:
             tools/ZeppelinForms.Rider/build/distributions/*.zip
           fail_on_unmatched_files: true
 
-      # the marketplaces, as Visual Studio's: not for a prerelease, and while a token is not
-      # set up the step says so and passes — the release still has the files
+      # by trusted publishing: a policy of the YD359Team publisher on the Marketplace trusts
+      # release.yml of this repository, and vsce trades the job's OIDC token for a credential.
+      # Not for a prerelease: the Marketplace has one version per extension
       - name: Публикация в VS Code Marketplace
         if: ${{ !contains(github.ref_name, '-') }}
         working-directory: tools/ZeppelinForms.VSCode
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: |
-          if [ -z "$VSCE_PAT" ]; then
-            echo '::warning title=VS Code Marketplace::VSCE_PAT is not set: the extension is not published'
-            exit 0
-          fi
-          npx vsce publish --packagePath zeppelinforms-${{ steps.version.outputs.full }}.vsix
+        run: npx vsce publish --oidc --packagePath zeppelinforms-${{ steps.version.outputs.full }}.vsix
 
       - name: Публикация в JetBrains Marketplace
         if: ${{ !contains(github.ref_name, '-') }}
