@@ -61,7 +61,7 @@ public class MobileNavigationTests
     // ===== the stack =====
 
     [Fact]
-    public void PushAndPopMoveThroughTheStack()
+    public async Task PushAndPopMoveThroughTheStack()
     {
         var root = new ProbePage("Root");
         var host = new NavigationHost { RootPage = root };
@@ -85,10 +85,10 @@ public class MobileNavigationTests
         Assert.Equal(["from:Push"], root.Log.Skip(1));
         Assert.Equal(["to:Push"], details.Log);
 
-        Task<bool> pop = host.PopAsync();
+        bool pop = await host.PopAsync();
         form.Clock.Advance(Done);
 
-        Assert.True(pop.Result);
+        Assert.True(pop);
         Assert.Same(root, host.CurrentPage);
         Assert.True(root.IsVisible);
         Assert.DoesNotContain(details, host.Children);
@@ -118,7 +118,7 @@ public class MobileNavigationTests
     }
 
     [Fact]
-    public void APageThatWontBeLeftStays()
+    public async Task APageThatWontBeLeftStays()
     {
         var host = new NavigationHost { RootPage = new Page(new Label(), "Root") };
         var (form, _) = Show(host);
@@ -126,10 +126,10 @@ public class MobileNavigationTests
         var editor = new ProbePage("Editor") { MayLeave = false };
         _ = host.PushAsync(editor, animated: false);
 
-        Task<bool> pop = host.PopAsync();
+        bool pop = await host.PopAsync();
         form.Clock.Advance(Done);
 
-        Assert.False(pop.Result);
+        Assert.False(pop);
         Assert.Same(editor, host.CurrentPage);
     }
 
@@ -178,7 +178,7 @@ public class MobileNavigationTests
     }
 
     [Fact]
-    public void APushedPageReturnsItsResult()
+    public async Task APushedPageReturnsItsResult()
     {
         var host = new NavigationHost { RootPage = new Page(new Label(), "Root") };
         var (form, platform) = Show(host);
@@ -192,12 +192,12 @@ public class MobileNavigationTests
         _ = picker.ReturnAsync("blue");
         Pump(form, platform, () => result.IsCompleted);
 
-        Assert.Equal("blue", result.Result);
+        Assert.Equal("blue", (await result));
         Assert.Single(host.Stack);
     }
 
     [Fact]
-    public void APageLeftAnotherWayReturnsTheDefault()
+    public async Task APageLeftAnotherWayReturnsTheDefault()
     {
         var host = new NavigationHost { RootPage = new Page(new Label(), "Root") };
         var (form, platform) = Show(host);
@@ -208,7 +208,7 @@ public class MobileNavigationTests
         _ = host.PopAsync();
         Pump(form, platform, () => result.IsCompleted);
 
-        Assert.Null(result.Result);
+        Assert.Null((await result));
     }
 
     // ===== routes =====
@@ -707,7 +707,7 @@ public class MobileNavigationTests
     // ===== the snackbar =====
 
     [Fact]
-    public void ASnackbarTimesOut()
+    public async Task ASnackbarTimesOut()
     {
         var (form, platform) = Show(new Label { Text = "Page" });
 
@@ -719,12 +719,12 @@ public class MobileNavigationTests
         // the timeout is the form's schedule: real time
         Pump(form, platform, () => shown.IsCompleted);
 
-        Assert.False(shown.Result);
+        Assert.False((await shown));
         Assert.DoesNotContain(form.Overlays, o => o is Snackbar);
     }
 
     [Fact]
-    public void ASnackbarsActionIsReported()
+    public async Task ASnackbarsActionIsReported()
     {
         var (form, platform) = Show(new Label { Text = "Page" });
 
@@ -736,7 +736,7 @@ public class MobileNavigationTests
         bar.Children.OfType<Button>().Single().PerformAccessibilityActivation();
         Pump(form, platform, () => shown.IsCompleted);
 
-        Assert.True(shown.Result);
+        Assert.True((await shown));
     }
 
     [Fact]
