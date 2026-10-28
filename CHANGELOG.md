@@ -4,6 +4,12 @@
 
 ![Nevada](assets/Logo-0.19.0.jpg)
 
+> Nevada is the release of the tools and of the phone. Forms in markup with bindings checked
+at build time, completion and previews in Visual Studio, VS Code and Rider, design kept apart
+from code as WinForms keeps it. And the frame of a phone application — a stack of pages, a
+back that works the same on Android, in a browser and in a window, app and navigation bars,
+sheets, swipes and snackbars — with a template that makes one for all three at once.
+
 ### Breaking changes
 
 - In markup a plain `Name="…"` makes a field of the element, as `x:Name` does (and as WPF
@@ -212,6 +218,26 @@
   a sheet and snackbars. The examples' `index.html` takes `viewport-fit=cover` and
   `interactive-widget=resizes-content`
 - A wiki page, *Mobile and navigation*
+
+### GLES against Skia
+
+- `GlesSkiaParityTests`: the same forms drawn by both backends — shapes, strokes, arcs,
+  paths, gradients, transforms, clips, layers, pictures, text, a column of controls — and
+  the pictures compared, shapes pixel by pixel, text in blocks of 8 × 8. No reference images:
+  one backend drawing unlike the other fails, and the pictures of a failure go to
+  `Snapshots/Failed` beside the snapshots'
+- GLES draws in an OpenGL ES 3 context of Mesa's without a window or a display
+  (`EGL_MESA_platform_surfaceless`, llvmpipe): the Linux job of CI installs Mesa's EGL and
+  requires the context (`ZF_REQUIRE_GLES=true`); on Windows the tests skip themselves
+- Known differences, left out of the comparison: a stretched picture is sampled by the
+  nearest pixel in Skia and smoothly in GLES, and GLES's text is somewhat heavier
+
+### CI
+
+- `templates`: the packages and the templates packed into a local feed, an application made
+  by `dotnet new zf-app`, its desktop, browser and Android projects built against them
+- CI runs by hand on any branch too (`workflow_dispatch`): a release branch checked before
+  its pull request
 
 ### Others
 

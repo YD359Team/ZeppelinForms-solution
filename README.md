@@ -750,6 +750,10 @@ Local snapshot update:
 
 `ZF_CREATE_SNAPSHOTS=true` only adds the missing ones, leaving the existing as they are.
 
+The GLES backend is checked against Skia with no reference images: `GlesSkiaParityTests`
+draw the same forms with both and compare the pictures, in an OpenGL ES context of Mesa's
+without a window — on Linux, in CI on every push.
+
 ### 📈 Benchmarks
 
 `bench/ZeppelinForms.Benchmarks` measures layout, rendering, text and the

@@ -6,6 +6,9 @@ on:
     paths-ignore: ['**.md', 'ZF*.png']   # правка README не гоняет сборку
   pull_request:
     branches: [master]
+  # by hand, on any branch: Actions › CI › Run workflow — a release branch checked before
+  # its pull request
+  workflow_dispatch:
 
 # при частых пушах отменяем предыдущий незавершённый прогон,
 # чтобы не копить очередь и не жечь минуты
@@ -31,7 +34,9 @@ jobs:
 
       - name: Установка зависимостей (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 xvfb
+        # Mesa's EGL and llvmpipe: GlesSkiaParityTests draw with the GLES backend in an
+        # OpenGL ES context without a window, on the CPU
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 xvfb libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri
 
       - name: Установка workloads
         # the workloads of the installed SDK, not the newest workload set: a set can
@@ -80,6 +85,10 @@ jobs:
         # a hung test ends the step rather than holding the runner for six hours
         timeout-minutes: 30
         if: matrix.os == 'ubuntu-latest'
+        # here the GLES backend must have its context: a skipped parity test would pass
+        # unseen. On Windows the tests skip themselves
+        env:
+          ZF_REQUIRE_GLES: 'true'
         run: xvfb-run -a --server-args="-screen 0 1024x768x24" dotnet test --no-build --configuration Release -- --output Detailed
 
       - name: Выгрузить неудачные снимки

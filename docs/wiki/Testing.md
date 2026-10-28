@@ -82,6 +82,21 @@ between the platforms, so each has its set.
 
 `ZF_CREATE_SNAPSHOTS=true` only adds the missing ones.
 
+### GLES against Skia
+
+`GlesSkiaParityTests` draw the same forms — shapes, paths, gradients, transforms, clips,
+pictures, text and a column of controls — with both backends and compare the pictures: a
+renderer that draws something differently from the other fails, with no reference image to
+keep up to date. GLES draws in an OpenGL ES 3 context of Mesa's made without a window
+(`EGL_MESA_platform_surfaceless`, llvmpipe on the CPU), so the tests run on Linux with
+Mesa's EGL — `libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri` — and skip themselves
+elsewhere; CI sets `ZF_REQUIRE_GLES=true`, which makes a missing context a failure.
+
+Shapes and pictures are compared pixel by pixel, a few edge pixels allowed to differ. Text
+is compared in blocks of 8 × 8 pixels: the two rasterize glyphs each their own way, and the
+blocks show a word moved, resized, recolored or missing, not the pixels of a stem. A failure
+leaves `parity-<name>.skia.png`, `.gles.png` and `.diff.png` in `Snapshots/Failed`.
+
 ## Benchmarks
 
 `bench/ZeppelinForms.Benchmarks` measures layout, rendering, text and the scrolling of a
