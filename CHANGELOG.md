@@ -2,6 +2,10 @@
 
 ## [0.19.1]
 
+### Fixes
+
+- Explicit restriction App rerun. Second call `App.Run` will throwing exception
+
 
 ## [0.19.0] Nevada
 

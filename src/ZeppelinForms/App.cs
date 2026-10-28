@@ -268,8 +268,14 @@ public partial class App
     /// window by <see cref="Form.Position"/>.</summary>
     public PlatformCapabilities Capabilities => _platform.Capabilities;
 
+    private bool _isRunning;
+
     public void Run()
     {
+        if (_isRunning) throw new InvalidOperationException("Application is already running!");
+
+        _isRunning = true;
+
         // App.Icon used to go nowhere: the main form took the logo regardless
         DefaultIcon = Icon ?? Assets.Logo;
         this.MainForm.Icon ??= DefaultIcon;
