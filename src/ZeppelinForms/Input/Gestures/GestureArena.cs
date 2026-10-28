@@ -53,6 +53,16 @@ internal sealed class GestureArena
             }
         }
 
+        // a finger or a pen held still on an element with a context menu opens it, as
+        // a right click does: the platforms send no context menu for a held touch —
+        // Android none at all — so the form recognizes the hold itself. Last in the
+        // arena: a pan or a swipe the contact turns into goes first
+        if (contact.Kind != PointerKind.Mouse && ContextMenuHold(contact) is { } hold)
+        {
+            candidates ??= [];
+            candidates.Add(hold);
+        }
+
         if (candidates is null) return null;
 
         List<GestureRecognizer> members = [];
@@ -77,6 +87,34 @@ internal sealed class GestureArena
         }
 
         return arena;
+    }
+
+    /// <summary>A hold that opens the context menu of the element nearest the target that
+    /// has one. None where an element on the way to it holds a long press of its own —
+    /// a list's hold to drag — which then decides what holding does.</summary>
+    private static LongPressGestureRecognizer? ContextMenuHold(PointerContact contact)
+    {
+        for (int i = contact.Chain.Length - 1; i >= 0; i--)
+        {
+            UIElement element = contact.Chain[i];
+
+            if (element.GestureRecognizersOrNull is { } own &&
+                own.Any(recognizer => recognizer is LongPressGestureRecognizer { IsEnabled: true }))
+            {
+                return null;
+            }
+
+            if (element.ContextMenu is not { Count: > 0 } && element.DefaultContextMenu() is not { Count: > 0 })
+                continue;
+
+            var hold = new LongPressGestureRecognizer { Element = element };
+
+            hold.Triggered += (_, e) => element.FindOwner()?.OnContextMenu(e.Location);
+
+            return hold;
+        }
+
+        return null;
     }
 
     public void PointerDown(PointerEventArgs e) => Dispatch(e, static (r, a) => r.DispatchDown(a));

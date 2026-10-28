@@ -43,6 +43,9 @@ public abstract partial class UIElement
     [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
         Justification = "The two overloads differ by the source's type, not by the optional mode: no argument " +
                         "list fits both differently, and a typed source picks this one.")]
+    [SuppressMessage("ApiDesign", "RS0027:API with optional parameter(s) should have the most parameters amongst its public overloads",
+        Justification = "Shipped before the overloads of 0.19 that take as many: those take a lambda or a BindingPath " +
+                        "where this one takes a property's name, so no call can mean another overload than it did.")]
     public Binding Bind<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TSource>(
         StyledProperty<T> property,
         TSource source,
@@ -63,6 +66,9 @@ public abstract partial class UIElement
     /// <summary>Bind a property to a property of a source known only at run time.</summary>
     [RequiresUnreferencedCode("The property is looked for on the source's runtime type, whose properties " +
                               "trimming may remove. Pass the source as its own type to use the trimming-safe overload.")]
+    [SuppressMessage("ApiDesign", "RS0027:API with optional parameter(s) should have the most parameters amongst its public overloads",
+        Justification = "Shipped before the overloads of 0.19 that take as many: those take a lambda or a BindingPath " +
+                        "where this one takes a property's name, so no call can mean another overload than it did.")]
     public Binding Bind<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(
         StyledProperty<T> property,
         object source,

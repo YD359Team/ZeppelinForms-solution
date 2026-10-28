@@ -1,4 +1,5 @@
 #nullable enable
+override ZeppelinForms.Forms.Controls.MenuList.OnDetached() -> void
 ZeppelinForms.Forms.Controls.DataGrid.DataGridView.RowAt(ZeppelinForms.Drawing.Primitives.Point location) -> int
 ZeppelinForms.Forms.Controls.Tree.TreeNode.HasUnrealizedChildren.get -> bool
 ZeppelinForms.Forms.Controls.Tree.TreeNode.HasUnrealizedChildren.set -> void

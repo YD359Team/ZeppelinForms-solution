@@ -105,7 +105,7 @@ public class DataContextBindingTests
         var vm = new OrderViewModel { Status = "New" };
         var box = new TextBox { DataContext = vm };
 
-        box.Bind(TextBox.TextProperty, (OrderViewModel m) => m.Status, (m, v) => m.Status = v);
+        box.Bind(TextBox.TextProperty, (OrderViewModel m) => m.Status, (m, v) => m.Status = v!);
         Assert.Equal("New", box.Text);
 
         box.Text = "Typed";

@@ -21,7 +21,7 @@ internal static class OverlaysPage
             Demo.Section("Tooltips", Tooltips(), "UIElement.ToolTip or ToolTipContent: on hover, and for the keyboard focus — Tab onto a button. Styled as ToolTip in a sheet"),
             Demo.Section("Toasts", Toasts(form), "form.ShowToast(message, duration, position): a note that goes away by itself"),
             Demo.Section("Flyout", Flyout(form), "form.ShowFlyout(anchor, content, placement): closes on a click outside or Esc"),
-            Demo.Section("Context menu", ContextMenu(), "UIElement.ContextMenu: right click, the menu key or a long press; looked up the tree"),
+            Demo.Section("Context menu", ContextMenu(), "UIElement.ContextMenu: a right click, the menu key, or a finger or a pen held on it; looked up the tree. An item with Items of its own — Share — opens a submenu"),
             Demo.Section("Message box", Messages(form), "await MessageBox.ShowAsync works everywhere, the browser included"),
             Demo.Section("Input box and own dialogs", Dialogs(form), "Any form is a dialog: ShowDialogAsync<T> waits for Accept(value) or Cancel()"),
             Demo.Section("Files", Files(form), "FileDialog: the system's dialog — Explorer's, the desktop portal's, the browser's — or the framework's own; PickSaveFileAsync writes through a stream everywhere"),
@@ -135,7 +135,7 @@ internal static class OverlaysPage
             Background = new Color(20, 128, 128, 128),
             Child = new Label
             {
-                Text = "Right-click or long-press here",
+                Text = "Right-click, or hold a finger here",
                 HorizontalContentAlign = HorizontalContentAlignment.Center,
                 VerticalContentAlign = VerticalContentAlignment.Center,
             },

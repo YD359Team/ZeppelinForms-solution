@@ -95,7 +95,8 @@ public class MenuListPeer(MenuList owner) : MenuPeerBase(owner)
 
     internal override AccessibilityActions ItemActions(int index) => AccessibilityActions.Invoke;
 
-    internal override bool Invoke(int index) => owner.InvokeItem(index);
+    /// <summary>An item with a submenu opens it, as Enter does; any other runs.</summary>
+    internal override bool Invoke(int index) => owner.ActivateItem(index);
 }
 
 /// <summary>One entry of a menu bar or a menu, or a separator between entries.</summary>

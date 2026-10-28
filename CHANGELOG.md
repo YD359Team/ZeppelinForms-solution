@@ -137,6 +137,14 @@
 
 ### Others
 
+- Context menus open submenus: an item with `Items` of its own shows an arrow and opens
+  them beside it when the pointer rests on it, on a click or a tap, on Right or Enter;
+  Left or Esc goes back. They used to run the item and close the menu, the submenu out of
+  reach. Menu bars' menus and split buttons' get them too
+- A finger or a pen held on an element opens its context menu, recognized by the form the
+  same way on every platform — on Android nothing opened it; an element with a long press
+  of its own keeps it
+- `HeadlessInput.RightClick` opens the context menu after the release, as the platforms do
 - Add `TreeViewItem` expanded event and lazy load trees support
 - Now `DataGridView.RowAt` is public
 

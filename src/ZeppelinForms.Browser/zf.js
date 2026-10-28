@@ -340,7 +340,13 @@ export function init(canvasId) {
     canvas.addEventListener("pointermove", e => zf().OnPointerMove(
         localX(e), localY(e), e.pointerId, pointerKind(e), e.pressure, e.timeStamp, modifiers(e)));
 
+    // the kind of the last press: a held finger or pen opens the context menu in the
+    // form itself, and the browser's own contextmenu for the same hold would open it twice
+    let lastPressKind = "mouse";
+
     canvas.addEventListener("pointerdown", e => {
+        lastPressKind = e.pointerType;
+
         // without capture the browser breaks off the drag as soon as the cursor
         // leaves the canvas, and the button sticks pressed
         canvas.setPointerCapture(e.pointerId);
@@ -374,6 +380,11 @@ export function init(canvasId) {
 
     canvas.addEventListener("contextmenu", e => {
         e.preventDefault();
+
+        // a hold of a finger or a pen: the form has opened the menu already
+        const kind = e.pointerType || lastPressKind;
+        if (kind === "touch" || kind === "pen") return;
+
         zf().OnContextMenu(localX(e), localY(e));
     });
 

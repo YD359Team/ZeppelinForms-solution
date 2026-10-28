@@ -213,8 +213,18 @@ public partial class Form
                 menu.HighlightLast();
                 return true;
 
+            // an item with a submenu opens it, its first item lit, rather than runs
+            case Key.Enter or Key.Space or Key.Right when menu.HighlightedHasSubmenu:
+                menu.OpenHighlightedSubmenu();
+                return true;
+
             case Key.Enter or Key.Space:
                 if (menu.InvokeHighlighted()) AfterMenuItemRun();
+                return true;
+
+            // a submenu closes back to its item, still lit in the menu it came from
+            case Key.Escape or Key.Left when menu.ParentMenu is { } parent:
+                parent.CloseSubmenu();
                 return true;
 
             case Key.Escape:

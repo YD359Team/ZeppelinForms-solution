@@ -215,6 +215,38 @@ public partial class Form
         }
     }
 
+    /// <summary>A submenu beside its item: right of the menu, or left of it where the
+    /// window has no room on the right; moved up as far as it must to stay inside.
+    /// The menus open already stay open — the submenu is one more flyout on top.</summary>
+    /// <param name="item">The item's row, in the form's coordinates.</param>
+    internal void ShowSubmenu(MenuList submenu, Rectangle item)
+    {
+        AttachOverlay(submenu);
+
+        submenu.Measure(new Size(float.PositiveInfinity, float.PositiveInfinity));
+
+        Size size = submenu.DesiredSize;
+        Size window = ClientSize;
+
+        // the submenu's first row level with the item, overlapping the menu by a hair
+        const float overlap = 2f;
+
+        float x = item.X + item.Width - overlap;
+
+        if (x + size.Width > window.Width && item.X - size.Width + overlap >= 0)
+            x = item.X - size.Width + overlap;
+
+        float y = item.Y - submenu.Padding.Top;
+
+        submenu.Position = new Point(
+            Math.Clamp(x, 0, Math.Max(0, window.Width - size.Width)),
+            Math.Clamp(y, 0, Math.Max(0, window.Height - size.Height)));
+
+        _flyouts.Add(submenu);
+
+        Invalidate();
+    }
+
     public void ShowContextMenu(List<MenuItem> items, Point position)
     {
         CloseAllFlyouts();

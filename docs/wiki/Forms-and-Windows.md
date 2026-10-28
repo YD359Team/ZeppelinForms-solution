@@ -173,6 +173,11 @@ recent files, the command line.
 A flyout that doesn't fit on its side opens on the opposite one and stays inside the
 window.
 
+An element's `ContextMenu` opens on a right click, on the menu key, and on a finger or a
+pen held still on it for half a second; an element without one passes the request to its
+parent. An item with `Items` of its own opens them as a submenu beside it — when the
+pointer rests on it, on a click or a tap, on Right or Enter; Left or Esc goes back.
+
 ## The taskbar button
 
 `form.Taskbar` is the form's button on the taskbar or the dock: the progress of a long work
