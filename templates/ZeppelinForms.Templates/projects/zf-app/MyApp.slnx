@@ -1,0 +1,12 @@
+<Solution>
+  <Project Path="MyApp/MyApp.csproj" />
+<!--#if (desktop) -->
+  <Project Path="MyApp.Desktop/MyApp.Desktop.csproj" />
+<!--#endif -->
+<!--#if (browser) -->
+  <Project Path="MyApp.Browser/MyApp.Browser.csproj" />
+<!--#endif -->
+<!--#if (android) -->
+  <Project Path="MyApp.Android/MyApp.Android.csproj" />
+<!--#endif -->
+</Solution>

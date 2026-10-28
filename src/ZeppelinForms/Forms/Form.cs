@@ -25,6 +25,9 @@ public partial class Form : IDisposable
     /// came from: Accept, Cancel, the close button in the title bar or the system itself.</summary>
     public event EventHandler? Closed;
 
+    /// <summary>The form got a platform window: shown, or shown again.</summary>
+    internal event EventHandler? PlatformWindowAttached;
+
     internal IPlatformWindow? PlatformWindow
     {
         get;
@@ -36,6 +39,10 @@ public partial class Form : IDisposable
 
             // a new window is a new life: the form may have been closed and shown again
             _isClosed = false;
+
+            // what needs the window itself — a navigation stack the browser's history
+            // follows — was attached before the form had one
+            PlatformWindowAttached?.Invoke(this, EventArgs.Empty);
 
             // the thread that creates the window is the form's UI thread, and
             // Invoke from other threads goes through the window's queue
@@ -345,11 +352,15 @@ public partial class Form : IDisposable
         {
             if (field == value) return;
 
+            Size previous = field;
             field = value;
 
             // before the layout the platform runs next: an overlay that covers
             // the window — an image viewer — takes the new size in the same pass
             OnClientSizeChanged(EventArgs.Empty);
+
+            // shorter: on a phone the keyboard came up, maybe over the field typed in
+            KeepFocusedFieldInView(previous, value);
         }
     }
 

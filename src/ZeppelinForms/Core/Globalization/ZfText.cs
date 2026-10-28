@@ -91,8 +91,16 @@ public static class ZfText
     /// <summary>The tooltip and the name of the menu's button that closes the pane.</summary>
     public static readonly TextKey CloseNavigation = new("zf.splitview.close", "Close navigation");
 
-    /// <summary>The back button of a split view's menu.</summary>
+    /// <summary>The back button of a split view's menu, of an app bar.</summary>
     public static readonly TextKey Back = new("zf.splitview.back", "Back");
+
+    // ===== AppBar, BottomSheet and Snackbar =====
+
+    /// <summary>The app bar's button that opens what has no room on the bar.</summary>
+    public static readonly TextKey MoreOptions = new("zf.appbar.more", "More options");
+
+    /// <summary>The name of a bottom sheet without one of its own.</summary>
+    public static readonly TextKey Sheet = new("zf.sheet.name", "Sheet");
 
     // ===== RefreshContainer =====
 

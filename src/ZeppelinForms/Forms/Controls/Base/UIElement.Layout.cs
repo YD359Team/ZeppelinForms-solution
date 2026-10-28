@@ -302,4 +302,30 @@ public abstract partial class UIElement
             current._measureValid = false;
         }
     }
+
+    // ===== bringing into view =====
+
+    /// <summary>
+    /// Scroll whatever scrolls around the element until the element is in sight: the
+    /// panel it is in, and the panels around that one. The least scrolling that shows
+    /// it — an element in sight already moves nothing.
+    /// </summary>
+    /// <param name="margin">Room to leave around the element: a field brought up from
+    /// under a phone's keyboard shouldn't stand flush with its edge.</param>
+    /// <remarks>The form calls it for the field being typed in when the keyboard
+    /// comes up and the client area gets shorter.</remarks>
+    public void BringIntoView(float margin = 0f)
+    {
+        Rectangle rect = LocalBounds.Inflate(margin);
+
+        // the rectangle travels up in the coordinates of each parent in turn; a
+        // scrolling panel scrolls it into its viewport and hands on where it is now
+        for (UIElement current = this; current.Parent is { } parent; current = parent)
+        {
+            rect = rect.Offset(current.Position.X, current.Position.Y);
+
+            if (parent is PanelControl panel)
+                rect = panel.ScrollToShow(rect);
+        }
+    }
 }

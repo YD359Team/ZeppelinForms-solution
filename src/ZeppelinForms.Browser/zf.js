@@ -419,7 +419,104 @@ export function init(canvasId) {
     new ResizeObserver(() => { resize(); placeMirror(); }).observe(canvas);
     window.addEventListener("resize", () => resize());
 
+    initHistory();
     resize();
+}
+
+// ==== the page's history ====
+// A navigation stack's pages are entries of the page's history, the stack's route after
+// the #. Every entry we push carries its index: a popstate then tells back from forward,
+// and how far. The stack's own backs go through history.go too, and the popstate they
+// cause is ours, not the user's — it is counted and kept from .NET.
+
+const initialHash = location.hash.length > 1 ? decodeURIComponent(location.hash.slice(1)) : "";
+let historyIndex = 0;
+let ignoredPops = 0;
+
+function initHistory() {
+    // a reload keeps the entries of before: the count starts over at this one
+    history.replaceState({ zf: 0 }, "");
+    historyIndex = 0;
+
+    window.addEventListener("popstate", e => {
+        const index = e.state && typeof e.state.zf === "number" ? e.state.zf : 0;
+
+        if (ignoredPops > 0) {
+            ignoredPops--;
+            historyIndex = index;
+            return;
+        }
+
+        if (index < historyIndex) {
+            // back — by several entries when chosen from the back button's list
+            const steps = historyIndex - index;
+            historyIndex = index;
+
+            for (let i = 0; i < steps; i++) {
+                zf().OnHistoryBack();
+            }
+        } else if (index > historyIndex) {
+            // forward: a page gone back from was dropped, there is nothing to go forward to
+            ignoredPops++;
+            history.go(historyIndex - index);
+        }
+    });
+}
+
+export function initialRoute() {
+    return initialHash;
+}
+
+export function historyPush(location) {
+    historyIndex++;
+    history.pushState({ zf: historyIndex }, "", "#" + location);
+}
+
+export function historyReplace(location) {
+    history.replaceState({ zf: historyIndex }, "", "#" + location);
+}
+
+export function historyBack(count) {
+    if (count <= 0) {
+        return;
+    }
+
+    ignoredPops++;
+    history.go(-count);
+}
+
+// ==== the safe area ====
+// env(safe-area-inset-*) is CSS only: a hidden element padded by it gives the numbers.
+// Nonzero on a phone with a notch, when the page says viewport-fit=cover
+
+let safeProbe = null;
+let lastSafeArea = "";
+
+function readSafeArea() {
+    if (!safeProbe) {
+        safeProbe = document.createElement("div");
+        Object.assign(safeProbe.style, {
+            position: "fixed", left: "0", top: "0", width: "0", height: "0",
+            visibility: "hidden", pointerEvents: "none",
+            paddingLeft: "env(safe-area-inset-left, 0px)",
+            paddingTop: "env(safe-area-inset-top, 0px)",
+            paddingRight: "env(safe-area-inset-right, 0px)",
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        });
+        document.body.appendChild(safeProbe);
+    }
+
+    const style = getComputedStyle(safeProbe);
+    const insets = [style.paddingLeft, style.paddingTop, style.paddingRight, style.paddingBottom]
+        .map(value => parseFloat(value) || 0);
+
+    const key = insets.join(",");
+    if (key === lastSafeArea) {
+        return;
+    }
+
+    lastSafeArea = key;
+    zf().OnSafeArea(insets[0], insets[1], insets[2], insets[3]);
 }
 
 // Tab takes focus off the page, F keys and Backspace also have browser
@@ -557,6 +654,9 @@ export function clearTextInputArea() {
 }
 
 function resize() {
+    // a turned phone moves its notch: the insets change with the size, or alone
+    readSafeArea();
+
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
 

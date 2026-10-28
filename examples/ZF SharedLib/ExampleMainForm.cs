@@ -78,6 +78,7 @@ public partial class ExampleMainForm : Form
         view.Items.Add(new SplitViewItem("Splitters and adaptive", Icons.Split, SplittersPage.Create));
         view.Items.Add(new SplitViewItem("Containers", Icons.Box, ContainersPage.Create));
         view.Items.Add(new SplitViewItem("Navigation", Icons.Tabs, NavigationPage.Create));
+        view.Items.Add(new SplitViewItem("Mobile", Icons.Phone, MobilePage.Create));
 
         view.Items.Add(SplitViewItem.Header("Text and graphics"));
         view.Items.Add(new SplitViewItem("Text", Icons.Font, TextPage.Create));

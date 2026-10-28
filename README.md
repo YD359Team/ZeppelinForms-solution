@@ -244,6 +244,10 @@ registration to call directly.
 | 15 | TreeView              | ✅      |
 | 16 | ImageGallery          | ✅      |
 | 17 | MarkdownViewer        | ✅      |
+| 18 | NavigationHost        | ✅      |
+| 19 | AppBar                | ✅      |
+| 20 | NavigationBar         | ✅      |
+| 21 | Scaffold              | ✅      |
 
 ##### Items Panels
 
@@ -278,6 +282,13 @@ finger with kinetic flings and rubber-band overscroll on touch devices.
 | 8 | GripBox        | ✅    |
 | 9 | AdaptiveLayout | ✅    |
 | 10 | RefreshContainer | ✅  |
+| 11 | SafeArea       | ✅    |
+| 12 | SwipeView      | ✅    |
+| 13 | BottomSheet    | ✅    |
+
+⭐ A phone application's frame — a stack of pages with routes, the system's and the
+browser's back, an app bar, a navigation bar, sheets, swipes and snackbars — works the same
+on Android, in a browser and in a window. See the wiki's *Mobile and navigation*.
 
 #### Your Own Controls
 
@@ -424,6 +435,14 @@ of its platform as well, which brings the framework with it:
 
 A desktop application is a `WinExe` (Windows) or `Exe` project for `net10.0`; see
 [ZF_ProcessMonitor](https://github.com/YD359Team/ZF_ProcessMonitor) for a complete one.
+
+Or the whole application at once — a shared project with the form and its pages, and a
+project per platform that starts it (Windows and Linux, WebAssembly, Android):
+
+```
+dotnet new install ZeppelinForms.Templates
+dotnet new zf-app -n Notes
+```
 
 Creating an application in Windows:
 
@@ -682,6 +701,7 @@ public partial class MainForm : Form
 
 ```
 dotnet new install ZeppelinForms.Templates
+dotnet new zf-app -n Notes                 # Notes, Notes.Desktop, Notes.Browser, Notes.Android
 dotnet new zf-form -n OrderForm            # OrderForm.cs + OrderForm.design.cs
 dotnet new zf-form-markup -n FeedbackForm  # FeedbackForm.cs + FeedbackForm.zfml
 dotnet new zf-stylesheet -n app            # app.zss

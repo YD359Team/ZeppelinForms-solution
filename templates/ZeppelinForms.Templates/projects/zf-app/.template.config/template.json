@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "YD359Team",
+  "classifications": [
+    "ZeppelinForms",
+    "Desktop",
+    "Web",
+    "Mobile",
+    "Android",
+    "WebAssembly"
+  ],
+  "identity": "ZeppelinForms.ProjectTemplates.App.CSharp",
+  "groupIdentity": "ZeppelinForms.ProjectTemplates.App",
+  "name": "ZeppelinForms Application",
+  "description": "An application for a desktop (Windows and Linux), a browser (WebAssembly) and Android from one code: the shared project holds its form and pages — an app bar, a stack of pages, a navigation bar —, and one small project per platform starts it.",
+  "shortName": "zf-app",
+  "defaultName": "ZfApp",
+  "sourceName": "MyApp",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "symbols": {
+    "desktop": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "The desktop project: Windows and Linux."
+    },
+    "browser": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "The browser project: WebAssembly. Needs the wasm-tools workload."
+    },
+    "android": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "The Android project. Needs the android workload."
+    },
+    "zfVersion": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "ZF_TEMPLATE_PACKAGE_VERSION",
+      "replaces": "ZF_PACKAGE_VERSION",
+      "description": "The version of the ZeppelinForms packages; that of the templates when not given."
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Don't restore the packages after the projects are made."
+    }
+  },
+  "sources": [
+    {
+      "exclude": [
+        ".template.config/**",
+        "**/[Bb]in/**",
+        "**/[Oo]bj/**",
+        "**/*.user"
+      ],
+      "copyOnly": [
+        "**/*.ttf",
+        "**/zf.js"
+      ],
+      "modifiers": [
+        {
+          "condition": "(!desktop)",
+          "exclude": [ "MyApp.Desktop/**" ]
+        },
+        {
+          "condition": "(!browser)",
+          "exclude": [ "MyApp.Browser/**" ]
+        },
+        {
+          "condition": "(!android)",
+          "exclude": [ "MyApp.Android/**" ]
+        }
+      ]
+    }
+  ],
+  "primaryOutputs": [
+    {
+      "path": "MyApp/MyApp.csproj"
+    },
+    {
+      "condition": "(desktop)",
+      "path": "MyApp.Desktop/MyApp.Desktop.csproj"
+    },
+    {
+      "condition": "(browser)",
+      "path": "MyApp.Browser/MyApp.Browser.csproj"
+    },
+    {
+      "condition": "(android)",
+      "path": "MyApp.Android/MyApp.Android.csproj"
+    }
+  ],
+  "postActions": [
+    {
+      "condition": "(!skipRestore)",
+      "description": "Restores the packages of the projects.",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}

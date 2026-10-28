@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+	<!-- The application in a browser: WebAssembly drawing on a canvas. Needs the wasm-tools
+	     workload — dotnet workload install wasm-tools — for Skia is linked into the module -->
+	<PropertyGroup>
+		<TargetFramework>net10.0-browser</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<WasmMainJSPath>wwwroot\main.js</WasmMainJSPath>
+		<WasmBuildNative>true</WasmBuildNative>
+
+		<!-- index.html gets the import map and main.js its fingerprint at publish: a browser
+		     holding the previous deployment in its cache doesn't load the old assemblies -->
+		<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="ZeppelinForms.Browser" Version="$(ZeppelinFormsVersion)" />
+		<ProjectReference Include="..\MyApp\MyApp.csproj" />
+	</ItemGroup>
+
+	<!-- wwwroot/zf.js is the page's half of ZeppelinForms.Browser, of the same version as the
+	     package: after moving to another version, take the zf.js of that release too.
+	     wwwroot/fonts/Inter-Regular.ttf is the text's font — a browser has none for Skia -->
+
+</Project>

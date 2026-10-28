@@ -15,6 +15,10 @@
   `HorizontalContentAlign` and `VerticalContentAlign`), `PropertyGrid.RowTextColor` (the
   names take `NameColor`, which the theme sets)
 - `Binding.Source` is `object?`: a binding to a data context not set yet has none
+- Android: `AndroidPlatform.BackRequested` comes after the form's own handling of back — an
+  open flyout, a bottom sheet, a navigation stack, a dialog — and only when nothing took
+  it. A handler that went back by itself now finds nothing left to do; to keep a stack out
+  of it, `HandlesBackRequests = false`
 
 ### Markup
 
@@ -165,6 +169,49 @@
 - `HeadlessPlatform.NativeFileDialog` answers the file dialogs in tests
 - The framework's dialog opens in the home folder where there is no Documents folder — a
   Linux without the XDG user directories — instead of failing
+
+### Mobile and navigation
+
+- `NavigationHost`: a stack of `Page`s — `PushAsync`, `PopAsync`, `PopToRootAsync`,
+  `ReplaceAsync`, `PushForResultAsync<T>` with `Page.ReturnAsync`; `Navigating` (cancellable)
+  and `Navigated`. A page hears `OnNavigatedTo` and `OnNavigatedFrom` and may stay
+  (`CanLeaveAsync`). The new page slides in, mirrored for right-to-left and off with reduced
+  motion; a swipe from the left edge drags it back
+- Routes: `RegisterRoute("message", p => new MessagePage(p["id"]))`,
+  `GoToAsync("message?id=42")`, `"/inbox/message"` from the root, `".."`; `Location()`
+- Back, one way for every source: `Form.RequestBack(BackSource)` — Android's back, the
+  browser's back button, Alt+Left, the app bar's arrow — closes a flyout, then a bottom sheet
+  or a navigation stack goes back, the innermost seen first, then `Form.BackRequested`, then a
+  dialog is cancelled
+- In a browser a stack's pages are entries of the page's history: the back and forward
+  buttons go through the stack, the address after the `#` is its location, and a link with
+  a route opens that page. The back button goes to the stack that pushed the entry, shown
+  or not
+- `AppBar`: the current page's title, a back arrow while the stack can go back, the page's
+  `Actions` and the bar's own, an overflow menu. `NavigationBar`: destinations at the bottom
+  with icons, labels and badges. `Scaffold` puts them around the selected destination's
+  content and a floating button; destinations keep their stacks while another is shown, and
+  a second tap goes back to the root
+- `BottomSheet`: a sheet from the bottom over a scrim, dragged down, tapped beside, Escape or
+  back to close; `ShowAsync` ends when it closes
+- `SwipeView`: a row swiped aside for its actions — revealed, or the first one run when
+  swiped far (`SwipeMode.Execute`); a right click lists them in a menu
+- `Form.ShowSnackbarAsync(message, action)`: a message at the bottom with an action, one at a
+  time; true when the action was taken
+- The safe area: `Form.SafeAreaInsets` and `SafeAreaInsetsChanged`; `SafeArea` keeps its
+  content out of it, the app bar and the navigation bar color the space under the system's
+  bars. On Android `Form.EdgeToEdge` draws the form under the status bar and the gesture
+  bar; in a browser the page's `env(safe-area-inset-*)` with `viewport-fit=cover`
+- The on-screen keyboard: when it makes the form shorter, the focused field is scrolled into
+  view. `UIElement.BringIntoView(margin)` does it from code
+- `dotnet new zf-app`: an application — the shared project with its form and pages, and
+  projects for the desktop (Windows and Linux from one build), the browser and Android, each
+  left out by `--desktop false` and the like. The browser project brings `zf.js` and a font;
+  the packages' version is the templates' own, in one place, `Directory.Build.props`
+- The showcase's Mobile page: a phone's frame with an inbox, rows swiped to delete with Undo,
+  a sheet and snackbars. The examples' `index.html` takes `viewport-fit=cover` and
+  `interactive-widget=resizes-content`
+- A wiki page, *Mobile and navigation*
 
 ### Others
 

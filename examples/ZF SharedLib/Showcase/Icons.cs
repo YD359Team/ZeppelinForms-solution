@@ -23,6 +23,7 @@ internal static class Icons
     public static IconSource Split { get; } = Line("M3 4 H21 V20 H3 Z M11 4 V20 M7 11 L5 12 L7 13 M15 11 L17 12 L15 13");
     public static IconSource Box { get; } = Line("M3 7 L12 3 L21 7 V17 L12 21 L3 17 Z M3 7 L12 11 L21 7 M12 11 V21");
     public static IconSource Tabs { get; } = Line("M3 8 H21 V20 H3 Z M3 8 V4 H9 V8 M9 4 H15 V8");
+    public static IconSource Phone { get; } = Line("M7 2 H17 V22 H7 Z M11 18.5 H13");
     public static IconSource Font { get; } = Line("M4 20 L10 4 L16 20 M6.5 14 H13.5 M17 20 V11 M17 13 A3 3 0 1 1 17 17");
     public static IconSource Shapes { get; } = Line("M7 3 A4 4 0 1 0 7 11 A4 4 0 1 0 7 3 Z M14 13 H21 V20 H14 Z M3 21 L7 14 L11 21 Z");
     public static IconSource Chart { get; } = Line("M3 21 H21 M6 21 V12 M11 21 V5 M16 21 V14 M20 21 V9");

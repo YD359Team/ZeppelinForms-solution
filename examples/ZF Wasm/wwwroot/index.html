@@ -2,7 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <!-- viewport-fit=cover: the page goes under a phone's notch and gesture bar, and the
+         form keeps its bars clear of them by env(safe-area-inset-*).
+         interactive-widget=resizes-content: the on-screen keyboard makes the page shorter,
+         so the focused field is lifted above it -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>ZeppelinForms</title>
     <!-- no icon of its own yet: an empty one, so the browser doesn't ask the server for /favicon.ico -->
     <link rel="icon" href="data:," />

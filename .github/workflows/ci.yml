@@ -161,3 +161,48 @@ jobs:
           name: rider
           path: tools/ZeppelinForms.Rider/build/distributions/*.zip
           if-no-files-found: error
+
+  # dotnet new zf-app as a user gets it: the packages and the templates packed into a local
+  # feed, an application made from the template, and each of its projects built against
+  # those packages — a change to the framework that breaks the template, or a template
+  # that no longer builds, shows up here and not after a release
+  templates:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Установка workloads
+        run: dotnet workload install wasm-tools android --skip-manifest-update
+
+      - name: Пакеты в локальный источник
+        run: |
+          for project in \
+            src/ZeppelinForms/ZeppelinForms.csproj \
+            src/ZeppelinForms.Skia/ZeppelinForms.Skia.csproj \
+            src/ZeppelinForms.Windows/ZeppelinForms.Windows.csproj \
+            src/ZeppelinForms.Linux/ZeppelinForms.Linux.csproj \
+            src/ZeppelinForms.Android/ZeppelinForms.Android.csproj \
+            src/ZeppelinForms.Browser/ZeppelinForms.Browser.csproj \
+            templates/ZeppelinForms.Templates/ZeppelinForms.Templates.csproj
+          do
+            dotnet pack "$project" --configuration Release --output "$RUNNER_TEMP/feed" -p:Version=0.0.0-ci.${{ github.run_number }}
+          done
+
+      # outside the repository: its Directory.Build.props and central package versions
+      # must not reach the application
+      - name: Приложение из шаблона
+        working-directory: ${{ runner.temp }}
+        run: |
+          dotnet new install "feed/ZeppelinForms.Templates.0.0.0-ci.${{ github.run_number }}.nupkg"
+          dotnet new zf-app -n Smoke.App -o smoke --skipRestore
+          cd smoke
+          dotnet new nugetconfig
+          dotnet nuget add source "$RUNNER_TEMP/feed" --name local --configfile nuget.config
+          dotnet build Smoke.App.Desktop/Smoke.App.Desktop.csproj --configuration Release
+          dotnet build Smoke.App.Browser/Smoke.App.Browser.csproj --configuration Release
+          dotnet build Smoke.App.Android/Smoke.App.Android.csproj --configuration Release

@@ -1,0 +1,12 @@
+<Project>
+
+	<!-- What the projects share. ZeppelinFormsVersion is the version of the
+	     ZeppelinForms packages they use: change it here, in one place, to move to another -->
+	<PropertyGroup>
+		<ZeppelinFormsVersion>ZF_PACKAGE_VERSION</ZeppelinFormsVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
+
+</Project>

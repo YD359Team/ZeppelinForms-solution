@@ -104,8 +104,17 @@ public partial class Form
                 CloseFlyout(_flyouts[^1]);
                 break;
 
+            // a bottom sheet over the page closes as a flyout does
+            case Key.Escape when TryCloseWithEscape():
+                break;
+
             case Key.Escape when IsDialog:
                 Cancel();
+                break;
+
+            // back, as in a browser and in Explorer: a navigation stack's previous page
+            case Key.Left when modifiers == KeyModifiers.Alt:
+                RequestBack(BackSource.Keyboard);
                 break;
 
             case Key.Enter when modifiers == KeyModifiers.None &&

@@ -66,6 +66,9 @@ internal sealed class ZfRussianStrings : StringTable
         Add(ZfText.CloseNavigation, "Закрыть навигацию");
         Add(ZfText.Back, "Назад");
 
+        Add(ZfText.MoreOptions, "Другие действия");
+        Add(ZfText.Sheet, "Панель");
+
         Add(ZfText.Refreshing, "Обновление");
         Add(ZfText.Refreshed, "Обновлено");
 

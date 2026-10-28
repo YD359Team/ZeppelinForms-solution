@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The application itself: its forms, pages and styles. The other projects only start
+	     it — on a desktop, in a browser, on a phone -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="ZeppelinForms" Version="$(ZeppelinFormsVersion)" />
+	</ItemGroup>
+
+</Project>

@@ -5,7 +5,7 @@ using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Headless;
 
-public sealed class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow, INativeControlHostWindow, ITaskbarWindow
+public sealed partial class HeadlessWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow, INativeControlHostWindow, ITaskbarWindow
 {
     private readonly HeadlessPlatform _platform;
     private readonly Form _form;

@@ -20,18 +20,30 @@ namespace ZeppelinForms.Android;
 /// </summary>
 public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, IAppLifecycle
 {
-    /// <summary>The system "back" button or gesture was pressed.
-    /// Set Handled so that the system doesn't close the activity.</summary>
+    /// <summary>The system "back" button or gesture was pressed, and the form on top
+    /// didn't take it. Set Handled so that the system doesn't close the activity.</summary>
     /// <remarks>
+    /// <para>
+    /// The form goes first (<see cref="Form.RequestBack"/>): an open flyout closes, a bottom
+    /// sheet closes, a <see cref="Forms.Controls.Navigation.NavigationHost"/> goes to its
+    /// previous page, a dialog is cancelled. This event is for the rest — "press back again
+    /// to exit". Before 0.19 it came first and alone.
+    /// </para>
+    /// <para>
     /// Deliberately not mapped to Escape: many handle Escape in a form, and we
     /// don't see the result — OnKeyDown returns nothing. Then it would be impossible
     /// to tell "a dialog closed" from "nobody took it", and the application would
     /// exit on every press.
+    /// </para>
     /// </remarks>
     public event EventHandler<BackRequestedEventArgs>? BackRequested;
 
     internal bool RaiseBackRequested()
     {
+        // the form on top: its flyouts, sheets, navigation stacks, and a dialog it is
+        if (InputTarget() is { } target && target.Form.RequestBack(BackSource.System))
+            return true;
+
         if (BackRequested is null) return false;
 
         var args = new BackRequestedEventArgs();
@@ -296,16 +308,36 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
         {
             Size surface = SurfaceSize;
 
-            // the root form lives inside the safe area rather than the whole window:
-            // with targetSdk 35 Android always draws the content under the status bar,
-            // and this can't be opted out of.
-            // The shift goes through Origin, so touches arrive where things are drawn —
-            // ToLocal subtracts it
-            root.Origin = new Point(_insetLeft, _insetTop);
+            if (root.Form.EdgeToEdge)
+            {
+                // the form covers the surface, under the bars, and is told where they are:
+                // its app bar and navigation bar color the space under them and keep their
+                // content out. The keyboard still takes its room away — the gesture bar's
+                // with it, which it covers
+                bool keyboard = _insetKeyboard > 0;
 
-            root.Form.ClientSize = new Size(
-                Math.Max(0, surface.Width - _insetLeft - _insetRight),
-                Math.Max(0, surface.Height - _insetTop - _insetBottom - _insetKeyboard));
+                root.Origin = Point.Empty;
+                root.Form.ClientSize = new Size(
+                    Math.Max(0, surface.Width),
+                    Math.Max(0, surface.Height - (keyboard ? _insetKeyboard + _insetBottom : 0f)));
+
+                root.Form.SetSafeAreaInsets(new Thickness(_insetLeft, _insetTop, _insetRight, keyboard ? 0f : _insetBottom));
+            }
+            else
+            {
+                // the root form lives inside the safe area rather than the whole window:
+                // with targetSdk 35 Android always draws the content under the status bar,
+                // and this can't be opted out of.
+                // The shift goes through Origin, so touches arrive where things are drawn —
+                // ToLocal subtracts it
+                root.Origin = new Point(_insetLeft, _insetTop);
+
+                root.Form.ClientSize = new Size(
+                    Math.Max(0, surface.Width - _insetLeft - _insetRight),
+                    Math.Max(0, surface.Height - _insetTop - _insetBottom - _insetKeyboard));
+
+                root.Form.SetSafeAreaInsets(Thickness.Zero);
+            }
 
             root.Form.PerformLayout();
         }
@@ -314,6 +346,13 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
             LayoutOverlay(_windows[i]);
 
         Invalidate();
+    }
+
+    /// <summary>The root form asked to draw under the bars, or not to any more.</summary>
+    internal void Relayout()
+    {
+        if (_physicalWidth > 0)
+            HandleResize(_physicalWidth, _physicalHeight);
     }
 
     /// <summary>The safe area changed: the keyboard appeared, the screen was rotated,

@@ -65,6 +65,24 @@ internal static partial class Interop
         int width,
         int height);
 
+    // ==== the page's history ====
+
+    /// <summary>A new entry of the page's history, with the location after the #.</summary>
+    [JSImport("historyPush", ModuleName)]
+    internal static partial void HistoryPush(string location);
+
+    /// <summary>The current entry's location after the #; no new entry.</summary>
+    [JSImport("historyReplace", ModuleName)]
+    internal static partial void HistoryReplace(string location);
+
+    /// <summary>Back by as many entries; the popstate it causes is not reported.</summary>
+    [JSImport("historyBack", ModuleName)]
+    internal static partial void HistoryBack(int count);
+
+    /// <summary>What followed the # in the address the page was opened at, without it.</summary>
+    [JSImport("initialRoute", ModuleName)]
+    internal static partial string InitialRoute();
+
     /// <summary>Request one frame through requestAnimationFrame.</summary>
     [JSImport("requestFrame", ModuleName)]
     internal static partial void RequestFrame();
@@ -313,6 +331,16 @@ internal static partial class Interop
     [JSExport]
     internal static void OnPageHide() =>
         App.RunGuarded(() => Platform?.HandlePageHide());
+
+    /// <summary>The browser's back button: the page's history went one entry back.</summary>
+    [JSExport]
+    internal static void OnHistoryBack() =>
+        App.RunGuarded(() => Platform?.HandleHistoryBack());
+
+    /// <summary>The page's safe area, env(safe-area-inset-*), in CSS pixels.</summary>
+    [JSExport]
+    internal static void OnSafeArea(double left, double top, double right, double bottom) =>
+        App.RunGuarded(() => Platform?.HandleSafeArea(left, top, right, bottom));
 
     /// <summary>The CSS name of the cursor for each kind. Default and Arrow are the
     /// same thing in a browser: we have no arrow of our own, the system draws it.</summary>

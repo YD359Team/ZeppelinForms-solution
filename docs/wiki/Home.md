@@ -33,7 +33,7 @@ The showcase — every control, the styles and the effects — runs in the brows
 ## Contents
 
 **Start**
-- [Getting started](Getting-Started) — packages, the application per platform, the first form
+- [Getting started](Getting-Started) — packages, the application per platform, the `zf-app` template, the first form
 - [Forms and windows](Forms-and-Windows) — size, position, limits, dialogs, message boxes
 - [Recipes](Recipes) — close to the tray, commands, confirmations, dialogs, loading, live styles
 
@@ -43,6 +43,7 @@ The showcase — every control, the styles and the effects — runs in the brows
 - [Lists and virtualization](Lists-and-Virtualization) — list boxes over long data
 - [Data grid](DataGridView) — typed columns, editing, selection, sorting
 - [Data binding](Data-Binding) — bindings, data sources, `DataSource<T>`
+- [Mobile and navigation](Mobile-and-Navigation) — a stack of pages, back, app and navigation bars, sheets, swipes, snackbars, the safe area
 
 **Looks**
 - [Styles and themes](Styles-and-Themes) — style sheets, themes, styled properties

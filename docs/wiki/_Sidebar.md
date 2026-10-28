@@ -11,6 +11,7 @@
 - [Lists and virtualization](Lists-and-Virtualization)
 - [Data grid](DataGridView)
 - [Data binding](Data-Binding)
+- [Mobile and navigation](Mobile-and-Navigation)
 
 **Looks**
 - [Styles and themes](Styles-and-Themes)
