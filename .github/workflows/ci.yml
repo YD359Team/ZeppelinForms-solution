@@ -97,3 +97,67 @@ jobs:
           name: test-results-${{ matrix.os }}
           path: '**/TestResults/**'
           if-no-files-found: ignore
+
+  # The VS Code extension and the Rider plugin: built outside the solution, each with its own
+  # tools, on Linux. Both speak the designer protocol in their own language, so their tests
+  # read bytes .NET wrote, and the Rider plugin's also hold a conversation with a real host
+  # about the examples' library
+  editors:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tools/ZeppelinForms.VSCode/package-lock.json
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      # Skia's text needs fontconfig, as the tests of the framework do
+      - run: sudo apt-get update && sudo apt-get install -y libfontconfig1
+
+      - name: Расширение VS Code
+        working-directory: tools/ZeppelinForms.VSCode
+        run: |
+          npm ci
+          npm run check
+          npm test
+          npm run build
+          npx vsce package --out zeppelinforms.vsix
+
+      - name: Выгрузить расширение VS Code
+        uses: actions/upload-artifact@v6
+        with:
+          name: vscode
+          path: tools/ZeppelinForms.VSCode/zeppelinforms.vsix
+          if-no-files-found: error
+
+      - name: Библиотека примеров для теста превью
+        run: dotnet build "examples/ZF SharedLib/ZF SharedLib.csproj" --configuration Release
+
+      # bash: the executable bit of gradlew doesn't survive every checkout
+      - name: Плагин Rider
+        working-directory: tools/ZeppelinForms.Rider
+        env:
+          ZF_DESIGNER_HOST: ${{ github.workspace }}/tools/ZeppelinForms.Rider/build/dotnet/designer/ZeppelinForms.Designer.dll
+          ZF_PREVIEW_ASSEMBLY: ${{ github.workspace }}/examples/ZF SharedLib/bin/Release/net10.0/ZF SharedLib.dll
+        run: bash gradlew publishDesigner test buildPlugin --stacktrace
+
+      - name: Выгрузить плагин Rider
+        uses: actions/upload-artifact@v6
+        with:
+          name: rider
+          path: tools/ZeppelinForms.Rider/build/distributions/*.zip
+          if-no-files-found: error

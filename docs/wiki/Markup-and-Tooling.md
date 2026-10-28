@@ -261,22 +261,39 @@ markup.
 
 ## Previewer
 
-The **ZeppelinForms Tools** extension for Visual Studio 2022 (17.10 and later) and Visual
-Studio 2026 — the `.vsix` is attached to every release.
+Three editors, one previewer: the extensions start the same host process,
+`ZeppelinForms.Designer`, which loads the project's build and draws its previews with Skia.
+Every form with a parameterless constructor and every method marked `[Preview]` (namespace
+`ZeppelinForms.Design`) is in its list; what `Main` does before showing a form — loading
+style sheets, choosing a theme — goes into a `[PreviewSetup]` method. The preview is live —
+hover, click, type, scroll — and reloads after every build of the project.
 
-Ctrl+Alt+Shift+P (View › Other Windows › ZeppelinForms Preview) previews the active project:
-every form with a parameterless constructor and every method marked `[Preview]` (namespace
-`ZeppelinForms.Design`). What `Main` does before showing a form — loading style sheets,
-choosing a theme — goes into a `[PreviewSetup]` method. The extension also highlights `.zss`
-style sheets and lists their problems in the Error List, and those of the values of the
-styles in `.zfml` markup.
+| Editor | Where | The extension |
+|---|---|---|
+| Visual Studio 2022 17.10+, 2026 | View › Other Windows › ZeppelinForms Preview (Ctrl+Alt+Shift+P) | **ZeppelinForms Tools**, `.vsix` |
+| VS Code | ZeppelinForms: Open Preview, or the button of a `.zfml`/`.zss` editor | **ZeppelinForms**, `.vsix` |
+| Rider 2025.2.1+ | View › Tool Windows › ZeppelinForms Preview | **ZeppelinForms**, a plugin `.zip` |
+
+All three are attached to every release and need the .NET 10 runtime on the machine. The
+toolbar is the same everywhere: the size the preview is laid out at (its own, a device's,
+the window's), the zoom — of the picture only, drawn by the host with more or fewer pixels,
+so it stays sharp —, the theme, the culture, right-to-left layout and the text scale.
+
+Visual Studio takes the active document's project from its project system; VS Code and Rider
+read it from the files — the nearest `.csproj` above the active file and the newest
+`bin/**/<AssemblyName>.dll` of it (in VS Code `zeppelinforms.preview.assembly` names another).
+
+The Visual Studio extension also lists the problems of `.zss` sheets in the Error List, and
+those of the values of the styles in `.zfml` markup.
 
 ## Completion and the language server
 
 `ZeppelinForms.LanguageServer` is a language server — the Language Server Protocol, on
-stdin and stdout — of `.zfml` markup and `.zss` style sheets, run by the machine's .NET 10.
-The Visual Studio extension ships it and asks it as you type; the Rider and VS Code
-extensions start the same server.
+stdin and stdout — of `.zfml` markup and `.zss` style sheets, run by the machine's .NET 10. Every extension
+ships it: Visual Studio's asks it from its own completion and quick info sources, so `.zfml`
+stays in the XML editor; VS Code's and Rider's are its LSP clients, problems included. In
+Rider `.zfml` opens in the XML editor too, and `.zss` is highlighted by a TextMate bundle of
+the grammar the other two have.
 
 - **Markup:** the elements after `<` — the framework's controls, the `prefix:` types of a
   `using:` namespace, property elements `<Grid.Styles>`; the properties and events of an
@@ -291,13 +308,29 @@ extensions start the same server.
 - **Hover:** an element's type, an attribute's property or event, a step of a binding's
   path — the declaration and its summary.
 - **Problems**, for the editors whose build doesn't show them as you type (Visual Studio's
-  does): the markup generator's ZF2xxx and the compiler's errors in the code it writes, at
-  the markup's line; a sheet's shape and the controls and properties it names.
+  does) — VS Code and Rider: the markup generator's ZF2xxx and the compiler's errors in the
+  code it writes, at the markup's line; a sheet's shape and the controls and properties it
+  names.
 
 The server reads the project as the build does, without building it: its C# files, the
 packages and projects `obj/project.assets.json` lists — the restore an IDE runs on opening
 a project writes it — and the framework's generators over its markup. A view model just
 written is offered at once.
+
+### The designer protocol
+
+The extensions speak to the previewer's host in a protocol of their own —
+`tools/ZeppelinForms.Design/Protocol/DesignerProtocol.cs`, written again in JavaScript for
+VS Code and in Kotlin for Rider, whose tests read bytes .NET wrote:
+
+```
+[int32 length][byte kind][payload]     little-endian; length counts kind + payload
+```
+
+Strings are those of .NET's `BinaryWriter`: a 7-bit encoded byte count and UTF-8. The
+extension listens and starts `dotnet ZeppelinForms.Designer.dll --pipe <name>` (Visual
+Studio, and VS Code on Windows) or `--socket <path>` (a Unix domain socket: Rider everywhere,
+VS Code on Linux and macOS); the host connects back.
 
 ## Hot Reload
 

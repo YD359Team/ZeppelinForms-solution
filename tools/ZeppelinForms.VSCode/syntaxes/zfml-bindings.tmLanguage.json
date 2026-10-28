@@ -1,0 +1,46 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "ZeppelinForms Markup Extensions",
+  "scopeName": "markup-extension.injection.zfml",
+  "comment": "{Bind Path, Mode=TwoWay} and {x:Null} inside attribute values of .zfml.",
+  "injectionSelector": "L:text.xml.zfml string.quoted",
+  "patterns": [
+    { "include": "#null" },
+    { "include": "#bind" }
+  ],
+  "repository": {
+    "null": {
+      "match": "(\\{)\\s*(x:Null)\\s*(\\})",
+      "captures": {
+        "1": { "name": "punctuation.definition.markup-extension.begin.zfml" },
+        "2": { "name": "constant.language.null.zfml" },
+        "3": { "name": "punctuation.definition.markup-extension.end.zfml" }
+      }
+    },
+    "bind": {
+      "begin": "(\\{)\\s*(Bind)\\b",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.markup-extension.begin.zfml" },
+        "2": { "name": "keyword.other.markup-extension.zfml" }
+      },
+      "end": "(\\})",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.markup-extension.end.zfml" }
+      },
+      "contentName": "meta.markup-extension.bind.zfml",
+      "patterns": [
+        {
+          "match": "(Mode)\\s*(=)\\s*(OneWay|TwoWay)\\b",
+          "captures": {
+            "1": { "name": "variable.parameter.zfml" },
+            "2": { "name": "keyword.operator.assignment.zfml" },
+            "3": { "name": "constant.language.zfml" }
+          }
+        },
+        { "match": ",", "name": "punctuation.separator.zfml" },
+        { "match": "\\.", "name": "punctuation.accessor.zfml" },
+        { "match": "[A-Za-z_][A-Za-z0-9_]*", "name": "variable.other.property.zfml" }
+      ]
+    }
+  }
+}

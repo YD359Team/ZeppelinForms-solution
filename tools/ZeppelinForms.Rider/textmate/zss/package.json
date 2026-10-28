@@ -1,0 +1,23 @@
+{
+  "name": "zeppelinforms-zss",
+  "displayName": "ZeppelinForms Style Sheet",
+  "description": "The grammar of .zss style sheets, shared with the Visual Studio and VS Code extensions. The build copies the grammar and the language configuration here from tools/ZeppelinForms.VisualStudio/Grammars.",
+  "version": "0.19.0",
+  "contributes": {
+    "languages": [
+      {
+        "id": "zss",
+        "aliases": [ "ZeppelinForms Style Sheet", "zss" ],
+        "extensions": [ ".zss" ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "zss",
+        "scopeName": "source.zss",
+        "path": "./syntaxes/zss.tmLanguage.json"
+      }
+    ]
+  }
+}

@@ -575,19 +575,23 @@ project file:
 
 ### 📺 Previewer
 
-The **ZeppelinForms Tools** extension for Visual Studio 2022 (17.10 and later) and
-Visual Studio 2026: the `.vsix` is attached to every release. It runs on the machine's
-.NET 10.
+Extensions for Visual Studio 2022 (17.10 and later) and 2026, VS Code and Rider (2025.2.1 and
+later) — all three attached to every release, all three running the same previewer and
+language server on the machine's .NET 10. See `tools/ZeppelinForms.VisualStudio`,
+`tools/ZeppelinForms.VSCode` and `tools/ZeppelinForms.Rider`.
 
-`Ctrl`+`Alt`+`Shift`+`P` (View › Other Windows › ZeppelinForms Preview) shows the
+In Visual Studio `Ctrl`+`Alt`+`Shift`+`P` (View › Other Windows › ZeppelinForms Preview) shows the
 preview of the active project: every form with a parameterless constructor, and every
 method marked `[Preview]` (namespace `ZeppelinForms.Design`). What `Main` does before
 showing a form — loading style sheets, choosing a theme — goes into a `[PreviewSetup]`
 method. The extension also highlights `.zss` style sheets and reports their problems in
 the Error List, and completes `.zfml` and `.zss` as you type — elements, attributes,
 values, the paths of `{Bind …}` from `x:DataType`, the properties a sheet's block can set —
-with the summaries on hover, from the ZeppelinForms language server it ships. See
-`tools/ZeppelinForms.VisualStudio/README.md`.
+with the summaries on hover, from the ZeppelinForms language server it ships.
+
+VS Code (ZeppelinForms: Open Preview) and Rider (View › Tool Windows › ZeppelinForms Preview)
+show the same preview beside the editor, and complete, document and check `.zfml` and `.zss`
+as you type from the same server.
 
 ### 📝 Markup
 

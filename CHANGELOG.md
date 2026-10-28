@@ -38,6 +38,24 @@
 - The Visual Studio extension completes `.zfml` in the XML editor and `.zss`, and shows
   quick info in `.zfml`, from the server it ships; the problems stay the build's
 
+### VS Code and Rider
+
+- An extension for VS Code (`tools/ZeppelinForms.VSCode`): completion, hover and problems of
+  `.zfml` and `.zss` from the language server, highlighting of both — `.zfml` as XML with
+  `{Bind …}` and `{x:Null}` picked out —, and the previewer in a panel beside the editor:
+  the toolbar of Visual Studio's, live input, a reload after every build, Source to open a
+  preview's code. Plain JavaScript with type checks; the protocol's tests read bytes .NET wrote
+- A plugin for Rider 2025.2.1 and later (`tools/ZeppelinForms.Rider`, Kotlin, Gradle): the
+  language server through Rider's LSP support, `.zfml` in the XML editor, `.zss` highlighted
+  by a TextMate bundle, and the ZeppelinForms Preview tool window
+- The previewer's host connects to a Unix domain socket too: `--socket <path>`, besides
+  `--pipe <name>`. Rider uses it everywhere, VS Code on Linux and macOS
+- The host ships HarfBuzz's Linux module: text is shaped in previews on Linux as in the
+  application
+- Both are built and tested in CI — the Rider plugin's tests talk to a real host about the
+  examples' library — and attached to the release; with `VSCE_PAT` and
+  `JETBRAINS_MARKETPLACE_TOKEN` set, published to the marketplaces
+
 ### MVVM
 
 - `UIElement.DataContext` and `Form.DataContext`: the object an element's bindings start

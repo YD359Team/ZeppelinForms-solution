@@ -1,0 +1,142 @@
+/* The preview page in VS Code's colors, light, dark or high contrast. */
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    background: var(--vscode-editor-background);
+    color: var(--vscode-foreground);
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    user-select: none;
+}
+
+#toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+
+select,
+input:not([type]),
+button {
+    font: inherit;
+    color: var(--vscode-dropdown-foreground);
+    background: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border, transparent);
+    border-radius: 2px;
+    padding: 2px 4px;
+}
+
+select:focus,
+input:focus,
+button:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+}
+
+#list {
+    min-width: 220px;
+    max-width: 100%;
+}
+
+#culture {
+    width: 80px;
+    color: var(--vscode-input-foreground);
+    background: var(--vscode-input-background);
+    border-color: var(--vscode-input-border, transparent);
+}
+
+button {
+    color: var(--vscode-button-secondaryForeground);
+    background: var(--vscode-button-secondaryBackground);
+    padding: 2px 10px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+}
+
+label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#zoomInfo {
+    min-width: 36px;
+    opacity: 0.8;
+}
+
+#center {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+#scroll {
+    position: absolute;
+    inset: 0;
+    overflow: auto;
+    display: flex;
+}
+
+/* centered while it fits, scrolled from its corner when it doesn't */
+#stage {
+    margin: auto;
+    padding: 24px;
+}
+
+#picture {
+    display: block;
+    outline: none;
+    image-rendering: pixelated;
+}
+
+/* a frame and a shadow, so that the preview's own background doesn't melt into the panel's */
+#stage.framed #picture {
+    border: 1px solid rgba(128, 128, 128, 0.25);
+    box-shadow: 0 3px 18px rgba(0, 0, 0, 0.35);
+}
+
+#picture:focus-visible {
+    border-color: var(--vscode-focusBorder);
+}
+
+#error {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    white-space: pre-wrap;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    background: var(--vscode-editor-background);
+    color: var(--vscode-errorForeground);
+    user-select: text;
+}
+
+#error[hidden] {
+    display: none;
+}
+
+#status {
+    padding: 3px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-top: 1px solid var(--vscode-panel-border, transparent);
+    opacity: 0.85;
+}

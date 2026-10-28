@@ -100,7 +100,9 @@ from the tag and attaches the `.vsix` to the release.
 
 ## The protocol
 
-Plain enough for a non-.NET client — a Rider plugin is the next one:
+Plain enough for a non-.NET client: the VS Code extension speaks it in JavaScript and the
+Rider plugin in Kotlin (`tools/ZeppelinForms.VSCode`, `tools/ZeppelinForms.Rider`), over a
+Unix domain socket the host connects to with `--socket <path>`:
 
 ```
 [int32 length][byte kind][payload]     little-endian; length counts kind + payload

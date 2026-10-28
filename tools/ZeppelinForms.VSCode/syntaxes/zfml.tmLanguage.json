@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "ZeppelinForms Markup",
+  "scopeName": "text.xml.zfml",
+  "comment": "Markup is XML: the editor's own XML grammar colors it, and zfml-bindings adds the markup extensions in attribute values.",
+  "patterns": [
+    { "include": "text.xml" }
+  ]
+}

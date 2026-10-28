@@ -1,0 +1,9 @@
+node_modules/
+*.vsix
+# published by scripts/build.js: the language server and the previewer's host
+/server/
+/designer/
+# copied from the Visual Studio extension and the repository's root by scripts/build.js
+/syntaxes/zss.tmLanguage.json
+/language-configuration/zss.json
+/LICENSE.txt
