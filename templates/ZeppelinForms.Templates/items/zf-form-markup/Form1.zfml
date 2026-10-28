@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The design of Form1 in markup: Class names the class, a Name makes a field. What the
+     controls do is in Form1.cs. The generator compiles this into C# at build time and
+     checks every type, property and value -->
+<Form Class="MyApp.Form1" Title="Form1" Size="480,320">
+
+	<StackPanel Orientation="Vertical" Spacing="12" Padding="16">
+		<Label Name="Greeting" Text="Hello from Form1" TextStyle="Subtitle"/>
+		<PrimaryButton Text="OK" Click="OnOk"/>
+	</StackPanel>
+</Form>

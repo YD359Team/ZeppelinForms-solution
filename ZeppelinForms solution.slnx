@@ -69,6 +69,9 @@
     <Project Path="src/ZeppelinForms.Windows/ZeppelinForms.Windows.csproj" />
     <Project Path="src/ZeppelinForms/ZeppelinForms.csproj" />
   </Folder>
+  <Folder Name="/templates/">
+    <Project Path="templates/ZeppelinForms.Templates/ZeppelinForms.Templates.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ZeppelinForms.ExternalControlTests/ZeppelinForms.ExternalControlTests.csproj" />
     <Project Path="tests/ZeppelinForms.UnitTests/ZeppelinForms.UnitTests.csproj" />

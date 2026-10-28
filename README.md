@@ -604,6 +604,51 @@ The generator writes the base class, the fields and a constructor that builds th
 - A class whose code declares no constructor gets one that calls
   `InitializeComponent`; Hot Reload builds the markup again after an edit
 
+#### Design apart from code
+
+A form in code can keep its controls apart from what they do, as WinForms does:
+`MainForm.design.cs` holds the fields and an `InitializeComponent()` that makes, wires and
+lays them out, `MainForm.cs` the handlers. The framework gives the design part what it
+gives markup — a constructor when the class declares none, Hot Reload of
+`InitializeComponent`, no CS8618 for the fields it assigns, ZF0007 for a constructor that
+forgets to build it — and nests it under `MainForm.cs` in Solution Explorer and Rider.
+
+```csharp
+// MainForm.design.cs
+partial class MainForm
+{
+    private TextBox _name;
+    private PrimaryButton _greet;
+
+    private void InitializeComponent()
+    {
+        Title = "Hello";
+
+        _name = new TextBox { Watermark = "Your name" };
+        _greet = new PrimaryButton { Text = "Greet" };
+        _greet.Click += OnGreet;
+
+        Content = new StackPanel { Spacing = 10, Padding = new Thickness(24), Children = { _name, _greet } };
+    }
+}
+
+// MainForm.cs
+public partial class MainForm : Form
+{
+    private async void OnGreet(object? sender, MouseClickEventArgs e) =>
+        await MessageBox.ShowAsync(this, $"Hello, {_name.Text}!");
+}
+```
+
+#### Templates
+
+```
+dotnet new install ZeppelinForms.Templates
+dotnet new zf-form -n OrderForm            # OrderForm.cs + OrderForm.design.cs
+dotnet new zf-form-markup -n FeedbackForm  # FeedbackForm.cs + FeedbackForm.zfml
+dotnet new zf-stylesheet -n app            # app.zss
+```
+
 ### 🔥 Hot Reload
 
 Visual Studio's Hot Reload and `dotnet watch` work with code-first forms. After every
@@ -630,7 +675,8 @@ public class MainForm : Form
 
 `UIElement.OnHotReload` does the same for a control that builds its children itself, and
 `HotReload.Applied` is raised once the forms have caught up. Style sheets loaded from
-files with `watch: true` follow their saves on their own.
+files with `watch: true` follow their saves on their own; markup and `.design.cs` parts are
+built again with no code of one's own.
 
 ### 🧪 Snapshot Tests
 

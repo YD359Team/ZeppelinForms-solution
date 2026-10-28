@@ -72,7 +72,8 @@ jobs:
             src/ZeppelinForms.Windows/ZeppelinForms.Windows.csproj \
             src/ZeppelinForms.Linux/ZeppelinForms.Linux.csproj \
             src/ZeppelinForms.Android/ZeppelinForms.Android.csproj \
-            src/ZeppelinForms.Browser/ZeppelinForms.Browser.csproj
+            src/ZeppelinForms.Browser/ZeppelinForms.Browser.csproj \
+            templates/ZeppelinForms.Templates/ZeppelinForms.Templates.csproj
           do
             dotnet pack "$project" --configuration Release --output packages \
               -p:Version=${{ steps.version.outputs.value }} \

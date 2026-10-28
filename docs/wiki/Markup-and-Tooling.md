@@ -182,11 +182,76 @@ command, or another type's member that isn't static is ZF2011.
   form.
 - Built again by Hot Reload, the element drops its old styles before it takes the new.
 
+## Design apart from code
+
+A form in code needn't mix its controls with what they do. `MainForm.design.cs` holds the
+design — the controls' fields and an `InitializeComponent()` that makes, sets up, wires and
+lays them out — and `MainForm.cs` the behaviour, as WinForms' `Form1.Designer.cs` and
+`Form1.cs`. No designer owns the file: it is code, written and edited by hand.
+
+```csharp
+// MainForm.design.cs
+partial class MainForm
+{
+    private TextBox _name;
+    private PrimaryButton _greet;
+
+    private void InitializeComponent()
+    {
+        Title = "Hello";
+        Size = new Size(480, 320);
+
+        _name = new TextBox { Watermark = "Your name" };
+
+        _greet = new PrimaryButton { Text = "Greet" };
+        _greet.Click += OnGreet;
+
+        Content = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 10,
+            Padding = new Thickness(24),
+            Children = { new Label { Text = "What is your name?" }, _name, _greet },
+        };
+    }
+}
+```
+
+```csharp
+// MainForm.cs
+public partial class MainForm : Form
+{
+    private async void OnGreet(object? sender, MouseClickEventArgs e) =>
+        await MessageBox.ShowAsync(this, $"Hello, {_name.Text}!");
+}
+```
+
+What the framework adds to a `*.design.cs`, as it does to markup:
+
+- **A constructor** that calls `InitializeComponent()`, when the class declares none. A
+  constructor of the class's own calls it itself — ZF0007 warns of one that doesn't, since
+  its form would open empty with its fields null.
+- **Hot Reload**: `InitializeComponent()` runs again after an edit, so a change of the
+  design shows in the open form. That is why the controls are made inside it rather than
+  in the fields' initializers, and their events wired there too: run again, it makes fresh
+  controls with one handler each, where controls made once would get every handler twice.
+  A class that overrides `OnHotReload` itself keeps its own. A control whose design adds to
+  its `Children` clears them first.
+- **No CS8618** for the fields `InitializeComponent()` assigns: the compiler doesn't follow
+  the call from the constructor, the ZeppelinForms analyzers do. A field the method
+  forgets keeps the warning.
+- **Nesting**: `MainForm.design.cs` and `MainForm.zfml` show under `MainForm.cs` in
+  Solution Explorer and Rider (the package's build targets set `DependentUpon`).
+
+The showcase's `OrderForm.design.cs` and `OrderForm.cs` are a whole example; `dotnet new
+zf-form` makes the pair.
+
 ## Analyzers
 
 The `ZeppelinForms` package brings analyzers that catch the framework's own pitfalls at build
 time — ZF0xxx for code (an assignment in a constructor that locks the theme out, a styled
-property declared wrong…) and ZF2xxx for markup.
+property declared wrong, a constructor that doesn't build its design part…) and ZF2xxx for
+markup.
 
 ## Previewer
 
@@ -225,7 +290,8 @@ public class MainForm : Form
 
 `UIElement.OnHotReload` does the same for a control that builds its children itself, and
 `HotReload.Applied` is raised once the forms have caught up. Style sheets loaded with
-`watch: true` follow their saves by themselves, and markup is built again after an edit.
+`watch: true` follow their saves by themselves; markup and a
+[design part](#design-apart-from-code) are built again after an edit with no code of one's own.
 
 ## The inspector
 

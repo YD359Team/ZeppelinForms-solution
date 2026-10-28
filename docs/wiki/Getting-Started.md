@@ -139,6 +139,23 @@ public partial class MainForm
 The generator writes the rest: the base class, a field for `NameBox` and a constructor
 that builds the markup. See [Markup](Markup-and-Tooling#a-form-in-markup).
 
+Or in code, but with the controls apart from what they do — `MainForm.design.cs` and
+`MainForm.cs`, as WinForms has them: see [Design apart from code](Markup-and-Tooling#design-apart-from-code).
+
+### Templates
+
+```
+dotnet new install ZeppelinForms.Templates
+
+dotnet new zf-form -n OrderForm            # OrderForm.cs + OrderForm.design.cs
+dotnet new zf-form-markup -n FeedbackForm  # FeedbackForm.cs + FeedbackForm.zfml
+dotnet new zf-stylesheet -n app            # app.zss
+```
+
+Run in the project's folder: the namespace is the project's root namespace, or
+`--namespace`. Rider lists the templates under Add › New from Template; recent versions of
+Visual Studio show the templates `dotnet new` installed in Add › New Item.
+
 ## Files and assets
 
 | File | What it is | How it is used |

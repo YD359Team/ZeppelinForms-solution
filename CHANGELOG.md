@@ -24,6 +24,23 @@
 - A wiki section and a README example of a whole form in markup; the showcase's Markup
   page opens one, `FeedbackForm.zfml`
 
+### Design apart from code
+
+- `MainForm.design.cs`: the controls' fields and an `InitializeComponent()` that makes, wires
+  and lays them out, apart from the behaviour in `MainForm.cs` — WinForms'
+  `Form1.Designer.cs`, written by hand. The generator gives the class a constructor that
+  calls `InitializeComponent()` when it declares none, and Hot Reload builds the design
+  again after an edit, as markup's is
+- No CS8618 for a field of a `.design.cs` that `InitializeComponent()` assigns, when the
+  constructor calls it; a field it forgets keeps the warning
+- ZF0007: a constructor of a class with a design part — a `.design.cs` or markup — that
+  doesn't call `InitializeComponent()`
+- `MainForm.design.cs` and `MainForm.zfml` nest under `MainForm.cs` in Solution Explorer and
+  Rider: the package's build targets set `DependentUpon` when the code file is there
+- `ZeppelinForms.Templates` for `dotnet new`, Rider and Visual Studio: `zf-form` (a form with
+  its `.design.cs`), `zf-form-markup`, `zf-stylesheet`
+- The showcase's Markup page opens `OrderForm`, a form whose design is a `.design.cs`
+
 ### Tooltips
 
 - A tooltip is a `ToolTip` control, styled by the theme: the surface, a hairline edge, the

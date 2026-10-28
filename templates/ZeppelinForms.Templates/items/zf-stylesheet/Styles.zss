@@ -1,0 +1,22 @@
+/* Styles.zss: styles of the application, a form or a part of one.
+
+   App.Styles.Load("Styles.zss", watch: true);   the application's; reloaded on every save
+   form.Styles.Add(StyleSheet.LoadAsset("Styles.zss"));   one form's, from the assets
+
+   The file is read at run time: give it "Copy to Output Directory", or put it among the
+   assets. Selectors are the controls' types, .classes, #names and :states; properties
+   are the C# ones; @Name is a theme color, $name a variable of this sheet. */
+
+$radius: 6;
+
+Button {
+    CornerRadius: $radius;
+    transition: BackgroundColor 150ms ease-out;
+}
+
+Button.danger {
+    BackgroundColor: @Error;
+    TextColor: white;
+
+    &:hover { BackgroundColor: darken(@Error, 0.1); }
+}
