@@ -13,4 +13,12 @@ public sealed class FileDialogOptions
     public List<FileFilter> Filters { get; init; } = [];
 
     public bool AllowMultiple { get; set; }
+
+    /// <summary>The system's own dialog where the platform has one: IFileDialog on Windows,
+    /// the desktop portal on Linux — GNOME's, KDE's, whatever the desktop uses. True by
+    /// default; false — the framework's own dialog, the same everywhere. A platform without
+    /// a system dialog shows the framework's either way; the browser always has its own.</summary>
+    /// <remarks>On Linux the portal answers asynchronously: the synchronous
+    /// <see cref="FileDialog.OpenFile"/> and its kin show the framework's dialog there.</remarks>
+    public bool UseNative { get; set; } = true;
 }

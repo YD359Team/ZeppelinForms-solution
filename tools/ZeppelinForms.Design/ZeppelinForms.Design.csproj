@@ -16,6 +16,7 @@
 		<!-- the styles of markup as a style sheet: the generator's own file, so that the
 		     host checks exactly the text the application parses -->
 		<Compile Include="..\..\src\ZeppelinForms.Analyzers\Markup\MarkupStyleText.cs" Link="Markup\MarkupStyleText.cs" />
+		<Compile Include="..\..\src\ZeppelinForms.Analyzers\Markup\MarkupDocument.cs" Link="Markup\MarkupDocument.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -16,8 +16,12 @@
 		<Nullable>enable</Nullable>
 
 		<ApplicationId>com.yd359.zeppelinforms.example</ApplicationId>
-		<ApplicationVersion>1</ApplicationVersion>
-		<ApplicationDisplayVersion>0.18.1</ApplicationDisplayVersion>
+
+		<!-- Both versions come from Directory.Build.props. The display version is the
+		     release's own; the versionCode an install compares must grow with every
+		     release, so it is made of the numbers: major * 10000 + minor * 100 + patch -->
+		<ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+		<ApplicationVersion>$([MSBuild]::Add($([MSBuild]::Add($([MSBuild]::Multiply($([System.Version]::Parse('$(VersionNumbers)').Major), 10000)), $([MSBuild]::Multiply($([System.Version]::Parse('$(VersionNumbers)').Minor), 100)))), $([System.Version]::Parse('$(VersionNumbers)').Build)))</ApplicationVersion>
 	</PropertyGroup>
 
 	<ItemGroup>

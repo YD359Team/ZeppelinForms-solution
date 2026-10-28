@@ -16,6 +16,29 @@ A common layout for a cross-platform application is a class library with the for
 (`ZeppelinForms`) and a small executable per platform that only starts it — the way
 [ZF Process Monitor](https://github.com/YD359Team/ZF_ProcessMonitor) is built.
 
+## The whole application from a template
+
+```
+dotnet new install ZeppelinForms.Templates
+dotnet new zf-app -n Notes
+```
+
+makes that layout:
+
+| Project | What it is |
+| ------- | ---------- |
+| `Notes` | the application: `MainForm` — an app bar, a stack of pages, a navigation bar — and its pages |
+| `Notes.Desktop` | Windows and Linux from one build; `Program` picks the platform when it starts |
+| `Notes.Browser` | WebAssembly: `wwwroot` with `index.html`, `main.js`, `zf.js` and a font |
+| `Notes.Android` | the activity |
+
+`--desktop false`, `--browser false`, `--android false` leave a project out. The browser
+project needs the `wasm-tools` workload, the Android one the `android` workload
+(`dotnet workload install …`). The version of the ZeppelinForms packages is
+`ZeppelinFormsVersion` in `Directory.Build.props` — the templates' own version unless
+`--zfVersion` says otherwise. The pages and the frame are described in
+[Mobile and navigation](Mobile-and-Navigation).
+
 ## Windows
 
 A `WinExe` project for `net10.0-windows`:
@@ -112,6 +135,50 @@ public class MainForm : Form
     }
 }
 ```
+
+The same form in markup — `MainForm.zfml`, with nothing to declare before the root:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Form Class="MyApp.MainForm" Title="Hello" Size="480,320" WindowStartupLocation="CenterScreen">
+  <StackPanel Orientation="Vertical" Spacing="10" Padding="24">
+    <Label Text="What is your name?"/>
+    <TextBox Name="NameBox" Watermark="Your name"/>
+    <PrimaryButton Text="Greet" Click="OnGreet"/>
+  </StackPanel>
+</Form>
+```
+
+and its behaviour in `MainForm.cs`:
+
+```csharp
+public partial class MainForm
+{
+    private async void OnGreet(object? sender, MouseClickEventArgs e) =>
+        await MessageBox.ShowAsync(this, $"Hello, {NameBox.Text}!");
+}
+```
+
+The generator writes the rest: the base class, a field for `NameBox` and a constructor
+that builds the markup. See [Markup](Markup-and-Tooling#a-form-in-markup).
+
+Or in code, but with the controls apart from what they do — `MainForm.design.cs` and
+`MainForm.cs`, as WinForms has them: see [Design apart from code](Markup-and-Tooling#design-apart-from-code).
+
+### Templates
+
+```
+dotnet new install ZeppelinForms.Templates
+
+dotnet new zf-app -n Notes                 # an application: shared, Desktop, Browser, Android
+dotnet new zf-form -n OrderForm            # OrderForm.cs + OrderForm.design.cs
+dotnet new zf-form-markup -n FeedbackForm  # FeedbackForm.cs + FeedbackForm.zfml
+dotnet new zf-stylesheet -n app            # app.zss
+```
+
+Run the item templates in the project's folder: the namespace is the project's root namespace, or
+`--namespace`. Rider lists the templates under Add › New from Template; recent versions of
+Visual Studio show the templates `dotnet new` installed in Add › New Item.
 
 ## Files and assets
 

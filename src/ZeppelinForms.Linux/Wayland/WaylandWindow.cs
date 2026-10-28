@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using ZeppelinForms.Drawing;
+﻿using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Enums;
@@ -37,7 +36,7 @@ namespace ZeppelinForms.Linux.Wayland;
 /// they fall.
 /// </para>
 /// </remarks>
-internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow
+internal sealed partial class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInputMethodWindow
 {
     private readonly WaylandPlatform _platform;
     private readonly Form _form;
@@ -237,9 +236,9 @@ internal sealed class WaylandWindow : IPlatformWindow, IDesktopWindow, ITextInpu
     }
 
     /// <summary>The application's id for the compositor: what it groups windows by and
-    /// finds the .desktop file with.</summary>
-    private static string AppId =>
-        Assembly.GetEntryAssembly()?.GetName().Name ?? "ZeppelinForms";
+    /// finds the .desktop file with — <see cref="App.Id"/>, which until set is the entry
+    /// assembly's name made fit for an id.</summary>
+    private static string AppId => App.Id;
 
     public void Show()
     {

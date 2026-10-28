@@ -533,4 +533,281 @@ public class MarkupGeneratorTests
         Assert.Equal("ZF2014", warning.Id);
         Assert.Equal(7, warning.Location.GetLineSpan().StartLinePosition.Line + 1);
     }
+
+    // ===== a form with nothing around it =====
+
+    [Fact]
+    public void AFormNeedsNoNamespacesOfItsOwn()
+    {
+        Result result = Build("""
+            <?xml version="1.0" encoding="utf-8"?>
+            <Form Class="App.MainForm" Title="Orders" Size="800,600">
+              <StackPanel Spacing="8">
+                <TextBox Name="Search" Watermark="Search"/>
+                <Button Text="Find" Click="OnFind"/>
+              </StackPanel>
+            </Form>
+            """, """
+            namespace App;
+            public partial class MainForm
+            {
+                public int Clicks;
+                private void OnFind(object? sender, ZeppelinForms.Input.Mouse.MouseClickEventArgs e) => Clicks++;
+            }
+            """);
+
+        Assert.Empty(result.Errors);
+
+        var form = (Form)result.Create("App.MainForm");
+        Assert.Equal("Orders", form.Title);
+        Assert.Equal(new Size(800, 600), form.Size);
+
+        // a plain Name is a field, as x:Name is
+        var panel = Assert.IsType<StackPanel>(form.Content);
+        var search = Field<TextBox>(form, "Search");
+        Assert.Same(panel.Children[0], search);
+        Assert.Equal("Search", search.Name);
+        Assert.Contains("e3.Click += this.OnFind;", result.Source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void XNeedsNoDeclaration()
+    {
+        Result result = Build("""
+            <Form x:Class="App.MainForm">
+              <Label x:Name="Hello" Text="Hi"/>
+            </Form>
+            """);
+
+        Assert.Empty(result.Errors);
+
+        var form = (Form)result.Create("App.MainForm");
+        Assert.Same(form.Content, Field<Label>(form, "Hello"));
+    }
+
+    [Fact]
+    public void AClassOfMarkupAloneIsPublic()
+    {
+        Result result = Build("""<Form Class="App.About" Title="About"><Label Text="ZeppelinForms"/></Form>""");
+
+        Assert.Empty(result.Errors);
+        Assert.True(result.Assembly!.GetType("App.About", throwOnError: true)!.IsPublic);
+        Assert.Equal("About", ((Form)result.Create("App.About")).Title);
+    }
+
+    [Fact]
+    public void ANameThatCantBeAFieldIsTheElementsOwn()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.Panel">
+              <Label Name="main-label" Text="x"/>
+            </StackPanel>
+            """);
+
+        Assert.Empty(result.Errors);
+        Assert.DoesNotContain("main-label =", result.Source, StringComparison.Ordinal);
+
+        var panel = (StackPanel)result.Create("App.Panel");
+        Assert.Equal("main-label", panel.Children[0].Name);
+    }
+
+    [Fact]
+    public void APlainNameIsABindingSource()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.Echo">
+              <Label Name="Shown" Text="{Bind Typed.Text}"/>
+              <TextBox Name="Typed"/>
+            </StackPanel>
+            """);
+
+        Assert.Empty(result.Errors);
+
+        object echo = result.Create("App.Echo");
+        Field<TextBox>(echo, "Typed").Text = "hello";
+
+        Assert.Equal("hello", Field<Label>(echo, "Shown").Text);
+    }
+
+    [Fact]
+    public void ARootWithoutAClassIsReported()
+    {
+        Result result = Build("""<Form Title="Orders"/>""");
+
+        Assert.Equal("ZF2002", Assert.Single(result.Errors).Id);
+    }
+
+    // ===== 0.19: the data context, x:DataType, compiled bindings =====
+
+    private const string ViewModels = """
+        using System.ComponentModel;
+        using System.Runtime.CompilerServices;
+
+        namespace App.ViewModels;
+
+        public abstract class Observable : INotifyPropertyChanged
+        {
+            public event PropertyChangedEventHandler? PropertyChanged;
+
+            protected void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
+            {
+                field = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            }
+        }
+
+        public sealed class Customer : Observable
+        {
+            private string _name = "";
+            public string Name { get => _name; set => Set(ref _name, value); }
+        }
+
+        public sealed class OrderViewModel : Observable
+        {
+            private string _status = "New";
+            private Customer? _customer;
+            private int _quantity = 1;
+
+            public string Status { get => _status; set => Set(ref _status, value); }
+            public string Reference => "R-1";
+            public int Quantity { get => _quantity; set => Set(ref _quantity, value); }
+            public Customer? Customer { get => _customer; set => Set(ref _customer, value); }
+            public ZeppelinForms.Input.Commands.Command Save { get; } = new(() => { });
+        }
+        """;
+
+    private static object? Read(object owner, string property) => owner.GetType().GetProperty(property)!.GetValue(owner);
+
+    private static void Write(object owner, string property, object? value) => owner.GetType().GetProperty(property)!.SetValue(owner, value);
+
+    [Fact]
+    public void ADataTypeBindsTheElementsToTheDataContext()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.OrderPanel" xmlns:vm="using:App.ViewModels" x:DataType="vm:OrderViewModel"
+                        xmlns:x="https://zeppelinforms.dev/markup/x">
+              <Label Name="Status" Text="{Bind Status}"/>
+              <TextBox Name="CustomerName" Text="{Bind Customer.Name, Mode=TwoWay}"/>
+              <TextBox Name="Quantity" Text="{Bind Quantity, Mode=TwoWay}"/>
+              <Button Name="Save" Text="Save" Command="{Bind Save}"/>
+            </StackPanel>
+            """, ViewModels);
+
+        Assert.Empty(result.Errors);
+
+        var panel = (StackPanel)result.Create("App.OrderPanel");
+        object vm = Activator.CreateInstance(result.Assembly!.GetType("App.ViewModels.OrderViewModel", throwOnError: true)!)!;
+        object customer = Activator.CreateInstance(result.Assembly!.GetType("App.ViewModels.Customer", throwOnError: true)!)!;
+
+        panel.DataContext = vm;
+
+        Assert.Equal("New", Field<Label>(panel, "Status").Text);
+        Assert.Equal("1", Field<TextBox>(panel, "Quantity").Text);
+        Assert.Same(Read(vm, "Save"), Field<Button>(panel, "Save").Command);
+
+        Write(vm, "Status", "Paid");
+        Assert.Equal("Paid", Field<Label>(panel, "Status").Text);
+
+        Write(customer, "Name", "Ann");
+        Write(vm, "Customer", customer);
+        Assert.Equal("Ann", Field<TextBox>(panel, "CustomerName").Text);
+
+        Field<TextBox>(panel, "CustomerName").Text = "Anna";
+        Assert.Equal("Anna", Read(customer, "Name"));
+
+        Field<TextBox>(panel, "Quantity").Text = "7";
+        Assert.Equal(7, Read(vm, "Quantity"));
+    }
+
+    [Fact]
+    public void TheDataContextCanBeMadeInTheMarkup()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.Made" xmlns:vm="using:App.ViewModels" x:DataType="vm:OrderViewModel"
+                        xmlns:x="https://zeppelinforms.dev/markup/x">
+              <StackPanel.DataContext>
+                <vm:OrderViewModel Status="Made here"/>
+              </StackPanel.DataContext>
+              <Label Name="Status" Text="{Bind Status}"/>
+            </StackPanel>
+            """, ViewModels);
+
+        Assert.Empty(result.Errors);
+
+        var panel = (StackPanel)result.Create("App.Made");
+        Assert.Equal("Made here", Field<Label>(panel, "Status").Text);
+    }
+
+    [Fact]
+    public void AnInnerDataTypeIsForWhatIsInside()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.Nested" xmlns:vm="using:App.ViewModels" x:DataType="vm:OrderViewModel"
+                        xmlns:x="https://zeppelinforms.dev/markup/x">
+              <Label Name="Status" Text="{Bind Status}"/>
+              <StackPanel Name="CustomerPart" x:DataType="vm:Customer">
+                <Label Name="Name" Text="{Bind Name}"/>
+              </StackPanel>
+            </StackPanel>
+            """, ViewModels);
+
+        Assert.Empty(result.Errors);
+
+        var panel = (StackPanel)result.Create("App.Nested");
+        object customer = Activator.CreateInstance(result.Assembly!.GetType("App.ViewModels.Customer", throwOnError: true)!)!;
+        Write(customer, "Name", "Bob");
+
+        Field<StackPanel>(panel, "CustomerPart").DataContext = customer;
+
+        Assert.Equal("Bob", Field<Label>(panel, "Name").Text);
+    }
+
+    [Theory]
+    [InlineData("<Label Text=\"{Bind Status}\"/>", "x:DataType")]
+    [InlineData("<Label x:DataType=\"vm:OrderViewModel\" Text=\"{Bind Nope}\"/>", "has no property 'Nope'")]
+    [InlineData("<TextBox x:DataType=\"vm:OrderViewModel\" Text=\"{Bind Reference, Mode=TwoWay}\"/>", "can't be written")]
+    [InlineData("<Button x:DataType=\"vm:OrderViewModel\" Command=\"{Bind Save, Mode=TwoWay}\"/>", "one way only")]
+    [InlineData("<Button x:DataType=\"vm:OrderViewModel\" Command=\"{Bind Status}\"/>", "doesn't take")]
+    public void AWrongBindingIsReportedAtItsLine(string element, string message)
+    {
+        Result result = Build(
+            "<StackPanel Class=\"App.Wrong\" xmlns:vm=\"using:App.ViewModels\" xmlns:x=\"https://zeppelinforms.dev/markup/x\">\n  " +
+            element + "\n</StackPanel>", ViewModels);
+
+        Diagnostic error = Assert.Single(result.Errors, d => d.Id.StartsWith("ZF", StringComparison.Ordinal));
+
+        Assert.Equal("ZF2008", error.Id);
+        Assert.Contains(message, error.GetMessage(), StringComparison.Ordinal);
+        Assert.Equal(2, error.Location.GetLineSpan().StartLinePosition.Line + 1);
+    }
+
+    [Fact]
+    public void ADataTypeThatIsntThereIsReported()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.Wrong" xmlns:x="https://zeppelinforms.dev/markup/x" x:DataType="Nowhere">
+            </StackPanel>
+            """);
+
+        Assert.Equal("ZF2015", Assert.Single(result.Errors).Id);
+    }
+
+    [Fact]
+    public void ASelectedIndexWaitsForTheItems()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.Choice" xmlns:x="https://zeppelinforms.dev/markup/x">
+              <ComboBox Name="Rating" SelectedIndex="1">
+                <x:String>Good</x:String>
+                <x:String>Excellent</x:String>
+              </ComboBox>
+            </StackPanel>
+            """);
+
+        Assert.Empty(result.Errors);
+
+        object choice = result.Create("App.Choice");
+        Assert.Equal(1, Field<ComboBox>(choice, "Rating").SelectedIndex);
+        Assert.Equal("Excellent", Field<ComboBox>(choice, "Rating").SelectedItem);
+    }
 }

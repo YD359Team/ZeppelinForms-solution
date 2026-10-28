@@ -1,0 +1,184 @@
+{
+  "name": "zeppelinforms",
+  "displayName": "ZeppelinForms",
+  "description": "Completion, hover and problems for ZeppelinForms markup (.zfml) and style sheets (.zss), and a live preview of the project's forms and [Preview] methods.",
+  "version": "0.19.0",
+  "publisher": "YD359Team",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YD359Team/ZeppelinForms-solution",
+    "directory": "tools/ZeppelinForms.VSCode"
+  },
+  "bugs": {
+    "url": "https://github.com/YD359Team/ZeppelinForms-solution/issues"
+  },
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization"
+  ],
+  "keywords": [
+    "zeppelinforms",
+    "zfml",
+    "zss",
+    "dotnet",
+    "ui"
+  ],
+  "main": "./src/extension.js",
+  "activationEvents": [
+    "workspaceContains:**/*.zfml",
+    "workspaceContains:**/*.zss"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "The previewer runs the project's code, so it waits until the workspace is trusted. Completion and hover work in any workspace.",
+      "restrictedConfigurations": [
+        "zeppelinforms.dotnetPath",
+        "zeppelinforms.languageServer.path",
+        "zeppelinforms.preview.hostPath",
+        "zeppelinforms.preview.assembly"
+      ]
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "zfml",
+        "aliases": [
+          "ZeppelinForms Markup",
+          "zfml"
+        ],
+        "extensions": [
+          ".zfml"
+        ],
+        "configuration": "./language-configuration/zfml.json"
+      },
+      {
+        "id": "zss",
+        "aliases": [
+          "ZeppelinForms Style Sheet",
+          "zss"
+        ],
+        "extensions": [
+          ".zss"
+        ],
+        "configuration": "./language-configuration/zss.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "zfml",
+        "scopeName": "text.xml.zfml",
+        "path": "./syntaxes/zfml.tmLanguage.json"
+      },
+      {
+        "scopeName": "markup-extension.injection.zfml",
+        "path": "./syntaxes/zfml-bindings.tmLanguage.json",
+        "injectTo": [
+          "text.xml.zfml"
+        ]
+      },
+      {
+        "language": "zss",
+        "scopeName": "source.zss",
+        "path": "./syntaxes/zss.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "zeppelinforms.openPreview",
+        "title": "Open Preview",
+        "category": "ZeppelinForms",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "zeppelinforms.reloadPreview",
+        "title": "Reload Preview",
+        "category": "ZeppelinForms"
+      },
+      {
+        "command": "zeppelinforms.restartLanguageServer",
+        "title": "Restart Language Server",
+        "category": "ZeppelinForms"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "zeppelinforms.openPreview",
+          "when": "resourceLangId == zfml || resourceLangId == zss",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "zeppelinforms.reloadPreview",
+          "when": "zeppelinforms.previewOpen"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "ZeppelinForms",
+      "properties": {
+        "zeppelinforms.dotnetPath": {
+          "type": "string",
+          "default": "dotnet",
+          "markdownDescription": "The `dotnet` the language server and the previewer run with: the .NET 10 runtime or newer. The default finds it on the `PATH`.",
+          "scope": "machine-overridable"
+        },
+        "zeppelinforms.languageServer.path": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "A `ZeppelinForms.LanguageServer.dll` to run instead of the extension's own — a build of the server from the repository, while working on it.",
+          "scope": "machine-overridable"
+        },
+        "zeppelinforms.preview.hostPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "A `ZeppelinForms.Designer.dll` to run instead of the extension's own.",
+          "scope": "machine-overridable"
+        },
+        "zeppelinforms.preview.assembly": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The built assembly to preview, absolute or relative to the workspace folder. Empty: the newest `bin/**/<AssemblyName>.dll` of the project the active file belongs to.",
+          "scope": "resource"
+        },
+        "zeppelinforms.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Log the language server's messages in the ZeppelinForms output.",
+          "scope": "window"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build:assets": "node scripts/build.js --assets-only",
+    "check": "tsc -p jsconfig.json && tsc -p media/jsconfig.json",
+    "test": "node --test test/*.test.js",
+    "package": "vsce package",
+    "vscode:prepublish": "node scripts/build.js --check"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "~1.91.0",
+    "@vscode/vsce": "^4.0.0",
+    "typescript": "^5.9.0"
+  }
+}

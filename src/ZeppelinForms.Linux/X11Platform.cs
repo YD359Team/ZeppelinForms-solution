@@ -22,7 +22,14 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
     /// <summary>X11 lets a window place itself: the window manager is asked and obeys.
     /// The tray is there when a panel collects StatusNotifierItems.</summary>
     public PlatformCapabilities Capabilities =>
-        PlatformCapabilities.WindowPositioning | PlatformCapabilities.WindowHiding | TrayCapability;
+        PlatformCapabilities.WindowPositioning | PlatformCapabilities.WindowHiding | TrayCapability
+        | PlatformCapabilities.WindowAttention | LauncherCapability | NotificationCapability;
+
+    /// <summary>The launcher entry goes on the session bus: the progress and the badge are
+    /// sent where there is one. Whether a dock shows them is the dock's.</summary>
+    internal static PlatformCapabilities LauncherCapability => Common.LauncherEntry.IsAvailable
+        ? PlatformCapabilities.TaskbarProgress | PlatformCapabilities.TaskbarBadge
+        : PlatformCapabilities.None;
 
     private EglDisplay? _eglDisplay;
     private bool _eglTried;

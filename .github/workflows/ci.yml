@@ -6,6 +6,9 @@ on:
     paths-ignore: ['**.md', 'ZF*.png']   # правка README не гоняет сборку
   pull_request:
     branches: [master]
+  # by hand, on any branch: Actions › CI › Run workflow — a release branch checked before
+  # its pull request
+  workflow_dispatch:
 
 # при частых пушах отменяем предыдущий незавершённый прогон,
 # чтобы не копить очередь и не жечь минуты
@@ -31,7 +34,9 @@ jobs:
 
       - name: Установка зависимостей (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 xvfb
+        # Mesa's EGL and llvmpipe: GlesSkiaParityTests draw with the GLES backend in an
+        # OpenGL ES context without a window, on the CPU
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 xvfb libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri
 
       - name: Установка workloads
         # the workloads of the installed SDK, not the newest workload set: a set can
@@ -80,6 +85,10 @@ jobs:
         # a hung test ends the step rather than holding the runner for six hours
         timeout-minutes: 30
         if: matrix.os == 'ubuntu-latest'
+        # here the GLES backend must have its context: a skipped parity test would pass
+        # unseen. On Windows the tests skip themselves
+        env:
+          ZF_REQUIRE_GLES: 'true'
         run: xvfb-run -a --server-args="-screen 0 1024x768x24" dotnet test --no-build --configuration Release -- --output Detailed
 
       - name: Выгрузить неудачные снимки
@@ -97,3 +106,112 @@ jobs:
           name: test-results-${{ matrix.os }}
           path: '**/TestResults/**'
           if-no-files-found: ignore
+
+  # The VS Code extension and the Rider plugin: built outside the solution, each with its own
+  # tools, on Linux. Both speak the designer protocol in their own language, so their tests
+  # read bytes .NET wrote, and the Rider plugin's also hold a conversation with a real host
+  # about the examples' library
+  editors:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tools/ZeppelinForms.VSCode/package-lock.json
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      # Skia's text needs fontconfig, as the tests of the framework do
+      - run: sudo apt-get update && sudo apt-get install -y libfontconfig1
+
+      - name: Расширение VS Code
+        working-directory: tools/ZeppelinForms.VSCode
+        run: |
+          npm ci
+          npm run check
+          npm test
+          npm run build
+          npx vsce package --out zeppelinforms.vsix
+
+      - name: Выгрузить расширение VS Code
+        uses: actions/upload-artifact@v6
+        with:
+          name: vscode
+          path: tools/ZeppelinForms.VSCode/zeppelinforms.vsix
+          if-no-files-found: error
+
+      - name: Библиотека примеров для теста превью
+        run: dotnet build "examples/ZF SharedLib/ZF SharedLib.csproj" --configuration Release
+
+      # bash: the executable bit of gradlew doesn't survive every checkout
+      - name: Плагин Rider
+        working-directory: tools/ZeppelinForms.Rider
+        env:
+          ZF_DESIGNER_HOST: ${{ github.workspace }}/tools/ZeppelinForms.Rider/build/dotnet/designer/ZeppelinForms.Designer.dll
+          ZF_PREVIEW_ASSEMBLY: ${{ github.workspace }}/examples/ZF SharedLib/bin/Release/net10.0/ZF SharedLib.dll
+        run: bash gradlew publishDesigner test buildPlugin --stacktrace
+
+      - name: Выгрузить плагин Rider
+        uses: actions/upload-artifact@v6
+        with:
+          name: rider
+          path: tools/ZeppelinForms.Rider/build/distributions/*.zip
+          if-no-files-found: error
+
+  # dotnet new zf-app as a user gets it: the packages and the templates packed into a local
+  # feed, an application made from the template, and each of its projects built against
+  # those packages — a change to the framework that breaks the template, or a template
+  # that no longer builds, shows up here and not after a release
+  templates:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Установка workloads
+        run: dotnet workload install wasm-tools android --skip-manifest-update
+
+      - name: Пакеты в локальный источник
+        run: |
+          for project in \
+            src/ZeppelinForms/ZeppelinForms.csproj \
+            src/ZeppelinForms.Skia/ZeppelinForms.Skia.csproj \
+            src/ZeppelinForms.Windows/ZeppelinForms.Windows.csproj \
+            src/ZeppelinForms.Linux/ZeppelinForms.Linux.csproj \
+            src/ZeppelinForms.Android/ZeppelinForms.Android.csproj \
+            src/ZeppelinForms.Browser/ZeppelinForms.Browser.csproj \
+            templates/ZeppelinForms.Templates/ZeppelinForms.Templates.csproj
+          do
+            dotnet pack "$project" --configuration Release --output "$RUNNER_TEMP/feed" -p:Version=0.0.0-ci.${{ github.run_number }}
+          done
+
+      # outside the repository: its Directory.Build.props and central package versions
+      # must not reach the application
+      - name: Приложение из шаблона
+        working-directory: ${{ runner.temp }}
+        run: |
+          dotnet new install "feed/ZeppelinForms.Templates.0.0.0-ci.${{ github.run_number }}.nupkg"
+          dotnet new zf-app -n Smoke.App -o smoke --skipRestore
+          cd smoke
+          dotnet new nugetconfig
+          dotnet nuget add source "$RUNNER_TEMP/feed" --name local --configfile nuget.config
+          dotnet build Smoke.App.Desktop/Smoke.App.Desktop.csproj --configuration Release
+          dotnet build Smoke.App.Browser/Smoke.App.Browser.csproj --configuration Release
+          dotnet build Smoke.App.Android/Smoke.App.Android.csproj --configuration Release

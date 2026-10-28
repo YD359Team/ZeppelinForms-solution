@@ -1,3 +1,4 @@
+using ZeppelinForms;
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
@@ -17,20 +18,46 @@ internal static class OverlaysPage
 {
     public static UIElement Create(Form form) =>
         Demo.Page("Dialogs and overlays", "Messages, questions and menus over the window, and windows over windows.",
-            Demo.Section("Tooltips", Tooltips(), "UIElement.ToolTip: on hover with a mouse, on a long press with a finger"),
+            Demo.Section("Tooltips", Tooltips(), "UIElement.ToolTip or ToolTipContent: on hover, and for the keyboard focus — Tab onto a button. Styled as ToolTip in a sheet"),
             Demo.Section("Toasts", Toasts(form), "form.ShowToast(message, duration, position): a note that goes away by itself"),
             Demo.Section("Flyout", Flyout(form), "form.ShowFlyout(anchor, content, placement): closes on a click outside or Esc"),
-            Demo.Section("Context menu", ContextMenu(), "UIElement.ContextMenu: right click, the menu key or a long press; looked up the tree"),
+            Demo.Section("Context menu", ContextMenu(), "UIElement.ContextMenu: a right click, the menu key, or a finger or a pen held on it; looked up the tree. An item with Items of its own — Share — opens a submenu"),
             Demo.Section("Message box", Messages(form), "await MessageBox.ShowAsync works everywhere, the browser included"),
             Demo.Section("Input box and own dialogs", Dialogs(form), "Any form is a dialog: ShowDialogAsync<T> waits for Accept(value) or Cancel()"),
-            Demo.Section("Files", Files(form), "FileDialog.OpenFileAsync, OpenFilesAsync, SaveFileAsync, SelectFolderAsync: the framework's own dialog"),
+            Demo.Section("Files", Files(form), "FileDialog: the system's dialog — Explorer's, the desktop portal's, the browser's — or the framework's own; PickSaveFileAsync writes through a stream everywhere"),
             Demo.Section("Hiding the window", Hiding(form), "form.Hide() keeps the window and its state; Show() brings it back — the ground of a tray icon"),
-            Demo.Section("Tray icon", Tray(form), "TrayIcon: an icon in the notification area or on the panel, with a tooltip, a click and the system's menu"));
+            Demo.Section("Tray icon", Tray(form), "TrayIcon: an icon in the notification area or on the panel, with a tooltip, a click and the system's menu"),
+            Demo.Section("Taskbar button", Taskbar(form), "form.Taskbar: progress and a badge on the taskbar or the dock; form.RequestAttention() for a window in the background"),
+            Demo.Section("Notifications", NotificationsDemo(form), "Notifications.Show: a toast on Windows, the desktop's notification on Linux, a web notification in the browser; TrayIcon.ShowNotification from the tray icon"));
 
     private static UIElement Tooltips() => Demo.Row(
         new Button { Text = "Hover me", ToolTip = "A tooltip: a short hint about the control" },
         new Button { Icon = Icons.Trash, ToolTip = "Delete — an icon button names itself in its tooltip" },
-        new Label { Text = "Labels have them too", ToolTip = "Any element can have one" });
+        new Label { Text = "Labels have them too", ToolTip = "Any element can have one" },
+        new Button
+        {
+            Text = "A long one",
+            ToolTip = "A long tooltip doesn't run across the window: past its MaxContentWidth, 320 by default, " +
+                      "the text wraps into rows, as tooltips do in WinUI.",
+        },
+        new Button
+        {
+            Text = "Rich content",
+
+            // the text is still there: a screen reader reads it as the description
+            ToolTip = "Ctrl+S saves the document",
+            ToolTipContent = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Spacing = 2,
+                Children =
+                {
+                    new Label { Text = "Save", TextStyle = TextStyle.BodyStrong },
+                    new Label { Text = "Ctrl+S", TextStyle = TextStyle.Caption, Classes = { "demo-note" } },
+                },
+            },
+        },
+        new Button { Text = "At once", ToolTip = "ToolTipDelay = 0: no waiting for this one", ToolTipDelay = 0 });
 
     private static UIElement Toasts(Form form)
     {
@@ -108,7 +135,7 @@ internal static class OverlaysPage
             Background = new Color(20, 128, 128, 128),
             Child = new Label
             {
-                Text = "Right-click or long-press here",
+                Text = "Right-click, or hold a finger here",
                 HorizontalContentAlign = HorizontalContentAlignment.Center,
                 VerticalContentAlign = VerticalContentAlignment.Center,
             },
@@ -188,6 +215,10 @@ internal static class OverlaysPage
             Filters = { new FileFilter("Images", "png", "jpg", "jpeg", "gif"), new FileFilter("Text", "txt", "md", "json") },
         };
 
+        // the system's dialog by default; the framework's own on request
+        var own = new CheckBox { Text = "The framework's own dialog" };
+        own.CheckedChanged += (_, _) => options.UseNative = !own.IsChecked;
+
         var open = new PrimaryButton { Text = "Open a file" };
         open.Click += async (_, _) =>
             chosen.Text = await FileDialog.OpenFileAsync(form, options) is { } file ? file : "Cancelled";
@@ -199,17 +230,36 @@ internal static class OverlaysPage
             chosen.Text = files.Length == 0 ? "Cancelled" : $"{files.Length} file(s): {string.Join(", ", files.Select(Path.GetFileName))}";
         };
 
+        // a picked file rather than a path: the same code writes it on the desktop and in
+        // the browser — through its save dialog, or as a download
         var save = new Button { Text = "Save as" };
         save.Click += async (_, _) =>
-            chosen.Text = await FileDialog.SaveFileAsync(form, new FileDialogOptions { FileName = "notes.txt" }) is { } file
-                ? $"Would save to {file}"
-                : "Cancelled";
+        {
+            var saveOptions = new FileDialogOptions
+            {
+                FileName = "notes.txt",
+                Filters = { new FileFilter("Text", "txt") },
+                UseNative = options.UseNative,
+            };
+
+            if (await FileDialog.PickSaveFileAsync(form, saveOptions) is not { } file)
+            {
+                chosen.Text = "Cancelled";
+                return;
+            }
+
+            await using (Stream output = await file.OpenWriteAsync())
+            await using (var writer = new StreamWriter(output))
+                await writer.WriteLineAsync($"Saved by the ZeppelinForms showcase at {DateTime.Now:t}");
+
+            chosen.Text = $"Saved {file}";
+        };
 
         var folder = new Button { Text = "Pick a folder" };
         folder.Click += async (_, _) =>
             chosen.Text = await FileDialog.SelectFolderAsync(form) is { } path ? path : "Cancelled";
 
-        return Demo.Column(Demo.Row(open, many, save, folder), chosen);
+        return Demo.Column(Demo.Row(open, many, save, folder), own, chosen);
     }
 
     private static UIElement Hiding(Form form)
@@ -235,6 +285,109 @@ internal static class OverlaysPage
         };
 
         return Demo.Column(hide, note);
+    }
+
+    /// <summary>The taskbar button: a pretend task with its progress, a badge, and a request
+    /// for attention a few seconds later — time to switch to another window.</summary>
+    private static UIElement Taskbar(Form form)
+    {
+        Label note = Demo.Note($"{App.DisplayName} {App.Version}, id {App.Id}");
+
+        var run = new PrimaryButton { Text = "Run a task" };
+        run.Click += async (_, _) =>
+        {
+            run.IsEnabled = false;
+
+            for (int step = 0; step <= 50; step++)
+            {
+                form.Taskbar.ProgressValue = step / 50.0;
+                note.Text = $"Working: {step * 2} %";
+                await Task.Delay(100);
+            }
+
+            form.Taskbar.ProgressState = TaskbarProgressState.None;
+            note.Text = "Done — and the button asks for attention, if the window is in the background";
+            form.RequestAttention();
+
+            run.IsEnabled = true;
+        };
+
+        var paused = new Button { Text = "Paused" };
+        paused.Click += (_, _) =>
+        {
+            form.Taskbar.ProgressValue = Math.Max(form.Taskbar.ProgressValue, 0.6);
+            form.Taskbar.ProgressState = TaskbarProgressState.Paused;
+        };
+
+        var failed = new Button { Text = "Failed" };
+        failed.Click += (_, _) =>
+        {
+            form.Taskbar.ProgressValue = Math.Max(form.Taskbar.ProgressValue, 0.6);
+            form.Taskbar.ProgressState = TaskbarProgressState.Error;
+        };
+
+        var badge = new Button { Text = "Badge + 1" };
+        badge.Click += (_, _) => form.Taskbar.Badge = (form.Taskbar.Badge ?? 0) + 1;
+
+        var clear = new Button { Text = "Clear" };
+        clear.Click += (_, _) => form.Taskbar.Clear();
+
+        var attention = new Button { Text = "Attention in 3 s" };
+        attention.Click += async (_, _) =>
+        {
+            note.Text = "Switch to another window: in three seconds this one asks for attention";
+            await Task.Delay(3000);
+            form.RequestAttention();
+        };
+
+        return Demo.Column(Demo.Row(run, paused, failed, badge, clear, attention), note);
+    }
+
+    /// <summary>The system's notifications: one of each kind, and one from the tray icon;
+    /// a click brings the form forward.</summary>
+    private static UIElement NotificationsDemo(Form form)
+    {
+        Label note = Demo.Note("A click on a notification comes back here");
+
+        void Watch(Notification? notification)
+        {
+            if (notification is null)
+            {
+                note.Text = "No notifications here — or they are turned off";
+                return;
+            }
+
+            note.Text = $"Shown: {notification.Title}";
+
+            notification.Clicked += (_, _) =>
+            {
+                note.Text = $"Clicked: {notification.Title}";
+                form.Show();
+                form.Activate();
+            };
+
+            notification.Closed += (_, _) =>
+            {
+                if (note.Text == $"Shown: {notification.Title}") note.Text = $"Closed: {notification.Title}";
+            };
+        }
+
+        var info = new PrimaryButton { Text = "Information" };
+        info.Click += (_, _) => Watch(Notifications.Show("Export finished", "orders.csv — 1 248 rows"));
+
+        var warning = new Button { Text = "Warning" };
+        warning.Click += (_, _) => Watch(Notifications.Show("Disk almost full", "2 GB left on C:", NotificationKind.Warning));
+
+        var error = new Button { Text = "Error" };
+        error.Click += (_, _) => Watch(Notifications.Show("Sync failed", "The server didn't answer", NotificationKind.Error));
+
+        var fromTray = new Button { Text = "From the tray icon" };
+        fromTray.Click += (_, _) =>
+            Watch(s_tray is { IsShown: true } tray
+                ? tray.ShowNotification("From the tray", "TrayIcon.ShowNotification — the icon's balloon on Windows")
+                : Notifications.Show("No tray icon yet", "Show it in the Tray icon section first"));
+
+        return Demo.Column(Demo.Row(info, warning, error, fromTray), note);
     }
 
     // one icon for the application, whatever times the page is made again

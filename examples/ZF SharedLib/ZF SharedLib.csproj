@@ -16,11 +16,9 @@
     <ProjectReference Include="..\..\src\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
-	<ItemGroup>
-		<!-- markup for the generator, as the package's build targets add it, and the style
-         sheets a StyleSheet="…" of the markup is checked against -->
-		<AdditionalFiles Include="**\*.zfml" />
-		<AdditionalFiles Include="**\*.zss" />
-	</ItemGroup>
+	<!-- what the package's build targets give an application, taken from the source: the
+       markup and the style sheets for the generator, and the design parts and markup
+       nested under their code files -->
+	<Import Project="..\..\src\ZeppelinForms\buildTransitive\ZeppelinForms.targets" />
 
 </Project>

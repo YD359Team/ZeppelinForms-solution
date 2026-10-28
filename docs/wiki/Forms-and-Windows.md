@@ -114,6 +114,53 @@ decimal? amount = await InputBox.ShowNumberAsync(this, "Amount");
 The boxes are sized to their message and buttons, take the theme's colors and follow
 the interface language.
 
+### File dialogs
+
+```csharp
+string? path = FileDialog.OpenFile(this, new FileDialogOptions
+{
+    Title = "Open an order",
+    Filters = [new FileFilter("Orders", "csv", "json"), new FileFilter("All files")],
+});
+
+string[] images = await FileDialog.OpenFilesAsync(this, new() { Filters = [new("Images", "png", "jpg")] });
+string? target = await FileDialog.SaveFileAsync(this, new() { FileName = "report.csv" });
+string? folder = await FileDialog.SelectFolderAsync(this);
+```
+
+The dialog is the system's where there is one: Explorer's own on Windows (IFileDialog),
+the desktop's on Linux through the XDG portal — GTK's on GNOME, KDE's on Plasma, the only
+one that sees the user's files from a Flatpak or a Snap. Both are modal to the form, and
+the synchronous calls show them too, the forms painting under them. Without a system dialog
+— no portal, a bare window manager — or with `UseNative = false` in the options, the
+framework's own is shown, styled by the theme. On Windows the system's dialog wants
+`[STAThread]` on `Main`, as drag and drop does; without it the framework's own is shown.
+
+#### Picked files
+
+A path is a desktop thing: in the browser a picked file has none, and a file to save is
+written by the browser. `PickedFile` is the way to files the same everywhere — a name, the
+`Path` where there is one, and streams:
+
+```csharp
+if (await FileDialog.PickFileAsync(this, options) is { } file)
+{
+    await using Stream input = await file.OpenReadAsync();
+    Load(input);
+}
+
+if (await FileDialog.PickSaveFileAsync(this, new() { FileName = "orders.csv" }) is { } target)
+{
+    await using Stream output = await target.OpenWriteAsync();
+    await Export(output);
+}   // disposed: in the browser the file is written now
+```
+
+In the browser the save goes through the browser's save dialog where it has one — Chromium
+on the desktop — and writes the file the user chose; elsewhere it is a download under the
+suggested name. `PickedFile.FromPath` makes one of a path got another way — a list of
+recent files, the command line.
+
 ### Overlays, flyouts and toasts
 
 | Member | Shows |
@@ -125,6 +172,94 @@ the interface language.
 
 A flyout that doesn't fit on its side opens on the opposite one and stays inside the
 window.
+
+An element's `ContextMenu` opens on a right click, on the menu key, and on a finger or a
+pen held still on it for half a second; an element without one passes the request to its
+parent. An item with `Items` of its own opens them as a submenu beside it — when the
+pointer rests on it, on a click or a tap, on Right or Enter; Left or Esc goes back.
+
+## The taskbar button
+
+`form.Taskbar` is the form's button on the taskbar or the dock: the progress of a long work
+and a count, seen without opening the window. `form.RequestAttention()` asks for the user
+without taking the focus — the button flashes until the window is activated.
+
+```csharp
+form.Taskbar.ProgressValue = done / (double)total;          // 0..1, turns the bar on
+form.Taskbar.ProgressState = TaskbarProgressState.Paused;   // Indeterminate, Normal, Paused, Error
+form.Taskbar.Badge = unread;                                 // null or 0 — none
+
+form.Taskbar.Clear();                                        // a plain button again
+form.RequestAttention();                                     // a background window only
+```
+
+| | Windows | Linux (X11, Wayland) | Browser |
+| --- | --- | --- | --- |
+| Progress | the taskbar button | the launcher entry | — |
+| Badge | an overlay in the button's corner | the launcher entry's count | an installed web app's badge |
+| Attention | the button flashes | the window is marked | the tab's title blinks |
+
+On Linux the progress and the badge go to the dock as the launcher entry
+(`com.canonical.Unity.LauncherEntry`) of `application://{App.Id}.desktop` — KDE's task
+manager, Dash to Dock and Plank show it, GNOME's own dash doesn't. It is the application's:
+every form shows on the one entry, and `App.Id` has to be the name of its .desktop file.
+`PlatformCapabilities.TaskbarProgress`, `TaskbarBadge` and `WindowAttention` tell what the
+platform can. Values set before the form is shown come with its window.
+
+## Notifications
+
+`Notifications.Show` shows the system's notification — outside the windows, in the corner
+of the screen and in the notification center. `Clicked` comes on the UI thread; `Activate`
+brings the form forward from there.
+
+```csharp
+var done = new Notification("Export finished", "orders.csv — 1 248 rows")
+{
+    Kind = NotificationKind.Information,     // None, Information, Warning, Error
+};
+
+done.Clicked += (_, _) => form.Activate();
+Notifications.Show(done);
+
+// or in one line; null — the platform has none
+Notifications.Show("Sync failed", "The server didn't answer", NotificationKind.Error);
+
+// from a tray icon: its balloon on Windows, as NotifyIcon.ShowBalloonTip
+tray.ShowNotification("Synced", "3 files");
+```
+
+| Platform | Shown as |
+| --- | --- |
+| Windows | a balloon of a tray icon, which Windows 10 and 11 show as a toast. A visible `TrayIcon` of the application carries it; without one the application's icon is put into the tray for as long as the notification lasts |
+| Linux, X11 and Wayland | `org.freedesktop.Notifications` on the session bus — GNOME, KDE, XFCE, mako, dunst. The `desktop-entry` hint is `App.Id`, so the application's .desktop file gives it its name and icon; an error stays until dismissed |
+| Browser | the Notification API; the first notification asks the user's permission, and a refusal closes it |
+
+`Closed` comes once: clicked, dismissed, timed out, or replaced by a newer balloon of the
+same tray icon. `PlatformCapabilities.Notifications` tells whether there is a way; Android
+has none yet.
+
+`form.Activate()` brings a window forward and gives it the keyboard — a hidden form is
+shown again first. The systems let an application do it after the user's own input, such
+as a click on its notification or tray icon; otherwise the button flashes instead.
+
+## The application's identity
+
+`App.Id`, `App.DisplayName` and `App.Version` say who the application is. Each is read from
+the entry assembly until set — `App.Version` is its `<Version>`, without the "+commit" the SDK
+appends — so a version kept in one place, the project file or Directory.Build.props, is
+there without writing it again:
+
+```csharp
+App.Id = "com.example.Orders";              // before Run: the windows are made with it
+new App(new WindowsPlatform()) { MainForm = new MainForm() }.Run();
+
+aboutLabel.Text = $"{App.DisplayName} {App.Version}";
+```
+
+The id groups the windows on the taskbar and finds the application's .desktop file: it is
+the window class (WM_CLASS) on X11, the app_id on Wayland and the application user model id
+on Windows. Windows gets it only when it is set — a running window with an id no longer
+groups with a button pinned from a shortcut made without one.
 
 ## Invoking on the window's thread
 

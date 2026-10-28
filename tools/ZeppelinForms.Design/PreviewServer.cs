@@ -318,7 +318,9 @@ public sealed class PreviewServer
 
         try
         {
-            document = XDocument.Load(path, LoadOptions.SetLineInfo);
+            // read as the build reads it: a file without xmlns lines has its elements in
+            // the framework's namespace, where the styles are looked for
+            document = MarkupDocument.Parse(File.ReadAllText(path));
         }
         catch (Exception e) when (e is XmlException or IOException or UnauthorizedAccessException)
         {

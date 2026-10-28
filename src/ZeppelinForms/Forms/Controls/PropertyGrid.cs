@@ -98,9 +98,6 @@ public partial class PropertyGrid : DecoratedPanel
         }
     }
 
-    [Obsolete("Not used since 0.16: the names take NameColor, which the theme sets.")]
-    public Color RowTextColor { get; set; } = Colors.Black;
-
     /// <summary>The stripe under every other row. A styled property, so the theme
     /// sets it: the fixed light gray stayed light in the dark theme, under
     /// the theme's light text.</summary>

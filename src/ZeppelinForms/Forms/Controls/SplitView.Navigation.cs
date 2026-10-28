@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Markup;
 using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Forms.Controls;
@@ -207,6 +208,7 @@ public partial class SplitView
     /// Setting it shows its content, as choosing it does, but raises no
     /// <see cref="ItemInvoked"/>. An entry not in the menu, a header or a separator
     /// selects nothing.</summary>
+    [SetAfterContent]
     public SplitViewItem? SelectedItem
     {
         get => _selectedItem;

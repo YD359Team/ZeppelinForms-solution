@@ -16,6 +16,7 @@
     <File Path="assets/Logo-0.16.0.jpg" />
     <File Path="assets/Logo-0.17.0.jpg" />
     <File Path="assets/Logo-0.18.0.jpg" />
+    <File Path="assets/Logo-0.19.0.jpg" />
     <File Path="assets/Logo-0.9.0.jpg" />
     <File Path="assets/zf1.jpg" />
     <File Path="assets/zf2.jpg" />
@@ -68,6 +69,9 @@
     <Project Path="src/ZeppelinForms.Windows/ZeppelinForms.Windows.csproj" />
     <Project Path="src/ZeppelinForms/ZeppelinForms.csproj" />
   </Folder>
+  <Folder Name="/templates/">
+    <Project Path="templates/ZeppelinForms.Templates/ZeppelinForms.Templates.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ZeppelinForms.ExternalControlTests/ZeppelinForms.ExternalControlTests.csproj" />
     <Project Path="tests/ZeppelinForms.UnitTests/ZeppelinForms.UnitTests.csproj" />
@@ -77,6 +81,7 @@
     <File Path="tools/wayland-scanner.cs" />
     <Project Path="tools/ZeppelinForms.Design/ZeppelinForms.Design.csproj" />
     <Project Path="tools/ZeppelinForms.Designer/ZeppelinForms.Designer.csproj" />
+    <Project Path="tools/ZeppelinForms.LanguageServer/ZeppelinForms.LanguageServer.csproj" />
     <Project Path="tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.csproj" />
   </Folder>
   <Folder Name="/Элементы решения/">

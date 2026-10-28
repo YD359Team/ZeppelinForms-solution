@@ -514,6 +514,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
             case NativeConstants.WM_NCDESTROY:
                 {
                     DestroyIcons();
+                    DisposeTaskbar();
                     _surface?.Dispose();
                     _surface = null;
 
@@ -759,6 +760,13 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                 }
 
             default:
+                // Explorer made the taskbar button: it can be told the progress and the badge
+                if (IsTaskbarButtonCreated(message))
+                {
+                    OnTaskbarButtonCreated();
+                    return 0;
+                }
+
                 return NativeMethods.DefWindowProc(
                     hWnd, message, wParam, lParam);
         }

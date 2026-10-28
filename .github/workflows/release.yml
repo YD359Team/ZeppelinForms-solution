@@ -72,7 +72,8 @@ jobs:
             src/ZeppelinForms.Windows/ZeppelinForms.Windows.csproj \
             src/ZeppelinForms.Linux/ZeppelinForms.Linux.csproj \
             src/ZeppelinForms.Android/ZeppelinForms.Android.csproj \
-            src/ZeppelinForms.Browser/ZeppelinForms.Browser.csproj
+            src/ZeppelinForms.Browser/ZeppelinForms.Browser.csproj \
+            templates/ZeppelinForms.Templates/ZeppelinForms.Templates.csproj
           do
             dotnet pack "$project" --configuration Release --output packages \
               -p:Version=${{ steps.version.outputs.value }} \
@@ -164,8 +165,9 @@ jobs:
 
       - uses: microsoft/setup-msbuild@v2
 
-      # the version follows the tag, as the packages' does. A VSIX version has no
-      # prerelease part: v0.14.0-preview.1 gives 0.14.0
+      # the version follows the tag, as the packages' does. The build takes it as
+      # /p:Version and the manifest reads it from the project (GetVsixVersion), which
+      # drops the prerelease part a VSIX version can't have: v0.14.0-preview.1 gives 0.14.0
       - name: Версия расширения из тега
         id: vsixversion
         shell: pwsh
@@ -173,12 +175,6 @@ jobs:
           # the host inside the extension gets the full version, as the packages do:
           # a host of another version can't bind a project built against them
           "full=$('${{ github.ref_name }}'.TrimStart('v'))" >> $env:GITHUB_OUTPUT
-          $version = '${{ github.ref_name }}'.TrimStart('v').Split('-')[0]
-          $manifest = 'tools/ZeppelinForms.VisualStudio/source.extension.vsixmanifest'
-          $text = Get-Content $manifest -Raw
-          $text = $text -replace '(<Identity [^>]*Version=")[^"]*(")', "`${1}$version`${2}"
-          Set-Content $manifest $text -NoNewline
-          Select-String -Path $manifest -Pattern '<Identity '
 
       # DeployExtension=false: the build would install the extension into an
       # experimental instance of Visual Studio, which a build machine has no use for
@@ -233,3 +229,82 @@ jobs:
           name: vsix-binlog
           path: vsix.binlog
           if-no-files-found: ignore
+
+  # The VS Code extension and the Rider plugin, attached to the release as the Visual Studio
+  # extension is. The .NET programs inside get the tag's full version; a .vsix version is
+  # numbers only, as a Visual Studio one: v0.19.0-preview.1 gives 0.19.0
+  editors:
+    needs: publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Версия из тега
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "full=$VERSION" >> $GITHUB_OUTPUT
+          echo "numbers=${VERSION%%-*}" >> $GITHUB_OUTPUT
+
+      - name: Расширение VS Code
+        working-directory: tools/ZeppelinForms.VSCode
+        run: |
+          npm ci
+          npm version ${{ steps.version.outputs.numbers }} --no-git-tag-version --allow-same-version
+          node scripts/build.js --version ${{ steps.version.outputs.full }}
+          npx vsce package --out zeppelinforms-${{ steps.version.outputs.full }}.vsix
+
+      - name: Плагин Rider
+        working-directory: tools/ZeppelinForms.Rider
+        run: bash gradlew buildPlugin -PpluginVersion=${{ steps.version.outputs.full }} -PzfVersion=${{ steps.version.outputs.full }}
+
+      - name: Расширение и плагин в релиз
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            tools/ZeppelinForms.VSCode/*.vsix
+            tools/ZeppelinForms.Rider/build/distributions/*.zip
+          fail_on_unmatched_files: true
+
+      # the marketplaces, as Visual Studio's: not for a prerelease, and while a token is not
+      # set up the step says so and passes — the release still has the files
+      - name: Публикация в VS Code Marketplace
+        if: ${{ !contains(github.ref_name, '-') }}
+        working-directory: tools/ZeppelinForms.VSCode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo '::warning title=VS Code Marketplace::VSCE_PAT is not set: the extension is not published'
+            exit 0
+          fi
+          npx vsce publish --packagePath zeppelinforms-${{ steps.version.outputs.full }}.vsix
+
+      - name: Публикация в JetBrains Marketplace
+        if: ${{ !contains(github.ref_name, '-') }}
+        working-directory: tools/ZeppelinForms.Rider
+        env:
+          JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
+        run: |
+          if [ -z "$JETBRAINS_MARKETPLACE_TOKEN" ]; then
+            echo '::warning title=JetBrains Marketplace::JETBRAINS_MARKETPLACE_TOKEN is not set: the plugin is not published'
+            exit 0
+          fi
+          bash gradlew publishPlugin -PpluginVersion=${{ steps.version.outputs.full }} -PzfVersion=${{ steps.version.outputs.full }}

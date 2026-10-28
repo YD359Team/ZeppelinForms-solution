@@ -79,16 +79,30 @@ internal sealed class FileDialogForm : Form
 
         _list.ItemTemplate = CreateRow;
         _list.SelectionChanged += (_, _) => OnSelectionChanged();
-        _list.DoubleClick += (_, _) => Activate();
+        _list.DoubleClick += (_, _) => OpenOrAccept();
 
         _path.Accepted += (_, _) => OnPathAccepted();
-        _name.Accepted += (_, _) => Activate();
+        _name.Accepted += (_, _) => OpenOrAccept();
 
         _name.Text = options.FileName;
 
         Navigate(options.InitialDirectory is { Length: > 0 } start && Directory.Exists(start)
             ? start
-            : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+            : DefaultDirectory());
+    }
+
+    /// <summary>Documents, or home, or where the application runs: Documents is ""
+    /// on a Linux without the XDG user directories — a container, a fresh server.</summary>
+    private static string DefaultDirectory()
+    {
+        foreach (Environment.SpecialFolder folder in (Environment.SpecialFolder[])
+            [Environment.SpecialFolder.MyDocuments, Environment.SpecialFolder.UserProfile])
+        {
+            if (Environment.GetFolderPath(folder) is { Length: > 0 } path && Directory.Exists(path))
+                return path;
+        }
+
+        return Directory.GetCurrentDirectory();
     }
 
     private IEnumerable<FileFilter> Filters()
@@ -107,7 +121,7 @@ internal sealed class FileDialogForm : Form
     private DockPanel BuildLayout()
     {
         _accept.Localize(_mode == FileDialogMode.Save ? ZfText.Save : ZfText.Select);
-        _accept.Click += (_, _) => Activate();
+        _accept.Click += (_, _) => OpenOrAccept();
 
         Button cancel = new Button().Localize(ZfText.Cancel);
         cancel.Click += (_, _) => Cancel();
@@ -202,7 +216,7 @@ internal sealed class FileDialogForm : Form
         {
             Navigate(folder);
             _name.Text = Path.GetFileName(target);
-            Activate();
+            OpenOrAccept();
             return;
         }
 
@@ -326,7 +340,7 @@ internal sealed class FileDialogForm : Form
     }
 
     /// <summary>Double click or the button: a folder — enter it, a file — return it.</summary>
-    private void Activate()
+    private void OpenOrAccept()
     {
         Entry? current = EntryAt(_list.SelectedIndex);
 

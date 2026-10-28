@@ -29,6 +29,16 @@ public sealed partial class BrowserPlatform : IPlatform, IAppLifecycle, ISystemM
 
     public bool PrefersReducedMotion => _reducedMotion;
 
+    /// <summary>The tab's title blinks for attention; the badge is there in a browser with
+    /// the Badging API — it shows on an installed web application. A page has no windows to
+    /// place or hide, no tray and no progress on a taskbar.</summary>
+    public PlatformCapabilities Capabilities =>
+        PlatformCapabilities.WindowAttention
+        | (_supportsAppBadge ??= Interop.SupportsAppBadge() ? PlatformCapabilities.TaskbarBadge : PlatformCapabilities.None)
+        | (Interop.SupportsNotifications() ? PlatformCapabilities.Notifications : PlatformCapabilities.None);
+
+    private PlatformCapabilities? _supportsAppBadge;
+
     /// <summary>The setting changed on the fly — the media query reports it.</summary>
     event EventHandler? ISystemMotionSettings.Changed
     {

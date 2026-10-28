@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The application on a desktop: Windows and Linux (Wayland or X11) from one build;
+	     Program chooses the platform when it starts -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<OutputType>WinExe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="ZeppelinForms.Windows" Version="$(ZeppelinFormsVersion)" />
+		<PackageReference Include="ZeppelinForms.Linux" Version="$(ZeppelinFormsVersion)" />
+		<ProjectReference Include="..\MyApp\MyApp.csproj" />
+	</ItemGroup>
+
+</Project>

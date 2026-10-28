@@ -121,6 +121,10 @@ public abstract class StyledProperty
     /// through reflection and must convert it to the property's type.</summary>
     public abstract Type PropertyType { get; }
 
+    /// <summary>The default value, boxed: what a binding writes when its path leads
+    /// nowhere — a null on the way, a data context of another type.</summary>
+    internal abstract object? DefaultBoxed { get; }
+
     /// <summary>Write a value without knowing its type statically.
     /// The only consumer is the binding: there the value comes
     /// from PropertyInfo.GetValue, and there is nowhere to type it.</summary>
@@ -203,6 +207,8 @@ public sealed class StyledProperty<[DynamicallyAccessedMembers(ValueTypeMembers)
     }
 
     public override Type PropertyType => typeof(T);
+
+    internal override object? DefaultBoxed => DefaultValue;
 
     // the same null trap as in SetBoxedAsUser: "null is T" is false even for
     // a nullable T, so a binding that brought null into a property with

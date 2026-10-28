@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The templates of dotnet new, and of the IDEs that show them: an application for a
+	     desktop, a browser and Android, a form with its design in a .design.cs, a form in
+	     markup, a style sheet.
+
+	         dotnet new install ZeppelinForms.Templates
+	         dotnet new zf-app -n Notes
+	         dotnet new zf-form -n OrderForm
+
+	     A package of content only: no assembly, no symbols -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<PackageType>Template</PackageType>
+		<PackageId>ZeppelinForms.Templates</PackageId>
+		<Title>ZeppelinForms templates</Title>
+		<Description>Templates of ZeppelinForms for dotnet new, Rider and Visual Studio: zf-app — an application for a desktop (Windows and Linux), a browser (WebAssembly) and Android, with a shared project of its form and pages; zf-form — a form with its controls in Form1.design.cs and its behaviour in Form1.cs; zf-form-markup — a form in .zfml markup; zf-stylesheet — a .zss style sheet.</Description>
+		<PackageTags>$(PackageTags);dotnet-new;templates</PackageTags>
+
+		<IncludeContentInPack>true</IncludeContentInPack>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<ContentTargetFolders>content</ContentTargetFolders>
+		<IncludeSymbols>false</IncludeSymbols>
+
+		<!-- .template.config starts with a dot: pack leaves such folders out unless told -->
+		<NoDefaultExcludes>true</NoDefaultExcludes>
+
+		<!-- a template package has no lib/: NU5128 asks for one -->
+		<NoWarn>$(NoWarn);NU5128</NoWarn>
+
+		<!-- the templates' C# is content to copy, not code of this project -->
+		<EnableDefaultItems>false</EnableDefaultItems>
+	</PropertyGroup>
+
+	<!-- items/ — the item templates; projects/ — the project templates -->
+	<ItemGroup>
+		<Content Include="items\**\*" Exclude="items\**\bin\**;items\**\obj\**" />
+		<Content Include="projects\**\*" Exclude="projects\**\bin\**;projects\**\obj\**;projects\zf-app\.template.config\template.json" />
+	</ItemGroup>
+
+	<!-- What zf-app's browser project takes from the repository rather than keeping copies
+	     of its own: the page's module of this very release, and the font of the examples -->
+	<ItemGroup>
+		<Content Include="..\..\src\ZeppelinForms.Browser\zf.js" PackagePath="content\projects\zf-app\MyApp.Browser\wwwroot\zf.js" Visible="false" />
+		<Content Include="..\..\examples\ZF Wasm\wwwroot\fonts\Inter-Regular.ttf" PackagePath="content\projects\zf-app\MyApp.Browser\wwwroot\fonts\Inter-Regular.ttf" Visible="false" />
+	</ItemGroup>
+
+	<!-- zf-app's projects use the ZeppelinForms packages of the templates' own version: the
+	     default of its zfVersion parameter is stamped into the packed template.json. Escape
+	     keeps the semicolons of the file from splitting it into lines -->
+	<Target Name="StampAppTemplateVersion" BeforeTargets="_GetPackageFiles">
+		<PropertyGroup>
+			<_ZfAppTemplateJson>$(IntermediateOutputPath)zf-app\template.json</_ZfAppTemplateJson>
+			<_ZfAppTemplateText>$([System.IO.File]::ReadAllText($([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', 'projects', 'zf-app', '.template.config', 'template.json'))).Replace('ZF_TEMPLATE_PACKAGE_VERSION', '$(Version)'))</_ZfAppTemplateText>
+		</PropertyGroup>
+
+		<WriteLinesToFile File="$(_ZfAppTemplateJson)" Lines="$([MSBuild]::Escape($(_ZfAppTemplateText)))" Overwrite="true" WriteOnlyWhenDifferent="true" />
+
+		<ItemGroup>
+			<Content Include="$(_ZfAppTemplateJson)" PackagePath="content\projects\zf-app\.template.config\template.json" />
+		</ItemGroup>
+	</Target>
+
+</Project>

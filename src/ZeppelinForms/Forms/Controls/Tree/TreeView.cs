@@ -4,6 +4,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Markup;
 using ZeppelinForms.Input.Keyboard;
 
 namespace ZeppelinForms.Forms.Controls.Tree;
@@ -37,6 +38,14 @@ public class TreeView : DecoratedPanel, IInputElement
 
     /// <summary>The node being renamed.</summary>
     private TreeNode? _editing;
+
+    /// <summary>How deep <see cref="BeginUpdate"/> calls are nested; above zero the
+    /// rows are not rebuilt on every change.</summary>
+    private int _updateDepth;
+
+    /// <summary>A change came while updating: the rows are rebuilt at the last
+    /// <see cref="EndUpdate"/>.</summary>
+    private bool _rebuildPending;
 
     /// <summary>A node to bring into sight on the next layout: right after its ancestors
     /// expand, the rows under them are not measured yet, and a scroll clamped to the
@@ -144,6 +153,45 @@ public class TreeView : DecoratedPanel, IInputElement
     /// <summary>A node was double-clicked, or Enter was pressed on it.</summary>
     public event EventHandler<TreeNodeInvokedEventArgs>? NodeInvoked;
 
+    /// <summary>A node is being expanded: the place to make its children, when the
+    /// node has <see cref="TreeNode.HasUnrealizedChildren"/>. The children added here
+    /// are shown by the same rebuild the expansion makes; ones that come later — read
+    /// on another thread — are added on the UI thread, in <see cref="BeginUpdate"/>.</summary>
+    public event EventHandler<TreeNode>? NodeExpanding;
+
+    /// <summary>Stop rebuilding the rows on every change until <see cref="EndUpdate"/>:
+    /// a thousand children added one by one would rebuild the projection a thousand
+    /// times. The calls nest.</summary>
+    public void BeginUpdate() => _updateDepth++;
+
+    /// <summary>Close a <see cref="BeginUpdate"/>; the last one rebuilds the rows if
+    /// anything changed in between.</summary>
+    public void EndUpdate()
+    {
+        if (_updateDepth == 0) return;
+
+        if (--_updateDepth > 0 || !_rebuildPending) return;
+
+        _rebuildPending = false;
+        Rebuild();
+    }
+
+    private void OnNodeExpanding(TreeNode node)
+    {
+        if (NodeExpanding is null) return;
+
+        BeginUpdate();
+
+        try
+        {
+            NodeExpanding.Invoke(this, node);
+        }
+        finally
+        {
+            EndUpdate();
+        }
+    }
+
     // the tree takes focus: without it there is no keyboard
     public bool IsFocused { get; set; }
 
@@ -157,6 +205,7 @@ public class TreeView : DecoratedPanel, IInputElement
     /// <summary>The lead node: the one selected last, where the keyboard is. Setting it
     /// selects that node alone and scrolls it into sight, as a selection from the
     /// keyboard does; null clears the selection.</summary>
+    [SetAfterContent]
     public TreeNode? SelectedNode
     {
         get => _lead;
@@ -186,6 +235,7 @@ public class TreeView : DecoratedPanel, IInputElement
 
         _root.Changed += OnTreeChanged;
         _root.CheckedChanged += node => NodeCheckedChanged?.Invoke(this, node);
+        _root.Expanding += OnNodeExpanding;
 
         // the tree is a container, not an in-place control: there is no point
         // centering it, and the Center inherited from UnitControl does exactly that
@@ -243,6 +293,13 @@ public class TreeView : DecoratedPanel, IInputElement
 
     private void OnTreeChanged(TreeNode node, TreeChangeKind kind)
     {
+        if (_updateDepth > 0)
+        {
+            _nodesHaveIcons = null;
+            _rebuildPending = true;
+            return;
+        }
+
         bool icons = ShowsIcons;
         _nodesHaveIcons = null;
 

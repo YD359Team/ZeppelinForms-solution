@@ -244,6 +244,10 @@ registration to call directly.
 | 15 | TreeView              | ✅      |
 | 16 | ImageGallery          | ✅      |
 | 17 | MarkdownViewer        | ✅      |
+| 18 | NavigationHost        | ✅      |
+| 19 | AppBar                | ✅      |
+| 20 | NavigationBar         | ✅      |
+| 21 | Scaffold              | ✅      |
 
 ##### Items Panels
 
@@ -278,6 +282,13 @@ finger with kinetic flings and rubber-band overscroll on touch devices.
 | 8 | GripBox        | ✅    |
 | 9 | AdaptiveLayout | ✅    |
 | 10 | RefreshContainer | ✅  |
+| 11 | SafeArea       | ✅    |
+| 12 | SwipeView      | ✅    |
+| 13 | BottomSheet    | ✅    |
+
+⭐ A phone application's frame — a stack of pages with routes, the system's and the
+browser's back, an app bar, a navigation bar, sheets, swipes and snackbars — works the same
+on Android, in a browser and in a window. See the wiki's *Mobile and navigation*.
 
 #### Your Own Controls
 
@@ -379,6 +390,37 @@ Assigning a bound property from code wins over the binding: in `TwoWay` the
 value goes to the source, in `OneWay` the binding is broken — otherwise the next
 source change would silently overwrite what was just written.
 
+#### MVVM
+
+A view model is an element's or a form's `DataContext`, inherited down the tree. Markup
+says what it is with `x:DataType`, and every `{Bind …}` is checked against it at build
+time and compiled into plain property reads — no reflection, so trimming and native AOT
+keep it:
+
+```xml
+<StackPanel Class="MyApp.ProfileCard" xmlns:vm="using:MyApp.ViewModels" x:DataType="vm:ProfileViewModel">
+  <Label Text="{Bind Greeting}"/>
+  <TextBox Text="{Bind Name, Mode=TwoWay}"/>
+  <TextBox Text="{Bind Address.City, Mode=TwoWay}"/>
+  <PrimaryButton Text="Save" Command="{Bind Save}"/>
+</StackPanel>
+```
+
+```csharp
+var card = new ProfileCard { DataContext = new ProfileViewModel() };
+```
+
+Every object on a path is followed: a new `Address` is read and followed in its turn. In
+C#, the same bindings without property names:
+
+```csharp
+status.Bind(Label.TextProperty, (OrderViewModel vm) => vm.Status);
+name.Bind(TextBox.TextProperty, (OrderViewModel vm) => vm.Name, (vm, value) => vm.Name = value);
+```
+
+A view model needs `INotifyPropertyChanged` and `ICommand` and nothing of the framework:
+CommunityToolkit.Mvvm's `[ObservableProperty]` and `[RelayCommand]` work as they are.
+
 ### 🛠️ Getting Started
 
 The UI references the `ZeppelinForms` package; the application references the package
@@ -393,6 +435,14 @@ of its platform as well, which brings the framework with it:
 
 A desktop application is a `WinExe` (Windows) or `Exe` project for `net10.0`; see
 [ZF_ProcessMonitor](https://github.com/YD359Team/ZF_ProcessMonitor) for a complete one.
+
+Or the whole application at once — a shared project with the form and its pages, and a
+project per platform that starts it (Windows and Linux, WebAssembly, Android):
+
+```
+dotnet new install ZeppelinForms.Templates
+dotnet new zf-app -n Notes
+```
 
 Creating an application in Windows:
 
@@ -544,43 +594,59 @@ project file:
 
 ### 📺 Previewer
 
-The **ZeppelinForms Tools** extension for Visual Studio 2022 (17.10 and later) and
-Visual Studio 2026: the `.vsix` is attached to every release. It runs on the machine's
-.NET 10.
+Extensions for Visual Studio 2022 (17.10 and later) and 2026, VS Code and Rider (2025.2.1 and
+later) — all three attached to every release, all three running the same previewer and
+language server on the machine's .NET 10. See `tools/ZeppelinForms.VisualStudio`,
+`tools/ZeppelinForms.VSCode` and `tools/ZeppelinForms.Rider`.
 
-`Ctrl`+`Alt`+`Shift`+`P` (View › Other Windows › ZeppelinForms Preview) shows the
+In Visual Studio `Ctrl`+`Alt`+`Shift`+`P` (View › Other Windows › ZeppelinForms Preview) shows the
 preview of the active project: every form with a parameterless constructor, and every
 method marked `[Preview]` (namespace `ZeppelinForms.Design`). What `Main` does before
 showing a form — loading style sheets, choosing a theme — goes into a `[PreviewSetup]`
 method. The extension also highlights `.zss` style sheets and reports their problems in
-the Error List. See `tools/ZeppelinForms.VisualStudio/README.md`.
+the Error List, and completes `.zfml` and `.zss` as you type — elements, attributes,
+values, the paths of `{Bind …}` from `x:DataType`, the properties a sheet's block can set —
+with the summaries on hover, from the ZeppelinForms language server it ships.
+
+VS Code (ZeppelinForms: Open Preview) and Rider (View › Tool Windows › ZeppelinForms Preview)
+show the same preview beside the editor, and complete, document and check `.zfml` and `.zss`
+as you type from the same server.
 
 ### 📝 Markup
 
 Code-first is the main way, and markup is an option for the parts that read better as a
-tree. A `.zfml` file names its class with `x:Class`; at build time the generator turns it
-into C# — a field for every `x:Name` and an `InitializeComponent()` of plain `new`,
-assignments, `+=` and `Add`. No reflection, so trimming and native AOT keep it all.
+tree — a whole window included. A `.zfml` file names its class with `Class`; at build time
+the generator turns it into C# — a field for every `Name` and an `InitializeComponent()` of
+plain `new`, assignments, `+=` and `Add`. No reflection, so trimming and native AOT keep it
+all.
+
+A form, `MainForm.zfml` — the root is the `Form`, with nothing before it but the XML
+declaration:
 
 ```xml
-<StackPanel x:Class="MyApp.SignUpCard"
-            xmlns="https://zeppelinforms.dev/markup"
-            xmlns:x="https://zeppelinforms.dev/markup/x"
-            xmlns:my="using:MyApp.Controls"
-            Orientation="Vertical" Spacing="10">
-  <TextBox x:Name="NameBox" Watermark="Your name" Size="260,NaN"/>
-  <Label Text="{Bind NameBox.Text}"/>
-  <PrimaryButton Text="Sign up" Classes="wide" Click="OnSubmit"/>
-  <my:Gauge Level="0.5"/>
-</StackPanel>
+<?xml version="1.0" encoding="utf-8"?>
+<Form Class="MyApp.MainForm" Title="Hello" Size="480,320" WindowStartupLocation="CenterScreen">
+  <StackPanel Orientation="Vertical" Spacing="10" Padding="24">
+    <Label Text="What is your name?"/>
+    <TextBox Name="NameBox" Watermark="Your name"/>
+    <PrimaryButton Text="Greet" Click="OnGreet"/>
+  </StackPanel>
+</Form>
 ```
 
+and its behaviour, `MainForm.cs`:
+
 ```csharp
-public partial class SignUpCard
+public partial class MainForm
 {
-    private void OnSubmit(object? sender, MouseClickEventArgs e) { /* NameBox.Text … */ }
+    private async void OnGreet(object? sender, MouseClickEventArgs e) =>
+        await MessageBox.ShowAsync(this, $"Hello, {NameBox.Text}!");
 }
 ```
+
+The generator writes the base class, the fields and a constructor that builds the markup;
+`new MainForm()` is run as any form. Any element can be the root as well — a card, a page:
+`<StackPanel Class="MyApp.SignUpCard" …>`.
 
 - Values are written as in style sheets: `Padding="14 6"` is `new Thickness(14, 6)`,
   `Size="260,NaN"`, `Background="#0d6efd"`, enum members, static members by name
@@ -588,10 +654,58 @@ public partial class SignUpCard
   `Children`, `Items`, `Nodes`, `Content`, `Child`; `<Border.Child>` names one
 - `{Bind Name.Property}` binds a styled property to a named element, `Mode=TwoWay`
   both ways; `{x:Null}` is null; `<x:String>` is a text item of a list
+- `x:Class`, `x:Name` and the `xmlns` lines of XAML are understood too, and needed by none;
+  `xmlns:my="using:MyApp.Controls"` brings the application's controls in as `<my:Gauge>`
 - An unknown type, property, event or value is a ZF2xxx error at its line of the
   markup, and so is a handler of the wrong signature
 - A class whose code declares no constructor gets one that calls
   `InitializeComponent`; Hot Reload builds the markup again after an edit
+
+#### Design apart from code
+
+A form in code can keep its controls apart from what they do, as WinForms does:
+`MainForm.design.cs` holds the fields and an `InitializeComponent()` that makes, wires and
+lays them out, `MainForm.cs` the handlers. The framework gives the design part what it
+gives markup — a constructor when the class declares none, Hot Reload of
+`InitializeComponent`, no CS8618 for the fields it assigns, ZF0007 for a constructor that
+forgets to build it — and nests it under `MainForm.cs` in Solution Explorer and Rider.
+
+```csharp
+// MainForm.design.cs
+partial class MainForm
+{
+    private TextBox _name;
+    private PrimaryButton _greet;
+
+    private void InitializeComponent()
+    {
+        Title = "Hello";
+
+        _name = new TextBox { Watermark = "Your name" };
+        _greet = new PrimaryButton { Text = "Greet" };
+        _greet.Click += OnGreet;
+
+        Content = new StackPanel { Spacing = 10, Padding = new Thickness(24), Children = { _name, _greet } };
+    }
+}
+
+// MainForm.cs
+public partial class MainForm : Form
+{
+    private async void OnGreet(object? sender, MouseClickEventArgs e) =>
+        await MessageBox.ShowAsync(this, $"Hello, {_name.Text}!");
+}
+```
+
+#### Templates
+
+```
+dotnet new install ZeppelinForms.Templates
+dotnet new zf-app -n Notes                 # Notes, Notes.Desktop, Notes.Browser, Notes.Android
+dotnet new zf-form -n OrderForm            # OrderForm.cs + OrderForm.design.cs
+dotnet new zf-form-markup -n FeedbackForm  # FeedbackForm.cs + FeedbackForm.zfml
+dotnet new zf-stylesheet -n app            # app.zss
+```
 
 ### 🔥 Hot Reload
 
@@ -619,7 +733,8 @@ public class MainForm : Form
 
 `UIElement.OnHotReload` does the same for a control that builds its children itself, and
 `HotReload.Applied` is raised once the forms have caught up. Style sheets loaded from
-files with `watch: true` follow their saves on their own.
+files with `watch: true` follow their saves on their own; markup and `.design.cs` parts are
+built again with no code of one's own.
 
 ### 🧪 Snapshot Tests
 
@@ -634,6 +749,10 @@ Local snapshot update:
 - PowerShell: `$env:ZF_UPDATE_SNAPSHOTS='true'; dotnet test`
 
 `ZF_CREATE_SNAPSHOTS=true` only adds the missing ones, leaving the existing as they are.
+
+The GLES backend is checked against Skia with no reference images: `GlesSkiaParityTests`
+draw the same forms with both and compare the pictures, in an OpenGL ES context of Mesa's
+without a window — on Linux, in CI on every push.
 
 ### 📈 Benchmarks
 

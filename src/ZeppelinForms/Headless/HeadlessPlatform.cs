@@ -14,7 +14,9 @@ public sealed partial class HeadlessPlatform : IPlatform, INestedLoopSupport
 {
     /// <summary>A desktop in tests: windows place themselves as on Windows and X11.</summary>
     public PlatformCapabilities Capabilities =>
-        PlatformCapabilities.WindowPositioning | PlatformCapabilities.WindowHiding | PlatformCapabilities.SystemTray;
+        PlatformCapabilities.WindowPositioning | PlatformCapabilities.WindowHiding | PlatformCapabilities.SystemTray
+        | PlatformCapabilities.TaskbarProgress | PlatformCapabilities.TaskbarBadge | PlatformCapabilities.WindowAttention
+        | PlatformCapabilities.Notifications;
 
     private readonly List<HeadlessWindow> _windows = [];
     private readonly Queue<Action> _pending = new();

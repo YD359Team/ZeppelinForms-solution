@@ -1,5 +1,268 @@
 # Changes
 
+## [0.19.0] Nevada
+
+![Nevada](assets/Logo-0.19.0.jpg)
+
+> Nevada is the release of the tools and of the phone. Forms in markup with bindings checked
+at build time, completion and previews in Visual Studio, VS Code and Rider, design kept apart
+from code as WinForms keeps it. And the frame of a phone application — a stack of pages, a
+back that works the same on Android, in a browser and in a window, app and navigation bars,
+sheets, swipes and snackbars — with a template that makes one for all three at once.
+
+### Breaking changes
+
+- In markup a plain `Name="…"` makes a field of the element, as `x:Name` does (and as WPF
+  and Avalonia take `Name`). A class whose code already has a member of that name gets
+  the compiler's CS0102; a name that can't be a field — `main-panel` — still only names
+  the element
+- Removed what was obsolete since 0.13–0.16: `MaskDefinition.Phone` (use `RussianPhone` or a
+  pattern of your own), `RichLabel.ContentAlign` and `ContentVerticalAlign` (use
+  `HorizontalContentAlign` and `VerticalContentAlign`), `PropertyGrid.RowTextColor` (the
+  names take `NameColor`, which the theme sets)
+- `Binding.Source` is `object?`: a binding to a data context not set yet has none
+- Android: `AndroidPlatform.BackRequested` comes after the form's own handling of back — an
+  open flyout, a bottom sheet, a navigation stack, a dialog — and only when nothing took
+  it. A handler that went back by itself now finds nothing left to do; to keep a stack out
+  of it, `HandlesBackRequests = false`
+
+### Markup
+
+- A `.zfml` file needs no namespace declarations: `<Form Class="MyApp.MainForm" Title="…">`
+  is a whole root. `Class` names the class as `x:Class` does; `x:Class`, `x:Name` and the
+  `xmlns` lines are still understood
+- A class the markup alone declares is public
+- A wiki section and a README example of a whole form in markup; the showcase's Markup
+  page opens one, `FeedbackForm.zfml`
+
+### Completion
+
+- `ZeppelinForms.LanguageServer`: a language server (LSP, on stdin and stdout) of `.zfml`
+  and `.zss`. Markup: elements, `prefix:` types, property elements, the attributes of an
+  element, enum and static values, handlers of the class, commands, `{Bind …}` paths from
+  `x:DataType` or a named element, `x:DataType` types, a `<Setter>`'s styled properties.
+  Sheets: controls, pseudo-classes, a block's styled properties, values, `@ThemeColors`,
+  `$variables`. Hover with the summaries; the generator's problems as you type
+- It reads a project without building it: its C#, the packages and projects of
+  `obj/project.assets.json`, the framework's generators over its markup
+- The Visual Studio extension completes `.zfml` in the XML editor and `.zss`, and shows
+  quick info in `.zfml`, from the server it ships; the problems stay the build's
+
+### VS Code and Rider
+
+- An extension for VS Code (`tools/ZeppelinForms.VSCode`): completion, hover and problems of
+  `.zfml` and `.zss` from the language server, highlighting of both — `.zfml` as XML with
+  `{Bind …}` and `{x:Null}` picked out —, and the previewer in a panel beside the editor:
+  the toolbar of Visual Studio's, live input, a reload after every build, Source to open a
+  preview's code. Plain JavaScript with type checks; the protocol's tests read bytes .NET wrote
+- A plugin for Rider 2025.2.1 and later (`tools/ZeppelinForms.Rider`, Kotlin, Gradle): the
+  language server through Rider's LSP support, `.zfml` in the XML editor, `.zss` highlighted
+  by a TextMate bundle, and the ZeppelinForms Preview tool window
+- The previewer's host connects to a Unix domain socket too: `--socket <path>`, besides
+  `--pipe <name>`. Rider uses it everywhere, VS Code on Linux and macOS
+- The host ships HarfBuzz's Linux module: text is shaped in previews on Linux as in the
+  application
+- Both are built and tested in CI — the Rider plugin's tests talk to a real host about the
+  examples' library — and attached to the release; with `VSCE_PAT` and
+  `JETBRAINS_MARKETPLACE_TOKEN` set, published to the marketplaces
+
+### MVVM
+
+- `UIElement.DataContext` and `Form.DataContext`: the object an element's bindings start
+  from, inherited down the tree from the element that has it, or from the form;
+  `DataContextChanged`
+- Markup: `x:DataType="vm:OrderViewModel"` says what the data context is, and
+  `{Bind Status}`, `{Bind Customer.Name, Mode=TwoWay}`, `Command="{Bind Save}"` read from it —
+  checked at build time (ZF2008 at the line of a property that isn't there, a TwoWay that
+  can't write, a command that isn't one; ZF2015 for a type x:DataType can't find) and
+  compiled into property reads: no reflection, so trimming and native AOT keep them
+- Paths follow every object on the way: `Customer.Name` reads a new customer when the view
+  model gets one; a null on the way is the property's default
+- Typed bindings in C#: `Bind(TextBox.TextProperty, (OrderViewModel vm) => vm.Name, (vm, v) => vm.Name = v)`
+  to the data context, `Bind(property, source, get[, set])` to a source of one's own;
+  `BindingPath` and `BindingStep` for a path by hand; `BindValue` for a property that isn't
+  styled
+- A binding writes the element only when the value changed
+- View models need `INotifyPropertyChanged` and `ICommand` only: CommunityToolkit.Mvvm's
+  work as they are
+- Markup sets a selected index or item after the items, wherever its attribute is written:
+  `<ComboBox SelectedIndex="1">` with its items inside selected nothing. `[SetAfterContent]`
+  marks such a property
+- `Binding.Path`, `Binding.UsesDataContext`
+- The showcase's Markup page binds `ProfileCard.zfml` to `ProfileViewModel`
+
+### Design apart from code
+
+- `MainForm.design.cs`: the controls' fields and an `InitializeComponent()` that makes, wires
+  and lays them out, apart from the behaviour in `MainForm.cs` — WinForms'
+  `Form1.Designer.cs`, written by hand. The generator gives the class a constructor that
+  calls `InitializeComponent()` when it declares none, and Hot Reload builds the design
+  again after an edit, as markup's is
+- No CS8618 for a field of a `.design.cs` that `InitializeComponent()` assigns, when the
+  constructor calls it; a field it forgets keeps the warning
+- ZF0007: a constructor of a class with a design part — a `.design.cs` or markup — that
+  doesn't call `InitializeComponent()`
+- `MainForm.design.cs` and `MainForm.zfml` nest under `MainForm.cs` in Solution Explorer and
+  Rider: the package's build targets set `DependentUpon` when the code file is there
+- `ZeppelinForms.Templates` for `dotnet new`, Rider and Visual Studio: `zf-form` (a form with
+  its `.design.cs`), `zf-form-markup`, `zf-stylesheet`
+- The showcase's Markup page opens `OrderForm`, a form whose design is a `.design.cs`
+
+### Tooltips
+
+- A tooltip is a `ToolTip` control, styled by the theme: the surface, a hairline edge, the
+  overlay rounding (8 in Fluent) and a soft shadow, the text as the type ramp's caption in
+  the theme's text color. It was a border with a black edge and a fixed pale fill, light in
+  a dark theme too. A style sheet reaches it by its type: `ToolTip { … }`, `ToolTip Label { … }`
+- A long text wraps at `ToolTip.MaxContentWidth`, 320 by default, instead of running across
+  the window
+- It fades in, unless motion is reduced. Any overlay with an `EnterTransition` now does
+- `UIElement.ToolTipContent`: a tooltip of any content, lent to it while shown
+- `UIElement.ToolTipDelay`: an element's own delay over the form's `ToolTipDelay`
+- The keyboard focus shows its element's tooltip while the form is worked from the keyboard,
+  under the element; a key closes a tooltip as a pointer press does, a modifier alone doesn't
+- A tooltip goes away with its element instead of hanging where the element was
+
+### The application and its taskbar button
+
+- `App.Id`, `App.DisplayName` and `App.Version` — read from the entry assembly until set:
+  `App.Version` is the project's `<Version>` without the SDK's "+commit". The id is the
+  window class on X11 (there was none, and docks showed the window apart from its launcher),
+  the app_id on Wayland (it was the assembly's name, spaces and all: "ZF Linux" is "ZF-Linux"
+  now) and, when set, the application user model id on Windows
+- `Form.Taskbar`: `ProgressState`, `ProgressValue` and `Badge` of the form's taskbar button —
+  ITaskbarList3 and an overlay badge on Windows; the launcher entry
+  (`com.canonical.Unity.LauncherEntry`) on Linux, X11 and Wayland; an installed web app's
+  badge in the browser
+- `Form.RequestAttention()`: the taskbar button flashes on Windows, the window is marked as
+  demanding attention on X11 and, through xdg-activation, on Wayland; the tab's title blinks
+  in the browser
+- `PlatformCapabilities.TaskbarProgress`, `TaskbarBadge`, `WindowAttention`; `ITaskbarWindow`
+  for the windows of a platform of one's own
+- The version in one place: Directory.Build.props' `<Version>` is the extension's and the
+  Android example's version too
+
+### Notifications
+
+- `Notifications.Show(notification)` and `Notifications.Show(title, text, kind)`: the system's
+  notification with a title, a text and a kind (`None`, `Information`, `Warning`, `Error`),
+  its `Clicked` on the UI thread and `Closed` once. A balloon of a tray icon on Windows —
+  shown as a toast by Windows 10 and 11 — with the application's icon put into the tray for
+  it when the application shows none; `org.freedesktop.Notifications` on Linux, X11 and
+  Wayland; the Notification API in the browser, permission asked with the first
+- `TrayIcon.ShowNotification`: the icon's own balloon on Windows, as WinForms'
+  `NotifyIcon.ShowBalloonTip`; a notification as any other elsewhere
+- `Form.Activate()`: the window forward with the keyboard, a hidden form shown again —
+  the answer to a click on a notification or a tray icon
+- `PlatformCapabilities.Notifications`; the headless platform keeps the notifications, and
+  plays their clicks and closings for tests
+
+### File dialogs
+
+- The system's file dialog before the framework's own: IFileOpenDialog and IFileSaveDialog
+  on Windows, the XDG desktop portal's FileChooser on Linux, X11 and Wayland — GTK's dialog
+  on GNOME, KDE's on Plasma, and the one a Flatpak or a Snap can reach the user's files
+  with. Modal to the form, the synchronous `FileDialog` calls included. Without one — no
+  portal on the bus — the framework's dialog is shown as before;
+  `FileDialogOptions.UseNative = false` asks for it
+- `PickedFile`: a picked file as a name, the `Path` where there is one, and
+  `OpenReadAsync`/`OpenWriteAsync` — the same code for the desktop and the browser.
+  `FileDialog.PickFileAsync`, `PickFilesAsync`, `PickSaveFileAsync`; `PickedFile.FromPath`
+- The browser saves through its own save dialog where it has one (the File System Access
+  API, Chromium on the desktop) and writes the file the user chose; elsewhere as a download,
+  when the stream is disposed. `IFilePicker.PickOpenAsync` and `PickSaveAsync` for a picker
+  of one's own
+- `HeadlessPlatform.NativeFileDialog` answers the file dialogs in tests
+- The framework's dialog opens in the home folder where there is no Documents folder — a
+  Linux without the XDG user directories — instead of failing
+
+### Mobile and navigation
+
+- `NavigationHost`: a stack of `Page`s — `PushAsync`, `PopAsync`, `PopToRootAsync`,
+  `ReplaceAsync`, `PushForResultAsync<T>` with `Page.ReturnAsync`; `Navigating` (cancellable)
+  and `Navigated`. A page hears `OnNavigatedTo` and `OnNavigatedFrom` and may stay
+  (`CanLeaveAsync`). The new page slides in, mirrored for right-to-left and off with reduced
+  motion; a swipe from the left edge drags it back
+- Routes: `RegisterRoute("message", p => new MessagePage(p["id"]))`,
+  `GoToAsync("message?id=42")`, `"/inbox/message"` from the root, `".."`; `Location()`
+- Back, one way for every source: `Form.RequestBack(BackSource)` — Android's back, the
+  browser's back button, Alt+Left, the app bar's arrow — closes a flyout, then a bottom sheet
+  or a navigation stack goes back, the innermost seen first, then `Form.BackRequested`, then a
+  dialog is cancelled
+- In a browser a stack's pages are entries of the page's history: the back and forward
+  buttons go through the stack, the address after the `#` is its location, and a link with
+  a route opens that page. The back button goes to the stack that pushed the entry, shown
+  or not
+- `AppBar`: the current page's title, a back arrow while the stack can go back, the page's
+  `Actions` and the bar's own, an overflow menu. `NavigationBar`: destinations at the bottom
+  with icons, labels and badges. `Scaffold` puts them around the selected destination's
+  content and a floating button; destinations keep their stacks while another is shown, and
+  a second tap goes back to the root
+- `BottomSheet`: a sheet from the bottom over a scrim, dragged down, tapped beside, Escape or
+  back to close; `ShowAsync` ends when it closes
+- `SwipeView`: a row swiped aside for its actions — revealed, or the first one run when
+  swiped far (`SwipeMode.Execute`); a right click lists them in a menu
+- `Form.ShowSnackbarAsync(message, action)`: a message at the bottom with an action, one at a
+  time; true when the action was taken
+- The safe area: `Form.SafeAreaInsets` and `SafeAreaInsetsChanged`; `SafeArea` keeps its
+  content out of it, the app bar and the navigation bar color the space under the system's
+  bars. On Android `Form.EdgeToEdge` draws the form under the status bar and the gesture
+  bar; in a browser the page's `env(safe-area-inset-*)` with `viewport-fit=cover`
+- The on-screen keyboard: when it makes the form shorter, the focused field is scrolled into
+  view. `UIElement.BringIntoView(margin)` does it from code
+- `dotnet new zf-app`: an application — the shared project with its form and pages, and
+  projects for the desktop (Windows and Linux from one build), the browser and Android, each
+  left out by `--desktop false` and the like. The browser project brings `zf.js` and a font;
+  the packages' version is the templates' own, in one place, `Directory.Build.props`
+- The showcase's Mobile page: a phone's frame with an inbox, rows swiped to delete with Undo,
+  a sheet and snackbars. The examples' `index.html` takes `viewport-fit=cover` and
+  `interactive-widget=resizes-content`
+- A wiki page, *Mobile and navigation*
+
+### GLES against Skia
+
+- `GlesSkiaParityTests`: the same forms drawn by both backends — shapes, strokes, arcs,
+  paths, gradients, transforms, clips, layers, pictures, text, a column of controls — and
+  the pictures compared, shapes pixel by pixel, text in blocks of 8 × 8. No reference images:
+  one backend drawing unlike the other fails, and the pictures of a failure go to
+  `Snapshots/Failed` beside the snapshots'
+- GLES draws in an OpenGL ES 3 context of Mesa's without a window or a display
+  (`EGL_MESA_platform_surfaceless`, llvmpipe): the Linux job of CI installs Mesa's EGL and
+  requires the context (`ZF_REQUIRE_GLES=true`); on Windows the tests skip themselves
+- Known differences, left out of the comparison: a stretched picture is sampled by the
+  nearest pixel in Skia and smoothly in GLES, and GLES's text is somewhat heavier
+
+### CI
+
+- `templates`: the packages and the templates packed into a local feed, an application made
+  by `dotnet new zf-app`, its desktop, browser and Android projects built against them
+- CI runs by hand on any branch too (`workflow_dispatch`): a release branch checked before
+  its pull request
+
+### Others
+
+- Context menus open submenus: an item with `Items` of its own shows an arrow and opens
+  them beside it when the pointer rests on it, on a click or a tap, on Right or Enter;
+  Left or Esc goes back. They used to run the item and close the menu, the submenu out of
+  reach. Menu bars' menus and split buttons' get them too
+- A finger or a pen held on an element opens its context menu, recognized by the form the
+  same way on every platform — on Android nothing opened it; an element with a long press
+  of its own keeps it
+- `HeadlessInput.RightClick` opens the context menu after the release, as the platforms do
+- Add `TreeViewItem` expanded event and lazy load trees support
+- Now `DataGridView.RowAt` is public
+
+### Inside
+
+- `Form` and `UIElement` are split by concern into partial files — `Form.Pointer`,
+  `Form.KeyboardInput`, `Form.Layout`, `Form.Overlays`, `Form.Dialogs`, `Form.ToolTip`,
+  `Form.Inspector`, `Form.DragDrop`, `Form.Theme`, `Form.Localization`; `UIElement.Input`,
+  `UIElement.Bindings`, `UIElement.Values`, `UIElement.Transitions`, `UIElement.Layout`,
+  `UIElement.Localization`. Nothing in them changed but the place
+- `RadarChart` takes one stack buffer for all its series instead of one per series (CA2014),
+  and the designer protocol checks its argument without a suppressed warning
+
+
 ## [0.18.1]
 
 A release of fixes: a paste on Linux that leaked or came back empty, and the per-frame and

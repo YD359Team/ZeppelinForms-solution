@@ -186,7 +186,7 @@ public class ControlRefinementTests
     }
 
     private static string? ShownToolTip(Form form) =>
-        form.Overlays.OfType<Border>().Select(b => (b.Child as Label)?.Text).LastOrDefault(t => t is not null);
+        form.Overlays.OfType<ToolTip>().Select(tip => tip.Text).LastOrDefault(t => t is not null);
 
     [Fact]
     public void HoveringADotShowsItsPageTitle()

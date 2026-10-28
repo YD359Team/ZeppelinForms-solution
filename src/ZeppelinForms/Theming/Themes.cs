@@ -577,6 +577,90 @@ public static partial class Themes
                 presenter.BorderWidth = 1f;
                 presenter.CornerRadius = t.Metrics.OverlayCornerRadius;
                 presenter.BoxShadow = BoxShadow.Medium;
+            })
+
+            // a tooltip is a small overlay: the same surface and edge as a flyout, the
+            // overlay rounding, and a lighter shadow — it is a hint, not a panel to work in.
+            // The text is the theme's text, not black on a pale yellow: in a dark theme
+            // the old fixed colors stayed light
+            .For<ToolTip>((tip, t) =>
+            {
+                ThemeColors c = t.Colors;
+
+                tip.Background = c.Surface;
+                tip.BorderColor = c.Border;
+                tip.BorderWidth = t.Metrics.StrokeThickness;
+                tip.CornerRadius = t.Metrics.OverlayCornerRadius;
+                tip.BoxShadow = BoxShadow.Small;
+            })
+
+            // ===== the mobile frame =====
+
+            // the bars are surfaces of the page's own: the app bar over the content, the
+            // navigation bar under it, each with a hairline toward the content
+            .For<AppBar>((bar, c) =>
+            {
+                bar.Background = c.Surface;
+                bar.DividerColor = c.Border;
+            })
+
+            // round, flat, tinted on hover and press as a surface's buttons are
+            .For<AppBarButton>((button, c) =>
+            {
+                button.BackgroundColor = Colors.Transparent;
+                button.HoverBackgroundColor = c.SurfaceHover;
+                button.PressedBackgroundColor = c.SurfacePressed;
+                button.TextColor = c.Text;
+                button.DisabledTextColor = c.TextDisabled;
+                button.BorderWidth = 0f;
+                button.FocusRingColor = c.Accent;
+            })
+
+            // the chosen destination: the accent, and a pill of the accent laid thinly over
+            // the bar — readable on a light bar and a dark one
+            .For<NavigationBar>((bar, c) =>
+            {
+                bar.Background = c.Surface;
+                bar.DividerColor = c.Border;
+                bar.SelectedColor = c.Accent;
+                bar.IndicatorColor = new Color(c.IsDark ? (byte)70 : (byte)40, c.Accent.R, c.Accent.G, c.Accent.B);
+                bar.ItemColor = c.TextSecondary;
+                bar.DisabledColor = c.TextDisabled;
+                bar.BadgeColor = c.Error;
+                bar.BadgeTextColor = Colors.White;
+            })
+
+            // a sheet is a surface lifted over the page: rounded at its top as the theme
+            // rounds its overlays, at least as a phone's sheet is
+            .For<BottomSheet>((sheet, t) =>
+            {
+                ThemeColors c = t.Colors;
+
+                sheet.Background = c.Surface;
+                sheet.BoxShadow = BoxShadow.Medium;
+                sheet.ScrimColor = c.IsDark ? new Color(110, 0, 0, 0) : new Color(82, 0, 0, 0);
+                sheet.HandleColor = new Color(110, c.TextSecondary.R, c.TextSecondary.G, c.TextSecondary.B);
+                sheet.CornerRadius = new CornerRadius(
+                    Math.Max(16f, t.Metrics.OverlayCornerRadius.TopLeft), Math.Max(16f, t.Metrics.OverlayCornerRadius.TopRight), 0f, 0f);
+            })
+
+            .For<SwipeView>((swipe, c) =>
+            {
+                swipe.ItemBackground = c.TextSecondary;
+                swipe.ItemForeground = c.IsDark ? c.Background : Colors.White;
+            })
+
+            // inverted: the text's color as the background, the page's as the text — it
+            // stands out of the page whatever the page is
+            .For<Snackbar>((bar, t) =>
+            {
+                ThemeColors c = t.Colors;
+
+                bar.Background = c.Text;
+                bar.MessageColor = c.Background;
+                bar.ActionColor = Color.Lerp(c.Accent, c.Background, c.IsDark ? 0f : 0.35f);
+                bar.CornerRadius = t.Metrics.ControlCornerRadius;
+                bar.BoxShadow = BoxShadow.Small;
             });
     }
 }

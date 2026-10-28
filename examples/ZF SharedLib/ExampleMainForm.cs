@@ -78,6 +78,7 @@ public partial class ExampleMainForm : Form
         view.Items.Add(new SplitViewItem("Splitters and adaptive", Icons.Split, SplittersPage.Create));
         view.Items.Add(new SplitViewItem("Containers", Icons.Box, ContainersPage.Create));
         view.Items.Add(new SplitViewItem("Navigation", Icons.Tabs, NavigationPage.Create));
+        view.Items.Add(new SplitViewItem("Mobile", Icons.Phone, MobilePage.Create));
 
         view.Items.Add(SplitViewItem.Header("Text and graphics"));
         view.Items.Add(new SplitViewItem("Text", Icons.Font, TextPage.Create));
@@ -90,7 +91,7 @@ public partial class ExampleMainForm : Form
         view.Items.Add(new SplitViewItem("Styles", Icons.Brush, StylesPage.Create));
         view.Items.Add(new SplitViewItem("Effects", Icons.Sparkle, EffectsPage.Create));
         view.Items.Add(new SplitViewItem("Animation", Icons.Motion, AnimationPage.Create));
-        view.Items.Add(new SplitViewItem("Markup", Icons.Text, MarkupPage.Create));
+        view.Items.Add(new SplitViewItem("Markup", Icons.Text, () => MarkupPage.Create(this)));
 
         view.Items.Add(SplitViewItem.Header("Interaction"));
         view.Items.Add(new SplitViewItem("Dialogs and overlays", Icons.Window, () => OverlaysPage.Create(this)));

@@ -106,6 +106,31 @@ public sealed class TrayIcon : IDisposable
     /// <summary>The picture the platform shows.</summary>
     internal Icon EffectiveIcon => Icon ?? App.DefaultIcon ?? Assets.Logo;
 
+    /// <summary>Show a notification from the icon: on Windows the icon's balloon, which
+    /// Windows 10 and 11 show as a toast attributed to the icon, as WinForms'
+    /// <c>NotifyIcon.ShowBalloonTip</c> is; elsewhere — and from an icon not in the tray —
+    /// as any other, see <see cref="Notifications"/>. False — nowhere to show it.</summary>
+    public bool ShowNotification(Notification notification)
+    {
+        ArgumentNullException.ThrowIfNull(notification);
+
+        return ShowThroughTray(notification) || Notifications.Show(notification);
+    }
+
+    /// <summary>Show a notification of a title and a text; null — nowhere to show it.</summary>
+    public Notification? ShowNotification(string title, string? text = null, NotificationKind kind = NotificationKind.Information)
+    {
+        var notification = new Notification(title, text) { Kind = kind };
+
+        return ShowNotification(notification) ? notification : null;
+    }
+
+    /// <summary>The icon's own way, without falling back: false where it has none.</summary>
+    internal bool ShowThroughTray(Notification notification) => _impl?.ShowNotification(notification) == true;
+
+    /// <summary>An icon of the application in the tray now, for a notification to come from.</summary>
+    internal static TrayIcon? FirstShown => s_shown.Count > 0 ? s_shown[0] : null;
+
     internal void RaiseClick() => Click?.Invoke(this, EventArgs.Empty);
 
     internal void RaiseDoubleClick() => DoubleClick?.Invoke(this, EventArgs.Empty);
@@ -187,4 +212,8 @@ internal interface ITrayPlatform
 internal interface ITrayIconImpl : IDisposable
 {
     void Update();
+
+    /// <summary>Show a notification as the icon's own — a balloon on Windows. False — the
+    /// icon has no such way, and the notification goes as any other.</summary>
+    bool ShowNotification(Notification notification) => false;
 }

@@ -52,6 +52,12 @@ them, and a value that can't be read, an easing or a pseudo-class nobody has goe
 the Error List at its line of the markup. Their shape and the controls and properties
 they name are the build's — ZF2012 and ZF2013 — and aren't reported twice.
 
+`.zfml` and `.zss` complete as you type — elements after `<`, an element's attributes after
+a space, values in quotes, the paths of `{Bind …}` from `x:DataType`, a sheet's controls,
+properties and `@ThemeColors` — and hovering a `.zfml` element, attribute or binding step
+shows its declaration and summary. Choosing `Text` writes `Text=""` with the caret between
+the quotes.
+
 ## How it works
 
 The extension starts a host process, `ZeppelinForms.Designer`, shipped inside the
@@ -66,6 +72,13 @@ a fraction of a build's time.
 
 The host uses its own copy of ZeppelinForms. A project built against another
 version of the framework is loaded with a warning in the status line.
+
+Completion and quick info come from `ZeppelinForms.LanguageServer`, shipped in the
+extension's `LanguageServer` folder and started on the first request — the same server
+Rider and VS Code use, over the Language Server Protocol on its stdin and stdout. The
+extension's own completion and quick info sources ask it (`LanguageServer/`), so `.zfml`
+stays in the XML editor; the server's problems aren't taken, the build's are in the Error
+List already.
 
 ## Building
 
@@ -87,7 +100,9 @@ from the tag and attaches the `.vsix` to the release.
 
 ## The protocol
 
-Plain enough for a non-.NET client — a Rider plugin is the next one:
+Plain enough for a non-.NET client: the VS Code extension speaks it in JavaScript and the
+Rider plugin in Kotlin (`tools/ZeppelinForms.VSCode`, `tools/ZeppelinForms.Rider`), over a
+Unix domain socket the host connects to with `--socket <path>`:
 
 ```
 [int32 length][byte kind][payload]     little-endian; length counts kind + payload

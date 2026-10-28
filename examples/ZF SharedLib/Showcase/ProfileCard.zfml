@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MVVM in markup: x:DataType says what the data context is, and every {Bind …} is
+     checked against it by the build and compiled into plain property reads — no
+     reflection. The card has no code: what it does is in ProfileViewModel, which the
+     page sets as its DataContext -->
+<StackPanel Class="ZF_SharedLib.Showcase.ProfileCard"
+            xmlns:vm="using:ZF_SharedLib.Models"
+            x:DataType="vm:ProfileViewModel"
+            Orientation="Vertical" Spacing="8" CrossAxisAlignment="Stretch">
+
+	<Label Text="{Bind Greeting}" TextStyle="Subtitle"/>
+
+	<TextBox Watermark="Name" Text="{Bind Name, Mode=TwoWay}"/>
+	<TextBox Watermark="Email" Text="{Bind Email, Mode=TwoWay}"/>
+
+	<!-- a path through an object inside the view model, followed at every step -->
+	<TextBox Watermark="City" Text="{Bind Address.City, Mode=TwoWay}"/>
+
+	<StackPanel Orientation="Horizontal" Spacing="12">
+		<PrimaryButton Text="Save" Command="{Bind Save}"/>
+		<Label Text="{Bind Status}" VerticalAlignment="Center"/>
+	</StackPanel>
+</StackPanel>

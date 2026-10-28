@@ -22,20 +22,6 @@ public partial class RichLabel : DecoratedControl
     public partial VerticalContentAlignment VerticalContentAlign { get; set; }
     private static VerticalContentAlignment VerticalContentAlignDefault => VerticalContentAlignment.Center;
 
-    [Obsolete("Use HorizontalContentAlign, as on Label and Button.")]
-    public HorizontalContentAlignment ContentAlign
-    {
-        get => HorizontalContentAlign;
-        set => HorizontalContentAlign = value;
-    }
-
-    [Obsolete("Use VerticalContentAlign, as on Label and Button.")]
-    public VerticalContentAlignment ContentVerticalAlign
-    {
-        get => VerticalContentAlign;
-        set => VerticalContentAlign = value;
-    }
-
     public void SetText(params TextRun[] runs)
     {
         Inlines.Clear();

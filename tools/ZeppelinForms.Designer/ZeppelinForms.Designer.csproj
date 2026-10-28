@@ -15,10 +15,13 @@
 
 
 	<ItemGroup>
-		<!-- Windows for Visual Studio; Linux for Rider later -->
+		<!-- Windows for Visual Studio; Linux for Rider and VS Code. macOS comes with
+		     SkiaSharp and HarfBuzzSharp themselves: they depend on their macOS and
+		     Windows modules, not on the Linux ones -->
 		<PackageReference Include="SkiaSharp" />
 		<PackageReference Include="SkiaSharp.NativeAssets.Win32" />
 		<PackageReference Include="SkiaSharp.NativeAssets.Linux" />
+		<PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />
 	</ItemGroup>
 
 

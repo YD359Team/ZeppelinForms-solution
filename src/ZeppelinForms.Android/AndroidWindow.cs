@@ -12,7 +12,7 @@ namespace ZeppelinForms.Android;
 /// It doesn't implement IDesktopWindow: Android has no title bar, frame or
 /// window state.
 /// </summary>
-internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
+internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard, IEdgeToEdgeWindow
 {
     private readonly AndroidPlatform _platform;
     private readonly Form _form;
@@ -25,6 +25,15 @@ internal sealed class AndroidWindow : IPlatformWindow, ISoftKeyboard
     public void ShowSoftKeyboard(SoftKeyboardKind kind) => _platform.ShowSoftKeyboard(kind);
 
     public void HideSoftKeyboard() => _platform.HideSoftKeyboard();
+
+    // ==== edge to edge ====
+
+    /// <summary>Only the bottom form is laid out against the system's bars: a dialog stands
+    /// in the middle of the surface whatever it asks.</summary>
+    public void OnEdgeToEdgeChanged()
+    {
+        if (_platform.IsRoot(this)) _platform.Relayout();
+    }
 
     public AndroidWindow(AndroidPlatform platform, Form form)
     {

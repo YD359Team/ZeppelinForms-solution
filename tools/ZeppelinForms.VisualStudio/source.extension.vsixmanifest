@@ -1,27 +1,32 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
-  <Metadata>
-    <Identity Id="ZeppelinForms.VisualStudio.f1670ea6-4af5-458a-9ce7-1475c39d00f4" Version="0.18.1" Language="en-US" Publisher="YD359Team" />
-    <DisplayName>ZeppelinForms Tools</DisplayName>
-    <Description xml:space="preserve">The ZeppelinForms previewer — live previews of [Preview] methods and forms — .zss style sheets: highlighting and problems in the Error List — and .zfml markup in the XML editor.</Description>
-    <MoreInfo>https://github.com/YD359Team/ZeppelinForms-solution</MoreInfo>
-    <Icon>Resources\Icon.png</Icon>
-    <Tags>ZeppelinForms, UI, previewer, designer, styles</Tags>
-  </Metadata>
-  <Installation>
-    <!-- 17.10 and later: Visual Studio 2022 from 17.10, and Visual Studio 2026 (18.x) -->
-    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.10,19.0)">
-      <ProductArchitecture>amd64</ProductArchitecture>
-    </InstallationTarget>
-    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.10,19.0)">
-      <ProductArchitecture>arm64</ProductArchitecture>
-    </InstallationTarget>
-  </Installation>
-  <Prerequisites>
-    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
-  </Prerequisites>
-  <Assets>
-    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
-    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="File" Path="ZeppelinForms.pkgdef" />
-  </Assets>
+	<Metadata>
+		<!-- The version is the solution's (Directory.Build.props): the VS SDK calls the
+         project's GetVsixVersion target when it detokenizes this file. Edit the
+         manifest as XML: the manifest designer doesn't know the token -->
+		<Identity Id="ZeppelinForms.VisualStudio.f1670ea6-4af5-458a-9ce7-1475c39d00f4" Version="|%CurrentProject%;GetVsixVersion|" Language="en-US" Publisher="YD359Team" />
+		<DisplayName>ZeppelinForms Tools</DisplayName>
+		<Description xml:space="preserve">The ZeppelinForms previewer — live previews of [Preview] methods and forms — .zss style sheets: highlighting and problems in the Error List — and .zfml markup in the XML editor, with completion and quick info for both from the ZeppelinForms language server.</Description>
+		<MoreInfo>https://github.com/YD359Team/ZeppelinForms-solution</MoreInfo>
+		<Icon>Resources\Icon.png</Icon>
+		<Tags>ZeppelinForms, UI, previewer, designer, styles</Tags>
+	</Metadata>
+	<Installation>
+		<!-- 17.10 and later: Visual Studio 2022 from 17.10, and Visual Studio 2026 (18.x) -->
+		<InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.10,19.0)">
+			<ProductArchitecture>amd64</ProductArchitecture>
+		</InstallationTarget>
+		<InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.10,19.0)">
+			<ProductArchitecture>arm64</ProductArchitecture>
+		</InstallationTarget>
+	</Installation>
+	<Prerequisites>
+		<Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
+	</Prerequisites>
+	<Assets>
+		<Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
+		<Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="File" Path="ZeppelinForms.pkgdef" />
+		<!-- the editor's completion and quick info of .zfml and .zss: MEF parts of the assembly -->
+		<Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%|" />
+	</Assets>
 </PackageManifest>

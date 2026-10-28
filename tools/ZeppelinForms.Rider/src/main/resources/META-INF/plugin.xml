@@ -1,0 +1,39 @@
+<idea-plugin>
+  <id>com.yd359team.zeppelinforms</id>
+  <name>ZeppelinForms</name>
+  <vendor url="https://github.com/YD359Team/ZeppelinForms-solution">YD359Team</vendor>
+
+  <description><![CDATA[
+    Tooling for <a href="https://github.com/YD359Team/ZeppelinForms-solution">ZeppelinForms</a>, a .NET 10 UI framework:
+    <ul>
+      <li>completion, quick documentation and problems for <code>.zfml</code> markup and <code>.zss</code> style sheets,
+          from the ZeppelinForms language server — the one Visual Studio and VS Code run;</li>
+      <li>highlighting of <code>.zss</code>; <code>.zfml</code> opens in the XML editor;</li>
+      <li>the previewer: the project's forms and <code>[Preview]</code> methods, live, in the
+          <b>ZeppelinForms Preview</b> tool window, reloaded after each build.</li>
+    </ul>
+    Needs the .NET 10 runtime or newer.
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.rider</depends>
+  <depends>com.intellij.modules.lsp</depends>
+  <depends>com.intellij.modules.xml</depends>
+  <depends>org.jetbrains.plugins.textmate</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- markup is XML: the XML editor's tags, folding and formatting, the server's completion -->
+    <fileType name="XML" extensions="zfml"/>
+
+    <!-- the names before 2026.1.4: they work in every version from 2025.2.1 on -->
+    <platform.lsp.serverSupportProvider implementation="com.yd359team.zeppelinforms.rider.lsp.ZfLspServerSupportProvider"/>
+
+    <textmate.bundleProvider implementation="com.yd359team.zeppelinforms.rider.textmate.ZfTextMateBundleProvider"/>
+
+    <toolWindow id="ZeppelinForms Preview"
+                anchor="right"
+                icon="/icons/preview.svg"
+                doNotActivateOnStart="true"
+                factoryClass="com.yd359team.zeppelinforms.rider.preview.PreviewToolWindowFactory"/>
+  </extensions>
+</idea-plugin>

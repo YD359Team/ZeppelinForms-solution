@@ -1,0 +1,10 @@
+# what the .vsix leaves out: sources of the build, tests, editor settings, symbols
+.vscode/**
+.gitignore
+scripts/**
+test/**
+jsconfig.json
+media/jsconfig.json
+package-lock.json
+**/*.pdb
+**/*.map

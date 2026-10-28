@@ -42,6 +42,16 @@ The headless window records what the form asked of it — `HeadlessWindow.IsTopM
 `MinimumSizeLimit`, `MaximumSizeLimit`, `CenterOnScreenCount` — so window behaviour is tested
 too.
 
+A file dialog is answered by the test: `HeadlessPlatform.NativeFileDialog` plays the system's
+dialog, given what it was asked and returning the paths chosen — an empty array for a cancel.
+
+```csharp
+platform.NativeFileDialog = (mode, options) => [Path.Combine(dataFolder, "orders.csv")];
+
+Point at = form.ImportButton.GetAbsolutePosition();
+HeadlessInput.Click(form, at.X + 4, at.Y + 4);   // FileDialog.OpenFile inside gets the file
+```
+
 Tests that open headless windows share the process-wide state of the UI thread and the
 keyboard: run them in one xUnit collection, not in parallel.
 
@@ -71,6 +81,21 @@ between the platforms, so each has its set.
 - PowerShell: `$env:ZF_UPDATE_SNAPSHOTS='true'; dotnet test`
 
 `ZF_CREATE_SNAPSHOTS=true` only adds the missing ones.
+
+### GLES against Skia
+
+`GlesSkiaParityTests` draw the same forms — shapes, paths, gradients, transforms, clips,
+pictures, text and a column of controls — with both backends and compare the pictures: a
+renderer that draws something differently from the other fails, with no reference image to
+keep up to date. GLES draws in an OpenGL ES 3 context of Mesa's made without a window
+(`EGL_MESA_platform_surfaceless`, llvmpipe on the CPU), so the tests run on Linux with
+Mesa's EGL — `libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri` — and skip themselves
+elsewhere; CI sets `ZF_REQUIRE_GLES=true`, which makes a missing context a failure.
+
+Shapes and pictures are compared pixel by pixel, a few edge pixels allowed to differ. Text
+is compared in blocks of 8 × 8 pixels: the two rasterize glyphs each their own way, and the
+blocks show a word moved, resized, recolored or missing, not the pixels of a stem. A failure
+leaves `parity-<name>.skia.png`, `.gles.png` and `.diff.png` in `Snapshots/Failed`.
 
 ## Benchmarks
 

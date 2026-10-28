@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
 using System.Text;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Markup;
 
 namespace ZeppelinForms.Forms.Controls.DataGrid;
 
@@ -107,6 +108,7 @@ public partial class DataGridView
     /// the one the keyboard is on, selected or clicked last. −1 — none.</summary>
     /// <remarks>Set, it selects this row alone — or, selecting cells, its cell in the
     /// current column. Selecting columns, it only moves the lead.</remarks>
+    [SetAfterContent]
     public int SelectedIndex
     {
         get => _leadRow;

@@ -5,7 +5,5 @@
 
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
-ZF2011  | Markup   | Error    | No command for a command property
-ZF2012  | Markup   | Error    | A style in the markup can't be read
-ZF2013  | Markup   | Warning  | A style in the markup names what isn't there
-ZF2014  | Markup   | Warning  | An included style sheet is not among the project's files
+ZF0007  | Design   | Warning  | A constructor doesn't build the design part
+ZF2015  | Markup   | Error    | x:DataType names no type

@@ -16,6 +16,17 @@ public interface IFilePicker
     /// <summary>The selected folder, or null. Not supported everywhere —
     /// the browser has no folder picking as such.</summary>
     Task<string?> SelectFolderAsync(FileDialogOptions options);
+
+    /// <summary>The picked files as <see cref="PickedFile"/>s. By default the paths of
+    /// <see cref="OpenAsync"/>; a picker whose files are not on a disk gives its own.</summary>
+    async Task<PickedFile[]> PickOpenAsync(FileDialogOptions options) =>
+        [.. (await OpenAsync(options)).Select(PickedFile.FromPath)];
+
+    /// <summary>The file to save as a <see cref="PickedFile"/>, or null. By default the path
+    /// of <see cref="SaveAsync"/>; a picker that saves another way — a browser's download —
+    /// gives its own.</summary>
+    async Task<PickedFile?> PickSaveAsync(FileDialogOptions options) =>
+        await SaveAsync(options) is { } path ? PickedFile.FromPath(path) : null;
 }
 
 public static class FilePicker

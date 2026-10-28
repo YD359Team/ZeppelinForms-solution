@@ -40,6 +40,35 @@ public sealed class BrowserFilePicker : IFilePicker
         return Task.FromResult<string?>($"{UploadDirectory}/{name}");
     }
 
+    /// <summary>The picked files to read, from /uploads, where the input put them; to write —
+    /// handed back to the user as a download under the same name: the page was given the
+    /// file's content, not the file.</summary>
+    public async Task<PickedFile[]> PickOpenAsync(FileDialogOptions options) =>
+        [.. (await OpenAsync(options)).Select(path => new BrowserPickedFile(Path.GetFileName(path), path, id: 0))];
+
+    /// <summary>The browser's own save dialog where it has one — Chromium on the desktop:
+    /// the user chooses the file, and the stream writes it. Elsewhere the file goes out as
+    /// a download, under <see cref="FileDialogOptions.FileName"/>, when the stream is disposed.</summary>
+    public async Task<PickedFile?> PickSaveAsync(FileDialogOptions options)
+    {
+        string suggested = string.IsNullOrEmpty(options.FileName) ? "download" : Path.GetFileName(options.FileName);
+
+        string answer = await Interop.PickSaveFileAsync(suggested, ToFiltersJson(options));
+
+        // cancelled
+        if (answer.Length == 0) return null;
+
+        int newline = answer.IndexOf('\n', StringComparison.Ordinal);
+        int id = int.Parse(answer.AsSpan(0, newline), System.Globalization.CultureInfo.InvariantCulture);
+
+        // the name the user gave, not a path: a separator can't take the copy out of /uploads
+        string name = Path.GetFileName(answer[(newline + 1)..]) is { Length: > 0 } chosen ? chosen : suggested;
+
+        Directory.CreateDirectory(UploadDirectory);
+
+        return new BrowserPickedFile(name, Path.Combine(UploadDirectory, name), id);
+    }
+
     /// <summary>There is no folder picking in a browser, and nothing to work around it with.</summary>
     public Task<string?> SelectFolderAsync(FileDialogOptions options) =>
         Task.FromResult<string?>(null);
@@ -82,6 +111,36 @@ public sealed class BrowserFilePicker : IFilePicker
         byte[] bytes = File.ReadAllBytes(path);
 
         Interop.DownloadFile(Path.GetFileName(path), Convert.ToBase64String(bytes));
+    }
+
+    /// <summary>The filters for the browser's save dialog: [{"description", "extensions": [".csv"]}].
+    /// Written by hand rather than serialized: no reflection for the trimmer to break.</summary>
+    private static string ToFiltersJson(FileDialogOptions options)
+    {
+        using var buffer = new MemoryStream();
+
+        using (var json = new Utf8JsonWriter(buffer))
+        {
+            json.WriteStartArray();
+
+            foreach (FileFilter filter in options.Filters)
+            {
+                json.WriteStartObject();
+                json.WriteString("description", filter.Description);
+                json.WriteStartArray("extensions");
+
+                foreach (string extension in filter.Extensions)
+                    if (extension.TrimStart('*', '.') is { Length: > 0 } bare and not "*")
+                        json.WriteStringValue("." + bare);
+
+                json.WriteEndArray();
+                json.WriteEndObject();
+            }
+
+            json.WriteEndArray();
+        }
+
+        return System.Text.Encoding.UTF8.GetString(buffer.ToArray());
     }
 
     /// <summary>ZeppelinForms filters into the value of the accept attribute.</summary>

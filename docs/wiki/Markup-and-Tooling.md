@@ -3,17 +3,71 @@
 ## Markup
 
 Code-first is the main way to build a UI; markup is an option for the parts that read better
-as a tree. A `.zfml` file names its class with `x:Class`; at build time a source generator
-turns it into C# — a field for every `x:Name` and an `InitializeComponent()` of plain `new`,
-assignments, `+=` and `Add`. No reflection, so trimming and native AOT keep it all.
+as a tree — a whole window included. A `.zfml` file names its class with `Class`; at build
+time a source generator turns it into C# — a field for every `Name` and an
+`InitializeComponent()` of plain `new`, assignments, `+=` and `Add`. No reflection, so
+trimming and native AOT keep it all.
+
+### A form in markup
+
+The root element is the class's base type — for a window, `Form` — and nothing has to come
+before it but the optional XML declaration:
 
 ```xml
-<StackPanel x:Class="MyApp.SignUpCard"
-            xmlns="https://zeppelinforms.dev/markup"
-            xmlns:x="https://zeppelinforms.dev/markup/x"
-            xmlns:my="using:MyApp.Controls"
+<?xml version="1.0" encoding="utf-8"?>
+<Form Class="MyApp.MainForm" Title="Hello" Size="480,320" WindowStartupLocation="CenterScreen">
+  <StackPanel Orientation="Vertical" Spacing="10" Padding="24">
+    <Label Text="What is your name?"/>
+    <TextBox Name="NameBox" Watermark="Your name"/>
+    <PrimaryButton Text="Greet" Click="OnGreet"/>
+  </StackPanel>
+</Form>
+```
+
+`MainForm.zfml` next to `MainForm.cs`, which holds the behaviour:
+
+```csharp
+using ZeppelinForms.Forms.Dialogs;
+using ZeppelinForms.Input.Mouse;
+
+namespace MyApp;
+
+public partial class MainForm
+{
+    private async void OnGreet(object? sender, MouseClickEventArgs e) =>
+        await MessageBox.ShowAsync(this, $"Hello, {NameBox.Text}!");
+}
+```
+
+and the form is run as any other:
+
+```csharp
+new App(new WindowsPlatform()) { MainForm = new MainForm() }.Run();
+```
+
+- The markup declares the class — `partial class MainForm : Form` — and its fields. The
+  code part needs neither the base class nor a constructor: a class whose code declares no
+  constructor gets one that calls `InitializeComponent`. One that declares its own calls
+  `InitializeComponent()` itself.
+- A form with no behaviour needs no code at all: the markup alone makes a public class.
+- The form's own properties are attributes of the root, `<Form.Styles>` its styles,
+  and its child is its `Content`.
+- `x:Class`, `x:Name` and the `xmlns` lines of XAML are understood too, and needed by
+  none: the file is read as if it declared the framework's namespace and `x:`. A file
+  that writes `x:` without declaring it builds, but the XML editor of Visual Studio
+  underlines the undeclared prefix — write `Class`/`Name`, or declare
+  `xmlns:x="https://zeppelinforms.dev/markup/x"`.
+
+`examples/ZF SharedLib/Showcase/FeedbackForm.zfml` is a dialog written this way.
+
+### Parts of a window
+
+Any element can be the root — a card, a page, a panel reused in several forms:
+
+```xml
+<StackPanel Class="MyApp.SignUpCard" xmlns:my="using:MyApp.Controls"
             Orientation="Vertical" Spacing="10">
-  <TextBox x:Name="NameBox" Watermark="Your name" Size="260,NaN"/>
+  <TextBox Name="NameBox" Watermark="Your name" Size="260,NaN"/>
   <Label Text="{Bind NameBox.Text}"/>
   <PrimaryButton Text="Sign up" Classes="wide" Click="OnSubmit"/>
   <my:Gauge Level="0.5"/>
@@ -27,12 +81,25 @@ public partial class SignUpCard
 }
 ```
 
+### What the markup understands
+
+- `Name="NameBox"` names the element and makes a field of it, as `x:Name` does. A name
+  that can't be a field, `Name="main-panel"`, only names the element — for `#main-panel`
+  in a style sheet.
+
 - Values are written as in style sheets: `Padding="14 6"`, `Size="260,NaN"`,
   `Background="#0d6efd"`, enum members, static members by name.
 - Children go to the first property that takes them — one marked `[Content]`, then
   `Children`, `Items`, `Nodes`, `Content`, `Child`; `<Border.Child>` names one.
 - `{Bind Name.Property}` binds a styled property to a named element, `Mode=TwoWay` both
   ways; `{x:Null}` is null; `<x:String>` is a text item of a list.
+- `x:DataType="vm:OrderViewModel"` says what the data context is, and `{Bind Path}` then
+  reads from it — `{Bind Customer.Name, Mode=TwoWay}`, `Command="{Bind Save}"` — checked
+  and compiled at build time. See [MVVM](Data-Binding#the-data-context-and-mvvm).
+- A selected index or item is set after the items, wherever its attribute is written:
+  `<ComboBox SelectedIndex="1">` with the items inside it selects the second.
+  `[SetAfterContent]` marks such a property of a control of one's own.
+- `xmlns:my="using:MyApp.Controls"` brings the application's controls in as `<my:Gauge>`.
 - `Command="Save"` takes a command of the class — a property or a field — and
   `Command="AppCommands.Save"` a static one of another type, found in the class's
   namespace, in a `using:` namespace of the markup or by its full name.
@@ -121,23 +188,149 @@ command, or another type's member that isn't static is ZF2011.
   form.
 - Built again by Hot Reload, the element drops its old styles before it takes the new.
 
+## Design apart from code
+
+A form in code needn't mix its controls with what they do. `MainForm.design.cs` holds the
+design — the controls' fields and an `InitializeComponent()` that makes, sets up, wires and
+lays them out — and `MainForm.cs` the behaviour, as WinForms' `Form1.Designer.cs` and
+`Form1.cs`. No designer owns the file: it is code, written and edited by hand.
+
+```csharp
+// MainForm.design.cs
+partial class MainForm
+{
+    private TextBox _name;
+    private PrimaryButton _greet;
+
+    private void InitializeComponent()
+    {
+        Title = "Hello";
+        Size = new Size(480, 320);
+
+        _name = new TextBox { Watermark = "Your name" };
+
+        _greet = new PrimaryButton { Text = "Greet" };
+        _greet.Click += OnGreet;
+
+        Content = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 10,
+            Padding = new Thickness(24),
+            Children = { new Label { Text = "What is your name?" }, _name, _greet },
+        };
+    }
+}
+```
+
+```csharp
+// MainForm.cs
+public partial class MainForm : Form
+{
+    private async void OnGreet(object? sender, MouseClickEventArgs e) =>
+        await MessageBox.ShowAsync(this, $"Hello, {_name.Text}!");
+}
+```
+
+What the framework adds to a `*.design.cs`, as it does to markup:
+
+- **A constructor** that calls `InitializeComponent()`, when the class declares none. A
+  constructor of the class's own calls it itself — ZF0007 warns of one that doesn't, since
+  its form would open empty with its fields null.
+- **Hot Reload**: `InitializeComponent()` runs again after an edit, so a change of the
+  design shows in the open form. That is why the controls are made inside it rather than
+  in the fields' initializers, and their events wired there too: run again, it makes fresh
+  controls with one handler each, where controls made once would get every handler twice.
+  A class that overrides `OnHotReload` itself keeps its own. A control whose design adds to
+  its `Children` clears them first.
+- **No CS8618** for the fields `InitializeComponent()` assigns: the compiler doesn't follow
+  the call from the constructor, the ZeppelinForms analyzers do. A field the method
+  forgets keeps the warning.
+- **Nesting**: `MainForm.design.cs` and `MainForm.zfml` show under `MainForm.cs` in
+  Solution Explorer and Rider (the package's build targets set `DependentUpon`).
+
+The showcase's `OrderForm.design.cs` and `OrderForm.cs` are a whole example; `dotnet new
+zf-form` makes the pair.
+
 ## Analyzers
 
 The `ZeppelinForms` package brings analyzers that catch the framework's own pitfalls at build
 time — ZF0xxx for code (an assignment in a constructor that locks the theme out, a styled
-property declared wrong…) and ZF2xxx for markup.
+property declared wrong, a constructor that doesn't build its design part…) and ZF2xxx for
+markup.
 
 ## Previewer
 
-The **ZeppelinForms Tools** extension for Visual Studio 2022 (17.10 and later) and Visual
-Studio 2026 — the `.vsix` is attached to every release.
+Three editors, one previewer: the extensions start the same host process,
+`ZeppelinForms.Designer`, which loads the project's build and draws its previews with Skia.
+Every form with a parameterless constructor and every method marked `[Preview]` (namespace
+`ZeppelinForms.Design`) is in its list; what `Main` does before showing a form — loading
+style sheets, choosing a theme — goes into a `[PreviewSetup]` method. The preview is live —
+hover, click, type, scroll — and reloads after every build of the project.
 
-Ctrl+Alt+Shift+P (View › Other Windows › ZeppelinForms Preview) previews the active project:
-every form with a parameterless constructor and every method marked `[Preview]` (namespace
-`ZeppelinForms.Design`). What `Main` does before showing a form — loading style sheets,
-choosing a theme — goes into a `[PreviewSetup]` method. The extension also highlights `.zss`
-style sheets and lists their problems in the Error List, and those of the values of the
-styles in `.zfml` markup.
+| Editor | Where | The extension |
+|---|---|---|
+| Visual Studio 2022 17.10+, 2026 | View › Other Windows › ZeppelinForms Preview (Ctrl+Alt+Shift+P) | **ZeppelinForms Tools**, `.vsix` |
+| VS Code | ZeppelinForms: Open Preview, or the button of a `.zfml`/`.zss` editor | **ZeppelinForms**, `.vsix` |
+| Rider 2025.2.1+ | View › Tool Windows › ZeppelinForms Preview | **ZeppelinForms**, a plugin `.zip` |
+
+All three are attached to every release and need the .NET 10 runtime on the machine. The
+toolbar is the same everywhere: the size the preview is laid out at (its own, a device's,
+the window's), the zoom — of the picture only, drawn by the host with more or fewer pixels,
+so it stays sharp —, the theme, the culture, right-to-left layout and the text scale.
+
+Visual Studio takes the active document's project from its project system; VS Code and Rider
+read it from the files — the nearest `.csproj` above the active file and the newest
+`bin/**/<AssemblyName>.dll` of it (in VS Code `zeppelinforms.preview.assembly` names another).
+
+The Visual Studio extension also lists the problems of `.zss` sheets in the Error List, and
+those of the values of the styles in `.zfml` markup.
+
+## Completion and the language server
+
+`ZeppelinForms.LanguageServer` is a language server — the Language Server Protocol, on
+stdin and stdout — of `.zfml` markup and `.zss` style sheets, run by the machine's .NET 10. Every extension
+ships it: Visual Studio's asks it from its own completion and quick info sources, so `.zfml`
+stays in the XML editor; VS Code's and Rider's are its LSP clients, problems included. In
+Rider `.zfml` opens in the XML editor too, and `.zss` is highlighted by a TextMate bundle of
+the grammar the other two have.
+
+- **Markup:** the elements after `<` — the framework's controls, the `prefix:` types of a
+  `using:` namespace, property elements `<Grid.Styles>`; the properties and events of an
+  element in its tag, the ones not written yet; enum members, `true`/`false` and static
+  members in a value; the class's methods for an event and its commands for `Command`;
+  `{Bind …}` with the path's properties from `x:DataType` — or from a named element —
+  step by step; `prefix:Type` for `x:DataType`; the styled properties of a `<Setter>` of
+  the type its `<Style Selector>` selects.
+- **Style sheets:** the controls, `:pseudo-classes` and nesting of selectors; the styled
+  properties of the control a block styles; enum members, `@ThemeColors` and `$variables`
+  in a value.
+- **Hover:** an element's type, an attribute's property or event, a step of a binding's
+  path — the declaration and its summary.
+- **Problems**, for the editors whose build doesn't show them as you type (Visual Studio's
+  does) — VS Code and Rider: the markup generator's ZF2xxx and the compiler's errors in the
+  code it writes, at the markup's line; a sheet's shape and the controls and properties it
+  names.
+
+The server reads the project as the build does, without building it: its C# files, the
+packages and projects `obj/project.assets.json` lists — the restore an IDE runs on opening
+a project writes it — and the framework's generators over its markup. A view model just
+written is offered at once.
+
+### The designer protocol
+
+The extensions speak to the previewer's host in a protocol of their own —
+`tools/ZeppelinForms.Design/Protocol/DesignerProtocol.cs`, written again in JavaScript for
+VS Code and in Kotlin for Rider, whose tests read bytes .NET wrote:
+
+```
+[int32 length][byte kind][payload]     little-endian; length counts kind + payload
+```
+
+Strings are those of .NET's `BinaryWriter`: a 7-bit encoded byte count and UTF-8. The
+extension listens and starts `dotnet ZeppelinForms.Designer.dll --pipe <name>` (Visual
+Studio, and VS Code on Windows) or `--socket <path>` (a Unix domain socket: Rider everywhere,
+VS Code on Linux and macOS); the host connects back.
 
 ## Hot Reload
 
@@ -164,7 +357,8 @@ public class MainForm : Form
 
 `UIElement.OnHotReload` does the same for a control that builds its children itself, and
 `HotReload.Applied` is raised once the forms have caught up. Style sheets loaded with
-`watch: true` follow their saves by themselves, and markup is built again after an edit.
+`watch: true` follow their saves by themselves; markup and a
+[design part](#design-apart-from-code) are built again after an edit with no code of one's own.
 
 ## The inspector
 

@@ -24,8 +24,13 @@ public static class HeadlessInput
         Click(form, x, y);
     }
 
-    public static void RightClick(Form form, float x, float y) =>
+    /// <summary>A right click, and the context menu after it, as the platforms send it:
+    /// the release first, then the menu.</summary>
+    public static void RightClick(Form form, float x, float y)
+    {
         Click(form, x, y, MouseButton.Right);
+        form.OnContextMenu(new Point(x, y));
+    }
 
     // ===== Touches =====
     // No backend delivers multi-touch yet, and until Android the only way

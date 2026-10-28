@@ -9,6 +9,11 @@ namespace ZeppelinForms.Forms.Controls;
 
 /// <summary>A vertical list of menu items. Draws everything itself,
 /// without nested controls — that is simpler with hover and separators.</summary>
+/// <remarks>
+/// An item with <see cref="MenuItem.Items"/> of its own opens them as a submenu beside it:
+/// when the pointer rests on it, on a click or a tap, on Right or Enter. Left or Esc closes
+/// the submenu, a chosen item closes them all.
+/// </remarks>
 public partial class MenuList : DecoratedControl
 {
     private const float ItemHeight = 26f;
@@ -16,7 +21,28 @@ public partial class MenuList : DecoratedControl
     private const float IconWidth = 22f;
     /// <summary>The room between the caption and the shortcut right of it.</summary>
     private const float GestureGap = 24f;
+    /// <summary>The room of the arrow of an item with a submenu.</summary>
+    private const float ArrowWidth = 14f;
+    /// <summary>How long the pointer rests on an item before its submenu opens, or the
+    /// open one closes: moving over the items on the way to a submenu changes nothing.</summary>
+    private const int SubmenuDelayMs = 300;
     private int _hoveredIndex = -1;
+
+    /// <summary>The submenu open beside one of the items, and that item; −1 — none.</summary>
+    private MenuList? _submenu;
+    private int _submenuIndex = -1;
+
+    /// <summary>The form the submenu is shown on: kept to close it after this menu
+    /// has left the form.</summary>
+    private Form? _submenuOwner;
+
+    private IDisposable? _hoverWake;
+
+    /// <summary>The menu this one is a submenu of; null — a menu of its own.</summary>
+    internal MenuList? ParentMenu { get; private set; }
+
+    /// <summary>The item has a submenu.</summary>
+    internal static bool HasSubmenu(MenuItem item) => !item.IsSeparator && item.Items.Count > 0;
 
     public List<MenuItem> Items { get; init; } = [];
 
@@ -72,11 +98,14 @@ public partial class MenuList : DecoratedControl
                 // asked once per item and frame: CanExecute of a command may do work
                 bool enabled = item.IsEffectivelyEnabled;
 
-                if (i == _hoveredIndex && enabled)
+                // the item whose submenu is open stays lit while the pointer is in it
+                bool lit = enabled && (i == _hoveredIndex || i == _submenuIndex);
+
+                if (lit)
                     g.FillRectangle(row, HoverColor);
 
                 Color color = !enabled ? DisabledColor
-                            : i == _hoveredIndex && HighlightedTextColor.A > 0 ? HighlightedTextColor
+                            : lit && HighlightedTextColor.A > 0 ? HighlightedTextColor
                             : TextColor;
 
                 var icon = new Rectangle(
@@ -106,8 +135,28 @@ public partial class MenuList : DecoratedControl
                 g.DrawText(caption, text, color, EffectiveFont,
                     HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 
+                // an item with a submenu shows an arrow where a shortcut would be
+                if (HasSubmenu(item))
+                {
+                    float midY = y + height / 2f;
+                    float tipX = content.X + content.Width - 7;
+                    bool rtl = IsRightToLeft;
+
+                    if (rtl) tipX = content.X + 7;
+
+                    float backX = rtl ? tipX + 4 : tipX - 4;
+
+                    ReadOnlySpan<Point> arrow =
+                    [
+                        new(backX, midY - 4),
+                        new(tipX, midY),
+                        new(backX, midY + 4),
+                    ];
+
+                    g.DrawPolyline(arrow, color, 1.4f);
+                }
                 // the shortcut at the right edge, in the caption's color
-                if (item.GestureText is { Length: > 0 } gesture)
+                else if (item.GestureText is { Length: > 0 } gesture)
                 {
                     g.DrawText(gesture, text, color, EffectiveFont,
                         HorizontalContentAlignment.Right, VerticalContentAlignment.Center);
@@ -165,6 +214,8 @@ public partial class MenuList : DecoratedControl
 
         _hoveredIndex = index;
 
+        ScheduleSubmenuFollowHover();
+
         // hover changes only the highlight, not the geometry
         InvalidateVisual();
     }
@@ -186,6 +237,16 @@ public partial class MenuList : DecoratedControl
 
         e.Handled = true;
 
+        // a click on an item with a submenu opens it at once — and a tap is the only
+        // way to it on a screen without a pointer to rest
+        if (HasSubmenu(Items[index]))
+        {
+            if (Items[index].IsEffectivelyEnabled && _submenuIndex != index)
+                OpenSubmenu(index, highlightFirst: false);
+
+            return;
+        }
+
         InvokeItem(index);
     }
 
@@ -201,6 +262,120 @@ public partial class MenuList : DecoratedControl
         ItemInvoked?.Invoke(this, item);
 
         return true;
+    }
+
+    // ===== submenus =====
+
+    /// <summary>What a click does to an item: open its submenu, its first item lit, or
+    /// run it. For the accessibility peer, whose Invoke a screen reader sends.</summary>
+    internal bool ActivateItem(int index)
+    {
+        if (!HasSubmenu(Items[index])) return InvokeItem(index);
+
+        if (!Items[index].IsEffectivelyEnabled) return false;
+
+        OpenSubmenu(index, highlightFirst: true);
+        return true;
+    }
+
+    /// <summary>The highlighted item has a submenu: Right and Enter open it, not run it.</summary>
+    internal bool HighlightedHasSubmenu =>
+        _hoveredIndex >= 0 && HasSubmenu(Items[_hoveredIndex]) && Items[_hoveredIndex].IsEffectivelyEnabled;
+
+    /// <summary>Open the highlighted item's submenu, its first item lit — from the keyboard.</summary>
+    internal bool OpenHighlightedSubmenu()
+    {
+        if (!HighlightedHasSubmenu) return false;
+
+        OpenSubmenu(_hoveredIndex, highlightFirst: true);
+        return true;
+    }
+
+    /// <summary>Open an item's submenu beside it, closing another one open.</summary>
+    private void OpenSubmenu(int index, bool highlightFirst)
+    {
+        Form? owner = FindOwner();
+        if (owner is null) return;
+
+        CloseSubmenu();
+
+        MenuItem item = Items[index];
+
+        // before the submenu is built: the handler sets what its items show
+        item.RaiseOpening();
+
+        var submenu = new MenuList { Items = item.Items, ParentMenu = this };
+
+        // a chosen item deep down closes the menus: passed up to whoever listens to the
+        // menu at the top — the form for a context menu, a split button for its own
+        submenu.ItemInvoked += (_, chosen) =>
+        {
+            CloseSubmenu();
+            ItemInvoked?.Invoke(this, chosen);
+        };
+
+        _submenu = submenu;
+        _submenuIndex = index;
+        _submenuOwner = owner;
+
+        owner.ShowSubmenu(submenu, ItemBounds(index));
+
+        if (highlightFirst) submenu.HighlightFirst();
+
+        InvalidateVisual();
+    }
+
+    /// <summary>Close the open submenu and the ones it opened in turn.</summary>
+    internal void CloseSubmenu()
+    {
+        _hoverWake?.Dispose();
+        _hoverWake = null;
+
+        if (_submenu is not { } submenu) return;
+
+        _submenu = null;
+        _submenuIndex = -1;
+
+        submenu.CloseSubmenu();
+        _submenuOwner?.CloseFlyout(submenu);
+        _submenuOwner = null;
+
+        InvalidateVisual();
+    }
+
+    /// <summary>The pointer came to rest on another item: after a moment its submenu
+    /// opens, or the open one closes. Not at once — on the way to a submenu the pointer
+    /// crosses other items.</summary>
+    private void ScheduleSubmenuFollowHover()
+    {
+        _hoverWake?.Dispose();
+        _hoverWake = null;
+
+        bool wantsSubmenu = _hoveredIndex >= 0 && HasSubmenu(Items[_hoveredIndex]) && Items[_hoveredIndex].IsEffectivelyEnabled;
+
+        if (_hoveredIndex == _submenuIndex || (!wantsSubmenu && _submenu is null)) return;
+
+        _hoverWake = FindOwner()?.Schedule(SubmenuDelayMs, () =>
+        {
+            _hoverWake = null;
+
+            // the pointer may have gone on — into the submenu, or out of the menu:
+            // what it rests on now decides, and resting on nothing changes nothing
+            if (_hoveredIndex < 0 || _hoveredIndex == _submenuIndex) return;
+
+            if (HasSubmenu(Items[_hoveredIndex]) && Items[_hoveredIndex].IsEffectivelyEnabled)
+                OpenSubmenu(_hoveredIndex, highlightFirst: false);
+            else
+                CloseSubmenu();
+        });
+    }
+
+    protected override void OnDetached()
+    {
+        base.OnDetached();
+
+        // the menu closed, however it happened: its submenus go with it
+        CloseSubmenu();
     }
 
     // ===== keyboard =====
@@ -294,6 +469,8 @@ public partial class MenuList : DecoratedControl
 
         if (gestureWidth > 0)
             width += GestureGap + gestureWidth;
+        else if (Items.Exists(HasSubmenu))
+            width += ArrowWidth;
 
         var content = new Size(
             width + IconWidth + 20 + Padding.Horizontal,

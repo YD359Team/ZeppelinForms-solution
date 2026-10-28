@@ -27,4 +27,25 @@ public enum PlatformCapabilities
     /// asked; an icon made before a panel came still appears when one does. The browser
     /// and Android have no tray.</summary>
     SystemTray = 1 << 2,
+
+    /// <summary><see cref="Forms.TaskbarItem.ProgressState"/> shows: the taskbar button's
+    /// progress on Windows; on Linux a session bus to send the launcher entry on — whether
+    /// a dock shows it is the dock's: KDE's task manager, Dash to Dock and Plank do. Not in
+    /// the browser and on Android.</summary>
+    TaskbarProgress = 1 << 3,
+
+    /// <summary><see cref="Forms.TaskbarItem.Badge"/> shows: an overlay in the corner of the
+    /// taskbar button on Windows; the launcher entry's count on Linux, as for the progress;
+    /// the badge of an installed web application in a browser that has one.</summary>
+    TaskbarBadge = 1 << 4,
+
+    /// <summary><see cref="Forms.Form.RequestAttention"/> works: the button flashes on
+    /// Windows, the window is marked on X11 and, through xdg-activation, on Wayland; the
+    /// tab's title blinks in the browser. Not on Android.</summary>
+    WindowAttention = 1 << 5,
+
+    /// <summary><see cref="Forms.Notifications"/> shows: a toast through the tray on Windows;
+    /// a notification daemon on the session bus on Linux; the Notification API in the
+    /// browser, where the user may still refuse the permission. Not on Android yet.</summary>
+    Notifications = 1 << 6,
 }

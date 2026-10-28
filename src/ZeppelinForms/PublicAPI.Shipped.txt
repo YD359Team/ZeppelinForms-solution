@@ -269,6 +269,7 @@ ZeppelinForms.Animation.VisibilityTransition.Opacity.get -> float
 ZeppelinForms.Animation.VisibilityTransition.Scale.get -> float
 ZeppelinForms.App
 ZeppelinForms.App.App(ZeppelinForms.IPlatform! platform) -> void
+ZeppelinForms.App.Capabilities.get -> ZeppelinForms.PlatformCapabilities
 ZeppelinForms.App.Icon.get -> ZeppelinForms.Drawing.Imaging.Icon?
 ZeppelinForms.App.Icon.init -> void
 ZeppelinForms.App.MainForm.get -> ZeppelinForms.Forms.Form!
@@ -739,6 +740,25 @@ ZeppelinForms.Drawing.FontWeight.Bold = 700 -> ZeppelinForms.Drawing.FontWeight
 ZeppelinForms.Drawing.FontWeight.Light = 300 -> ZeppelinForms.Drawing.FontWeight
 ZeppelinForms.Drawing.FontWeight.Normal = 400 -> ZeppelinForms.Drawing.FontWeight
 ZeppelinForms.Drawing.FontWeight.SemiBold = 600 -> ZeppelinForms.Drawing.FontWeight
+ZeppelinForms.Drawing.FormRenderer
+ZeppelinForms.Drawing.GlTarget
+ZeppelinForms.Drawing.GlTarget.Framebuffer.get -> uint
+ZeppelinForms.Drawing.GlTarget.Framebuffer.init -> void
+ZeppelinForms.Drawing.GlTarget.GetProcAddress.get -> System.Func<string!, nint>?
+ZeppelinForms.Drawing.GlTarget.GetProcAddress.init -> void
+ZeppelinForms.Drawing.GlTarget.GlTarget() -> void
+ZeppelinForms.Drawing.GlTarget.Height.get -> int
+ZeppelinForms.Drawing.GlTarget.Height.init -> void
+ZeppelinForms.Drawing.GlTarget.IsGles.get -> bool
+ZeppelinForms.Drawing.GlTarget.IsGles.init -> void
+ZeppelinForms.Drawing.GlTarget.MakeCurrent.get -> System.Action?
+ZeppelinForms.Drawing.GlTarget.MakeCurrent.init -> void
+ZeppelinForms.Drawing.GlTarget.SampleCount.get -> int
+ZeppelinForms.Drawing.GlTarget.SampleCount.init -> void
+ZeppelinForms.Drawing.GlTarget.StencilBits.get -> int
+ZeppelinForms.Drawing.GlTarget.StencilBits.init -> void
+ZeppelinForms.Drawing.GlTarget.Width.get -> int
+ZeppelinForms.Drawing.GlTarget.Width.init -> void
 ZeppelinForms.Drawing.Graphics
 ZeppelinForms.Drawing.Graphics.Graphics() -> void
 ZeppelinForms.Drawing.Graphics.TextDirection.get -> ZeppelinForms.Core.Text.FlowDirection
@@ -748,6 +768,16 @@ ZeppelinForms.Drawing.Graphics.TextEffects.set -> void
 ZeppelinForms.Drawing.Helpers.ColorExtensions
 ZeppelinForms.Drawing.IElementRenderer
 ZeppelinForms.Drawing.IElementRenderer.Render(ZeppelinForms.Forms.Controls.Base.UIElement! element, int width, int height) -> ZeppelinForms.Drawing.Imaging.Image!
+ZeppelinForms.Drawing.IGlSurface
+ZeppelinForms.Drawing.IGlSurface.Resize(int width, int height) -> void
+ZeppelinForms.Drawing.IGraphicsBackend
+ZeppelinForms.Drawing.IGraphicsBackend.CreateGlSurface(ZeppelinForms.Drawing.GlTarget! target) -> ZeppelinForms.Drawing.IGlSurface?
+ZeppelinForms.Drawing.IGraphicsBackend.CreatePixelSurface(ZeppelinForms.Drawing.PixelBuffer buffer) -> ZeppelinForms.Drawing.IRenderSurface?
+ZeppelinForms.Drawing.IGraphicsBackend.Name.get -> string!
+ZeppelinForms.Drawing.IGraphicsBackend.Register() -> void
+ZeppelinForms.Drawing.IRenderSurface
+ZeppelinForms.Drawing.IRenderSurface.BeginFrame() -> ZeppelinForms.Drawing.Graphics!
+ZeppelinForms.Drawing.IRenderSurface.EndFrame() -> void
 ZeppelinForms.Drawing.ITextMeasurer
 ZeppelinForms.Drawing.ITextMeasurer.IsReady(ZeppelinForms.Drawing.Font! font) -> bool
 ZeppelinForms.Drawing.ITextMeasurer.LayOutLine(string! text, ZeppelinForms.Drawing.Font! font, ZeppelinForms.Core.Text.FlowDirection direction) -> ZeppelinForms.Drawing.TextLineLayout!
@@ -803,6 +833,24 @@ ZeppelinForms.Drawing.PathIconSource.Equals(ZeppelinForms.Drawing.PathIconSource
 ZeppelinForms.Drawing.PathIconSource.PathIconSource(string! Data, float StrokeWidth = 0) -> void
 ZeppelinForms.Drawing.PathIconSource.StrokeWidth.get -> float
 ZeppelinForms.Drawing.PathIconSource.StrokeWidth.init -> void
+ZeppelinForms.Drawing.PixelBuffer
+ZeppelinForms.Drawing.PixelBuffer.Deconstruct(out nint Pixels, out int Width, out int Height, out int Stride, out ZeppelinForms.Drawing.PixelFormat Format) -> void
+ZeppelinForms.Drawing.PixelBuffer.Equals(ZeppelinForms.Drawing.PixelBuffer other) -> bool
+ZeppelinForms.Drawing.PixelBuffer.Format.get -> ZeppelinForms.Drawing.PixelFormat
+ZeppelinForms.Drawing.PixelBuffer.Format.init -> void
+ZeppelinForms.Drawing.PixelBuffer.Height.get -> int
+ZeppelinForms.Drawing.PixelBuffer.Height.init -> void
+ZeppelinForms.Drawing.PixelBuffer.PixelBuffer() -> void
+ZeppelinForms.Drawing.PixelBuffer.PixelBuffer(nint Pixels, int Width, int Height, int Stride, ZeppelinForms.Drawing.PixelFormat Format) -> void
+ZeppelinForms.Drawing.PixelBuffer.Pixels.get -> nint
+ZeppelinForms.Drawing.PixelBuffer.Pixels.init -> void
+ZeppelinForms.Drawing.PixelBuffer.Stride.get -> int
+ZeppelinForms.Drawing.PixelBuffer.Stride.init -> void
+ZeppelinForms.Drawing.PixelBuffer.Width.get -> int
+ZeppelinForms.Drawing.PixelBuffer.Width.init -> void
+ZeppelinForms.Drawing.PixelFormat
+ZeppelinForms.Drawing.PixelFormat.Bgra8888 = 0 -> ZeppelinForms.Drawing.PixelFormat
+ZeppelinForms.Drawing.PixelFormat.Rgba8888 = 1 -> ZeppelinForms.Drawing.PixelFormat
 ZeppelinForms.Drawing.Primitives.BoxShadow
 ZeppelinForms.Drawing.Primitives.BoxShadow.<Clone>$() -> ZeppelinForms.Drawing.Primitives.BoxShadow!
 ZeppelinForms.Drawing.Primitives.BoxShadow.Blur.get -> float
@@ -1117,6 +1165,7 @@ ZeppelinForms.Forms.Controls.Base.PanelControl.ChildrenExitTransition.get -> Zep
 ZeppelinForms.Forms.Controls.Base.PanelControl.ChildrenExitTransition.set -> void
 ZeppelinForms.Forms.Controls.Base.PanelControl.ChildrenLayoutTransition.get -> ZeppelinForms.Animation.LayoutTransition?
 ZeppelinForms.Forms.Controls.Base.PanelControl.ChildrenLayoutTransition.set -> void
+ZeppelinForms.Forms.Controls.Base.PanelControl.IsOverScrollBar(ZeppelinForms.Drawing.Primitives.Point location) -> bool
 ZeppelinForms.Forms.Controls.Base.PanelControl.OverflowX.get -> ZeppelinForms.Forms.Enums.Overflow
 ZeppelinForms.Forms.Controls.Base.PanelControl.OverflowX.set -> void
 ZeppelinForms.Forms.Controls.Base.PanelControl.OverflowY.get -> ZeppelinForms.Forms.Enums.Overflow
@@ -1296,6 +1345,7 @@ ZeppelinForms.Forms.Controls.Base.UIElement.MouseUp -> System.EventHandler<Zeppe
 ZeppelinForms.Forms.Controls.Base.UIElement.MouseWheel -> System.EventHandler<ZeppelinForms.Input.Mouse.MouseWheelEventArgs!>?
 ZeppelinForms.Forms.Controls.Base.UIElement.Name.get -> string!
 ZeppelinForms.Forms.Controls.Base.UIElement.Name.set -> void
+ZeppelinForms.Forms.Controls.Base.UIElement.NameCaption.get -> string?
 ZeppelinForms.Forms.Controls.Base.UIElement.NotifyBoundValueChanged(ZeppelinForms.Forms.Styling.StyledProperty! property, object? value) -> void
 ZeppelinForms.Forms.Controls.Base.UIElement.Opacity.get -> float
 ZeppelinForms.Forms.Controls.Base.UIElement.Opacity.set -> void
@@ -1675,8 +1725,12 @@ ZeppelinForms.Forms.Controls.ColorPicker
 ZeppelinForms.Forms.Controls.ColorPicker.AllowAlpha.get -> bool
 ZeppelinForms.Forms.Controls.ColorPicker.AllowAlpha.set -> void
 ZeppelinForms.Forms.Controls.ColorPicker.ColorPicker() -> void
+ZeppelinForms.Forms.Controls.ColorPicker.ShowEyedropper.get -> bool
+ZeppelinForms.Forms.Controls.ColorPicker.ShowEyedropper.set -> void
 ZeppelinForms.Forms.Controls.ColorPicker.ShowHex.get -> bool
 ZeppelinForms.Forms.Controls.ColorPicker.ShowHex.set -> void
+ZeppelinForms.Forms.Controls.ColorPicker.ShowSpectrum.get -> bool
+ZeppelinForms.Forms.Controls.ColorPicker.ShowSpectrum.set -> void
 ZeppelinForms.Forms.Controls.ColorPicker.SwatchBorderColor.get -> ZeppelinForms.Drawing.Primitives.Color
 ZeppelinForms.Forms.Controls.ColorPicker.SwatchBorderColor.set -> void
 ZeppelinForms.Forms.Controls.ColorPicker.Value.get -> ZeppelinForms.Drawing.Primitives.Color
@@ -2363,6 +2417,17 @@ ZeppelinForms.Forms.Controls.MenuList.Items.init -> void
 ZeppelinForms.Forms.Controls.MenuList.MenuList() -> void
 ZeppelinForms.Forms.Controls.MenuList.SeparatorColor.get -> ZeppelinForms.Drawing.Primitives.Color
 ZeppelinForms.Forms.Controls.MenuList.SeparatorColor.set -> void
+ZeppelinForms.Forms.Controls.NativeControlHost
+ZeppelinForms.Forms.Controls.NativeControlHost.IsFocused.get -> bool
+ZeppelinForms.Forms.Controls.NativeControlHost.IsFocused.set -> void
+ZeppelinForms.Forms.Controls.NativeControlHost.NativeControl.get -> ZeppelinForms.PlatformHandle?
+ZeppelinForms.Forms.Controls.NativeControlHost.NativeControlCreated -> System.EventHandler?
+ZeppelinForms.Forms.Controls.NativeControlHost.NativeControlDestroying -> System.EventHandler?
+ZeppelinForms.Forms.Controls.NativeControlHost.NativeControlHost() -> void
+ZeppelinForms.Forms.Controls.NativeControlHost.TabIndex.get -> uint
+ZeppelinForms.Forms.Controls.NativeControlHost.TabIndex.set -> void
+ZeppelinForms.Forms.Controls.NativeControlHost.TabStop.get -> bool
+ZeppelinForms.Forms.Controls.NativeControlHost.TabStop.set -> void
 ZeppelinForms.Forms.Controls.Navigation.Page
 ZeppelinForms.Forms.Controls.Navigation.Page.Appearing -> System.EventHandler?
 ZeppelinForms.Forms.Controls.Navigation.Page.ContentFactory.get -> System.Func<ZeppelinForms.Forms.Controls.Base.UIElement!>?
@@ -3222,6 +3287,8 @@ ZeppelinForms.Forms.Controls.Text.SuggestionChosenEventArgs.SuggestionChosenEven
 ZeppelinForms.Forms.Controls.Text.SuggestionChosenEventArgs.Text.get -> string!
 ZeppelinForms.Forms.Controls.Text.TextBox
 ZeppelinForms.Forms.Controls.Text.TextBox.Accepted -> System.EventHandler?
+ZeppelinForms.Forms.Controls.Text.TextBox.AllowCaretPastLineEnd.get -> bool
+ZeppelinForms.Forms.Controls.Text.TextBox.AllowCaretPastLineEnd.set -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.CanRedo.get -> bool
 ZeppelinForms.Forms.Controls.Text.TextBox.CanUndo.get -> bool
 ZeppelinForms.Forms.Controls.Text.TextBox.CaretColor.get -> ZeppelinForms.Drawing.Primitives.Color
@@ -3808,6 +3875,7 @@ ZeppelinForms.Forms.Form.FormBorderStyle.set -> void
 ZeppelinForms.Forms.Form.FrameIntervalMs.get -> int
 ZeppelinForms.Forms.Form.FrameIntervalMs.set -> void
 ZeppelinForms.Forms.Form.GetAccessibilityPeer() -> ZeppelinForms.Accessibility.AccessibilityPeer!
+ZeppelinForms.Forms.Form.Hide() -> void
 ZeppelinForms.Forms.Form.Icon.get -> ZeppelinForms.Drawing.Imaging.Icon?
 ZeppelinForms.Forms.Form.Icon.set -> void
 ZeppelinForms.Forms.Form.InspectedElement.get -> ZeppelinForms.Forms.Controls.Base.UIElement?
@@ -3873,6 +3941,9 @@ ZeppelinForms.Forms.Form.ToolTipDelay.set -> void
 ZeppelinForms.Forms.Form.TopMost.get -> bool
 ZeppelinForms.Forms.Form.TopMost.set -> void
 ZeppelinForms.Forms.Form.UpdateLayout() -> void
+ZeppelinForms.Forms.Form.Visible.get -> bool
+ZeppelinForms.Forms.Form.Visible.set -> void
+ZeppelinForms.Forms.Form.VisibleChanged -> System.EventHandler?
 ZeppelinForms.Forms.Form.WindowStartupLocation.get -> ZeppelinForms.Forms.Enums.WindowStartupLocation
 ZeppelinForms.Forms.Form.WindowStartupLocation.set -> void
 ZeppelinForms.Forms.Form.WindowState.get -> ZeppelinForms.Forms.Enums.WindowState
@@ -4062,6 +4133,20 @@ ZeppelinForms.Forms.Styling.ValueSource.Default = 0 -> ZeppelinForms.Forms.Styli
 ZeppelinForms.Forms.Styling.ValueSource.Local = 5 -> ZeppelinForms.Forms.Styling.ValueSource
 ZeppelinForms.Forms.Styling.ValueSource.Style = 3 -> ZeppelinForms.Forms.Styling.ValueSource
 ZeppelinForms.Forms.Styling.ValueSource.Theme = 2 -> ZeppelinForms.Forms.Styling.ValueSource
+ZeppelinForms.Forms.TrayIcon
+ZeppelinForms.Forms.TrayIcon.Click -> System.EventHandler?
+ZeppelinForms.Forms.TrayIcon.Dispose() -> void
+ZeppelinForms.Forms.TrayIcon.DoubleClick -> System.EventHandler?
+ZeppelinForms.Forms.TrayIcon.Icon.get -> ZeppelinForms.Drawing.Imaging.Icon?
+ZeppelinForms.Forms.TrayIcon.Icon.set -> void
+ZeppelinForms.Forms.TrayIcon.IsShown.get -> bool
+ZeppelinForms.Forms.TrayIcon.Menu.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>!
+ZeppelinForms.Forms.TrayIcon.MenuOpening -> System.EventHandler?
+ZeppelinForms.Forms.TrayIcon.ToolTip.get -> string?
+ZeppelinForms.Forms.TrayIcon.ToolTip.set -> void
+ZeppelinForms.Forms.TrayIcon.TrayIcon() -> void
+ZeppelinForms.Forms.TrayIcon.Visible.get -> bool
+ZeppelinForms.Forms.TrayIcon.Visible.set -> void
 ZeppelinForms.Forms.Validation.Validators
 ZeppelinForms.Headless.ElementTreeRenderer
 ZeppelinForms.Headless.HeadlessElementRenderer
@@ -4069,6 +4154,11 @@ ZeppelinForms.Headless.HeadlessElementRenderer.HeadlessElementRenderer() -> void
 ZeppelinForms.Headless.HeadlessElementRenderer.Render(ZeppelinForms.Forms.Controls.Base.UIElement! element, int width, int height) -> ZeppelinForms.Drawing.Imaging.Image!
 ZeppelinForms.Headless.HeadlessGraphics
 ZeppelinForms.Headless.HeadlessGraphics.HeadlessGraphics() -> void
+ZeppelinForms.Headless.HeadlessGraphicsBackend
+ZeppelinForms.Headless.HeadlessGraphicsBackend.CreateGlSurface(ZeppelinForms.Drawing.GlTarget! target) -> ZeppelinForms.Drawing.IGlSurface?
+ZeppelinForms.Headless.HeadlessGraphicsBackend.CreatePixelSurface(ZeppelinForms.Drawing.PixelBuffer buffer) -> ZeppelinForms.Drawing.IRenderSurface?
+ZeppelinForms.Headless.HeadlessGraphicsBackend.Name.get -> string!
+ZeppelinForms.Headless.HeadlessGraphicsBackend.Register() -> void
 ZeppelinForms.Headless.HeadlessImageDecoder
 ZeppelinForms.Headless.HeadlessImageDecoder.HeadlessImageDecoder() -> void
 ZeppelinForms.Headless.HeadlessImageDecoder.StubHeight.get -> int
@@ -4076,7 +4166,24 @@ ZeppelinForms.Headless.HeadlessImageDecoder.StubHeight.set -> void
 ZeppelinForms.Headless.HeadlessImageDecoder.StubWidth.get -> int
 ZeppelinForms.Headless.HeadlessImageDecoder.StubWidth.set -> void
 ZeppelinForms.Headless.HeadlessInput
+ZeppelinForms.Headless.HeadlessNativeSlot
+ZeppelinForms.Headless.HeadlessNativeSlot.Attach(ZeppelinForms.PlatformHandle control) -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.Bounds.get -> ZeppelinForms.Drawing.Primitives.Rectangle
+ZeppelinForms.Headless.HeadlessNativeSlot.Control.get -> ZeppelinForms.PlatformHandle?
+ZeppelinForms.Headless.HeadlessNativeSlot.ControlFocused -> System.EventHandler?
+ZeppelinForms.Headless.HeadlessNativeSlot.DestroyControl(ZeppelinForms.PlatformHandle control) -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.Destroyed.get -> System.Collections.Generic.List<ZeppelinForms.PlatformHandle>!
+ZeppelinForms.Headless.HeadlessNativeSlot.Dispose() -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.Focus() -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.FocusCount.get -> int
+ZeppelinForms.Headless.HeadlessNativeSlot.IsDisposed.get -> bool
+ZeppelinForms.Headless.HeadlessNativeSlot.Parent.get -> ZeppelinForms.PlatformHandle
+ZeppelinForms.Headless.HeadlessNativeSlot.Place(ZeppelinForms.Drawing.Primitives.Rectangle bounds, ZeppelinForms.Drawing.Primitives.Rectangle visible) -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.PlaceCount.get -> int
+ZeppelinForms.Headless.HeadlessNativeSlot.SimulateControlFocus() -> void
+ZeppelinForms.Headless.HeadlessNativeSlot.Visible.get -> ZeppelinForms.Drawing.Primitives.Rectangle
 ZeppelinForms.Headless.HeadlessPlatform
+ZeppelinForms.Headless.HeadlessPlatform.Capabilities.get -> ZeppelinForms.PlatformCapabilities
 ZeppelinForms.Headless.HeadlessPlatform.CreateWindow(ZeppelinForms.Forms.Form! form) -> ZeppelinForms.IPlatformWindow!
 ZeppelinForms.Headless.HeadlessPlatform.Exit() -> void
 ZeppelinForms.Headless.HeadlessPlatform.HeadlessPlatform(bool registerServices = true) -> void
@@ -4104,9 +4211,11 @@ ZeppelinForms.Headless.HeadlessWindow.CenterOnScreen() -> void
 ZeppelinForms.Headless.HeadlessWindow.CenterOnScreenCount.get -> int
 ZeppelinForms.Headless.HeadlessWindow.ChromeUpdateCount.get -> int
 ZeppelinForms.Headless.HeadlessWindow.Close() -> void
+ZeppelinForms.Headless.HeadlessWindow.CreateNativeSlot() -> ZeppelinForms.INativeControlSlot?
 ZeppelinForms.Headless.HeadlessWindow.Cursor.get -> ZeppelinForms.Forms.Enums.CursorKind
 ZeppelinForms.Headless.HeadlessWindow.CursorImage.get -> ZeppelinForms.Input.Mouse.CursorImage?
 ZeppelinForms.Headless.HeadlessWindow.Frames.get -> ZeppelinForms.IFrameDriver!
+ZeppelinForms.Headless.HeadlessWindow.HideCount.get -> int
 ZeppelinForms.Headless.HeadlessWindow.Invalidate(ZeppelinForms.Drawing.Primitives.Rectangle? rect = null) -> void
 ZeppelinForms.Headless.HeadlessWindow.InvalidateCount.get -> int
 ZeppelinForms.Headless.HeadlessWindow.Invoke(System.Action! action) -> void
@@ -4115,9 +4224,11 @@ ZeppelinForms.Headless.HeadlessWindow.IsClosed.get -> bool
 ZeppelinForms.Headless.HeadlessWindow.IsEnabled.get -> bool
 ZeppelinForms.Headless.HeadlessWindow.IsShown.get -> bool
 ZeppelinForms.Headless.HeadlessWindow.IsTopMost.get -> bool
+ZeppelinForms.Headless.HeadlessWindow.IsVisible.get -> bool
 ZeppelinForms.Headless.HeadlessWindow.LastInvalidatedRect.get -> ZeppelinForms.Drawing.Primitives.Rectangle?
 ZeppelinForms.Headless.HeadlessWindow.MaximumSizeLimit.get -> ZeppelinForms.Drawing.Primitives.Size
 ZeppelinForms.Headless.HeadlessWindow.MinimumSizeLimit.get -> ZeppelinForms.Drawing.Primitives.Size
+ZeppelinForms.Headless.HeadlessWindow.NativeSlots.get -> System.Collections.Generic.List<ZeppelinForms.Headless.HeadlessNativeSlot!>!
 ZeppelinForms.Headless.HeadlessWindow.Opacity.get -> float
 ZeppelinForms.Headless.HeadlessWindow.ReleaseMouseCapture() -> void
 ZeppelinForms.Headless.HeadlessWindow.Resize(float width, float height) -> void
@@ -4133,8 +4244,13 @@ ZeppelinForms.Headless.HeadlessWindow.SetTextInputArea(ZeppelinForms.Drawing.Pri
 ZeppelinForms.Headless.HeadlessWindow.SetTitle(string? title) -> void
 ZeppelinForms.Headless.HeadlessWindow.SetTitleBarAppearance(bool isDark, ZeppelinForms.Drawing.Primitives.Color? background, ZeppelinForms.Drawing.Primitives.Color? foreground) -> void
 ZeppelinForms.Headless.HeadlessWindow.SetTopMost(bool topMost) -> void
+ZeppelinForms.Headless.HeadlessWindow.SetVisible(bool visible) -> void
 ZeppelinForms.Headless.HeadlessWindow.SetWindowState(ZeppelinForms.Forms.Enums.WindowState state) -> void
 ZeppelinForms.Headless.HeadlessWindow.Show() -> void
+ZeppelinForms.Headless.HeadlessWindow.SupportsNativeControls.get -> bool
+ZeppelinForms.Headless.HeadlessWindow.SupportsNativeControls.set -> void
+ZeppelinForms.Headless.HeadlessWindow.SupportsPositioning.get -> bool
+ZeppelinForms.Headless.HeadlessWindow.SupportsPositioning.set -> void
 ZeppelinForms.Headless.HeadlessWindow.SupportsTransparency.get -> bool
 ZeppelinForms.Headless.HeadlessWindow.TextInputArea.get -> ZeppelinForms.Drawing.Primitives.Rectangle?
 ZeppelinForms.Headless.HeadlessWindow.Tick() -> void
@@ -4158,7 +4274,9 @@ ZeppelinForms.IDesktopWindow.SetOpacity(float opacity) -> void
 ZeppelinForms.IDesktopWindow.SetSizeLimits(ZeppelinForms.Drawing.Primitives.Size minimum, ZeppelinForms.Drawing.Primitives.Size maximum) -> void
 ZeppelinForms.IDesktopWindow.SetTitle(string? title) -> void
 ZeppelinForms.IDesktopWindow.SetTopMost(bool topMost) -> void
+ZeppelinForms.IDesktopWindow.SetVisible(bool visible) -> void
 ZeppelinForms.IDesktopWindow.SetWindowState(ZeppelinForms.Forms.Enums.WindowState state) -> void
+ZeppelinForms.IDesktopWindow.SupportsPositioning.get -> bool
 ZeppelinForms.IDesktopWindow.SupportsTransparency.get -> bool
 ZeppelinForms.IDesktopWindow.UpdateChrome() -> void
 ZeppelinForms.IFrameDriver
@@ -4166,9 +4284,19 @@ ZeppelinForms.IFrameDriver.IsRunning.get -> bool
 ZeppelinForms.IFrameDriver.RequestFrame() -> void
 ZeppelinForms.IFrameDriver.Start(int intervalMs) -> void
 ZeppelinForms.IFrameDriver.Stop() -> void
+ZeppelinForms.INativeControlHostWindow
+ZeppelinForms.INativeControlHostWindow.CreateNativeSlot() -> ZeppelinForms.INativeControlSlot?
+ZeppelinForms.INativeControlSlot
+ZeppelinForms.INativeControlSlot.Attach(ZeppelinForms.PlatformHandle control) -> void
+ZeppelinForms.INativeControlSlot.ControlFocused -> System.EventHandler?
+ZeppelinForms.INativeControlSlot.DestroyControl(ZeppelinForms.PlatformHandle control) -> void
+ZeppelinForms.INativeControlSlot.Focus() -> void
+ZeppelinForms.INativeControlSlot.Parent.get -> ZeppelinForms.PlatformHandle
+ZeppelinForms.INativeControlSlot.Place(ZeppelinForms.Drawing.Primitives.Rectangle bounds, ZeppelinForms.Drawing.Primitives.Rectangle visible) -> void
 ZeppelinForms.INestedLoopSupport
 ZeppelinForms.INestedLoopSupport.RunNestedLoop(ZeppelinForms.IPlatformWindow! until) -> void
 ZeppelinForms.IPlatform
+ZeppelinForms.IPlatform.Capabilities.get -> ZeppelinForms.PlatformCapabilities
 ZeppelinForms.IPlatform.CreateWindow(ZeppelinForms.Forms.Form! form) -> ZeppelinForms.IPlatformWindow!
 ZeppelinForms.IPlatform.Exit() -> void
 ZeppelinForms.IPlatform.Start() -> void
@@ -4675,6 +4803,20 @@ ZeppelinForms.Input.Pointer.VelocityTracker.Add(ZeppelinForms.Drawing.Primitives
 ZeppelinForms.Input.Pointer.VelocityTracker.GetVelocity(long releaseMs) -> ZeppelinForms.Drawing.Primitives.Point
 ZeppelinForms.Input.Pointer.VelocityTracker.Reset() -> void
 ZeppelinForms.Input.Pointer.VelocityTracker.VelocityTracker() -> void
+ZeppelinForms.PlatformCapabilities
+ZeppelinForms.PlatformCapabilities.None = 0 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.PlatformCapabilities.SystemTray = 4 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.PlatformCapabilities.WindowHiding = 2 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.PlatformCapabilities.WindowPositioning = 1 -> ZeppelinForms.PlatformCapabilities
+ZeppelinForms.PlatformHandle
+ZeppelinForms.PlatformHandle.Deconstruct(out nint Handle, out string! Kind) -> void
+ZeppelinForms.PlatformHandle.Equals(ZeppelinForms.PlatformHandle other) -> bool
+ZeppelinForms.PlatformHandle.Handle.get -> nint
+ZeppelinForms.PlatformHandle.Handle.init -> void
+ZeppelinForms.PlatformHandle.Kind.get -> string!
+ZeppelinForms.PlatformHandle.Kind.init -> void
+ZeppelinForms.PlatformHandle.PlatformHandle() -> void
+ZeppelinForms.PlatformHandle.PlatformHandle(nint Handle, string! Kind) -> void
 ZeppelinForms.SoftKeyboardKind
 ZeppelinForms.SoftKeyboardKind.Decimal = 2 -> ZeppelinForms.SoftKeyboardKind
 ZeppelinForms.SoftKeyboardKind.Email = 3 -> ZeppelinForms.SoftKeyboardKind
@@ -4913,6 +5055,7 @@ abstract ZeppelinForms.Forms.Controls.Base.PanelControl.ArrangeContentOverride(Z
 abstract ZeppelinForms.Forms.Controls.Base.PanelControl.MeasureContentOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
 abstract ZeppelinForms.Forms.Controls.Base.UIElement.Draw(ZeppelinForms.Drawing.Graphics! g) -> void
 abstract ZeppelinForms.Forms.Controls.Charts.CartesianChartBase.DataRange.get -> (float Min, float Max)
+abstract ZeppelinForms.Forms.Controls.NativeControlHost.CreateNativeControlCore(ZeppelinForms.PlatformHandle parent) -> ZeppelinForms.PlatformHandle
 abstract ZeppelinForms.Forms.Styling.Setter.IsFromTheme.get -> bool
 abstract ZeppelinForms.Forms.Styling.Setter.Resolve(ZeppelinForms.Theming.Theme! theme) -> object?
 abstract ZeppelinForms.Forms.Styling.Setter.Value.get -> object?
@@ -4936,6 +5079,9 @@ const ZeppelinForms.Input.Pointer.PointerThresholds.SwipeMinDistanceMm = 12 -> f
 const ZeppelinForms.Input.Pointer.PointerThresholds.TapMaxDurationMs = 300 -> int
 const ZeppelinForms.Input.Pointer.PointerThresholds.TouchDragSlopMm = 3.5 -> float
 const ZeppelinForms.Input.Pointer.PointerThresholds.TouchTapSlopMm = 2.5 -> float
+const ZeppelinForms.PlatformHandle.HtmlElement = "HTMLElement" -> string!
+const ZeppelinForms.PlatformHandle.Hwnd = "HWND" -> string!
+const ZeppelinForms.PlatformHandle.Xid = "XID" -> string!
 override ZeppelinForms.Accessibility.AccessibilityIssue.Equals(object? obj) -> bool
 override ZeppelinForms.Accessibility.AccessibilityIssue.GetHashCode() -> int
 override ZeppelinForms.Accessibility.AccessibilityIssue.ToString() -> string!
@@ -5360,6 +5506,7 @@ override ZeppelinForms.Drawing.PathIconSource.Draw(ZeppelinForms.Drawing.Graphic
 override ZeppelinForms.Drawing.PathIconSource.Equals(object? obj) -> bool
 override ZeppelinForms.Drawing.PathIconSource.GetHashCode() -> int
 override ZeppelinForms.Drawing.PathIconSource.ToString() -> string!
+override ZeppelinForms.Drawing.PixelBuffer.GetHashCode() -> int
 override ZeppelinForms.Drawing.Primitives.BoxShadow.Equals(object? obj) -> bool
 override ZeppelinForms.Drawing.Primitives.BoxShadow.GetHashCode() -> int
 override ZeppelinForms.Drawing.Primitives.BoxShadow.ToString() -> string!
@@ -5413,6 +5560,7 @@ override ZeppelinForms.Forms.Controls.Base.WrapControl.ClipBounds.get -> Zeppeli
 override ZeppelinForms.Forms.Controls.Base.WrapControl.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
 override ZeppelinForms.Forms.Controls.Button.DrawButtonContent(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.Button.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
+override ZeppelinForms.Forms.Controls.Button.OnNameCaptionChanged() -> void
 override ZeppelinForms.Forms.Controls.Calendar.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.Calendar.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
 override ZeppelinForms.Forms.Controls.Calendar.OnClick(ZeppelinForms.Input.Mouse.MouseClickEventArgs! e) -> void
@@ -5439,6 +5587,7 @@ override ZeppelinForms.Forms.Controls.CheckBox.DrawContent(ZeppelinForms.Drawing
 override ZeppelinForms.Forms.Controls.CheckBox.DrawDecoration(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.CheckBox.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
 override ZeppelinForms.Forms.Controls.CheckBox.OnClick(ZeppelinForms.Input.Mouse.MouseClickEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.CheckBox.OnNameCaptionChanged() -> void
 override ZeppelinForms.Forms.Controls.CheckBox.VisualOverflow.get -> ZeppelinForms.Drawing.Primitives.Thickness
 override ZeppelinForms.Forms.Controls.CheckedComboBox.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.CheckedComboBox.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
@@ -5535,6 +5684,7 @@ override ZeppelinForms.Forms.Controls.GroupBox.CurrentBorderColor.get -> Zeppeli
 override ZeppelinForms.Forms.Controls.GroupBox.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.GroupBox.DrawDecoration(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.GroupBox.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
+override ZeppelinForms.Forms.Controls.GroupBox.OnNameCaptionChanged() -> void
 override ZeppelinForms.Forms.Controls.ImageGallery.ArrangeContentOverride(ZeppelinForms.Drawing.Primitives.Size contentSize) -> void
 override ZeppelinForms.Forms.Controls.ImageGallery.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.ImageGallery.GetToolTip(ZeppelinForms.Drawing.Primitives.Point location) -> string?
@@ -5595,6 +5745,10 @@ override ZeppelinForms.Forms.Controls.MenuList.MeasureOverride(ZeppelinForms.Dra
 override ZeppelinForms.Forms.Controls.MenuList.OnClick(ZeppelinForms.Input.Mouse.MouseClickEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.MenuList.OnMouseExit(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.MenuList.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.NativeControlHost.Draw(ZeppelinForms.Drawing.Graphics! g) -> void
+override ZeppelinForms.Forms.Controls.NativeControlHost.OnAttached() -> void
+override ZeppelinForms.Forms.Controls.NativeControlHost.OnDetached() -> void
+override ZeppelinForms.Forms.Controls.NativeControlHost.OnGotFocus() -> void
 override ZeppelinForms.Forms.Controls.Navigation.PageControl.ArrangeContentOverride(ZeppelinForms.Drawing.Primitives.Size contentSize) -> void
 override ZeppelinForms.Forms.Controls.Navigation.PageControl.MeasureContentOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
 override ZeppelinForms.Forms.Controls.Navigation.PageControl.OnAttached() -> void
@@ -5633,6 +5787,7 @@ override ZeppelinForms.Forms.Controls.RadioButton.DrawDecoration(ZeppelinForms.D
 override ZeppelinForms.Forms.Controls.RadioButton.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
 override ZeppelinForms.Forms.Controls.RadioButton.OnClick(ZeppelinForms.Input.Mouse.MouseClickEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.RadioButton.OnKeyDown(ZeppelinForms.Input.Keyboard.KeyEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.RadioButton.OnNameCaptionChanged() -> void
 override ZeppelinForms.Forms.Controls.RadioButton.VisualOverflow.get -> ZeppelinForms.Drawing.Primitives.Thickness
 override ZeppelinForms.Forms.Controls.RangeSlider.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.RangeSlider.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
@@ -5666,6 +5821,7 @@ override ZeppelinForms.Forms.Controls.SplitButton.OnKeyDown(ZeppelinForms.Input.
 override ZeppelinForms.Forms.Controls.SplitButton.OnMouseDown(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.SplitButton.OnMouseExit(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.SplitButton.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.SplitButton.OnNameCaptionChanged() -> void
 override ZeppelinForms.Forms.Controls.SplitContainer.ArrangeContentOverride(ZeppelinForms.Drawing.Primitives.Size contentSize) -> void
 override ZeppelinForms.Forms.Controls.SplitContainer.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.SplitContainer.HitTestSelfFirst(ZeppelinForms.Drawing.Primitives.Point localPoint) -> bool
@@ -5723,10 +5879,12 @@ override ZeppelinForms.Forms.Controls.Text.HintLabel.OnMouseEnter(ZeppelinForms.
 override ZeppelinForms.Forms.Controls.Text.HintLabel.OnMouseExit(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.Label.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.Text.Label.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
+override ZeppelinForms.Forms.Controls.Text.Label.OnNameCaptionChanged() -> void
 override ZeppelinForms.Forms.Controls.Text.Label.OnStyledPropertyChanged(ZeppelinForms.Forms.Styling.StyledProperty! property) -> void
 override ZeppelinForms.Forms.Controls.Text.LinkLabel.OnClick(ZeppelinForms.Input.Mouse.MouseClickEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.LinkLabel.OnMouseEnter(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.LinkLabel.OnMouseExit(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.LinkLabel.OnNameCaptionChanged() -> void
 override ZeppelinForms.Forms.Controls.Text.MarkdownViewer.ArrangeContentOverride(ZeppelinForms.Drawing.Primitives.Size contentSize) -> void
 override ZeppelinForms.Forms.Controls.Text.MarkdownViewer.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.Text.MarkdownViewer.GetToolTip(ZeppelinForms.Drawing.Primitives.Point location) -> string?
@@ -5769,6 +5927,7 @@ override ZeppelinForms.Forms.Controls.ToggleSwitch.DrawContent(ZeppelinForms.Dra
 override ZeppelinForms.Forms.Controls.ToggleSwitch.DrawDecoration(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.ToggleSwitch.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
 override ZeppelinForms.Forms.Controls.ToggleSwitch.OnClick(ZeppelinForms.Input.Mouse.MouseClickEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.ToggleSwitch.OnNameCaptionChanged() -> void
 override ZeppelinForms.Forms.Controls.ToggleSwitch.VisualOverflow.get -> ZeppelinForms.Drawing.Primitives.Thickness
 override ZeppelinForms.Forms.Controls.TrackBar.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.TrackBar.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
@@ -5914,6 +6073,7 @@ override ZeppelinForms.Input.Pointer.PointerEventArgs.<Clone>$() -> ZeppelinForm
 override ZeppelinForms.Input.Pointer.PointerEventArgs.Equals(object? obj) -> bool
 override ZeppelinForms.Input.Pointer.PointerEventArgs.GetHashCode() -> int
 override ZeppelinForms.Input.Pointer.PointerEventArgs.ToString() -> string!
+override ZeppelinForms.PlatformHandle.GetHashCode() -> int
 override ZeppelinForms.Theming.AccentPalette.Equals(object? obj) -> bool
 override ZeppelinForms.Theming.AccentPalette.GetHashCode() -> int
 override ZeppelinForms.Theming.AccentPalette.ToString() -> string!
@@ -6131,6 +6291,7 @@ static ZeppelinForms.Drawing.FontFallbacks.Clear() -> void
 static ZeppelinForms.Drawing.FontFallbacks.Paths.get -> System.Collections.Generic.IReadOnlyList<string!>!
 static ZeppelinForms.Drawing.FontMetrics.operator !=(ZeppelinForms.Drawing.FontMetrics left, ZeppelinForms.Drawing.FontMetrics right) -> bool
 static ZeppelinForms.Drawing.FontMetrics.operator ==(ZeppelinForms.Drawing.FontMetrics left, ZeppelinForms.Drawing.FontMetrics right) -> bool
+static ZeppelinForms.Drawing.FormRenderer.Render(ZeppelinForms.Forms.Form! form, ZeppelinForms.Drawing.Graphics! g, float scale = 1, ZeppelinForms.Drawing.Primitives.Rectangle? clip = null, bool clearBackground = true, ZeppelinForms.Drawing.Primitives.Point origin = default(ZeppelinForms.Drawing.Primitives.Point)) -> void
 static ZeppelinForms.Drawing.Helpers.ColorExtensions.ContrastRatio(this ZeppelinForms.Drawing.Primitives.Color a, ZeppelinForms.Drawing.Primitives.Color b) -> float
 static ZeppelinForms.Drawing.Helpers.ColorExtensions.Darken(this ZeppelinForms.Drawing.Primitives.Color c, float amount = 0.15) -> ZeppelinForms.Drawing.Primitives.Color
 static ZeppelinForms.Drawing.Helpers.ColorExtensions.Lighten(this ZeppelinForms.Drawing.Primitives.Color c, float amount = 0.15) -> ZeppelinForms.Drawing.Primitives.Color
@@ -6154,6 +6315,8 @@ static ZeppelinForms.Drawing.Imaging.ImageDecoder.Current.get -> ZeppelinForms.D
 static ZeppelinForms.Drawing.Imaging.ImageDecoder.Current.set -> void
 static ZeppelinForms.Drawing.PathIconSource.operator !=(ZeppelinForms.Drawing.PathIconSource? left, ZeppelinForms.Drawing.PathIconSource? right) -> bool
 static ZeppelinForms.Drawing.PathIconSource.operator ==(ZeppelinForms.Drawing.PathIconSource? left, ZeppelinForms.Drawing.PathIconSource? right) -> bool
+static ZeppelinForms.Drawing.PixelBuffer.operator !=(ZeppelinForms.Drawing.PixelBuffer left, ZeppelinForms.Drawing.PixelBuffer right) -> bool
+static ZeppelinForms.Drawing.PixelBuffer.operator ==(ZeppelinForms.Drawing.PixelBuffer left, ZeppelinForms.Drawing.PixelBuffer right) -> bool
 static ZeppelinForms.Drawing.Primitives.BoxShadow.Large.get -> ZeppelinForms.Drawing.Primitives.BoxShadow!
 static ZeppelinForms.Drawing.Primitives.BoxShadow.Medium.get -> ZeppelinForms.Drawing.Primitives.BoxShadow!
 static ZeppelinForms.Drawing.Primitives.BoxShadow.Small.get -> ZeppelinForms.Drawing.Primitives.BoxShadow!
@@ -6313,6 +6476,7 @@ static ZeppelinForms.Forms.Validation.Validators.Length(int min, int max) -> Sys
 static ZeppelinForms.Forms.Validation.Validators.Required(string? message = null) -> System.Func<string!, string?>!
 static ZeppelinForms.Headless.ElementTreeRenderer.Draw(ZeppelinForms.Forms.Controls.Base.UIElement! element, ZeppelinForms.Drawing.Graphics! g, ZeppelinForms.Drawing.Primitives.Rectangle? clip = null) -> void
 static ZeppelinForms.Headless.HeadlessElementRenderer.Register() -> void
+static ZeppelinForms.Headless.HeadlessGraphicsBackend.Instance.get -> ZeppelinForms.Headless.HeadlessGraphicsBackend!
 static ZeppelinForms.Headless.HeadlessImageDecoder.Register() -> void
 static ZeppelinForms.Headless.HeadlessInput.Click(ZeppelinForms.Forms.Form! form, float x, float y, ZeppelinForms.Input.Mouse.MouseButton button = ZeppelinForms.Input.Mouse.MouseButton.Left) -> void
 static ZeppelinForms.Headless.HeadlessInput.CommitComposition(ZeppelinForms.Forms.Form! form, string! text) -> void
@@ -6370,6 +6534,8 @@ static ZeppelinForms.Input.Pointer.PointerEventArgs.operator ==(ZeppelinForms.In
 static ZeppelinForms.Input.Pointer.PointerThresholds.DragSlop(ZeppelinForms.Input.Pointer.PointerKind kind, ZeppelinForms.Drawing.Primitives.DisplayInfo! display) -> float
 static ZeppelinForms.Input.Pointer.PointerThresholds.SwipeMinDistance(ZeppelinForms.Drawing.Primitives.DisplayInfo! display) -> float
 static ZeppelinForms.Input.Pointer.PointerThresholds.TapSlop(ZeppelinForms.Input.Pointer.PointerKind kind, ZeppelinForms.Drawing.Primitives.DisplayInfo! display) -> float
+static ZeppelinForms.PlatformHandle.operator !=(ZeppelinForms.PlatformHandle left, ZeppelinForms.PlatformHandle right) -> bool
+static ZeppelinForms.PlatformHandle.operator ==(ZeppelinForms.PlatformHandle left, ZeppelinForms.PlatformHandle right) -> bool
 static ZeppelinForms.Theming.AccentPalette.operator !=(ZeppelinForms.Theming.AccentPalette? left, ZeppelinForms.Theming.AccentPalette? right) -> bool
 static ZeppelinForms.Theming.AccentPalette.operator ==(ZeppelinForms.Theming.AccentPalette? left, ZeppelinForms.Theming.AccentPalette? right) -> bool
 static ZeppelinForms.Theming.ControlStyle.operator !=(ZeppelinForms.Theming.ControlStyle? left, ZeppelinForms.Theming.ControlStyle? right) -> bool
@@ -6429,6 +6595,8 @@ static readonly ZeppelinForms.Core.Globalization.ZfText.OpenFileTitle -> Zeppeli
 static readonly ZeppelinForms.Core.Globalization.ZfText.OpenNavigation -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.Pane -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.Paste -> ZeppelinForms.Core.Globalization.TextKey!
+static readonly ZeppelinForms.Core.Globalization.ZfText.PathOrSearch -> ZeppelinForms.Core.Globalization.TextKey!
+static readonly ZeppelinForms.Core.Globalization.ZfText.PickColor -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.PreviousImage -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.RangeLower -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.RangeUpper -> ZeppelinForms.Core.Globalization.TextKey!
@@ -6939,6 +7107,9 @@ virtual ZeppelinForms.Drawing.Effects.VisualEffect.Bleed(ZeppelinForms.Drawing.P
 virtual ZeppelinForms.Drawing.Effects.VisualEffect.End(ZeppelinForms.Drawing.Graphics! g, ZeppelinForms.Drawing.Primitives.Rectangle bounds) -> void
 virtual ZeppelinForms.Drawing.Graphics.AlignToPixels(ZeppelinForms.Drawing.Primitives.Rectangle rect) -> ZeppelinForms.Drawing.Primitives.Rectangle
 virtual ZeppelinForms.Drawing.Graphics.BeginCapture(ZeppelinForms.Drawing.Primitives.Rectangle bounds) -> void
+virtual ZeppelinForms.Drawing.Graphics.Clear(ZeppelinForms.Drawing.Primitives.Color color) -> void
+virtual ZeppelinForms.Drawing.Graphics.DrawBezier(ZeppelinForms.Drawing.Primitives.Point start, ZeppelinForms.Drawing.Primitives.Point control1, ZeppelinForms.Drawing.Primitives.Point control2, ZeppelinForms.Drawing.Primitives.Point end, ZeppelinForms.Drawing.Primitives.Color color, float width) -> void
+virtual ZeppelinForms.Drawing.Graphics.DrawBeziers(System.ReadOnlySpan<ZeppelinForms.Drawing.Primitives.Point> points, ZeppelinForms.Drawing.Primitives.Color color, float width) -> void
 virtual ZeppelinForms.Drawing.Graphics.DrawBlendedImage(ZeppelinForms.Drawing.Primitives.Rectangle rect, ZeppelinForms.Drawing.Imaging.Image! image, ZeppelinForms.Drawing.BlendMode blendMode, ZeppelinForms.Drawing.Imaging.ImageFlip flip = ZeppelinForms.Drawing.Imaging.ImageFlip.None, ZeppelinForms.Drawing.Imaging.ImageLayout layout = ZeppelinForms.Drawing.Imaging.ImageLayout.Stretch) -> void
 virtual ZeppelinForms.Drawing.Graphics.DrawCapture(ZeppelinForms.Drawing.LayerCapture! capture, ZeppelinForms.Drawing.Primitives.Rectangle target, ZeppelinForms.Drawing.Primitives.Rectangle? sourceClip = null, ZeppelinForms.Drawing.ColorChannels channels = ZeppelinForms.Drawing.ColorChannels.All, ZeppelinForms.Drawing.CaptureBlend blend = ZeppelinForms.Drawing.CaptureBlend.Normal, float opacity = 1) -> void
 virtual ZeppelinForms.Drawing.Graphics.DrawSymbol(string! text, ZeppelinForms.Drawing.Primitives.Rectangle rect, ZeppelinForms.Drawing.Primitives.Color color, ZeppelinForms.Drawing.Font! font, ZeppelinForms.Forms.Enums.HorizontalContentAlignment hAlign = ZeppelinForms.Forms.Enums.HorizontalContentAlignment.Center, ZeppelinForms.Forms.Enums.VerticalContentAlignment vAlign = ZeppelinForms.Forms.Enums.VerticalContentAlignment.Center) -> void
@@ -6995,6 +7166,7 @@ virtual ZeppelinForms.Forms.Controls.Base.UIElement.OnMouseExit(ZeppelinForms.In
 virtual ZeppelinForms.Forms.Controls.Base.UIElement.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
 virtual ZeppelinForms.Forms.Controls.Base.UIElement.OnMouseUp(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
 virtual ZeppelinForms.Forms.Controls.Base.UIElement.OnMouseWheel(ZeppelinForms.Input.Mouse.MouseWheelEventArgs! e) -> void
+virtual ZeppelinForms.Forms.Controls.Base.UIElement.OnNameCaptionChanged() -> void
 virtual ZeppelinForms.Forms.Controls.Base.UIElement.OnPointerCanceled(ZeppelinForms.Input.Pointer.PointerCancelEventArgs! e) -> void
 virtual ZeppelinForms.Forms.Controls.Base.UIElement.OnPointerDown(ZeppelinForms.Input.Pointer.PointerEventArgs! e) -> void
 virtual ZeppelinForms.Forms.Controls.Base.UIElement.OnPointerMove(ZeppelinForms.Input.Pointer.PointerEventArgs! e) -> void
@@ -7020,6 +7192,8 @@ virtual ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn.CreateEditor(ob
 virtual ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn.DrawCell(ZeppelinForms.Drawing.Graphics! g, ZeppelinForms.Drawing.Primitives.Rectangle bounds, object! item, ZeppelinForms.Forms.Controls.DataGrid.DataGridViewCellPaint paint) -> void
 virtual ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn.TryActivate(object! item, out object? value) -> bool
 virtual ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn.TryGetEditedValue(ZeppelinForms.Forms.Controls.Base.UIElement! editor, object! item, out object? value) -> bool
+virtual ZeppelinForms.Forms.Controls.NativeControlHost.DestroyNativeControlCore(ZeppelinForms.PlatformHandle control) -> void
+virtual ZeppelinForms.Forms.Controls.NativeControlHost.DrawPlaceholder(ZeppelinForms.Drawing.Graphics! g) -> void
 virtual ZeppelinForms.Forms.Controls.Shapes.Shape.DefaultSize.get -> ZeppelinForms.Drawing.Primitives.Size
 virtual ZeppelinForms.Forms.Controls.Spoiler.OnCollapsedStateChanged(bool isCollapsed) -> void
 virtual ZeppelinForms.Forms.Controls.Text.TextBox.OnTextEdited() -> void
@@ -7042,6 +7216,7 @@ virtual ZeppelinForms.Forms.Form.OnPreviewMouseWheel(ZeppelinForms.Input.Mouse.M
 virtual ZeppelinForms.Forms.Form.OnShown(System.EventArgs! e) -> void
 virtual ZeppelinForms.Forms.Form.OnSizeChanged(System.EventArgs! e) -> void
 virtual ZeppelinForms.Forms.Form.OnTextInput(ZeppelinForms.Input.Keyboard.TextInputEventArgs! e) -> void
+virtual ZeppelinForms.Forms.Form.OnVisibleChanged(System.EventArgs! e) -> void
 virtual ZeppelinForms.Forms.Form.OnWindowStateChanged(System.EventArgs! e) -> void
 virtual ZeppelinForms.Input.Commands.Command.CanExecute(object? parameter) -> bool
 virtual ZeppelinForms.Input.Commands.Command.Execute(object? parameter) -> void
@@ -7059,6 +7234,8 @@ virtual ZeppelinForms.Input.Gestures.GestureRecognizer.OnPointerUp(ZeppelinForms
 ~override ZeppelinForms.Accessibility.SetPosition.ToString() -> string
 ~override ZeppelinForms.Drawing.FontMetrics.Equals(object obj) -> bool
 ~override ZeppelinForms.Drawing.FontMetrics.ToString() -> string
+~override ZeppelinForms.Drawing.PixelBuffer.Equals(object obj) -> bool
+~override ZeppelinForms.Drawing.PixelBuffer.ToString() -> string
 ~override ZeppelinForms.Drawing.Primitives.Color.Equals(object obj) -> bool
 ~override ZeppelinForms.Drawing.Primitives.Color.ToString() -> string
 ~override ZeppelinForms.Drawing.Primitives.CornerRadius.Equals(object obj) -> bool
@@ -7082,5 +7259,7 @@ virtual ZeppelinForms.Input.Gestures.GestureRecognizer.OnPointerUp(ZeppelinForms
 ~override ZeppelinForms.Forms.Controls.GridLength.Equals(object obj) -> bool
 ~override ZeppelinForms.Forms.Controls.GridLength.ToString() -> string
 ~override ZeppelinForms.Forms.Styling.Specificity.Equals(object obj) -> bool
+~override ZeppelinForms.PlatformHandle.Equals(object obj) -> bool
+~override ZeppelinForms.PlatformHandle.ToString() -> string
 ~override ZeppelinForms.Theming.TypeRampStep.Equals(object obj) -> bool
 ~override ZeppelinForms.Theming.TypeRampStep.ToString() -> string

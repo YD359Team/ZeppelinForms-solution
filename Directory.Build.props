@@ -1,6 +1,13 @@
 <Project>
 	<PropertyGroup>
-		<Version>0.18.1</Version>
+		<Version>0.19.0</Version>
+		
+		<!-- The version without a prerelease part, numbers only: what a VSIX identity and
+		     an Android versionCode can take. Follows /p:Version when CI passes the tag's
+		     version, so v0.19.0-preview.1 gives 0.19.0 here. The one place a release
+		     changes the version is <Version> above -->
+		<VersionNumbers>$([System.Text.RegularExpressions.Regex]::Match('$(Version)', '^\d+\.\d+\.\d+').Value)</VersionNumbers>
+		
 		<Authors>YD359Team</Authors>
 		<Company>YD359Team</Company>
 		<Product>ZeppelinForms</Product>

@@ -23,3 +23,7 @@ ZF2007  | Markup      | Error    | No handler for an event
 ZF2008  | Markup      | Error    | A binding can't be made
 ZF2009  | Markup      | Error    | A name is used twice
 ZF2010  | Markup      | Error    | An element can't be created
+ZF2011  | Markup      | Error    | No command for a command property
+ZF2012  | Markup      | Error    | A style in the markup can't be read
+ZF2013  | Markup      | Warning  | A style in the markup names what isn't there
+ZF2014  | Markup      | Warning  | An included style sheet is not among the project's files

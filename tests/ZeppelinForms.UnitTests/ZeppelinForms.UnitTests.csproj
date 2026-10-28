@@ -20,6 +20,10 @@
 		<!-- a test running past a minute is named in the log while it runs: a hang shows
          which test it is instead of a step that just never ends -->
 		<Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+
+		<!-- the font GlesSkiaParityTests draws text with: one file for both renderers, the
+		     examples' own, not a copy -->
+		<None Include="..\..\examples\ZF Wasm\wwwroot\fonts\Inter-Regular.ttf" Link="Fonts\Inter-Regular.ttf" CopyToOutputDirectory="PreserveNewest" Visible="false" />
 	</ItemGroup>
 
   <ItemGroup>
@@ -29,6 +33,7 @@
     <ProjectReference Include="..\..\src\ZeppelinForms\ZeppelinForms.csproj" />
     <ProjectReference Include="..\..\tools\ZeppelinForms.Design\ZeppelinForms.Design.csproj" />
     <ProjectReference Include="..\..\src\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" />
+    <ProjectReference Include="..\..\tools\ZeppelinForms.LanguageServer\ZeppelinForms.LanguageServer.csproj" />
   </ItemGroup>
 
 </Project>

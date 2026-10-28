@@ -21,6 +21,24 @@
 		<AdditionalFiles Include="**\*.zss" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
 	</ItemGroup>
 
+	<!-- A class's parts under its code file in Solution Explorer and Rider:
+       MainForm.design.cs (the controls and InitializeComponent) and MainForm.zfml (the
+       same as markup) nest under MainForm.cs, as WinForms' Form1.Designer.cs does. Only
+       those with a MainForm.cs beside them: the names each code file would have for its
+       parts are made from Compile, and Update touches the files that are there -->
+	<ItemGroup>
+		<_ZfDesignParts Include="@(Compile->'%(RelativeDir)%(Filename).design.cs')" />
+		<_ZfMarkupParts Include="@(Compile->'%(RelativeDir)%(Filename).zfml')" />
+
+		<!-- "MainForm.design" → "MainForm.cs" -->
+		<Compile Update="@(_ZfDesignParts)" DependentUpon="$([System.IO.Path]::GetFileNameWithoutExtension('%(Filename)')).cs" />
+		<AdditionalFiles Update="@(_ZfMarkupParts)" DependentUpon="%(Filename).cs" />
+		<None Update="@(_ZfMarkupParts)" DependentUpon="%(Filename).cs" />
+
+		<_ZfDesignParts Remove="@(_ZfDesignParts)" />
+		<_ZfMarkupParts Remove="@(_ZfMarkupParts)" />
+	</ItemGroup>
+
 	<!-- Style sheets are read at run time and never compiled. A .zss Visual Studio gave
        the C# build action — added as a code file and renamed, or set by hand — went to
        the C# compiler, and the build failed on its braces and colons with "identifier

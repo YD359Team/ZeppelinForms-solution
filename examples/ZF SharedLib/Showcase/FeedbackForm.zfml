@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- A whole form in markup, as a window of WPF or Avalonia is: the root is the Form,
+     Class names its class and a Name makes a field. No namespaces to declare; the
+     behaviour is in FeedbackForm.cs -->
+<Form Class="ZF_SharedLib.Showcase.FeedbackForm"
+      Title="Feedback" Size="420,380" WindowStartupLocation="CenterOwner">
+
+	<Form.Styles>
+		<Style Selector="#Hint">
+			<Setter Property="TextColor" Value="@TextSecondary"/>
+		</Style>
+	</Form.Styles>
+
+	<StackPanel Orientation="Vertical" Spacing="12" Padding="16" CrossAxisAlignment="Stretch">
+		<Label Text="How do you like the showcase?" TextStyle="Subtitle"/>
+
+		<ComboBox Name="Rating">
+			<x:String>Excellent</x:String>
+			<x:String>Good</x:String>
+			<x:String>Could be better</x:String>
+		</ComboBox>
+
+		<TextBox Name="Comment" IsMultiline="true" Watermark="A few words, if you like" Size="NaN,120"/>
+
+		<CheckBox Name="MayContact" Text="You may write back to me"/>
+
+		<Label Name="Hint" Text="Nothing is sent anywhere: the dialog only returns what was written"/>
+
+		<StackPanel Orientation="Horizontal" Spacing="8" MainAxisAlignment="End">
+			<Button Text="Cancel" Click="OnCancel"/>
+			<PrimaryButton Text="Send" Click="OnSend"/>
+		</StackPanel>
+	</StackPanel>
+</Form>

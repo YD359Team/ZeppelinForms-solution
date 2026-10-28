@@ -65,6 +65,24 @@ internal static partial class Interop
         int width,
         int height);
 
+    // ==== the page's history ====
+
+    /// <summary>A new entry of the page's history, with the location after the #.</summary>
+    [JSImport("historyPush", ModuleName)]
+    internal static partial void HistoryPush(string location);
+
+    /// <summary>The current entry's location after the #; no new entry.</summary>
+    [JSImport("historyReplace", ModuleName)]
+    internal static partial void HistoryReplace(string location);
+
+    /// <summary>Back by as many entries; the popstate it causes is not reported.</summary>
+    [JSImport("historyBack", ModuleName)]
+    internal static partial void HistoryBack(int count);
+
+    /// <summary>What followed the # in the address the page was opened at, without it.</summary>
+    [JSImport("initialRoute", ModuleName)]
+    internal static partial string InitialRoute();
+
     /// <summary>Request one frame through requestAnimationFrame.</summary>
     [JSImport("requestFrame", ModuleName)]
     internal static partial void RequestFrame();
@@ -82,6 +100,38 @@ internal static partial class Interop
 
     [JSImport("setFavicon", ModuleName)]
     internal static partial void SetFavicon(string dataUrl);
+
+    /// <summary>Blink the tab's title while the page is in the background, until it is
+    /// shown or focused.</summary>
+    [JSImport("requestAttention", ModuleName)]
+    internal static partial void RequestAttention();
+
+    /// <summary>The browser has the Badging API: an installed web application's badge.</summary>
+    [JSImport("supportsAppBadge", ModuleName)]
+    internal static partial bool SupportsAppBadge();
+
+    /// <summary>The installed application's badge; 0 clears it.</summary>
+    [JSImport("setAppBadge", ModuleName)]
+    internal static partial void SetAppBadge(int count);
+
+    /// <summary>The browser has the Notification API, and the user hasn't refused it.</summary>
+    [JSImport("supportsNotifications", ModuleName)]
+    internal static partial bool SupportsNotifications();
+
+    /// <summary>Show a web notification, asking the permission first where it wasn't
+    /// given yet. Its click and its closing come back by the id.</summary>
+    [JSImport("showNotification", ModuleName)]
+    internal static partial void ShowNotification(int id, string title, string body, string icon);
+
+    /// <summary>A notification was clicked: the page is brought forward by the script.</summary>
+    [JSExport]
+    internal static void OnNotificationClicked(int id) =>
+        App.RunGuarded(() => Platform?.HandleNotificationClicked(id));
+
+    /// <summary>A notification went — or never came: the permission was refused.</summary>
+    [JSExport]
+    internal static void OnNotificationClosed(int id) =>
+        App.RunGuarded(() => Platform?.HandleNotificationClosed(id));
 
     /// <summary>The page's color scheme and theme color; an empty background gives the
     /// theme color back to the page's own.</summary>
@@ -107,6 +157,16 @@ internal static partial class Interop
     /// <summary>Hand a file to the user as a download.</summary>
     [JSImport("downloadFile", ModuleName)]
     internal static partial void DownloadFile(string fileName, string base64);
+
+    /// <summary>The browser's save dialog where it has one: "id\nname", an empty string
+    /// when cancelled. Id 0 — no dialog, the file is to go out as a download.</summary>
+    [JSImport("pickSaveFile", ModuleName)]
+    internal static partial Task<string> PickSaveFileAsync(string suggestedName, string filters);
+
+    /// <summary>Write a file picked by <see cref="PickSaveFileAsync"/>: through its handle,
+    /// or as a download for id 0.</summary>
+    [JSImport("writePickedFile", ModuleName)]
+    internal static partial Task WritePickedFileAsync(int id, string fileName, string base64);
 
     [JSImport("readClipboard", ModuleName)]
     internal static partial Task<string> ReadClipboardAsync();
@@ -271,6 +331,16 @@ internal static partial class Interop
     [JSExport]
     internal static void OnPageHide() =>
         App.RunGuarded(() => Platform?.HandlePageHide());
+
+    /// <summary>The browser's back button: the page's history went one entry back.</summary>
+    [JSExport]
+    internal static void OnHistoryBack() =>
+        App.RunGuarded(() => Platform?.HandleHistoryBack());
+
+    /// <summary>The page's safe area, env(safe-area-inset-*), in CSS pixels.</summary>
+    [JSExport]
+    internal static void OnSafeArea(double left, double top, double right, double bottom) =>
+        App.RunGuarded(() => Platform?.HandleSafeArea(left, top, right, bottom));
 
     /// <summary>The CSS name of the cursor for each kind. Default and Arrow are the
     /// same thing in a browser: we have no arrow of our own, the system draws it.</summary>

@@ -693,7 +693,11 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
     // ===== input =====
 
-    private int RowAt(Point location)
+    /// <summary>The row under a point in the form's coordinates — those of the mouse
+    /// events; -1 — the header, the empty space under the rows, or a scroll bar.</summary>
+    /// <remarks>The row as it is on screen: with sorting, its record is
+    /// <see cref="RowItem(int)"/>, not <c>Items[row]</c>.</remarks>
+    public int RowAt(Point location)
     {
         EnsureLayout();
 

@@ -526,6 +526,40 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
     /// <summary>Arranging the content. The size may exceed the panel's size when scrolling.</summary>
     protected abstract void ArrangeContentOverride(Size contentSize);
 
+    /// <summary>Scroll the least that shows <paramref name="rect"/> — in the panel's own
+    /// coordinates, where its scrolled children stand — inside the viewport; where it
+    /// doesn't fit, its start. Returns where the rectangle is after the scroll.</summary>
+    internal Rectangle ScrollToShow(Rectangle rect)
+    {
+        if (!ScrollsHorizontally && !ScrollsVertically) return rect;
+
+        Rectangle view = Viewport;
+
+        float dx = ScrollsHorizontally ? Reach(rect.X, rect.Right, view.X, view.Right) : 0f;
+        float dy = ScrollsVertically ? Reach(rect.Y, rect.Bottom, view.Y, view.Bottom) : 0f;
+
+        if (dx == 0f && dy == 0f) return rect;
+
+        float beforeX = ScrollX;
+        float beforeY = ScrollY;
+
+        ScrollTo(ScrollX + dx, ScrollY + dy);
+
+        // the children move only at the next arrange: where the rectangle will be
+        // is worked out from the scroll actually made, clamped to the content
+        return rect.Offset(-(ScrollX - beforeX), -(ScrollY - beforeY));
+
+        // how far to scroll along one axis: past the end — forward by the overhang,
+        // before the start — back; a span longer than the view — to its start
+        static float Reach(float start, float end, float viewStart, float viewEnd)
+        {
+            if (start < viewStart) return start - viewStart;
+            if (end > viewEnd) return Math.Min(end - viewEnd, start - viewStart);
+
+            return 0f;
+        }
+    }
+
     public void ScrollTo(float x, float y)
     {
         // an explicit scroll from code or the wheel takes priority over fling inertia

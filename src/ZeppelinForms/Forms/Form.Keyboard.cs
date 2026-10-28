@@ -104,8 +104,17 @@ public partial class Form
                 CloseFlyout(_flyouts[^1]);
                 break;
 
+            // a bottom sheet over the page closes as a flyout does
+            case Key.Escape when TryCloseWithEscape():
+                break;
+
             case Key.Escape when IsDialog:
                 Cancel();
+                break;
+
+            // back, as in a browser and in Explorer: a navigation stack's previous page
+            case Key.Left when modifiers == KeyModifiers.Alt:
+                RequestBack(BackSource.Keyboard);
                 break;
 
             case Key.Enter when modifiers == KeyModifiers.None &&
@@ -213,8 +222,18 @@ public partial class Form
                 menu.HighlightLast();
                 return true;
 
+            // an item with a submenu opens it, its first item lit, rather than runs
+            case Key.Enter or Key.Space or Key.Right when menu.HighlightedHasSubmenu:
+                menu.OpenHighlightedSubmenu();
+                return true;
+
             case Key.Enter or Key.Space:
                 if (menu.InvokeHighlighted()) AfterMenuItemRun();
+                return true;
+
+            // a submenu closes back to its item, still lit in the menu it came from
+            case Key.Escape or Key.Left when menu.ParentMenu is { } parent:
+                parent.CloseSubmenu();
                 return true;
 
             case Key.Escape:

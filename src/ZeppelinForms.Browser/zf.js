@@ -340,7 +340,13 @@ export function init(canvasId) {
     canvas.addEventListener("pointermove", e => zf().OnPointerMove(
         localX(e), localY(e), e.pointerId, pointerKind(e), e.pressure, e.timeStamp, modifiers(e)));
 
+    // the kind of the last press: a held finger or pen opens the context menu in the
+    // form itself, and the browser's own contextmenu for the same hold would open it twice
+    let lastPressKind = "mouse";
+
     canvas.addEventListener("pointerdown", e => {
+        lastPressKind = e.pointerType;
+
         // without capture the browser breaks off the drag as soon as the cursor
         // leaves the canvas, and the button sticks pressed
         canvas.setPointerCapture(e.pointerId);
@@ -374,6 +380,11 @@ export function init(canvasId) {
 
     canvas.addEventListener("contextmenu", e => {
         e.preventDefault();
+
+        // a hold of a finger or a pen: the form has opened the menu already
+        const kind = e.pointerType || lastPressKind;
+        if (kind === "touch" || kind === "pen") return;
+
         zf().OnContextMenu(localX(e), localY(e));
     });
 
@@ -408,7 +419,104 @@ export function init(canvasId) {
     new ResizeObserver(() => { resize(); placeMirror(); }).observe(canvas);
     window.addEventListener("resize", () => resize());
 
+    initHistory();
     resize();
+}
+
+// ==== the page's history ====
+// A navigation stack's pages are entries of the page's history, the stack's route after
+// the #. Every entry we push carries its index: a popstate then tells back from forward,
+// and how far. The stack's own backs go through history.go too, and the popstate they
+// cause is ours, not the user's — it is counted and kept from .NET.
+
+const initialHash = location.hash.length > 1 ? decodeURIComponent(location.hash.slice(1)) : "";
+let historyIndex = 0;
+let ignoredPops = 0;
+
+function initHistory() {
+    // a reload keeps the entries of before: the count starts over at this one
+    history.replaceState({ zf: 0 }, "");
+    historyIndex = 0;
+
+    window.addEventListener("popstate", e => {
+        const index = e.state && typeof e.state.zf === "number" ? e.state.zf : 0;
+
+        if (ignoredPops > 0) {
+            ignoredPops--;
+            historyIndex = index;
+            return;
+        }
+
+        if (index < historyIndex) {
+            // back — by several entries when chosen from the back button's list
+            const steps = historyIndex - index;
+            historyIndex = index;
+
+            for (let i = 0; i < steps; i++) {
+                zf().OnHistoryBack();
+            }
+        } else if (index > historyIndex) {
+            // forward: a page gone back from was dropped, there is nothing to go forward to
+            ignoredPops++;
+            history.go(historyIndex - index);
+        }
+    });
+}
+
+export function initialRoute() {
+    return initialHash;
+}
+
+export function historyPush(location) {
+    historyIndex++;
+    history.pushState({ zf: historyIndex }, "", "#" + location);
+}
+
+export function historyReplace(location) {
+    history.replaceState({ zf: historyIndex }, "", "#" + location);
+}
+
+export function historyBack(count) {
+    if (count <= 0) {
+        return;
+    }
+
+    ignoredPops++;
+    history.go(-count);
+}
+
+// ==== the safe area ====
+// env(safe-area-inset-*) is CSS only: a hidden element padded by it gives the numbers.
+// Nonzero on a phone with a notch, when the page says viewport-fit=cover
+
+let safeProbe = null;
+let lastSafeArea = "";
+
+function readSafeArea() {
+    if (!safeProbe) {
+        safeProbe = document.createElement("div");
+        Object.assign(safeProbe.style, {
+            position: "fixed", left: "0", top: "0", width: "0", height: "0",
+            visibility: "hidden", pointerEvents: "none",
+            paddingLeft: "env(safe-area-inset-left, 0px)",
+            paddingTop: "env(safe-area-inset-top, 0px)",
+            paddingRight: "env(safe-area-inset-right, 0px)",
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        });
+        document.body.appendChild(safeProbe);
+    }
+
+    const style = getComputedStyle(safeProbe);
+    const insets = [style.paddingLeft, style.paddingTop, style.paddingRight, style.paddingBottom]
+        .map(value => parseFloat(value) || 0);
+
+    const key = insets.join(",");
+    if (key === lastSafeArea) {
+        return;
+    }
+
+    lastSafeArea = key;
+    zf().OnSafeArea(insets[0], insets[1], insets[2], insets[3]);
 }
 
 // Tab takes focus off the page, F keys and Backspace also have browser
@@ -546,6 +654,9 @@ export function clearTextInputArea() {
 }
 
 function resize() {
+    // a turned phone moves its notch: the insets change with the size, or alone
+    readSafeArea();
+
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
 
@@ -608,8 +719,121 @@ export function setCursor(cssCursor) {
 
 export function setTitle(title) {
     if (title) {
-        document.title = title;
+        // while the title blinks for attention, the page's own title is the one kept
+        // aside: the blinking goes on with the new one, and it comes back when it stops
+        if (attentionTimer) {
+            attentionTitle = title;
+        } else {
+            document.title = title;
+        }
     }
+}
+
+// ===== attention and badge =====
+
+let attentionTimer = 0;
+let attentionTitle = "";
+
+// Form.RequestAttention: the tab's title blinks with a mark while the page is in the
+// background, and stops when the page is shown or focused. A page in front has the
+// attention already, and nothing happens.
+export function requestAttention() {
+    if (attentionTimer || (!document.hidden && document.hasFocus())) {
+        return;
+    }
+
+    attentionTitle = document.title;
+
+    let marked = false;
+
+    attentionTimer = setInterval(() => {
+        marked = !marked;
+        document.title = marked ? "\u25CF " + attentionTitle : attentionTitle;
+    }, 1000);
+
+    const stop = () => {
+        // going to the background is a visibilitychange too: that one doesn't stop it
+        if (document.hidden) {
+            return;
+        }
+
+        clearInterval(attentionTimer);
+        attentionTimer = 0;
+        document.title = attentionTitle;
+
+        window.removeEventListener("focus", stop);
+        document.removeEventListener("visibilitychange", stop);
+    };
+
+    window.addEventListener("focus", stop);
+    document.addEventListener("visibilitychange", stop);
+}
+
+// ===== notifications =====
+
+// The Notification API: the page's own notifications, which the browser shows as the
+// system's. The first one asks the user's permission; refused, it closes at once.
+export function supportsNotifications() {
+    return "Notification" in globalThis && Notification.permission !== "denied";
+}
+
+export function showNotification(id, title, body, icon) {
+    if (!("Notification" in globalThis)) {
+        zf().OnNotificationClosed(id);
+        return;
+    }
+
+    const show = () => {
+        const options = { body: body || undefined };
+
+        if (icon) {
+            options.icon = icon;
+        }
+
+        const notification = new Notification(title, options);
+
+        notification.onclick = () => {
+            // the page the notification is of comes forward, as a desktop application's
+            // window would. The click is told before closing it: close() fires onclose at
+            // once, and a notification closed first has no click to come
+            window.focus();
+            zf().OnNotificationClicked(id);
+            notification.close();
+        };
+
+        notification.onclose = () => zf().OnNotificationClosed(id);
+        notification.onerror = () => zf().OnNotificationClosed(id);
+    };
+
+    if (Notification.permission === "granted") {
+        show();
+        return;
+    }
+
+    Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+            show();
+        } else {
+            zf().OnNotificationClosed(id);
+        }
+    });
+}
+
+// The Badging API: the badge of an installed web application — on its icon in the
+// taskbar or the dock. Chromium browsers have it; in a tab it does nothing.
+export function supportsAppBadge() {
+    return "setAppBadge" in navigator;
+}
+
+export function setAppBadge(count) {
+    if (!("setAppBadge" in navigator)) {
+        return;
+    }
+
+    const done = count > 0 ? navigator.setAppBadge(count) : navigator.clearAppBadge();
+
+    // not installed, or not allowed: no badge, and no unhandled rejection either
+    done?.catch?.(() => { });
 }
 
 export function viewportWidth() {
@@ -740,6 +964,56 @@ export function downloadFile(fileName, base64) {
     // Firefox and Safari start the download asynchronously: revoking the address
     // right after click() used to take it away before the download began
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ==== files to save: the browser's save dialog, or a download ====
+//
+// Where the File System Access API is — Chromium on the desktop — showSaveFilePicker is
+// the system's own save dialog, and its handle writes the very file the user chose. Its
+// handles are kept here by an id, and the application names them by it. Elsewhere — Firefox,
+// Safari, phones — the id is 0 and the file goes out as a download when it is written.
+
+const savedFiles = new Map();
+let nextSavedFile = 1;
+
+// "id\nname"; an empty string — cancelled. The filters: JSON [{description, extensions}]
+export async function pickSaveFile(suggestedName, filters) {
+    if (typeof window.showSaveFilePicker !== "function") {
+        return `0\n${suggestedName}`;
+    }
+
+    const types = JSON.parse(filters || "[]")
+        .filter(f => f.extensions.length > 0)
+        .map(f => ({ description: f.description, accept: { "application/octet-stream": f.extensions } }));
+
+    try {
+        const handle = await window.showSaveFilePicker({ suggestedName, types });
+        const id = nextSavedFile++;
+        savedFiles.set(id, handle);
+        return `${id}\n${handle.name}`;
+    } catch (error) {
+        // the user closed the dialog
+        if (error.name === "AbortError") {
+            return "";
+        }
+
+        // refused — no user gesture behind the call, a sandboxed frame: a download then
+        return `0\n${suggestedName}`;
+    }
+}
+
+export async function writePickedFile(id, fileName, base64) {
+    const handle = savedFiles.get(id);
+
+    if (!handle) {
+        downloadFile(fileName, base64);
+        return;
+    }
+
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const writable = await handle.createWritable();
+    await writable.write(bytes);
+    await writable.close();
 }
 
 // ==== native elements among the form's ====

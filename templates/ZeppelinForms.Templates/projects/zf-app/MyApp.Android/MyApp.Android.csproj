@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The application on Android. Needs the android workload: dotnet workload install android -->
+	<PropertyGroup>
+		<TargetFramework>net10.0-android</TargetFramework>
+		<SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+		<OutputType>Exe</OutputType>
+
+		<!-- An Android app is built for Android RIDs only: without this a newer SDK infers
+		     the host's RID for publishing and fails with XA0035 -->
+		<UseDefaultPublishRuntimeIdentifier>false</UseDefaultPublishRuntimeIdentifier>
+		<RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
+
+		<ApplicationId>com.companyname.myapp</ApplicationId>
+		<ApplicationTitle>MyApp</ApplicationTitle>
+
+		<!-- the version the user sees, and the one an update must raise -->
+		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+		<ApplicationVersion>1</ApplicationVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="ZeppelinForms.Android" Version="$(ZeppelinFormsVersion)" />
+		<ProjectReference Include="..\MyApp\MyApp.csproj" />
+	</ItemGroup>
+
+</Project>

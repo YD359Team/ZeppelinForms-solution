@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "YD359Team",
+  "classifications": [
+    "ZeppelinForms",
+    "Form"
+  ],
+  "identity": "ZeppelinForms.ItemTemplates.Form.CSharp",
+  "groupIdentity": "ZeppelinForms.ItemTemplates.Form",
+  "name": "ZeppelinForms Form",
+  "description": "A form in two files: Form1.design.cs makes and lays out its controls in InitializeComponent, Form1.cs holds what they do.",
+  "shortName": "zf-form",
+  "defaultName": "Form1",
+  "sourceName": "Form1",
+  "preferNameDirectory": false,
+  "tags": {
+    "language": "C#",
+    "type": "item"
+  },
+  "symbols": {
+    "rootNamespace": {
+      "type": "bind",
+      "binding": "msbuild:RootNamespace",
+      "defaultValue": "MyApp"
+    },
+    "namespace": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "The namespace of the form; the project's root namespace when not given."
+    },
+    "formNamespace": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "namespace",
+        "fallbackVariableName": "rootNamespace"
+      },
+      "replaces": "MyApp"
+    }
+  },
+  "primaryOutputs": [
+    {
+      "path": "Form1.cs"
+    },
+    {
+      "path": "Form1.design.cs"
+    }
+  ],
+  "constraints": {
+    "csharp-only": {
+      "type": "project-capability",
+      "args": "CSharp"
+    }
+  },
+  "postActions": [
+    {
+      "condition": "(HostIdentifier != \"dotnetcli\" && HostIdentifier != \"dotnetcli-preview\")",
+      "description": "Opens Form1.cs and Form1.design.cs in the editor.",
+      "manualInstructions": [],
+      "actionId": "84C0DA21-51C8-4541-9940-6CA19AF04EE6",
+      "id": "openInEditor",
+      "args": {
+        "files": "0;1"
+      },
+      "continueOnError": true
+    }
+  ]
+}

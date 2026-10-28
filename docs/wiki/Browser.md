@@ -42,6 +42,9 @@ fails the start with a message in the browser's console.
 `wwwroot/index.html`:
 
 ```html
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+</head>
 <body>
     <canvas id="zf-canvas"></canvas>
     <script type="module" src="main.js"></script>
@@ -63,7 +66,20 @@ globalThis.zfExports = exports.ZeppelinForms.Browser.Interop;
 await runtime.runMain();
 ```
 
-`zf.js` ships with `ZeppelinForms.Browser`; copy it into the application's `wwwroot`.
+`zf.js` ships with `ZeppelinForms.Browser`; copy it into the application's `wwwroot`. A
+project made by `dotnet new zf-app` has these three files already, `zf.js` of the
+templates' version.
+
+`viewport-fit=cover` lets the page go under a phone's notch and gesture bar and tells the
+form where they are (`Form.SafeAreaInsets`); `interactive-widget=resizes-content` makes the
+page shorter when the on-screen keyboard opens, so the focused field is lifted above it.
+
+## The back button and the address
+
+A `NavigationHost` makes its pages entries of the page's history: the back and forward
+buttons go through the stack, the address after the `#` is the stack's location, and a
+link with a route opens the page it names. See
+[Mobile and navigation](Mobile-and-Navigation#in-a-browser-the-address-and-the-back-button).
 
 ## Fonts
 
@@ -86,7 +102,10 @@ application needs is lighter.
 - **No system drag and drop** — drag and drop inside the application works.
 - **No windows**: one form fills the canvas; `Position`, `TopMost` and the size limits are
   accepted and do nothing.
-- **File pickers** are the browser's own, through `IFilePicker`.
+- **File pickers** are the browser's own, through `IFilePicker`. A picked file is read
+  from the copy the page was given; `FileDialog.PickSaveFileAsync` writes through the
+  browser's save dialog (Chromium) or as a download (elsewhere) — see
+  [Picked files](Forms-and-Windows#picked-files).
 - Trimmed publishing (`PublishTrimmed`) is supported: the framework is annotated for the
   trimmer.
 
