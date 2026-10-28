@@ -271,6 +271,34 @@ choosing a theme — goes into a `[PreviewSetup]` method. The extension also hig
 style sheets and lists their problems in the Error List, and those of the values of the
 styles in `.zfml` markup.
 
+## Completion and the language server
+
+`ZeppelinForms.LanguageServer` is a language server — the Language Server Protocol, on
+stdin and stdout — of `.zfml` markup and `.zss` style sheets, run by the machine's .NET 10.
+The Visual Studio extension ships it and asks it as you type; the Rider and VS Code
+extensions start the same server.
+
+- **Markup:** the elements after `<` — the framework's controls, the `prefix:` types of a
+  `using:` namespace, property elements `<Grid.Styles>`; the properties and events of an
+  element in its tag, the ones not written yet; enum members, `true`/`false` and static
+  members in a value; the class's methods for an event and its commands for `Command`;
+  `{Bind …}` with the path's properties from `x:DataType` — or from a named element —
+  step by step; `prefix:Type` for `x:DataType`; the styled properties of a `<Setter>` of
+  the type its `<Style Selector>` selects.
+- **Style sheets:** the controls, `:pseudo-classes` and nesting of selectors; the styled
+  properties of the control a block styles; enum members, `@ThemeColors` and `$variables`
+  in a value.
+- **Hover:** an element's type, an attribute's property or event, a step of a binding's
+  path — the declaration and its summary.
+- **Problems**, for the editors whose build doesn't show them as you type (Visual Studio's
+  does): the markup generator's ZF2xxx and the compiler's errors in the code it writes, at
+  the markup's line; a sheet's shape and the controls and properties it names.
+
+The server reads the project as the build does, without building it: its C# files, the
+packages and projects `obj/project.assets.json` lists — the restore an IDE runs on opening
+a project writes it — and the framework's generators over its markup. A view model just
+written is offered at once.
+
 ## Hot Reload
 
 Visual Studio's Hot Reload and `dotnet watch` work with code-first forms. After every applied

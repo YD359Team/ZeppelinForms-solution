@@ -81,6 +81,7 @@
     <File Path="tools/wayland-scanner.cs" />
     <Project Path="tools/ZeppelinForms.Design/ZeppelinForms.Design.csproj" />
     <Project Path="tools/ZeppelinForms.Designer/ZeppelinForms.Designer.csproj" />
+    <Project Path="tools/ZeppelinForms.LanguageServer/ZeppelinForms.LanguageServer.csproj" />
     <Project Path="tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.csproj" />
   </Folder>
   <Folder Name="/Элементы решения/">

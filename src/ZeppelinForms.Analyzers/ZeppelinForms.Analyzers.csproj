@@ -16,6 +16,12 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
 	</ItemGroup>
 
+	<!-- the language server runs the markup compiler and the style checks on the text
+	     being edited, as the generator runs them on the saved files -->
+	<ItemGroup>
+		<InternalsVisibleTo Include="ZeppelinForms.LanguageServer" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
 		<AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />

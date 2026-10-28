@@ -6,7 +6,7 @@
          manifest as XML: the manifest designer doesn't know the token -->
 		<Identity Id="ZeppelinForms.VisualStudio.f1670ea6-4af5-458a-9ce7-1475c39d00f4" Version="|%CurrentProject%;GetVsixVersion|" Language="en-US" Publisher="YD359Team" />
 		<DisplayName>ZeppelinForms Tools</DisplayName>
-		<Description xml:space="preserve">The ZeppelinForms previewer — live previews of [Preview] methods and forms — .zss style sheets: highlighting and problems in the Error List — and .zfml markup in the XML editor.</Description>
+		<Description xml:space="preserve">The ZeppelinForms previewer — live previews of [Preview] methods and forms — .zss style sheets: highlighting and problems in the Error List — and .zfml markup in the XML editor, with completion and quick info for both from the ZeppelinForms language server.</Description>
 		<MoreInfo>https://github.com/YD359Team/ZeppelinForms-solution</MoreInfo>
 		<Icon>Resources\Icon.png</Icon>
 		<Tags>ZeppelinForms, UI, previewer, designer, styles</Tags>
@@ -26,5 +26,7 @@
 	<Assets>
 		<Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
 		<Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="File" Path="ZeppelinForms.pkgdef" />
+		<!-- the editor's completion and quick info of .zfml and .zss: MEF parts of the assembly -->
+		<Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%|" />
 	</Assets>
 </PackageManifest>

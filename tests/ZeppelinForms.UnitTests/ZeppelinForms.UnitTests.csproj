@@ -29,6 +29,7 @@
     <ProjectReference Include="..\..\src\ZeppelinForms\ZeppelinForms.csproj" />
     <ProjectReference Include="..\..\tools\ZeppelinForms.Design\ZeppelinForms.Design.csproj" />
     <ProjectReference Include="..\..\src\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" />
+    <ProjectReference Include="..\..\tools\ZeppelinForms.LanguageServer\ZeppelinForms.LanguageServer.csproj" />
   </ItemGroup>
 
 </Project>

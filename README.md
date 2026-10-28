@@ -584,7 +584,10 @@ preview of the active project: every form with a parameterless constructor, and 
 method marked `[Preview]` (namespace `ZeppelinForms.Design`). What `Main` does before
 showing a form — loading style sheets, choosing a theme — goes into a `[PreviewSetup]`
 method. The extension also highlights `.zss` style sheets and reports their problems in
-the Error List. See `tools/ZeppelinForms.VisualStudio/README.md`.
+the Error List, and completes `.zfml` and `.zss` as you type — elements, attributes,
+values, the paths of `{Bind …}` from `x:DataType`, the properties a sheet's block can set —
+with the summaries on hover, from the ZeppelinForms language server it ships. See
+`tools/ZeppelinForms.VisualStudio/README.md`.
 
 ### 📝 Markup
 

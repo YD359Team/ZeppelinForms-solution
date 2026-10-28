@@ -1,7 +1,8 @@
 ﻿<Project>
 
 	<!-- The Visual Studio extension: the previewer's tool window, .zss highlighting
-	     and .zss problems in the Error List. Builds with Visual Studio's MSBuild on
+	     and .zss problems in the Error List, completion and quick info of .zfml and .zss
+	     from the language server. Builds with Visual Studio's MSBuild on
 	     Windows only — open ZeppelinForms.VisualStudio.sln — which is why it is not
 	     in the main solution that CI builds with dotnet on Linux too. -->
 
@@ -55,6 +56,9 @@
 		<!-- .NET Framework assemblies an SDK-style project doesn't reference by itself:
 		     the VS SDK's command and service types derive from System.Design's -->
 		<Reference Include="System.Design" />
+
+		<!-- MEF's attributes: the editor finds the completion and quick info sources by them -->
+		<Reference Include="System.ComponentModel.Composition" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -112,6 +116,25 @@
 		<ItemGroup>
 			<_DesignerHostFile Include="$(DesignerHostOutput)\**\*" />
 			<Content Include="@(_DesignerHostFile)" IncludeInVSIX="true" VSIXSubPath="Designer\%(_DesignerHostFile.RecursiveDir)" />
+		</ItemGroup>
+	</Target>
+
+	<!-- The language server goes in too, published to LanguageServer\: completion and quick
+	     info for .zfml and .zss ask it (LanguageServer\ZfLanguageServer.cs). Published as the
+	     host is, for the same reasons; it has no native files, so the folder is flat -->
+	<Target Name="PublishLanguageServer" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)' != 'true'">
+		<PropertyGroup>
+			<LanguageServerOutput>$(MSBuildProjectDirectory)\obj\LanguageServer</LanguageServerOutput>
+			<LanguageServerArtifacts>$(MSBuildProjectDirectory)\obj\LanguageServerBuild</LanguageServerArtifacts>
+		</PropertyGroup>
+
+		<Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)\..\ZeppelinForms.LanguageServer\ZeppelinForms.LanguageServer.csproj&quot; -c $(Configuration) -o &quot;$(LanguageServerOutput)&quot; --artifacts-path &quot;$(LanguageServerArtifacts)&quot; -p:Version=$(Version) --nologo"
+		      StdOutEncoding="utf-8"
+		      StdErrEncoding="utf-8" />
+
+		<ItemGroup>
+			<_LanguageServerFile Include="$(LanguageServerOutput)\**\*" />
+			<Content Include="@(_LanguageServerFile)" IncludeInVSIX="true" VSIXSubPath="LanguageServer\%(_LanguageServerFile.RecursiveDir)" />
 		</ItemGroup>
 	</Target>
 

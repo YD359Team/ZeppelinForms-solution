@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The language server of .zfml markup and .zss style sheets: completion, hover and
+	     problems, over the Language Server Protocol on stdin and stdout. The editors start
+	     it — Visual Studio, Rider, VS Code — and it reads the project the way the build
+	     does: its C#, its packages, and the markup generator's own checks -->
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Description>The ZeppelinForms language server: completion, hover and problems of .zfml markup and .zss style sheets over the Language Server Protocol.</Description>
+		<IsPackable>false</IsPackable>
+
+		<!-- the editors start it with whatever .NET the machine has -->
+		<RollForward>Major</RollForward>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="ZeppelinForms.UnitTests" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- the generator's own compiler and checks: the server reports what the build would -->
+		<ProjectReference Include="..\..\src\ZeppelinForms.Analyzers\ZeppelinForms.Analyzers.csproj" />
+
+		<!-- the framework's assembly and its documentation, next to the server: the types
+		     of a project not restored yet, and the summaries hover shows -->
+		<ProjectReference Include="..\..\src\ZeppelinForms\ZeppelinForms.csproj" />
+	</ItemGroup>
+
+</Project>

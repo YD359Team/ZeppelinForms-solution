@@ -25,6 +25,19 @@
 - A wiki section and a README example of a whole form in markup; the showcase's Markup
   page opens one, `FeedbackForm.zfml`
 
+### Completion
+
+- `ZeppelinForms.LanguageServer`: a language server (LSP, on stdin and stdout) of `.zfml`
+  and `.zss`. Markup: elements, `prefix:` types, property elements, the attributes of an
+  element, enum and static values, handlers of the class, commands, `{Bind …}` paths from
+  `x:DataType` or a named element, `x:DataType` types, a `<Setter>`'s styled properties.
+  Sheets: controls, pseudo-classes, a block's styled properties, values, `@ThemeColors`,
+  `$variables`. Hover with the summaries; the generator's problems as you type
+- It reads a project without building it: its C#, the packages and projects of
+  `obj/project.assets.json`, the framework's generators over its markup
+- The Visual Studio extension completes `.zfml` in the XML editor and `.zss`, and shows
+  quick info in `.zfml`, from the server it ships; the problems stay the build's
+
 ### MVVM
 
 - `UIElement.DataContext` and `Form.DataContext`: the object an element's bindings start
