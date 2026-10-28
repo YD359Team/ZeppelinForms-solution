@@ -105,3 +105,37 @@ static ZeppelinForms.Forms.Dialogs.FileDialog.PickFilesAsync(ZeppelinForms.Forms
 static ZeppelinForms.Forms.Dialogs.FileDialog.PickSaveFileAsync(ZeppelinForms.Forms.Form! owner, ZeppelinForms.Forms.Dialogs.FileDialogOptions? options = null) -> System.Threading.Tasks.Task<ZeppelinForms.Forms.Dialogs.PickedFile?>!
 ZeppelinForms.Headless.HeadlessPlatform.NativeFileDialog.get -> System.Func<ZeppelinForms.Forms.Dialogs.FileDialogMode, ZeppelinForms.Forms.Dialogs.FileDialogOptions!, string![]!>?
 ZeppelinForms.Headless.HeadlessPlatform.NativeFileDialog.set -> void
+*REMOVED*ZeppelinForms.Data.Binding.Source.get -> object!
+ZeppelinForms.Data.Binding.Source.get -> object?
+ZeppelinForms.Data.Binding.Path.get -> ZeppelinForms.Data.BindingPath!
+ZeppelinForms.Data.Binding.UsesDataContext.get -> bool
+ZeppelinForms.Data.BindingPath
+ZeppelinForms.Data.BindingPath.BindingPath(string! text, System.Type! sourceType, System.Type! valueType, params ZeppelinForms.Data.BindingStep[]! steps) -> void
+ZeppelinForms.Data.BindingPath.Set.get -> System.Action<object!, object?>?
+ZeppelinForms.Data.BindingPath.Set.init -> void
+ZeppelinForms.Data.BindingPath.SourceType.get -> System.Type!
+ZeppelinForms.Data.BindingPath.Steps.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Data.BindingStep>!
+ZeppelinForms.Data.BindingPath.Text.get -> string!
+ZeppelinForms.Data.BindingPath.ValueType.get -> System.Type!
+override ZeppelinForms.Data.BindingPath.ToString() -> string!
+ZeppelinForms.Data.BindingStep
+ZeppelinForms.Data.BindingStep.BindingStep() -> void
+ZeppelinForms.Data.BindingStep.BindingStep(string? name, System.Func<object!, object?>! get) -> void
+ZeppelinForms.Data.BindingStep.Get.get -> System.Func<object!, object?>!
+ZeppelinForms.Data.BindingStep.Name.get -> string?
+ZeppelinForms.Forms.Controls.Base.UIElement.Bind(ZeppelinForms.Forms.Styling.StyledProperty! property, ZeppelinForms.Data.BindingPath! path, ZeppelinForms.Data.BindingMode mode) -> ZeppelinForms.Data.Binding!
+ZeppelinForms.Forms.Controls.Base.UIElement.Bind(ZeppelinForms.Forms.Styling.StyledProperty! property, object! source, ZeppelinForms.Data.BindingPath! path, ZeppelinForms.Data.BindingMode mode) -> ZeppelinForms.Data.Binding!
+ZeppelinForms.Forms.Controls.Base.UIElement.Bind<TSource, TValue>(ZeppelinForms.Forms.Styling.StyledProperty<TValue>! property, System.Func<TSource, TValue>! get) -> ZeppelinForms.Data.Binding!
+ZeppelinForms.Forms.Controls.Base.UIElement.Bind<TSource, TValue>(ZeppelinForms.Forms.Styling.StyledProperty<TValue>! property, System.Func<TSource, TValue>! get, System.Action<TSource, TValue>! set) -> ZeppelinForms.Data.Binding!
+ZeppelinForms.Forms.Controls.Base.UIElement.Bind<TSource, TValue>(ZeppelinForms.Forms.Styling.StyledProperty<TValue>! property, TSource source, System.Func<TSource, TValue>! get) -> ZeppelinForms.Data.Binding!
+ZeppelinForms.Forms.Controls.Base.UIElement.Bind<TSource, TValue>(ZeppelinForms.Forms.Styling.StyledProperty<TValue>! property, TSource source, System.Func<TSource, TValue>! get, System.Action<TSource, TValue>! set) -> ZeppelinForms.Data.Binding!
+ZeppelinForms.Forms.Controls.Base.UIElement.BindValue(string! name, object! source, ZeppelinForms.Data.BindingPath! path, System.Action<ZeppelinForms.Forms.Controls.Base.UIElement!, object?>! apply) -> ZeppelinForms.Data.Binding!
+ZeppelinForms.Forms.Controls.Base.UIElement.BindValue(string! name, ZeppelinForms.Data.BindingPath! path, System.Action<ZeppelinForms.Forms.Controls.Base.UIElement!, object?>! apply) -> ZeppelinForms.Data.Binding!
+ZeppelinForms.Forms.Controls.Base.UIElement.DataContext.get -> object?
+ZeppelinForms.Forms.Controls.Base.UIElement.DataContext.set -> void
+ZeppelinForms.Forms.Controls.Base.UIElement.DataContextChanged -> System.EventHandler?
+ZeppelinForms.Forms.Controls.Base.UIElement.UnbindValue(string! name) -> void
+ZeppelinForms.Forms.Form.DataContext.get -> object?
+ZeppelinForms.Forms.Form.DataContext.set -> void
+ZeppelinForms.Forms.Markup.SetAfterContentAttribute
+ZeppelinForms.Forms.Markup.SetAfterContentAttribute.SetAfterContentAttribute() -> void

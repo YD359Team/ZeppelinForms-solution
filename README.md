@@ -379,6 +379,37 @@ Assigning a bound property from code wins over the binding: in `TwoWay` the
 value goes to the source, in `OneWay` the binding is broken — otherwise the next
 source change would silently overwrite what was just written.
 
+#### MVVM
+
+A view model is an element's or a form's `DataContext`, inherited down the tree. Markup
+says what it is with `x:DataType`, and every `{Bind …}` is checked against it at build
+time and compiled into plain property reads — no reflection, so trimming and native AOT
+keep it:
+
+```xml
+<StackPanel Class="MyApp.ProfileCard" xmlns:vm="using:MyApp.ViewModels" x:DataType="vm:ProfileViewModel">
+  <Label Text="{Bind Greeting}"/>
+  <TextBox Text="{Bind Name, Mode=TwoWay}"/>
+  <TextBox Text="{Bind Address.City, Mode=TwoWay}"/>
+  <PrimaryButton Text="Save" Command="{Bind Save}"/>
+</StackPanel>
+```
+
+```csharp
+var card = new ProfileCard { DataContext = new ProfileViewModel() };
+```
+
+Every object on a path is followed: a new `Address` is read and followed in its turn. In
+C#, the same bindings without property names:
+
+```csharp
+status.Bind(Label.TextProperty, (OrderViewModel vm) => vm.Status);
+name.Bind(TextBox.TextProperty, (OrderViewModel vm) => vm.Name, (vm, value) => vm.Name = value);
+```
+
+A view model needs `INotifyPropertyChanged` and `ICommand` and nothing of the framework:
+CommunityToolkit.Mvvm's `[ObservableProperty]` and `[RelayCommand]` work as they are.
+
 ### 🛠️ Getting Started
 
 The UI references the `ZeppelinForms` package; the application references the package

@@ -14,6 +14,7 @@
   pattern of your own), `RichLabel.ContentAlign` and `ContentVerticalAlign` (use
   `HorizontalContentAlign` and `VerticalContentAlign`), `PropertyGrid.RowTextColor` (the
   names take `NameColor`, which the theme sets)
+- `Binding.Source` is `object?`: a binding to a data context not set yet has none
 
 ### Markup
 
@@ -23,6 +24,31 @@
 - A class the markup alone declares is public
 - A wiki section and a README example of a whole form in markup; the showcase's Markup
   page opens one, `FeedbackForm.zfml`
+
+### MVVM
+
+- `UIElement.DataContext` and `Form.DataContext`: the object an element's bindings start
+  from, inherited down the tree from the element that has it, or from the form;
+  `DataContextChanged`
+- Markup: `x:DataType="vm:OrderViewModel"` says what the data context is, and
+  `{Bind Status}`, `{Bind Customer.Name, Mode=TwoWay}`, `Command="{Bind Save}"` read from it —
+  checked at build time (ZF2008 at the line of a property that isn't there, a TwoWay that
+  can't write, a command that isn't one; ZF2015 for a type x:DataType can't find) and
+  compiled into property reads: no reflection, so trimming and native AOT keep them
+- Paths follow every object on the way: `Customer.Name` reads a new customer when the view
+  model gets one; a null on the way is the property's default
+- Typed bindings in C#: `Bind(TextBox.TextProperty, (OrderViewModel vm) => vm.Name, (vm, v) => vm.Name = v)`
+  to the data context, `Bind(property, source, get[, set])` to a source of one's own;
+  `BindingPath` and `BindingStep` for a path by hand; `BindValue` for a property that isn't
+  styled
+- A binding writes the element only when the value changed
+- View models need `INotifyPropertyChanged` and `ICommand` only: CommunityToolkit.Mvvm's
+  work as they are
+- Markup sets a selected index or item after the items, wherever its attribute is written:
+  `<ComboBox SelectedIndex="1">` with its items inside selected nothing. `[SetAfterContent]`
+  marks such a property
+- `Binding.Path`, `Binding.UsesDataContext`
+- The showcase's Markup page binds `ProfileCard.zfml` to `ProfileViewModel`
 
 ### Design apart from code
 

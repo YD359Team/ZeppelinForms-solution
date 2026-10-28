@@ -4,6 +4,7 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Markup;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
@@ -24,6 +25,7 @@ public partial class ListBox : ItemsControl, IInputElement
 
     /// <summary>The lead row. With multiple selection — the one
     /// selected last.</summary>
+    [SetAfterContent]
     public int SelectedIndex
     {
         get => _selectedIndex;

@@ -265,6 +265,7 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
             field = value;
             BumpOwnerGeneration();
             OnParentChangedForAccessibility(value);
+            OnTreeChangedForDataContext();
         }
     }
 
@@ -277,6 +278,9 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
 
             field = value;
             BumpOwnerGeneration();
+
+            // the form's data context is the root's when it has none of its own
+            OnTreeChangedForDataContext();
         }
     }
 

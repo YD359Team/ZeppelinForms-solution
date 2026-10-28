@@ -8,6 +8,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Markup;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
@@ -168,6 +169,7 @@ public partial class ImageGallery : DecoratedPanel, IInputElement
 
     /// <summary>The lead item: the one the arrows move, and with multiple selection
     /// the one selected last.</summary>
+    [SetAfterContent]
     public int SelectedIndex
     {
         get => _selectedIndex;

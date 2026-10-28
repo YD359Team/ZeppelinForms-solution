@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using System.Globalization;
-using System.Reflection;
 using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Styling;
@@ -17,26 +16,48 @@ public enum BindingMode
 }
 
 /// <summary>
-/// A link between an element's styled property and a property of the source.
+/// A link between a property of an element and the end of a <see cref="BindingPath"/> from
+/// a source — an object given, or the element's <see cref="UIElement.DataContext"/>.
 /// </summary>
 /// <remarks>
-/// The target is kept as a weak reference: a subscription to PropertyChanged is
-/// a reference from the source to the handler, and a strong reference to the
-/// element would mean a live model holds the whole closed window.
-/// On finding a dead target, the binding unsubscribes itself.
+/// <para>
+/// Every object on the path that implements <see cref="INotifyPropertyChanged"/> is
+/// followed: a change of the view model's <c>Customer</c> reads the new customer's name
+/// and follows the new customer from then on. A null on the way, or a source of another
+/// type than the path's, is no value: the element's property gets its default.
+/// </para>
+/// <para>
+/// The target is kept as a weak reference: a subscription to PropertyChanged is a reference
+/// from the source to the binding, and a strong reference to the element would mean a live
+/// model holds the whole closed window. On finding a dead target, the binding unsubscribes
+/// itself.
+/// </para>
 /// </remarks>
 public sealed class Binding
 {
     private readonly WeakReference<UIElement> _target;
-    private readonly StyledProperty _targetProperty;
-    private readonly PropertyInfo _sourceProperty;
-    private readonly string _sourcePropertyName;
 
-    /// <summary>The source. The reference is strong: while the element is alive,
-    /// it needs the model.</summary>
-    public object Source { get; }
+    /// <summary>A styled property of the target, or — for a property that isn't styled —
+    /// <see cref="_apply"/>.</summary>
+    private readonly StyledProperty? _targetProperty;
 
-    public BindingMode Mode { get; }
+    private readonly Action<UIElement, object?>? _apply;
+
+    /// <summary>The objects the steps are read from: <c>_owners[0]</c> is the source,
+    /// <c>_owners[i]</c> what step i−1 read. Null past a null on the way.</summary>
+    private readonly object?[] _owners;
+
+    /// <summary>The objects followed for PropertyChanged, by step.</summary>
+    private readonly INotifyPropertyChanged?[] _followed;
+
+    private readonly PropertyChangedEventHandler[] _handlers;
+
+    /// <summary>The value last written into the element: a change of the source that
+    /// leaves it as it was — any property of a view model followed as a whole — writes
+    /// nothing.</summary>
+    private object? _written;
+
+    private bool _hasWritten;
 
     /// <summary>A write from the binding is in progress — to tell it apart from
     /// a user assignment and not to loop in TwoWay.</summary>
@@ -46,20 +67,101 @@ public sealed class Binding
 
     internal Binding(
         UIElement target,
-        StyledProperty targetProperty,
-        object source,
-        PropertyInfo sourceProperty,
+        StyledProperty? targetProperty,
+        Action<UIElement, object?>? apply,
+        object? source,
+        bool usesDataContext,
+        BindingPath path,
         BindingMode mode)
     {
         _target = new WeakReference<UIElement>(target);
         _targetProperty = targetProperty;
-        Source = source;
-        _sourceProperty = sourceProperty;
-        _sourcePropertyName = sourceProperty.Name;
+        _apply = apply;
+        Path = path;
         Mode = mode;
+        UsesDataContext = usesDataContext;
 
-        if (source is INotifyPropertyChanged notify)
-            notify.PropertyChanged += OnSourceChanged;
+        _owners = new object?[path.Length];
+        _followed = new INotifyPropertyChanged?[path.Length];
+        _handlers = new PropertyChangedEventHandler[path.Length];
+
+        for (int i = 0; i < path.Length; i++)
+        {
+            int step = i;
+            _handlers[i] = (_, e) => OnSourceChanged(step, e);
+        }
+
+        Source = source;
+    }
+
+    /// <summary>The source the path starts from: the object given, or the element's data
+    /// context as it is now. Null — none yet.</summary>
+    /// <remarks>The reference is strong: while the element is alive, it needs the model.</remarks>
+    public object? Source { get; private set; }
+
+    public BindingMode Mode { get; }
+
+    public BindingPath Path { get; }
+
+    /// <summary>The source is the element's <see cref="UIElement.DataContext"/>, followed
+    /// as it changes — set on the element, on an ancestor or on the form, or the element
+    /// moved under another.</summary>
+    public bool UsesDataContext { get; }
+
+    /// <summary>Start from a source — the first, or another one the data context became —
+    /// and write what it gives.</summary>
+    internal void SetSource(object? source)
+    {
+        if (_detached) return;
+
+        Source = source;
+        _owners[0] = source is not null && Path.SourceType.IsInstanceOfType(source) ? source : null;
+
+        Follow(0);
+        PushToTarget();
+    }
+
+    /// <summary>Follow the objects on the path from a step on: <c>_owners[from]</c> is
+    /// in place, the ones after it are read again.</summary>
+    private void Follow(int from)
+    {
+        for (int i = from; i < _followed.Length; i++)
+        {
+            if (_followed[i] is { } followed)
+                followed.PropertyChanged -= _handlers[i];
+
+            _followed[i] = null;
+        }
+
+        object? current = _owners[from];
+
+        for (int i = from; i < _owners.Length; i++)
+        {
+            _owners[i] = current;
+
+            if (current is null) continue;
+
+            if (current is INotifyPropertyChanged notify)
+            {
+                notify.PropertyChanged += _handlers[i];
+                _followed[i] = notify;
+            }
+
+            // the last owner's property is the value: read when it is written
+            if (i < _owners.Length - 1)
+                current = Path[i].Get(current);
+        }
+    }
+
+    /// <summary>The value at the end of the path; false — a null on the way.</summary>
+    private bool TryRead(out object? value)
+    {
+        value = null;
+
+        if (_owners[^1] is not { } owner) return false;
+
+        value = Path[Path.Length - 1].Get(owner);
+        return true;
     }
 
     /// <summary>Take the value from the source and write it into the element.</summary>
@@ -73,31 +175,49 @@ public sealed class Binding
             return;
         }
 
-        object? raw = _sourceProperty.GetValue(Source);
-
         object? value;
 
-        try
+        if (!TryRead(out object? raw))
         {
-            value = Convert(raw, _targetProperty.PropertyType);
+            // nothing at the end of the path: the property's own default
+            value = _targetProperty?.DefaultBoxed;
         }
-        // ArgumentException comes from Enum.Parse on an unknown name
-        catch (Exception e) when (e is InvalidCastException or FormatException or OverflowException or ArgumentException)
+        else if (_targetProperty is null)
         {
-            // the source's type doesn't fit the property's type — there is nothing
-            // to write, but crashing in the middle of drawing is wrong
-            ZfContract.Fail(
-                $"Value '{raw}' from '{_sourcePropertyName}' cannot be converted " +
-                $"to {_targetProperty.PropertyType.Name}.");
+            // a property that isn't styled: the generated code casts it, as it was typed
+            value = raw;
+        }
+        else
+        {
+            try
+            {
+                value = Convert(raw, _targetProperty.PropertyType);
+            }
+            // ArgumentException comes from Enum.Parse on an unknown name
+            catch (Exception e) when (e is InvalidCastException or FormatException or OverflowException or ArgumentException)
+            {
+                // the source's type doesn't fit the property's type — there is nothing
+                // to write, but crashing in the middle of drawing is wrong
+                ZfContract.Fail(
+                    $"Value '{raw}' from '{Path.Text}' cannot be converted " +
+                    $"to {_targetProperty.PropertyType.Name}.");
 
-            return;
+                return;
+            }
         }
 
+        if (_hasWritten && Equals(_written, value)) return;
+
+        _written = value;
+        _hasWritten = true;
         _updating = true;
 
         try
         {
-            element.SetBoundValue(_targetProperty, value);
+            if (_targetProperty is not null)
+                element.SetBoundValue(_targetProperty, value);
+            else
+                _apply!(element, value);
         }
         finally
         {
@@ -110,13 +230,18 @@ public sealed class Binding
     {
         if (_detached || Mode != BindingMode.TwoWay || _updating) return;
 
-        if (!_sourceProperty.CanWrite) return;
+        if (Path.Set is not { } set || _owners[^1] is not { } owner) return;
 
         _updating = true;
 
         try
         {
-            _sourceProperty.SetValue(Source, Convert(value, _sourceProperty.PropertyType));
+            set(owner, Convert(value, Path.ValueType));
+
+            // what the element shows is what the source has now: the source changed
+            // back to the old value later is a change to write again
+            _written = value;
+            _hasWritten = true;
         }
         catch (Exception e) when (e is InvalidCastException or FormatException or OverflowException or ArgumentException)
         {
@@ -129,7 +254,7 @@ public sealed class Binding
             // a field bound to a number
             System.Diagnostics.Debug.WriteLine(
                 $"[ZF] binding: value '{value}' cannot be converted to " +
-                $"{_sourceProperty.PropertyType.Name} for '{_sourcePropertyName}', the write is skipped.");
+                $"{Path.ValueType.Name} for '{Path.Text}', the write is skipped.");
         }
         finally
         {
@@ -137,13 +262,23 @@ public sealed class Binding
         }
     }
 
-    private void OnSourceChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnSourceChanged(int step, PropertyChangedEventArgs e)
     {
-        // an empty name by convention means "everything changed"
-        if (!string.IsNullOrEmpty(e.PropertyName) && e.PropertyName != _sourcePropertyName)
+        string? name = Path[step].Name;
+
+        // an empty name by convention means "everything changed"; a step without
+        // a name follows every property of its object
+        if (name is not null && !string.IsNullOrEmpty(e.PropertyName) && e.PropertyName != name)
             return;
 
         if (_updating) return;
+
+        // an object on the way gave another one: read it, and follow from there
+        if (step < _owners.Length - 1)
+        {
+            _owners[step + 1] = _owners[step] is { } owner ? Path[step].Get(owner) : null;
+            Follow(step + 1);
+        }
 
         PushToTarget();
     }
@@ -154,8 +289,13 @@ public sealed class Binding
         if (_detached) return;
         _detached = true;
 
-        if (Source is INotifyPropertyChanged notify)
-            notify.PropertyChanged -= OnSourceChanged;
+        for (int i = 0; i < _followed.Length; i++)
+        {
+            if (_followed[i] is { } followed)
+                followed.PropertyChanged -= _handlers[i];
+
+            _followed[i] = null;
+        }
     }
 
     private static object? Convert(object? value, Type targetType)

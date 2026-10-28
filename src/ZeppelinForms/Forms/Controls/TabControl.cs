@@ -3,6 +3,7 @@ using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Markup;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
@@ -48,6 +49,7 @@ public partial class TabControl : DecoratedPanel, IInputElement
         }
     } = 140f;
 
+    [SetAfterContent]
     public int SelectedIndex
     {
         get => _selectedIndex;

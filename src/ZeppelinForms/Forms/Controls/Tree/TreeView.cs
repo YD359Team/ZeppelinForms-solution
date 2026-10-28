@@ -4,6 +4,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
+using ZeppelinForms.Forms.Markup;
 using ZeppelinForms.Input.Keyboard;
 
 namespace ZeppelinForms.Forms.Controls.Tree;
@@ -204,6 +205,7 @@ public class TreeView : DecoratedPanel, IInputElement
     /// <summary>The lead node: the one selected last, where the keyboard is. Setting it
     /// selects that node alone and scrolls it into sight, as a selection from the
     /// keyboard does; null clears the selection.</summary>
+    [SetAfterContent]
     public TreeNode? SelectedNode
     {
         get => _lead;

@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Forms;
+﻿using ZF_SharedLib.Models;
+using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
@@ -15,6 +16,8 @@ internal static class MarkupPage
                 "SignUpCard.zfml lays it out, SignUpCard.cs handles the buttons; the greeting is bound to the name field with {Bind NameBox.Text}"),
             Demo.Section("A form in markup", WholeForm(form),
                 "FeedbackForm.zfml is the whole window: <Form Class=\"…\"> at the root, no namespaces to declare; FeedbackForm.cs answers its two buttons"),
+            Demo.Section("A view model", new ProfileCard { DataContext = new ProfileViewModel() },
+                "ProfileCard.zfml binds to ProfileViewModel, its DataContext: x:DataType says what it is, {Bind Name, Mode=TwoWay} and {Bind Address.City} are checked and compiled at build time, Command=\"{Bind Save}\" follows the command's CanExecute"),
             Demo.Section("Design apart from code", DesignedForm(form),
                 "OrderForm.design.cs makes and lays out the controls in InitializeComponent, OrderForm.cs only answers them — the WinForms split, by hand; the generator adds the constructor and Hot Reload"));
 

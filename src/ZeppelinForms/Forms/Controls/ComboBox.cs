@@ -4,6 +4,7 @@ using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Interfaces;
 using ZeppelinForms.Forms.Layout;
+using ZeppelinForms.Forms.Markup;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
@@ -34,6 +35,7 @@ public partial class ComboBox : InteractiveControl
         }
     }
 
+    [SetAfterContent]
     public int SelectedIndex
     {
         get => _selectedIndex;
@@ -48,6 +50,7 @@ public partial class ComboBox : InteractiveControl
         }
     }
 
+    [SetAfterContent]
     public object? SelectedItem
     {
         get => _selectedIndex >= 0 ? Items[_selectedIndex] : null;

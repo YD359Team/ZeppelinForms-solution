@@ -5,6 +5,7 @@ using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
+using ZeppelinForms.Forms.Markup;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
@@ -163,12 +164,14 @@ public partial class TabStrip : InteractiveControl
 
     // ===== selection =====
 
+    [SetAfterContent]
     public int SelectedIndex
     {
         get => _selected is null ? -1 : Items.IndexOf(_selected);
         set => Select(value >= 0 && value < Items.Count ? Items[value] : null);
     }
 
+    [SetAfterContent]
     public TabStripItem? SelectedItem
     {
         get => _selected;

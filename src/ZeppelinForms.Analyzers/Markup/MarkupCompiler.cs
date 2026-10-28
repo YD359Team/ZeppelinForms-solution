@@ -30,7 +30,14 @@ namespace ZeppelinForms.Analyzers.Markup;
 /// </para>
 /// <para>
 /// <c>{Bind Name.Property}</c> binds a styled property to a property of a named element,
-/// <c>{Bind Name.Property, Mode=TwoWay}</c> both ways; <c>{x:Null}</c> is null.
+/// <c>{Bind Name.Property, Mode=TwoWay}</c> both ways; <c>{x:Null}</c> is null. Under
+/// <c>x:DataType="vm:OrderViewModel"</c> any other path reads from the data context —
+/// <c>{Bind Customer.Name}</c> — each step a property read compiled here; a property that
+/// isn't styled, a Command, is kept set one way.
+/// </para>
+/// <para>
+/// A property marked [SetAfterContent] — a selected index — is set after the children,
+/// wherever its attribute is written.
 /// </para>
 /// <para>
 /// A property of a command type takes the name of a command: <c>Command="Save"</c> is a
@@ -55,6 +62,7 @@ internal sealed class MarkupCompiler
     private const string ElementMetadataName = "ZeppelinForms.Forms.Controls.Base.UIElement";
     private const string StyledPropertyMetadataName = "ZeppelinForms.Forms.Styling.StyledProperty`1";
     private const string ContentAttributeMetadataName = "ZeppelinForms.Forms.Markup.ContentAttribute";
+    private const string AfterContentAttributeMetadataName = "ZeppelinForms.Forms.Markup.SetAfterContentAttribute";
     private const string CommandMetadataName = "System.Windows.Input.ICommand";
     private const string StylesMetadataName = "ZeppelinForms.Forms.Styling.Styles";
     private const string StyleSheetType = "global::ZeppelinForms.Forms.Styling.StyleSheet";
@@ -91,15 +99,24 @@ internal sealed class MarkupCompiler
     private StyleNames? _styleNames;
     private int _counter;
 
+    /// <summary>The data types of the elements being built, innermost on top: what
+    /// <c>x:DataType</c> says their data context is. Null — none said.</summary>
+    private readonly Stack<INamedTypeSymbol?> _dataTypes = new();
+
     private sealed class PendingBinding(
-        string target, IPropertySymbol property, string source, INamedTypeSymbol targetType,
-        string sourceProperty, bool twoWay, IXmlLineInfo line)
+        string target, IPropertySymbol property, INamedTypeSymbol targetType,
+        string path, INamedTypeSymbol? dataType, bool twoWay, IXmlLineInfo line)
     {
         public string Target { get; } = target;
         public IPropertySymbol Property { get; } = property;
-        public string Source { get; } = source;
         public INamedTypeSymbol TargetType { get; } = targetType;
-        public string SourceProperty { get; } = sourceProperty;
+
+        /// <summary>As written: "NameBox.Text", "Customer.Name".</summary>
+        public string Path { get; } = path;
+
+        /// <summary>The data context's type where the binding is written, if the markup said it.</summary>
+        public INamedTypeSymbol? DataType { get; } = dataType;
+
         public bool TwoWay { get; } = twoWay;
         public IXmlLineInfo Line { get; } = line;
     }
@@ -175,8 +192,11 @@ internal sealed class MarkupCompiler
 
         // the root's members are the class's own
         Line(root);
-        ApplyAttributes(root, "this", rootType, isRoot: true);
+        PushDataType(root);
+        ApplyAttributes(root, "this", rootType, isRoot: true, afterContent: false);
         ApplyChildren(root, "this", rootType, isRoot: true);
+        ApplyAttributes(root, "this", rootType, isRoot: true, afterContent: true);
+        _dataTypes.Pop();
         EmitBindings();
 
         return Emit(ns, name, rootType);
@@ -299,8 +319,11 @@ internal sealed class MarkupCompiler
         if (FieldName(node, type) is { } name)
             DeclareName(node, name, variable, type);
 
-        ApplyAttributes(node, variable, type, isRoot: false);
+        PushDataType(node);
+        ApplyAttributes(node, variable, type, isRoot: false, afterContent: false);
         ApplyChildren(node, variable, type, isRoot: false);
+        ApplyAttributes(node, variable, type, isRoot: false, afterContent: true);
+        _dataTypes.Pop();
 
         return variable;
     }
@@ -350,7 +373,10 @@ internal sealed class MarkupCompiler
 
     // ===== attributes =====
 
-    private void ApplyAttributes(XElement node, string target, INamedTypeSymbol type, bool isRoot)
+    /// <param name="afterContent">The second pass, after the children: the properties
+    /// marked [SetAfterContent] — a selected index means nothing before the items it
+    /// selects among. The first pass does everything else.</param>
+    private void ApplyAttributes(XElement node, string target, INamedTypeSymbol type, bool isRoot, bool afterContent)
     {
         foreach (XAttribute attribute in node.Attributes())
         {
@@ -363,15 +389,20 @@ internal sealed class MarkupCompiler
             int dot = memberName.LastIndexOf('.');
             if (dot >= 0) memberName = memberName.Substring(dot + 1);
 
+            IEventSymbol? @event = FindEvent(type, memberName);
+            IPropertySymbol? property = @event is null ? FindProperty(type, memberName) : null;
+
+            // each attribute in one pass: what isn't a property marked to wait — events,
+            // mistakes — in the first
+            if (afterContent != (property is not null && SetsAfterContent(property))) continue;
+
             Line(attribute);
 
-            if (FindEvent(type, memberName) is { } @event)
+            if (@event is not null)
             {
                 ApplyEvent(attribute, target, type, @event, isRoot);
                 continue;
             }
-
-            IPropertySymbol? property = FindProperty(type, memberName);
 
             if (property is null)
             {
@@ -757,7 +788,7 @@ internal sealed class MarkupCompiler
         if (!body.StartsWith("Bind ", StringComparison.Ordinal))
         {
             Report(MarkupDiagnostics.BadValue, attribute, "{" + body + "}", Describe(property.Type),
-                "markup knows {Bind Name.Property} and {x:Null}");
+                "markup knows {Bind Path} and {x:Null}");
             return;
         }
 
@@ -777,57 +808,255 @@ internal sealed class MarkupCompiler
             }
         }
 
-        int dot = path.IndexOf('.');
-
-        if (dot <= 0 || dot == path.Length - 1)
+        if (path.Length == 0 || path.Split('.').Any(segment => !SyntaxFacts.IsValidIdentifier(segment)))
         {
-            Report(MarkupDiagnostics.BadBinding, attribute, "A binding names its source as Name.Property: '" + path + "'");
+            Report(MarkupDiagnostics.BadBinding, attribute,
+                "A binding names a path of properties: {Bind Customer.Name}, or {Bind NameBox.Text} of a named element — not '" + path + "'");
             return;
         }
 
-        // checked once every element has been created: the source may come later
-        _bindings.Add(new PendingBinding(
-            target, property, path.Substring(0, dot), type, path.Substring(dot + 1), twoWay, attribute));
+        // checked once every element has been created: a named source may come later
+        _bindings.Add(new PendingBinding(target, property, type, path, _dataTypes.Peek(), twoWay, attribute));
     }
 
+    /// <summary>The bindings, once every element is made. A path whose first name is a
+    /// named element starts from it — {Bind NameBox.Text}; any other from the data
+    /// context, whose type x:DataType gave — {Bind Customer.Name}. Every step is a
+    /// property read compiled here: no reflection at run time.</summary>
     private void EmitBindings()
     {
         foreach (PendingBinding binding in _bindings)
         {
             IXmlLineInfo line = binding.Line;
+            string[] segments = binding.Path.Split('.');
 
-            if (!_names.TryGetValue(binding.Source, out INamedTypeSymbol? sourceType))
+            string? source;
+            INamedTypeSymbol sourceType;
+            string[] steps;
+
+            if (segments.Length > 1 && _names.TryGetValue(segments[0], out INamedTypeSymbol? named))
             {
-                Report(MarkupDiagnostics.BadBinding, line, "No element is named '" + binding.Source + "'");
+                source = "this." + segments[0];
+                sourceType = named;
+                steps = segments.Skip(1).ToArray();
+            }
+            else if (binding.DataType is { } dataType)
+            {
+                source = null;
+                sourceType = dataType;
+                steps = segments;
+            }
+            else
+            {
+                Report(MarkupDiagnostics.BadBinding, line, segments.Length > 1
+                    ? "No element is named '" + segments[0] + "', and no x:DataType says what the data context is"
+                    : "'" + binding.Path + "' is read from the data context: say what it is with x:DataType=\"…\" here or on an element above");
                 continue;
             }
 
-            if (FindProperty(sourceType, binding.SourceProperty) is null)
+            if (!InheritsFrom(binding.TargetType, ElementMetadataName))
             {
-                Report(MarkupDiagnostics.BadBinding, line, "'" + sourceType.Name + "' has no property '" + binding.SourceProperty + "'");
+                Report(MarkupDiagnostics.BadBinding, line,
+                    "'" + binding.TargetType.Name + "' is not an element, and only elements bind: bind the elements inside it");
                 continue;
             }
 
             // the styled property's descriptor: TextProperty for Text
             IFieldSymbol? descriptor = FindStyledDescriptor(binding.TargetType, binding.Property.Name);
 
-            if (descriptor is null)
+            if (descriptor is null && binding.TwoWay)
             {
                 Report(MarkupDiagnostics.BadBinding, line,
-                    "'" + binding.Property.Name + "' of " + binding.TargetType.Name + " is not a styled property, and only those bind");
+                    "'" + binding.Property.Name + "' of " + binding.TargetType.Name + " is not a styled property: it binds one way only");
                 continue;
             }
 
+            string? path = PathExpression(binding, sourceType, steps, out IPropertySymbol? last);
+            if (path is null || last is null) continue;
+
             Line(line);
-            _body.Append("            ").Append(binding.Target).Append(".Bind(")
-                .Append(descriptor.ContainingType.ToDisplayString(TypeFormat)).Append('.').Append(descriptor.Name)
-                .Append(", this.").Append(binding.Source)
-                .Append(", ").Append(SymbolDisplay.FormatLiteral(binding.SourceProperty, quote: true));
 
-            if (binding.TwoWay) _body.Append(", global::ZeppelinForms.Data.BindingMode.TwoWay");
+            if (descriptor is not null)
+            {
+                _body.Append("            ").Append(binding.Target).Append(".Bind(")
+                    .Append(descriptor.ContainingType.ToDisplayString(TypeFormat)).Append('.').Append(descriptor.Name).Append(", ");
 
-            _body.AppendLine(");");
+                if (source is not null) _body.Append(source).Append(", ");
+
+                _body.Append(path).Append(", global::ZeppelinForms.Data.BindingMode.")
+                    .Append(binding.TwoWay ? "TwoWay" : "OneWay").AppendLine(");");
+
+                continue;
+            }
+
+            EmitValueBinding(binding, source, path, last);
         }
+    }
+
+    /// <summary>A property that isn't styled — a Command — bound one way: kept set to the
+    /// path's value, which must fit it as it is.</summary>
+    private void EmitValueBinding(PendingBinding binding, string? source, string path, IPropertySymbol last)
+    {
+        IPropertySymbol property = binding.Property;
+
+        if (property.Name == "DataContext")
+        {
+            Report(MarkupDiagnostics.BadBinding, binding.Line,
+                "The data context is given, not bound: set it from code, or make it here as <" + binding.TargetType.Name + ".DataContext>");
+            return;
+        }
+
+        if (!IsSettable(property))
+        {
+            Report(MarkupDiagnostics.BadBinding, binding.Line,
+                "'" + property.Name + "' of " + binding.TargetType.Name + " can't be set");
+            return;
+        }
+
+        if (!Converts(last.Type, property.Type))
+        {
+            Report(MarkupDiagnostics.BadBinding, binding.Line,
+                "'" + binding.Path + "' is " + Describe(last.Type) + ", which " + property.Name + " (" + Describe(property.Type) + ") doesn't take");
+            return;
+        }
+
+        _body.Append("            ").Append(binding.Target).Append(".BindValue(")
+            .Append(SymbolDisplay.FormatLiteral(property.Name, quote: true)).Append(", ");
+
+        if (source is not null) _body.Append(source).Append(", ");
+
+        _body.Append(path).Append(", static (e, v) => ((").Append(TypeName(binding.TargetType)).Append(")e).")
+            .Append(property.Name).Append(" = ").Append(Unbox("v", property.Type)).AppendLine(");");
+    }
+
+    /// <summary>new BindingPath("Customer.Name", typeof(Vm), typeof(string), new BindingStep("Customer", …), …)
+    /// with Set for a path both ways. Null — a step that isn't there, reported.</summary>
+    private string? PathExpression(PendingBinding binding, INamedTypeSymbol sourceType, string[] steps, out IPropertySymbol? last)
+    {
+        last = null;
+
+        var code = new StringBuilder();
+        ITypeSymbol current = sourceType;
+
+        code.Append("new global::ZeppelinForms.Data.BindingPath(")
+            .Append(SymbolDisplay.FormatLiteral(binding.Path, quote: true))
+            .Append(", typeof(").Append(TypeName(sourceType)).Append("), typeof(");
+
+        var reads = new StringBuilder();
+
+        foreach (string step in steps)
+        {
+            if (current is not INamedTypeSymbol owner || PathProperty(owner, step) is not { } property)
+            {
+                Report(MarkupDiagnostics.BadBinding, binding.Line,
+                    "'" + Describe(current) + "' has no property '" + step + "' the markup can read");
+                return null;
+            }
+
+            reads.Append(", new global::ZeppelinForms.Data.BindingStep(")
+                .Append(SymbolDisplay.FormatLiteral(step, quote: true))
+                .Append(", static s => ((").Append(TypeName(owner)).Append(")s).").Append(property.Name).Append(')');
+
+            last = property;
+            current = property.Type;
+        }
+
+        code.Append(TypeName(last!.Type)).Append(')').Append(reads).Append(')');
+
+        if (binding.TwoWay)
+        {
+            if (!IsWritable(last))
+            {
+                Report(MarkupDiagnostics.BadBinding, binding.Line,
+                    "'" + binding.Path + "' can't be written, and Mode=TwoWay writes it: its last property needs a setter the markup can call");
+                return null;
+            }
+
+            code.Append(" { Set = static (o, v) => ((").Append(TypeName(last.ContainingType)).Append(")o).")
+                .Append(last.Name).Append(" = ").Append(Unbox("v", last.Type)).Append(" }");
+        }
+
+        return code.ToString();
+    }
+
+    /// <summary>A property a path can read: an instance one with a getter the class can
+    /// call — public, or internal of the same assembly, or the class's own.</summary>
+    private IPropertySymbol? PathProperty(INamedTypeSymbol type, string name)
+    {
+        IEnumerable<ISymbol> members = type.TypeKind == TypeKind.Interface
+            ? new[] { type }.Concat(type.AllInterfaces).SelectMany(i => i.GetMembers())
+            : Members(type);
+
+        return members.OfType<IPropertySymbol>().FirstOrDefault(p =>
+            p.Name == name && !p.IsStatic && !p.IsIndexer &&
+            p.GetMethod is { } getter && IsAccessible(getter));
+    }
+
+    private bool IsWritable(IPropertySymbol property) =>
+        property.SetMethod is { IsInitOnly: false } setter && IsAccessible(setter);
+
+    private bool IsAccessible(ISymbol symbol) =>
+        _compilation.IsSymbolAccessibleWithin(symbol, (ISymbol?)_class ?? _compilation.Assembly);
+
+    /// <summary>A type for typeof and a cast: fully qualified, without the nullable
+    /// annotation of a reference type, which neither takes.</summary>
+    private static string TypeName(ITypeSymbol type) =>
+        type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(TypeFormat);
+
+    /// <summary>An object as a value of the type: a null of a value type is its default,
+    /// not a NullReferenceException in the middle of a change.</summary>
+    private static string Unbox(string value, ITypeSymbol type) =>
+        type.IsValueType && type.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T
+            ? value + " is " + TypeName(type) + " __value ? __value : default"
+            : "(" + type.ToDisplayString(TypeFormat) + ")" + value;
+
+    // ===== data types =====
+
+    /// <summary>x:DataType="vm:OrderViewModel" of an element, for it and what is inside it;
+    /// without one, the data type of the element around it.</summary>
+    private void PushDataType(XElement node)
+    {
+        INamedTypeSymbol? outer = _dataTypes.Count > 0 ? _dataTypes.Peek() : null;
+
+        if (node.Attribute(XName.Get("DataType", XNamespace)) is not { } attribute)
+        {
+            _dataTypes.Push(outer);
+            return;
+        }
+
+        INamedTypeSymbol? type = DataType(node, attribute.Value.Trim());
+
+        if (type is null)
+            Report(MarkupDiagnostics.UnknownDataType, attribute, attribute.Value.Trim());
+
+        _dataTypes.Push(type ?? outer);
+    }
+
+    /// <summary>"vm:OrderViewModel" — a prefix of a using: namespace; "OrderViewModel" — in
+    /// the class's namespace or the markup's using: namespaces; or a full name.</summary>
+    private INamedTypeSymbol? DataType(XElement node, string written)
+    {
+        int colon = written.IndexOf(':');
+
+        if (colon < 0) return FindNamedType(written);
+
+        XNamespace? ns = node.GetNamespaceOfPrefix(written.Substring(0, colon));
+        if (ns is null) return null;
+
+        return ResolveType(ns + written.Substring(colon + 1), node, report: false);
+    }
+
+    /// <summary>The property's value means something only once the content is there: a
+    /// selected index among the items.</summary>
+    private static bool SetsAfterContent(IPropertySymbol property)
+    {
+        for (IPropertySymbol? current = property; current is not null; current = current.OverriddenProperty)
+        {
+            if (current.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == AfterContentAttributeMetadataName))
+                return true;
+        }
+
+        return false;
     }
 
     // ===== children =====

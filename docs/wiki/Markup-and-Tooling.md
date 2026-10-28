@@ -93,6 +93,12 @@ public partial class SignUpCard
   `Children`, `Items`, `Nodes`, `Content`, `Child`; `<Border.Child>` names one.
 - `{Bind Name.Property}` binds a styled property to a named element, `Mode=TwoWay` both
   ways; `{x:Null}` is null; `<x:String>` is a text item of a list.
+- `x:DataType="vm:OrderViewModel"` says what the data context is, and `{Bind Path}` then
+  reads from it — `{Bind Customer.Name, Mode=TwoWay}`, `Command="{Bind Save}"` — checked
+  and compiled at build time. See [MVVM](Data-Binding#the-data-context-and-mvvm).
+- A selected index or item is set after the items, wherever its attribute is written:
+  `<ComboBox SelectedIndex="1">` with the items inside it selects the second.
+  `[SetAfterContent]` marks such a property of a control of one's own.
 - `xmlns:my="using:MyApp.Controls"` brings the application's controls in as `<my:Gauge>`.
 - `Command="Save"` takes a command of the class — a property or a field — and
   `Command="AppCommands.Save"` a static one of another type, found in the class's

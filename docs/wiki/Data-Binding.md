@@ -25,6 +25,98 @@ with the value. Assigning a bound property from code wins over the binding: in `
 value goes to the source, in `OneWay` the binding is broken — otherwise the next change of
 the source would overwrite what was just written.
 
+## The data context and MVVM
+
+`DataContext` is the object an element's bindings start from — a view model. Set on an
+element, it is that element's and everything's below it; not set, it is the parent's, up
+to the form's `Form.DataContext`. Null means "the parent's".
+
+```csharp
+var form = new OrderForm { DataContext = new OrderViewModel(order) };
+```
+
+A change reaches the bindings at once — a data context set later, set on an ancestor or
+the form, or an element moved under another — and `DataContextChanged` is raised where
+the effective one changed.
+
+### Typed bindings
+
+In C# a binding to the data context is a lambda: no property names, no reflection.
+
+```csharp
+status.Bind(Label.TextProperty, (OrderViewModel vm) => vm.Status);
+name.Bind(TextBox.TextProperty, (OrderViewModel vm) => vm.Name, (vm, value) => vm.Name = value);
+
+// a source of its own rather than the data context
+total.Bind(Label.TextProperty, cart, c => c.Total.ToString("C"));
+```
+
+With a setter the binding goes both ways. Every `PropertyChanged` of the view model reads
+the value again, and the element is written only when it changed. A data context that
+isn't the lambda's type gives no value: the property's default.
+
+### Paths
+
+A path of several steps follows every object on the way: `Customer.Name` reads the
+view model's customer, follows it, and a new customer set on the view model is read and
+followed instead. A null on the way gives the property's default. Markup compiles
+`{Bind Customer.Name}` into such a path; from C# it is a `BindingPath` — each step a name
+and a compiled read:
+
+```csharp
+box.Bind(TextBox.TextProperty,
+    new BindingPath("Customer.Name", typeof(OrderViewModel), typeof(string),
+        new BindingStep("Customer", vm => ((OrderViewModel)vm).Customer),
+        new BindingStep("Name", c => ((Customer)c).Name))
+    {
+        Set = (c, value) => ((Customer)c).Name = (string)value!,
+    },
+    BindingMode.TwoWay);
+```
+
+A property that isn't styled — a button's `Command` — is kept set by `BindValue`, one way.
+
+### In markup
+
+`x:DataType` says what the data context is, for the element and everything inside it; an
+inner one is for its own part. `{Bind Path}` then reads from the data context, checked at
+build time — a property that isn't there, a `Mode=TwoWay` of a property without a setter,
+a command that isn't one are ZF2008 at their line.
+
+```xml
+<StackPanel Class="MyApp.ProfileCard" xmlns:vm="using:MyApp.ViewModels" x:DataType="vm:ProfileViewModel">
+  <Label Text="{Bind Greeting}"/>
+  <TextBox Text="{Bind Name, Mode=TwoWay}"/>
+  <TextBox Text="{Bind Address.City, Mode=TwoWay}"/>
+  <PrimaryButton Text="Save" Command="{Bind Save}"/>
+</StackPanel>
+```
+
+A path that starts with the name of an element binds to it, as before:
+`{Bind NameBox.Text}`. The data context can be made in the markup too:
+`<StackPanel.DataContext><vm:ProfileViewModel/></StackPanel.DataContext>`.
+
+### View models
+
+The bindings need `INotifyPropertyChanged` for changes and `ICommand` for commands —
+nothing of the framework's. A view model of CommunityToolkit.Mvvm works as it is:
+
+```csharp
+public partial class ProfileViewModel : ObservableObject
+{
+    [ObservableProperty] private string _name = "";
+
+    [RelayCommand(CanExecute = nameof(CanSave))]
+    private void Save() { /* … */ }
+
+    private bool CanSave() => Name.Length > 0;
+}
+```
+
+A computed property raises `PropertyChanged` for itself when what it reads changes, as any
+MVVM binding needs. The showcase's `ProfileViewModel` and `ProfileCard.zfml` are a whole
+example written by hand.
+
 ## Data sources
 
 `DataSource` on `DataGridView`, `ListBox` (any `ItemsControl`) and `ComboBox` takes the

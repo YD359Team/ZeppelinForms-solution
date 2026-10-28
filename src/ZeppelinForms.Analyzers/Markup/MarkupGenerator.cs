@@ -114,6 +114,10 @@ internal static class MarkupDiagnostics
         "ZF2014", "An included style sheet is not among the project's files",
         "'{0}' is not among the project's .zss files: it must reach the assets folder another way, or the form won't open");
 
+    public static readonly DiagnosticDescriptor UnknownDataType = Error(
+        "ZF2015", "x:DataType names no type",
+        "x:DataType=\"{0}\" names no type the markup can find: write prefix:Type with a using: namespace, a type of the class's namespace, or a full name");
+
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         new(id, title, message, Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
 

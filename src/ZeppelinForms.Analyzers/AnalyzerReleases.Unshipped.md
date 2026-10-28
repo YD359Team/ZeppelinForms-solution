@@ -6,3 +6,4 @@
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 ZF0007  | Design   | Warning  | A constructor doesn't build the design part
+ZF2015  | Markup   | Error    | x:DataType names no type
