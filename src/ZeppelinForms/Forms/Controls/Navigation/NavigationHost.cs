@@ -788,9 +788,12 @@ public class NavigationHost : DecoratedPanel, IBackHandler
 
         switch (_activeTransition)
         {
+            // through, not across: the old page goes first, then the new one comes —
+            // a cross-fade showed both texts at half strength over each other, the
+            // middle of it unreadable
             case PageTransition.Fade:
-                incoming.Opacity = p;
-                outgoing.Opacity = 1f - p;
+                outgoing.Opacity = 1f - Math.Clamp(p / FadeOutShare, 0f, 1f);
+                incoming.Opacity = Math.Clamp((p - FadeOutShare) / (1f - FadeOutShare), 0f, 1f);
                 break;
 
             // a push: the new page from the right, the old one drifts left
@@ -839,6 +842,45 @@ public class NavigationHost : DecoratedPanel, IBackHandler
 
     /// <summary>How far the page under a pushed one drifts: a third of the width.</summary>
     private const float Parallax = 0.3f;
+
+
+    /// <summary>The part of a fade the old page takes to go, before the new one comes:
+    /// Material's fade through.</summary>
+    private const float FadeOutShare = 0.35f;
+
+    /// <summary>
+    /// What a page moving in the transition in progress lays under its content; null —
+    /// the page isn't moving, or the transition never shows two pages at once.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A page draws no background of its own by default, as no panel does. Standing
+    /// still that is right — it shows what it lies on. Sliding over the page under it,
+    /// it showed that page through itself: two texts over each other for the length of
+    /// the slide, the bug the split view's pane once had. While it moves, it lies on
+    /// what the stack itself lies on: the nearest opaque background up the tree, or the
+    /// form's.
+    /// </para>
+    /// <para>
+    /// Both pages get it: the one under is covered by the one over it anyway, and which
+    /// one is over changes between a push and a pop.
+    /// </para>
+    /// </remarks>
+    internal Color? TransitionBackdropFor(Page page)
+    {
+        if (_incoming is null || _outgoing is null) return null;
+        if (!ReferenceEquals(page, _incoming) && !ReferenceEquals(page, _outgoing)) return null;
+
+        // a fade through shows one page at a time
+        if (_activeTransition == PageTransition.Fade) return null;
+
+        for (UIElement? node = this; node is not null; node = node.Parent)
+        {
+            if (node.Background.A == 255) return node.Background;
+        }
+
+        return FindOwner()?.EffectiveBackground ?? App.Theme.Colors.Background;
+    }
 
     // ===== the swipe back =====
 

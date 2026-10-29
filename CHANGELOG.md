@@ -30,6 +30,13 @@
   `IConvertible` as its text instead of leaving the element empty
 - The previewer's sheet check reports a file deleted since the IDE asked instead of ending
   the host's loop
+- `NavigationHost`: the page sliding in showed the page under it through itself — the
+  texts of both ran over each other for the length of the transition, as in the
+  showcase's phone. A page draws no background of its own, as no panel does; while it
+  moves now, it lies on what the stack lies on — the nearest opaque background up the
+  tree, or the form's. Standing still, it is transparent as before
+- `NavigationHost` with `PageTransition.Fade` fades through, not across: the old page is
+  gone before the new one comes, instead of both at half strength over each other
 
 ### Performance
 
@@ -45,6 +52,17 @@
   with per-thread fonts
 - A font file that can't be loaded is remembered until `Invalidate`, not read again for
   every size and thread
+- Selectors on places among siblings — `:odd`, `:first-child`, `:nth-child` — made filling
+  a panel N²: every match searched the panel's children for the element's place, once as
+  each new child was styled and again for every child in the restyle that followed. A
+  panel numbers its children once after a change now, and an append keeps the numbering:
+  8000 rows under `:odd` fill in 65 ms instead of 241 and restyle in 41 ms instead of 208.
+  Without such selectors filling was linear already — layout runs once per frame, not
+  once per added child
+- Skia gradients: the shader is cached by its stops and its vector, not its place, and
+  drawn with the pooled brush. A gradient drawn every frame made a shader, a brush and two
+  arrays each time; one that scrolls or slides now makes nothing. `SkiaDiagnostics` counts
+  `GradientShadersCreated` and `GradientShaderEntries`
 
 ### New API
 

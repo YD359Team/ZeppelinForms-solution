@@ -310,8 +310,66 @@ public abstract partial class PanelControl : UIElement, ITouchScrollTarget
     /// the request for a layout pass is suppressed.</summary>
     internal int SuppressChildrenInvalidate;
 
+
+    /// <summary>Every child's <see cref="UIElement.SiblingIndex"/> is its place in
+    /// <see cref="Children"/>. Cleared by a change that moves children; renumbered on
+    /// the next question.</summary>
+    private bool _childIndicesValid;
+
+    /// <summary>The child's place in <see cref="Children"/>; -1 — not a child.</summary>
+    /// <remarks>
+    /// <para>
+    /// What selectors on places among siblings ask — <c>:odd</c>, <c>:first-child</c>,
+    /// <c>:nth-child</c> — for every child they style. <c>Children.IndexOf</c> answered
+    /// it by a search, and filling a styled list of N rows cost N² comparisons: each new
+    /// row's styling searched all the rows before it, and the restyle of the panel with
+    /// the next layout searched once more for every row. Now the children are numbered
+    /// once after a change and every question is an array read.
+    /// </para>
+    /// <para>
+    /// An append — the loop that fills a list — keeps the numbering: the rows before it
+    /// keep their places, and the new ones get theirs as they come. An insertion, a
+    /// removal, a move or a clear renumbers on the next question, once for the whole
+    /// batch of changes before it.
+    /// </para>
+    /// </remarks>
+    internal int IndexOfChild(UIElement child)
+    {
+        if (!_childIndicesValid)
+        {
+            for (int i = 0; i < Children.Count; i++)
+                Children[i].SiblingIndex = i;
+
+            _childIndicesValid = true;
+        }
+
+        int index = child.SiblingIndex;
+
+        if ((uint)index < (uint)Children.Count && ReferenceEquals(Children[index], child))
+            return index;
+
+        // a number that isn't this panel's: the same element put into two panels at
+        // once, the second numbering overwrote the first. A search, as it always was
+        return Children.IndexOf(child);
+    }
+
     private void Children_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        // the numbering first: attaching styles the new children, and their places
+        // are asked right there
+        if (_childIndicesValid
+            && e.Action == NotifyCollectionChangedAction.Add
+            && e.NewItems is { } appended
+            && e.NewStartingIndex == Children.Count - appended.Count)
+        {
+            for (int i = 0; i < appended.Count; i++)
+                ((UIElement)appended[i]!).SiblingIndex = e.NewStartingIndex + i;
+        }
+        else
+        {
+            _childIndicesValid = false;
+        }
+
         Form? owner = FindOwner();
 
         if (e.Action == NotifyCollectionChangedAction.Reset)

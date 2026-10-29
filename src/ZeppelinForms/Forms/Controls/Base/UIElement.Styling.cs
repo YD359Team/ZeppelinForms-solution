@@ -174,6 +174,11 @@ public abstract partial class UIElement
         _ => false,
     };
 
+    /// <summary>The element's place among its parent panel's children, as the panel
+    /// last numbered them: see <see cref="PanelControl.IndexOfChild"/>. Means nothing
+    /// outside a panel, and nothing until the panel is asked.</summary>
+    internal int SiblingIndex = -1;
+
     /// <summary>The element's place among its siblings, zero-based, and their number.
     /// False — the element has no parent to count in.</summary>
     internal static bool TryGetSiblingPosition(UIElement element, out int index, out int count)
@@ -181,7 +186,11 @@ public abstract partial class UIElement
         switch (element.Parent)
         {
             case PanelControl panel:
-                index = panel.Children.IndexOf(element);
+                // not Children.IndexOf: a search through the siblings for every
+                // match of :odd or :nth-child made filling a styled list of N rows
+                // N² — the new row's styling searched all the rows before it, and
+                // the restyle of the panel searched once more for every row
+                index = panel.IndexOfChild(element);
                 count = panel.Children.Count;
                 return index >= 0;
 

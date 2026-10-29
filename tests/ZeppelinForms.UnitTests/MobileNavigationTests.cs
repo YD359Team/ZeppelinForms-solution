@@ -119,6 +119,56 @@ public class MobileNavigationTests
     }
 
     [Fact]
+    public void APageSlidingOverAnotherCoversIt()
+    {
+        var root = new Page(new Label { Text = "Inbox" }, "Root");
+        var host = new NavigationHost { RootPage = root, TransitionDurationMs = 200 };
+        var (form, _) = Show(host);
+
+        // 0.19.1: a page draws no background of its own, and the one sliding in showed
+        // the one under it through itself — two texts over each other for the slide
+        Assert.Null(host.TransitionBackdropFor(root));
+
+        var next = new Page(new Label { Text = "Anna" }, "Next");
+        _ = host.PushAsync(next);
+
+        form.Clock.Advance(TimeSpan.FromMilliseconds(100));
+
+        Color? backdrop = form.EffectiveBackground;
+
+        Assert.Equal(backdrop, host.TransitionBackdropFor(next));
+        Assert.Equal(backdrop, host.TransitionBackdropFor(root));
+
+        // standing still, a page shows what it lies on again
+        form.Clock.Advance(Done);
+
+        Assert.Null(host.TransitionBackdropFor(next));
+    }
+
+    [Fact]
+    public void AFadeShowsOnePageAtATime()
+    {
+        var root = new Page(new Label { Text = "Inbox" }, "Root");
+        var host = new NavigationHost { RootPage = root, Transition = PageTransition.Fade, TransitionDurationMs = 200 };
+        var (form, _) = Show(host);
+
+        var next = new Page(new Label { Text = "Anna" }, "Next");
+        _ = host.PushAsync(next);
+
+        // through, not across: the old page is gone before the new one comes
+        for (int step = 0; step < 9; step++)
+        {
+            form.Clock.Advance(TimeSpan.FromMilliseconds(20));
+
+            Assert.True(root.Opacity == 0f || next.Opacity == 0f, $"root {root.Opacity}, next {next.Opacity}");
+        }
+
+        form.Clock.Advance(Done);
+
+        Assert.Equal(1f, next.Opacity);
+    }
+
+    [Fact]
     public async Task APageThatWontBeLeftStays()
     {
         var host = new NavigationHost { RootPage = new Page(new Label(), "Root") };
