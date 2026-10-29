@@ -1,4 +1,5 @@
 using Xunit;
+using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
@@ -544,7 +545,9 @@ public class MobileNavigationTests
 
         // the back button: the first visible one
         var back = bar.Children.OfType<AppBarButton>().First(b => b.IsVisible);
-        Assert.Equal("Back", back.Text);
+        // the bar's own text, in the framework's culture: the machine's UI language
+        // unless set — "Назад" on a Russian Windows
+        Assert.Equal(Localization.Get(ZfText.Back), back.Text);
 
         back.PerformAccessibilityActivation();
         form.Clock.Advance(Done);
