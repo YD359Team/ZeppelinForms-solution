@@ -37,6 +37,12 @@
   tree, or the form's. Standing still, it is transparent as before
 - `NavigationHost` with `PageTransition.Fade` fades through, not across: the old page is
   gone before the new one comes, instead of both at half strength over each other
+- A shortcut on a key that types — a letter, a digit, punctuation, Space, alone or with
+  Shift — ran while a field had the focus: a field takes such keys as text input, not in
+  KeyDown, so the form saw them unhandled, and a tool bound to `M` switched on every M
+  typed into a name. In a `TextBox`, a `NumericUpDown` or any other element that takes
+  text input those keys now only type; with Ctrl or Alt, F-keys and the rest, and with
+  the focus outside a field, shortcuts run as before
 
 ### Performance
 

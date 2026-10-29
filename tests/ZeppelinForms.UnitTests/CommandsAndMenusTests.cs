@@ -140,6 +140,53 @@ public class CommandsAndMenusTests
     }
 
     [Fact]
+    public void ALetterBindingDoesntRunWhileAFieldTypes()
+    {
+        int moves = 0;
+        var name = new TextBox();
+        var button = new Button { Text = "x" };
+        Form form = Show(new StackPanel { Children = { name, button } });
+
+        form.KeyBindings.Add(new KeyBinding(new KeyGesture(Key.M), new Command(() => moves++)));
+
+        // 0.19.1: a field takes no letters in KeyDown — they come as text input —, and
+        // every M typed into a bone's name switched to the move tool
+        name.Focus();
+        HeadlessInput.PressKey(form, Key.M);
+        HeadlessInput.PressKey(form, Key.M, KeyModifiers.Shift);
+
+        Assert.Equal(0, moves);
+
+        // anywhere but a field the letter is the tool's
+        button.Focus();
+        HeadlessInput.PressKey(form, Key.M);
+
+        Assert.Equal(1, moves);
+    }
+
+    [Fact]
+    public void AFieldLetsCommandsAndNonTypingKeysThrough()
+    {
+        int saves = 0, renames = 0;
+        var amount = new NumericUpDown();
+        Form form = Show(new StackPanel { Children = { amount } });
+
+        form.KeyBindings.Add(new KeyBinding(new KeyGesture(Key.S, KeyModifiers.Control), new Command(() => saves++)));
+        form.KeyBindings.Add(new KeyBinding(new KeyGesture(Key.F2), new Command(() => renames++)));
+        form.KeyBindings.Add(new KeyBinding(new KeyGesture(Key.D5), new Command(() => throw new InvalidOperationException("5 is typed"))));
+        form.KeyBindings.Add(new KeyBinding(new KeyGesture(Key.Subtract), new Command(() => throw new InvalidOperationException("- is typed"))));
+
+        amount.Focus();
+        HeadlessInput.PressKey(form, Key.D5);
+        HeadlessInput.PressKey(form, Key.Subtract);
+        HeadlessInput.PressKey(form, Key.S, KeyModifiers.Control);
+        HeadlessInput.PressKey(form, Key.F2);
+
+        Assert.Equal(1, saves);
+        Assert.Equal(1, renames);
+    }
+
+    [Fact]
     public void AKeyBindingRunsWhileItsCommandCan()
     {
         bool can = false;
