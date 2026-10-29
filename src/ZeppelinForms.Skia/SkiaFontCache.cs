@@ -708,41 +708,26 @@ internal static class SkiaFontCache
         }
     }
 
-    /// <summary>The fallback files of <see cref="FontFallbacks"/> as last loaded: the
-    /// list they were loaded from, and a font of each to check glyphs with. Guarded by
-    /// <see cref="Sync"/>.</summary>
-    private static IReadOnlyList<string>? _fallbackPaths;
-    private static List<SKFont> _fallbackFonts = [];
-
-    /// <summary>Load the fallback files again if <see cref="FontFallbacks"/> changed since
-    /// they were last loaded, and drop the cached fallbacks then: a character drawn as a
-    /// box before the files were added is looked for again. A reference comparison —
-    /// the list is replaced whole on every change. Called under <see cref="Sync"/>.</summary>
-    private static void RefreshApplicationFallbacks()
-    {
-        IReadOnlyList<string> paths = FontFallbacks.Paths;
-
-        if (ReferenceEquals(paths, _fallbackPaths)) return;
-
-        _fallbackPaths = paths;
-        _fallbackFonts = [];
-
-        foreach (string path in paths)
-        {
-            // a file that can't be read is skipped rather than failing the text:
-            // the system's fallback, if any, is still there
-            if (SKTypeface.FromFile(path) is { } typeface)
-                _fallbackFonts.Add(new SKFont(typeface));
-        }
-
-        Fallbacks.Clear();
-    }
+    // SKFont is not thread-safe (see above), and the fallback files are now checked
+    // without a shared lock: each thread checks glyphs with fonts of its own, made
+    // over the set's typefaces when the set changes. The old ones are left to the
+    // finalizer, as the fonts of the old set always were
+    [ThreadStatic] private static FallbackSet? _fallbackFontsSet;
+    [ThreadStatic] private static SKFont[]? _fallbackFonts;
 
     /// <summary>The first of the application's fallback files with a glyph for the
-    /// character; null — none has it. Called under <see cref="Sync"/>.</summary>
-    private static SKTypeface? FindInApplicationFallbacks(int codepoint)
+    /// character; null — none has it.</summary>
+    private static SKTypeface? FindInApplicationFallbacks(FallbackSet set, int codepoint)
     {
-        foreach (SKFont fallback in _fallbackFonts)
+        if (set.Typefaces.Length == 0) return null;
+
+        if (!ReferenceEquals(_fallbackFontsSet, set))
+        {
+            _fallbackFonts = [.. set.Typefaces.Select(typeface => new SKFont(typeface))];
+            _fallbackFontsSet = set;
+        }
+
+        foreach (SKFont fallback in _fallbackFonts!)
             if (fallback.ContainsGlyph(codepoint))
                 return fallback.Typeface;
 
