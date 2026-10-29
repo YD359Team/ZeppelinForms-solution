@@ -299,7 +299,7 @@ jobs:
         run: npx vsce publish --oidc --packagePath zeppelinforms-${{ steps.version.outputs.full }}.vsix
 
       - name: Публикация в JetBrains Marketplace
-        if: ${{ !contains(github.ref_name, '-') }}
+        if: ${{ !cancelled() && !contains(github.ref_name, '-') }}
         working-directory: tools/ZeppelinForms.Rider
         env:
           JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
