@@ -1,4 +1,5 @@
 ﻿using SkiaSharp;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 using ZeppelinForms.Core.Text;
@@ -10,31 +11,100 @@ internal static class SkiaFontCache
 {
     // Process-wide: SKTypeface is thread-safe in Skia, there is no point
     // keeping an instance of it per thread.
-    private static readonly Dictionary<string, SKTypeface> FileTypefaces = [];
-    private static readonly Dictionary<(string, FontWeight, FontStyle), SKTypeface> Typefaces = [];
-    private static readonly Lock Sync = new();
+    //
+    // No global lock any more. ResolveTypeface used to hold one shared lock through
+    // SKTypeface.FromFile and MatchFamily — a read from disk and a font manager query,
+    // on Linux a fontconfig pass that takes long the first time — so a miss on one
+    // thread held up every other thread's miss, and a parallel snapshot run waited on
+    // whichever thread got there first. Now a hit takes no lock at all, misses of
+    // different keys go on in parallel, and two threads on the same miss still do the
+    // work once: the second waits on the first one's Lazy, not on a lock of everything.
+
+    /// <summary>Resolved typefaces, from files and from the system. Replaced whole by
+    /// <see cref="Invalidate"/>: a resolution still running for the old selection
+    /// finishes into the old table, which nobody reads any more.</summary>
+    private static TypefaceTable _typefaces = new();
+
+    /// <summary>The application's fallback files as last loaded, and the fallbacks
+    /// found with them. Replaced whole when <see cref="FontFallbacks"/> changes or on
+    /// <see cref="Invalidate"/>; a miss computed with an older set goes into that set's
+    /// cache, which nobody reads any more.</summary>
+    private static FallbackSet _fallbackSet = FallbackSet.Unloaded();
+
+    /// <summary>Taken only to load a new set of fallback files.</summary>
+    private static readonly Lock FallbackLoadSync = new();
 
     /// <summary>
-    /// Fallbacks by codepoint. Unlike the other dictionaries, a ceiling is needed
-    /// here: the key includes the character itself, so a pass over emoji or CJK
-    /// creates an entry for every character met, and the dictionary grew without
-    /// bound — exactly what the memory.font-fallback-growth scenario catches.
-    ///
-    /// Eviction without destruction: MatchCharacter returns the same font for whole
-    /// ranges, and destroying it under one key would corrupt the rest. An evicted
-    /// object is released by the finalizer once no references to it remain.
+    /// Locks for fallback misses, by the key's hash. MatchCharacter creates a new object
+    /// every time and costs noticeably: two threads on the same miss would make two
+    /// fonts instead of one, so a miss is computed under the lock of its stripe. Misses
+    /// of other characters — on other stripes — go on in parallel, and a hit takes
+    /// none of them.
     /// </summary>
-    private static readonly GenerationalCache<(string, FontWeight, FontStyle, int), FallbackResult> Fallbacks =
-        new(1024, disposeEvicted: false);
+    private static readonly Lock[] FallbackMissLocks = [.. Enumerable.Range(0, 16).Select(_ => new Lock())];
 
-    internal static int FallbackCount => Fallbacks.Count;
+    internal static int FallbackCount => Volatile.Read(ref _fallbackSet).Cache.Count;
 
     /// <summary>Resolved typefaces, from files and from the system.
     /// There is deliberately no ceiling here: there are a handful of them per
     /// application, and the key is a family with a style, not a character.</summary>
+    /// <remarks>For diagnostics: a file that couldn't be loaded is not counted,
+    /// as it wasn't before.</remarks>
     internal static int TypefaceCount
     {
-        get { lock (Sync) return FileTypefaces.Count + Typefaces.Count; }
+        get
+        {
+            TypefaceTable table = Volatile.Read(ref _typefaces);
+
+            return table.Families.Count +
+                   table.Files.Count(entry => entry.Value.IsValueCreated && entry.Value.Value is not null);
+        }
+    }
+
+    /// <summary>Typefaces by file and by family with a style. A value is a Lazy: the
+    /// first thread to miss a key resolves it, the others on the same key wait for
+    /// that one result.</summary>
+    private sealed class TypefaceTable
+    {
+        /// <summary>By file path; null — the file couldn't be loaded, and the font falls
+        /// back to its family. Kept as well, so the file isn't read again for every
+        /// new size and on every thread.</summary>
+        public ConcurrentDictionary<string, Lazy<SKTypeface?>> Files { get; } = new(StringComparer.Ordinal);
+
+        public ConcurrentDictionary<(string Family, FontWeight Weight, FontStyle Style), Lazy<SKTypeface>> Families { get; } = new();
+    }
+
+    /// <summary>
+    /// The application's fallback files, loaded, with the fallbacks found for them.
+    /// </summary>
+    /// <param name="paths">The list of <see cref="FontFallbacks"/> the files were loaded
+    /// from; null — none loaded yet. Compared by reference: the list is replaced whole
+    /// on every change.</param>
+    /// <param name="typefaces">A typeface of each file that could be read.</param>
+    private sealed class FallbackSet(IReadOnlyList<string>? paths, SKTypeface[] typefaces)
+    {
+        public IReadOnlyList<string>? Paths { get; } = paths;
+
+        public SKTypeface[] Typefaces { get; } = typefaces;
+
+        /// <summary>
+        /// Fallbacks by codepoint. Unlike the typefaces, a ceiling is needed here: the
+        /// key includes the character itself, so a pass over emoji or CJK creates an
+        /// entry for every character met, and the dictionary grew without bound —
+        /// exactly what the memory.font-fallback-growth scenario catches.
+        ///
+        /// Eviction without destruction: MatchCharacter returns the same font for whole
+        /// ranges, and destroying it under one key would corrupt the rest. An evicted
+        /// object is released by the finalizer once no references to it remain.
+        /// </summary>
+        /// <remarks>One per set: a character drawn as a box before the files were
+        /// added is looked for again with the new ones.</remarks>
+        public GenerationalCache<(string, FontWeight, FontStyle, int), FallbackResult> Cache { get; } =
+            new(1024, disposeEvicted: false);
+
+        /// <summary>A set to be replaced on first use: a new instance every time, so
+        /// that nothing is ever cached into a shared one.</summary>
+        public static FallbackSet Unloaded() => new(null, []);
     }
 
     // SKFont, unlike SKTypeface, is not thread-safe: MeasureText and
@@ -184,13 +254,12 @@ internal static class SkiaFontCache
     /// </remarks>
     public static void Invalidate()
     {
-        lock (Sync)
-        {
-            FileTypefaces.Clear();
-            Typefaces.Clear();
-        }
-
-        Fallbacks.Clear();
+        // new tables in place of the old: a resolution running on another thread
+        // right now finishes into the old ones and is forgotten with them. The
+        // fallback files are loaded again on the next miss — a font file just loaded
+        // may well be among them
+        Volatile.Write(ref _typefaces, new TypefaceTable());
+        Volatile.Write(ref _fallbackSet, FallbackSet.Unloaded());
 
         Interlocked.Increment(ref _version);
 
@@ -480,110 +549,122 @@ internal static class SkiaFontCache
     private static SKTypeface ResolveTypeface(Font font)
     {
         // This method used to be called from Get under the shared lock. Now the font
-        // dictionaries are per-thread and need no lock, and only the typefaces
-        // remained shared — the lock moved here, to them.
-        lock (Sync)
+        // dictionaries are per-thread and need no lock, and the typefaces, the only
+        // shared part, are a concurrent table: see _typefaces
+        TypefaceTable table = Volatile.Read(ref _typefaces);
+
+        if (font.FilePath is { } file &&
+            GetOrResolve(table.Files, file, static path => SKTypeface.FromFile(path)) is { } fromFile)
+            return fromFile;
+
+        return GetOrResolve(table.Families, (font.Family, font.Weight, font.Style), MatchFamily);
+    }
+
+    /// <summary>
+    /// A value of a typeface table: a hit without any lock; a miss resolved once, by the
+    /// first thread to ask, while the others on the same key wait for its result.
+    /// </summary>
+    /// <remarks>A resolution that throws is not kept: Lazy would keep the exception and
+    /// throw it for that key until the next <see cref="Invalidate"/>.</remarks>
+    private static TValue GetOrResolve<TKey, TValue>(
+        ConcurrentDictionary<TKey, Lazy<TValue>> table,
+        TKey key,
+        Func<TKey, TValue> resolve)
+        where TKey : notnull
+    {
+        if (!table.TryGetValue(key, out Lazy<TValue>? entry))
         {
-            if (font.FilePath is not null)
-            {
-                if (FileTypefaces.TryGetValue(font.FilePath, out SKTypeface? fromFile))
-                    return fromFile;
+            entry = table.GetOrAdd(
+                key,
+                static (k, r) => new Lazy<TValue>(() => r(k), LazyThreadSafetyMode.ExecutionAndPublication),
+                resolve);
+        }
 
-                SKTypeface? loaded = SKTypeface.FromFile(font.FilePath);
-
-                if (loaded is not null)
-                {
-                    FileTypefaces[font.FilePath] = loaded;
-                    return loaded;
-                }
-            }
-
-            var key = (font.Family, font.Weight, font.Style);
-
-            if (Typefaces.TryGetValue(key, out SKTypeface? cached))
-                return cached;
-
-            // FontWeight holds the numeric weights of CSS and OpenType, the same
-            // scale SKFontStyle takes, so the value is passed as is. It used to be
-            // mapped to Bold or Normal only — a scale of two points, where Light and
-            // SemiBold had no place. A family without the exact face is matched to
-            // the nearest one by the font manager
-            var style = new SKFontStyle(
-                (int)font.Weight,
-                (int)SKFontStyleWidth.Normal,
-                font.Style == FontStyle.Italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);
-
-            SKTypeface? resolved = null;
-
-            foreach (string raw in font.Family.Split(','))
-            {
-                string name = raw.Trim();
-                if (name.Length == 0) continue;
-
-                if (IsGeneric(name))
-                {
-                    resolved = SKFontManager.Default.MatchFamily(GenericToConcrete(name), style);
-                    if (resolved is not null) break;
-                    continue;
-                }
-
-                SKTypeface? candidate = SKFontManager.Default.MatchFamily(name, style);
-
-                // MatchFamily may return a substitute instead of null if the family is
-                // missing — so we check that it really is the requested font
-                if (candidate is not null &&
-                    candidate.FamilyName.Equals(name, StringComparison.OrdinalIgnoreCase))
-                {
-                    resolved = candidate;
-                    break;
-                }
-            }
-
-            resolved ??= SKTypeface.Default;
-            Typefaces[key] = resolved;
-            return resolved;
+        try
+        {
+            return entry.Value;
+        }
+        catch
+        {
+            table.TryRemove(new KeyValuePair<TKey, Lazy<TValue>>(key, entry));
+            throw;
         }
     }
 
-    /// <summary>The fallback files of <see cref="FontFallbacks"/> as last loaded: the
-    /// list they were loaded from, and a font of each to check glyphs with. Guarded by
-    /// <see cref="Sync"/>.</summary>
-    private static IReadOnlyList<string>? _fallbackPaths;
-    private static List<SKFont> _fallbackFonts = [];
+    /// <summary>A system typeface for a family list with a weight and a slant: the first
+    /// family of the list that is installed, or the default typeface.</summary>
+    private static SKTypeface MatchFamily((string Family, FontWeight Weight, FontStyle Style) key)
+    {
+        // FontWeight holds the numeric weights of CSS and OpenType, the same
+        // scale SKFontStyle takes, so the value is passed as is. It used to be
+        // mapped to Bold or Normal only — a scale of two points, where Light and
+        // SemiBold had no place. A family without the exact face is matched to
+        // the nearest one by the font manager
+        var style = new SKFontStyle(
+            (int)key.Weight,
+            (int)SKFontStyleWidth.Normal,
+            key.Style == FontStyle.Italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);
 
-    /// <summary>Load the fallback files again if <see cref="FontFallbacks"/> changed since
-    /// they were last loaded, and drop the cached fallbacks then: a character drawn as a
-    /// box before the files were added is looked for again. A reference comparison —
-    /// the list is replaced whole on every change. Called under <see cref="Sync"/>.</summary>
-    private static void RefreshApplicationFallbacks()
+        foreach (string raw in key.Family.Split(','))
+        {
+            string name = raw.Trim();
+            if (name.Length == 0) continue;
+
+            if (IsGeneric(name))
+            {
+                if (SKFontManager.Default.MatchFamily(GenericToConcrete(name), style) is { } generic)
+                    return generic;
+
+                continue;
+            }
+
+            SKTypeface? candidate = SKFontManager.Default.MatchFamily(name, style);
+
+            // MatchFamily may return a substitute instead of null if the family is
+            // missing — so we check that it really is the requested font
+            if (candidate is not null &&
+                candidate.FamilyName.Equals(name, StringComparison.OrdinalIgnoreCase))
+                return candidate;
+        }
+
+        return SKTypeface.Default;
+    }
+
+    /// <summary>The fallback files of <see cref="FontFallbacks"/>: the set loaded from the
+    /// current list, loaded now if the list changed since the last one. The common case —
+    /// the list as it was — is a reference comparison and no lock.</summary>
+    private static FallbackSet CurrentFallbacks()
     {
         IReadOnlyList<string> paths = FontFallbacks.Paths;
+        FallbackSet set = Volatile.Read(ref _fallbackSet);
 
-        if (ReferenceEquals(paths, _fallbackPaths)) return;
+        if (ReferenceEquals(paths, set.Paths)) return set;
 
-        _fallbackPaths = paths;
-        _fallbackFonts = [];
-
-        foreach (string path in paths)
+        // one thread loads the files, the others on the same change wait for it rather
+        // than read the same files again
+        lock (FallbackLoadSync)
         {
-            // a file that can't be read is skipped rather than failing the text:
-            // the system's fallback, if any, is still there
-            if (SKTypeface.FromFile(path) is { } typeface)
-                _fallbackFonts.Add(new SKFont(typeface));
+            set = Volatile.Read(ref _fallbackSet);
+
+            if (ReferenceEquals(paths, set.Paths)) return set;
+
+            var typefaces = new List<SKTypeface>(paths.Count);
+
+            foreach (string path in paths)
+            {
+                // a file that can't be read is skipped rather than failing the text:
+                // the system's fallback, if any, is still there
+                if (SKTypeface.FromFile(path) is { } typeface)
+                    typefaces.Add(typeface);
+            }
+
+            // a new set comes with an empty cache of its own: a character drawn as
+            // a box before the files were added is looked for again
+            var loaded = new FallbackSet(paths, [.. typefaces]);
+            Volatile.Write(ref _fallbackSet, loaded);
+
+            return loaded;
         }
-
-        Fallbacks.Clear();
-    }
-
-    /// <summary>The first of the application's fallback files with a glyph for the
-    /// character; null — none has it. Called under <see cref="Sync"/>.</summary>
-    private static SKTypeface? FindInApplicationFallbacks(int codepoint)
-    {
-        foreach (SKFont fallback in _fallbackFonts)
-            if (fallback.ContainsGlyph(codepoint))
-                return fallback.Typeface;
-
-        return null;
     }
 
     /// <summary>A font that has a glyph for the character: first the primary one,
@@ -600,26 +681,57 @@ internal static class SkiaFontCache
         if (primary.ContainsGlyph(codepoint))
             return primary.Typeface;
 
+        // a list of fallback files changed since the last miss: a new set, with an
+        // empty cache of its own
+        FallbackSet set = CurrentFallbacks();
+
         var key = (font.Family, font.Weight, font.Style, codepoint);
 
-        // The cache has its own lock, but the shared lock is still needed here:
-        // without it two threads on the same miss would call MatchCharacter twice
-        // and create two fonts instead of one
-        lock (Sync)
-        {
-            // a list of fallback files changed since the last miss empties the cache
-            RefreshApplicationFallbacks();
+        // the hit: the cache's own short lock, nothing shared besides it
+        if (set.Cache.TryGet(key, out FallbackResult? cached))
+            return cached!.Typeface ?? primary.Typeface;
 
-            if (Fallbacks.TryGet(key, out FallbackResult? cached))
+        // The miss: under the lock of the key's stripe, so two threads on the same
+        // miss call MatchCharacter once and get one font, while misses on other
+        // stripes don't wait for this one
+        lock (FallbackMissLocks[(key.GetHashCode() & int.MaxValue) % FallbackMissLocks.Length])
+        {
+            if (set.Cache.TryGet(key, out cached))
                 return cached!.Typeface ?? primary.Typeface;
 
             // the application's files first: in a browser they are the only fallback
-            SKTypeface? found = FindInApplicationFallbacks(codepoint) ?? SKFontManager.Default.MatchCharacter(codepoint);
+            SKTypeface? found = FindInApplicationFallbacks(set, codepoint) ?? SKFontManager.Default.MatchCharacter(codepoint);
 
-            Fallbacks.Add(key, found is null ? FallbackResult.None : new FallbackResult(found));
+            set.Cache.Add(key, found is null ? FallbackResult.None : new FallbackResult(found));
 
             return found ?? primary.Typeface;
         }
+    }
+
+    // SKFont is not thread-safe (see above), and the fallback files are now checked
+    // without a shared lock: each thread checks glyphs with fonts of its own, made
+    // over the set's typefaces when the set changes. The old ones are left to the
+    // finalizer, as the fonts of the old set always were
+    [ThreadStatic] private static FallbackSet? _fallbackFontsSet;
+    [ThreadStatic] private static SKFont[]? _fallbackFonts;
+
+    /// <summary>The first of the application's fallback files with a glyph for the
+    /// character; null — none has it.</summary>
+    private static SKTypeface? FindInApplicationFallbacks(FallbackSet set, int codepoint)
+    {
+        if (set.Typefaces.Length == 0) return null;
+
+        if (!ReferenceEquals(_fallbackFontsSet, set))
+        {
+            _fallbackFonts = [.. set.Typefaces.Select(typeface => new SKFont(typeface))];
+            _fallbackFontsSet = set;
+        }
+
+        foreach (SKFont fallback in _fallbackFonts!)
+            if (fallback.ContainsGlyph(codepoint))
+                return fallback.Typeface;
+
+        return null;
     }
 
     public static SKFont GetSized(SKTypeface typeface, float size)

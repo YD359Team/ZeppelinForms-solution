@@ -5,6 +5,7 @@ using System.Xml;
 using System.Xml.Linq;
 using ZeppelinForms.Analyzers.Markup;
 using ZeppelinForms.Design.Protocol;
+using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Headless;
@@ -60,6 +61,23 @@ public sealed class PreviewServer
 
     /// <summary>The previews of the loaded assembly.</summary>
     public IReadOnlyList<PreviewEntry> Entries => _entries;
+
+    /// <summary>Tell the framework it runs in the previewer: <see cref="App.IsDesignMode"/>
+    /// on, and contract violations logged instead of thrown. Called by the host process
+    /// once, before anything of the project is loaded — not by the server itself, which
+    /// tests make in a process they share with the framework's other tests.</summary>
+    /// <remarks>
+    /// A contract violation is the framework's own bug, and in an application a debug
+    /// build of the framework stops on it on purpose. In the previewer the same
+    /// exception comes out of layout or drawing again on every frame, and the preview
+    /// of the user's view shows nothing but it: the view is what the previewer is for,
+    /// so the violation goes to the debug output and the frame is drawn.
+    /// </remarks>
+    public static void EnterDesignMode()
+    {
+        App.IsDesignMode = true;
+        ZfContract.Behavior = ContractViolationBehavior.Log;
+    }
 
     /// <summary>Serve until the IDE sends <see cref="ShutdownMessage"/> or closes the stream.</summary>
     public void Run()
@@ -298,6 +316,15 @@ public sealed class PreviewServer
         if (path.EndsWith(".zfml", StringComparison.OrdinalIgnoreCase))
         {
             Send(new SheetDiagnosticsMessage(path, CheckMarkupStyles(path)));
+            return;
+        }
+
+        // a file deleted or renamed since the IDE asked: a diagnostic, not an exception.
+        // StyleSheet.Load throws for a missing file outside design mode, and this runs
+        // outside Guard — an exception here would end the loop
+        if (!File.Exists(path))
+        {
+            Send(new SheetDiagnosticsMessage(path, [new SheetDiagnosticInfo(true, "The file is not found.", path, 1, 1)]));
             return;
         }
 

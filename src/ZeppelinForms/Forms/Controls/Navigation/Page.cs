@@ -1,4 +1,5 @@
 ﻿using ZeppelinForms.Drawing;
+using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 
 namespace ZeppelinForms.Forms.Controls.Navigation;
@@ -167,6 +168,28 @@ public class Page : DecoratedWrapControl
         Child = null;
 
         if (IsVisible) EnsureBuilt();
+    }
+
+    /// <summary>Under the content: while the page moves in its stack's transition, the
+    /// background of what the stack lies on — see
+    /// <see cref="Navigation.NavigationHost.TransitionBackdropFor"/>.</summary>
+    /// <remarks>Only where the page's own background doesn't cover it already: its own
+    /// is drawn again over the backdrop, so a translucent one keeps its tint.</remarks>
+    protected override void DrawContent(Graphics g)
+    {
+        if (NavigationHost?.TransitionBackdropFor(this) is { } backdrop
+            && !HasBackgroundGradient
+            && CurrentBackground.A < 255)
+        {
+            Rectangle bounds = g.AlignToPixels(LocalBounds);
+
+            g.FillRoundRectangle(bounds, CornerRadius, backdrop);
+
+            if (CurrentBackground.A > 0)
+                FillBackground(g, bounds);
+        }
+
+        base.DrawContent(g);
     }
 
     internal void RaiseAppearing()

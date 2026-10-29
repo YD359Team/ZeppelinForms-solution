@@ -1,5 +1,83 @@
 # Changes
 
+## [0.19.1]
+
+### Breaking changes
+
+- `StyleSheet.Load`, `Styles.Load` and `StyleSheetLink.Reload` throw `FileNotFoundException`
+  for a file that isn't there, with the full path the relative one was resolved to. It used
+  to be an empty sheet with a diagnostic, and the form came up unstyled with only the debug
+  output saying why. A missing `@import` is still a diagnostic, as any other mistake inside
+  a sheet: a half-typed import in a watched sheet doesn't take the application down on save
+- In the previewer a missing sheet is a diagnostic, as before: its host has a working folder
+  of its own, and a path right for the application may be wrong there. A watched sheet
+  loads once its file appears
+
+### Fixes
+
+- Explicit restriction App rerun. Second call `App.Run` will throwing exception
+- `DispatcherTimer` stopped ticking for good when a queued tick never ran: `Stop` didn't
+  clear the "queued" flag, and every `Start` after it dropped all ticks in silence. A new
+  run starts with nothing queued; within a run a tick queued for more than a second is
+  taken for lost and queued again, and the lost one, if it comes after all, does nothing —
+  a busy UI thread still gets one tick after it, not two. A dispatcher that no longer takes
+  work no longer throws on the timer's pool thread
+- A binding whose value doesn't fit the property — text that is no number, a value of a
+  type with no conversion — no longer throws in a debug build of the framework: the write
+  is skipped and reported to the debug output, as a value typed into a field already was.
+  In the previewer that exception came out of layout on every frame
+- A binding to a `string` property shows a `Guid`, a `TimeSpan` or any other value without
+  `IConvertible` as its text instead of leaving the element empty
+- The previewer's sheet check reports a file deleted since the IDE asked instead of ending
+  the host's loop
+- `NavigationHost`: the page sliding in showed the page under it through itself — the
+  texts of both ran over each other for the length of the transition, as in the
+  showcase's phone. A page draws no background of its own, as no panel does; while it
+  moves now, it lies on what the stack lies on — the nearest opaque background up the
+  tree, or the form's. Standing still, it is transparent as before
+- `NavigationHost` with `PageTransition.Fade` fades through, not across: the old page is
+  gone before the new one comes, instead of both at half strength over each other
+- A shortcut on a key that types — a letter, a digit, punctuation, Space, alone or with
+  Shift — ran while a field had the focus: a field takes such keys as text input, not in
+  KeyDown, so the form saw them unhandled, and a tool bound to `M` switched on every M
+  typed into a name. In a `TextBox`, a `NumericUpDown` or any other element that takes
+  text input those keys now only type; with Ctrl or Alt, F-keys and the rest, and with
+  the focus outside a field, shortcuts run as before
+
+### Performance
+
+- A binding's conversions are made once per pair of types and kept, and each binding keeps
+  the last one it used: a write no longer works out nullable, enum and type code from the
+  types. An integer goes into an enum property as the member's value, with no text in
+  between. The culture is still read at the moment of the conversion
+- Skia text: no global lock around typefaces. A hit takes no lock at all, misses of
+  different families and files resolve in parallel — `MatchFamily` and `FromFile`, on Linux
+  a fontconfig pass, no longer hold up every other thread — and two threads on the same
+  miss still resolve it once. Fallback hits take only the cache's own lock, misses lock one
+  of 16 stripes instead of everything, and the application's fallback files are checked
+  with per-thread fonts
+- A font file that can't be loaded is remembered until `Invalidate`, not read again for
+  every size and thread
+- Selectors on places among siblings — `:odd`, `:first-child`, `:nth-child` — made filling
+  a panel N²: every match searched the panel's children for the element's place, once as
+  each new child was styled and again for every child in the restyle that followed. A
+  panel numbers its children once after a change now, and an append keeps the numbering:
+  8000 rows under `:odd` fill in 65 ms instead of 241 and restyle in 41 ms instead of 208.
+  Without such selectors filling was linear already — layout runs once per frame, not
+  once per added child
+- Skia gradients: the shader is cached by its stops and its vector, not its place, and
+  drawn with the pooled brush. A gradient drawn every frame made a shader, a brush and two
+  arrays each time; one that scrolls or slides now makes nothing. `SkiaDiagnostics` counts
+  `GradientShadersCreated` and `GradientShaderEntries`
+
+### New API
+
+- `App.IsDesignMode`: whether the code runs in the previewer's host, as WinForms'
+  `DesignMode` — to skip in a preview what a design machine can't do. The host also logs
+  contract violations of a debug build of the framework instead of throwing them, so the
+  previewed view is drawn
+
+
 ## [0.19.0] Nevada
 
 ![Nevada](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.19.0.jpg)

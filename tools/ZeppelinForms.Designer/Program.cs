@@ -45,6 +45,11 @@ public static class Program
             return 2;
         }
 
+        // before anything of the project is loaded: its [PreviewSetup] already runs
+        // in design mode — a style sheet path relative to the application's folder
+        // is reported, not thrown, from this process's folder
+        PreviewServer.EnterDesignMode();
+
         // the services a platform would register: real text metrics and image
         // decoding, so the preview is laid out exactly as the application will be
         SkiaTextMeasurer.Register();

@@ -37,6 +37,16 @@ public static class SkiaDiagnostics
     /// More means the pool isn't working.</summary>
     public static int PaintsCreated => SkiaGraphics.PaintsCreated;
 
+
+    /// <summary>How many gradient shaders were made on this thread. A gradient that
+    /// only moves — scrolls, slides — keeps its shader: the count grows with new
+    /// stops, sizes and angles, not with frames.</summary>
+    public static int GradientShadersCreated => SkiaGraphics.GradientShadersCreated;
+
+    /// <summary>Gradient shaders in the current thread's cache. Bounded: an animated
+    /// gradient makes a shader for every intermediate value.</summary>
+    public static int GradientShaderEntries => SkiaGraphics.GradientShaderCount;
+
     /// <summary>How many images were uploaded into Skia over the process's lifetime.
     /// Not the cache size: ConditionalWeakTable gives no Count. Useful in comparison
     /// with the number of Images created — if it grows faster, the cache doesn't hit.</summary>

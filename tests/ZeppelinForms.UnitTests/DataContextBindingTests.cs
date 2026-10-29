@@ -153,6 +153,42 @@ public class DataContextBindingTests
         Assert.Equal(2, raised);
     }
 
+    private static BindingPath StatusText() =>
+    new("Status", typeof(OrderViewModel), typeof(string),
+        new BindingStep("Status", source => ((OrderViewModel)source).Status));
+
+    [Fact]
+    public void AValueThatDoesNotFitIsReportedNotThrown()
+    {
+        var vm = new OrderViewModel { Status = "3" };
+        var label = new Label { DataContext = vm };
+
+        var failures = new List<string>();
+        void OnFailed(object? sender, string message) => failures.Add(message);
+
+        Binding.ConversionFailed += OnFailed;
+
+        try
+        {
+            label.Bind(ZeppelinForms.Forms.Controls.Base.UIElement.ColumnProperty, StatusText(), BindingMode.OneWay);
+            Assert.Equal(3, label.Column);
+
+            // 0.19.1: this was ZfContract.Fail — an exception in a debug build of the
+            // framework, out of layout, and in the previewer on every frame
+            vm.Status = "Paid";
+
+            Assert.Equal(3, label.Column);   // the element keeps its value
+            Assert.Contains(failures, message => message.Contains("'Paid'", StringComparison.Ordinal));
+
+            vm.Status = "5";
+            Assert.Equal(5, label.Column);
+        }
+        finally
+        {
+            Binding.ConversionFailed -= OnFailed;
+        }
+    }
+
     [Fact]
     public void APathFollowsEveryObjectOnTheWay()
     {

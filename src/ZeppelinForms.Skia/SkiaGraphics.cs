@@ -1086,11 +1086,85 @@ public sealed class SkiaGraphics : Graphics
         _canvas.Restore();
     }
 
+    #region Gradient shaders
+
+    // A gradient used to be a new SKShader, a new SKPaint and two new arrays on every
+    // draw: a button with a gradient made four allocations, two of them native, every
+    // frame it was drawn — sixty a second while its hover animated. The shader is
+    // cached now and drawn with the pooled fill brush.
+    //
+    // The cache key is what the shader is made of — the stops and the gradient's
+    // vector from its center —, not where it is: the shader is made around the
+    // origin and the canvas is moved to the gradient's center for the draw. A gradient
+    // that scrolls or slides keeps its shader; a pure translation changes no pixel.
+    // A gradient whose size, angle or stops change makes a new one, as before, and
+    // the bounded cache lets the old ones go.
+    //
+    // ThreadStatic, as the brush pool: snapshot tests draw in parallel. SKShader itself
+    // is immutable, but the cache isn't.
+
+    [ThreadStatic]
+    private static GenerationalCache<GradientShaderKey, SKShader>? _gradientShaders;
+
+    [ThreadStatic]
+    private static int _gradientShadersCreated;
+
+    /// <summary>Gradient shaders made on this thread: the misses of the cache.</summary>
+    internal static int GradientShadersCreated => _gradientShadersCreated;
+
+    /// <summary>Gradient shaders in this thread's cache.</summary>
+    internal static int GradientShaderCount => _gradientShaders?.Count ?? 0;
+
+    /// <summary>
+    /// What a gradient shader is made of: the stops and the vector from the gradient's
+    /// center to its end. Looked up with the caller's array, kept with a copy of it:
+    /// an array given to <c>FillGradient</c> may be the application's own, edited in
+    /// place before the next draw.
+    /// </summary>
+    private readonly struct GradientShaderKey : IEquatable<GradientShaderKey>
+    {
+        private readonly GradientStop[] _stops;
+        private readonly float _dx;
+        private readonly float _dy;
+        private readonly int _hash;
+
+        private GradientShaderKey(GradientStop[] stops, float dx, float dy, int hash)
+        {
+            _stops = stops;
+            _dx = dx;
+            _dy = dy;
+            _hash = hash;
+        }
+
+        public static GradientShaderKey Of(GradientStop[] stops, float dx, float dy)
+        {
+            var hash = new HashCode();
+            hash.Add(dx);
+            hash.Add(dy);
+
+            foreach (GradientStop stop in stops)
+                hash.Add(stop);
+
+            return new GradientShaderKey(stops, dx, dy, hash.ToHashCode());
+        }
+
+        /// <summary>The same key over a copy of the stops: the one the cache keeps.</summary>
+        public GradientShaderKey Owned() => new([.. _stops], _dx, _dy, _hash);
+
+        public bool Equals(GradientShaderKey other) =>
+            _hash == other._hash
+            && _dx.Equals(other._dx)
+            && _dy.Equals(other._dy)
+            && _stops.AsSpan().SequenceEqual(other._stops);
+
+        public override bool Equals(object? obj) => obj is GradientShaderKey other && Equals(other);
+
+        public override int GetHashCode() => _hash;
+    }
+
     public override void FillGradient(Rectangle bounds, CornerRadius radius, GradientStop[] stops, float angle)
     {
         if (stops.Length == 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
-
-        var rect = new SKRect(bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height);
 
         // the direction is set by an angle: 0 — left to right, 90 — top to bottom
         float radians = angle * MathF.PI / 180f;
@@ -1104,8 +1178,55 @@ public sealed class SkiaGraphics : Graphics
         float cx = bounds.X + halfWidth;
         float cy = bounds.Y + halfHeight;
 
-        SKColor[] colors = new SKColor[stops.Length];
-        float[] positions = new float[stops.Length];
+        GenerationalCache<GradientShaderKey, SKShader> shaders =
+            _gradientShaders ??= new GenerationalCache<GradientShaderKey, SKShader>(64, disposeEvicted: true);
+
+        var key = GradientShaderKey.Of(stops, dx, dy);
+
+        if (!shaders.TryGet(key, out SKShader? shader))
+        {
+            shader = CreateGradientShader(stops, dx, dy);
+            shaders.Add(key.Owned(), shader);
+            _gradientShadersCreated++;
+        }
+
+        // the pooled brush: opaque black, so the shader's own alpha is all there is —
+        // what a new SKPaint gave
+        SKPaint paint = FillPaint(Colors.Black);
+        paint.Shader = shader;
+
+        // the shader is made around the origin: the gradient's center goes there
+        _canvas.Save();
+        _canvas.Translate(cx, cy);
+
+        try
+        {
+            Rectangle local = bounds.Offset(-cx, -cy);
+
+            if (radius.IsZero)
+            {
+                _canvas.DrawRect(new SKRect(local.X, local.Y, local.X + local.Width, local.Y + local.Height), paint);
+            }
+            else
+            {
+                using SKRoundRect rounded = MakeRoundRect(local, radius);
+                _canvas.DrawRoundRect(rounded, paint);
+            }
+        }
+        finally
+        {
+            _canvas.Restore();
+
+            // the brush is the pool's: it mustn't keep a shader the cache may dispose
+            paint.Shader = null;
+        }
+    }
+
+    /// <summary>A linear gradient from −(dx, dy) to (dx, dy).</summary>
+    private static SKShader CreateGradientShader(GradientStop[] stops, float dx, float dy)
+    {
+        var colors = new SKColor[stops.Length];
+        var positions = new float[stops.Length];
 
         for (int i = 0; i < stops.Length; i++)
         {
@@ -1114,22 +1235,13 @@ public sealed class SkiaGraphics : Graphics
             positions[i] = Math.Clamp(stops[i].Offset, 0f, 1f);
         }
 
-        using SKShader shader = SKShader.CreateLinearGradient(
-            new SKPoint(cx - dx, cy - dy),
-            new SKPoint(cx + dx, cy + dy),
+        return SKShader.CreateLinearGradient(
+            new SKPoint(-dx, -dy),
+            new SKPoint(dx, dy),
             colors, positions, SKShaderTileMode.Clamp);
-
-        using var paint = new SKPaint { Shader = shader, IsAntialias = true };
-
-        if (radius.IsZero)
-        {
-            _canvas.DrawRect(rect, paint);
-            return;
-        }
-
-        using SKRoundRect rounded = MakeRoundRect(bounds, radius);
-        _canvas.DrawRoundRect(rounded, paint);
     }
+
+    #endregion
 
     public override void FillPolygon(ReadOnlySpan<Point> points, Color color)
     {

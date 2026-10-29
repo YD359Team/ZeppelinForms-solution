@@ -88,14 +88,38 @@ public sealed class StyleSheet
     }
 
     /// <summary>Load a sheet from a file.</summary>
+    /// <remarks>
+    /// A file that isn't there throws, unlike a mistake inside the sheet: a wrong path
+    /// is a bug of the application, and the empty sheet that used to stand in for it
+    /// hid the bug — the form came up unstyled, and only the debug output said why.
+    /// In the previewer (<see cref="App.IsDesignMode"/>) it doesn't throw: the sheet
+    /// is empty, the missing file is its diagnostic, and a watched sheet waits for the
+    /// file to appear. A missing <c>@import</c> stays a diagnostic everywhere, as any
+    /// other mistake inside a sheet: a half-typed import in a watched sheet must not
+    /// take the running application down on save.
+    /// </remarks>
+    /// <exception cref="FileNotFoundException">There is no file at the path, outside
+    /// the previewer.</exception>
     public static StyleSheet Load(string path)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
 
         string full = System.IO.Path.GetFullPath(path);
 
+        bool missing = !File.Exists(full);
+
+        // the full path in the message: a relative one is resolved against the
+        // working folder, which is the usual reason it leads nowhere
+        if (missing && !App.IsDesignMode)
+            throw new FileNotFoundException($"The style sheet '{path}' is not found at '{full}'.", full);
+
         var parser = new StyleSheetParser(System.IO.Path.GetDirectoryName(full)!);
         parser.ParseFile(full);
+
+        // the previewer: the file can't be read and is reported, but it is still the
+        // sheet's file — a watcher follows it, and the sheet loads once it is saved
+        if (missing && !parser.Files.Contains(full, StringComparer.OrdinalIgnoreCase))
+            parser.Files.Insert(0, full);
 
         return Finish(full, parser);
     }

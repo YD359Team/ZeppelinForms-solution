@@ -1,6 +1,4 @@
 ﻿using System.ComponentModel;
-using System.Globalization;
-using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Styling;
 
@@ -31,6 +29,13 @@ public enum BindingMode
 /// from the source to the binding, and a strong reference to the element would mean a live
 /// model holds the whole closed window. On finding a dead target, the binding unsubscribes
 /// itself.
+/// </para>
+/// <para>
+/// A value that doesn't fit the other end — a text that is no number, a number for
+/// a property of a type it has no conversion to — is no exception: the write is
+/// skipped and reported to the debug output. It is a mistake of the view model or of
+/// the user's typing, not of the framework, and an exception in the middle of layout
+/// took a whole previewed form down with it, again on every frame.
 /// </para>
 /// </remarks>
 public sealed class Binding
@@ -64,6 +69,19 @@ public sealed class Binding
     private bool _updating;
 
     private bool _detached;
+
+    // The conversions last used, by the runtime type of the value they were made for:
+    // a binding sees values of one type almost always, so the shared table of
+    // BindingConversion is asked once, not on every write. The UI thread's, as the
+    // rest of the binding: no lock
+    private Type? _toTargetFrom;
+    private Func<object, object?>? _toTarget;
+    private Type? _toSourceFrom;
+    private Func<object, object?>? _toSource;
+
+    /// <summary>A value that couldn't be converted, with the message written to the
+    /// debug output: for tests, and for whatever wants to show broken bindings.</summary>
+    internal static event EventHandler<string>? ConversionFailed;
 
     internal Binding(
         UIElement target,
@@ -191,16 +209,20 @@ public sealed class Binding
         {
             try
             {
-                value = Convert(raw, _targetProperty.PropertyType);
+                value = ToTarget(raw);
             }
             // ArgumentException comes from Enum.Parse on an unknown name
             catch (Exception e) when (e is InvalidCastException or FormatException or OverflowException or ArgumentException)
             {
                 // the source's type doesn't fit the property's type — there is nothing
-                // to write, but crashing in the middle of drawing is wrong
-                ZfContract.Fail(
-                    $"Value '{raw}' from '{Path.Text}' cannot be converted " +
-                    $"to {_targetProperty.PropertyType.Name}.");
+                // to write, but crashing in the middle of drawing is wrong.
+                //
+                // Not ZfContract.Fail either, as it used to be: a contract is the
+                // framework's own rule, and here the view model's type is wrong, not
+                // the framework. ZfContract throws in debug builds, and in the
+                // previewer that exception came out of layout on every frame — the
+                // preview showed nothing but it
+                ReportConversionFailure(raw, _targetProperty.PropertyType, "the element keeps its value");
 
                 return;
             }
@@ -236,7 +258,7 @@ public sealed class Binding
 
         try
         {
-            set(owner, Convert(value, Path.ValueType));
+            set(owner, ToSource(value));
 
             // what the element shows is what the source has now: the source changed
             // back to the old value later is a change to write again
@@ -252,9 +274,7 @@ public sealed class Binding
             // Not a contract violation either: ZfContract throws in debug builds by
             // default, and it used to throw right on the minus sign typed into
             // a field bound to a number
-            System.Diagnostics.Debug.WriteLine(
-                $"[ZF] binding: value '{value}' cannot be converted to " +
-                $"{Path.ValueType.Name} for '{Path.Text}', the write is skipped.");
+            ReportConversionFailure(value, Path.ValueType, "the write is skipped");
         }
         finally
         {
@@ -298,17 +318,44 @@ public sealed class Binding
         }
     }
 
-    private static object? Convert(object? value, Type targetType)
+    /// <summary>A value of the source as the target property's type.</summary>
+    private object? ToTarget(object? value)
     {
         if (value is null) return null;
-        if (targetType.IsInstanceOfType(value)) return value;
 
-        Type underlying = Nullable.GetUnderlyingType(targetType) ?? targetType;
+        Type type = value.GetType();
 
-        return underlying.IsEnum
-            ? Enum.Parse(underlying, value.ToString()!)
-            // a value shown to the user and typed by them: their culture, as before,
-            // now said aloud
-            : System.Convert.ChangeType(value, underlying, CultureInfo.CurrentCulture);
+        if (!ReferenceEquals(type, _toTargetFrom))
+        {
+            _toTarget = BindingConversion.For(type, _targetProperty!.PropertyType);
+            _toTargetFrom = type;
+        }
+
+        return _toTarget!(value);
+    }
+
+    /// <summary>A value of the element as the type of the path's last property.</summary>
+    private object? ToSource(object? value)
+    {
+        if (value is null) return null;
+
+        Type type = value.GetType();
+
+        if (!ReferenceEquals(type, _toSourceFrom))
+        {
+            _toSource = BindingConversion.For(type, Path.ValueType);
+            _toSourceFrom = type;
+        }
+
+        return _toSource!(value);
+    }
+
+    private void ReportConversionFailure(object? value, Type type, string outcome)
+    {
+        string message =
+            $"[ZF] binding '{Path.Text}': value '{value}' cannot be converted to {type.Name}, {outcome}.";
+
+        System.Diagnostics.Debug.WriteLine(message);
+        ConversionFailed?.Invoke(this, message);
     }
 }

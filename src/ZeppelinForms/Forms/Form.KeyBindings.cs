@@ -12,6 +12,13 @@ namespace ZeppelinForms.Forms;
 /// to the form. The key bindings come first, then the items of the menu bar.
 /// </para>
 /// <para>
+/// A key that types is not a shortcut while a field has the focus: a letter, a digit,
+/// punctuation, Space, alone or with Shift. A field doesn't take such a key in KeyDown
+/// — its character comes separately, as text input —, so the form saw it unhandled,
+/// and a tool bound to M switched on every M typed into a name. With Ctrl or Alt, or
+/// with the focus anywhere but a field, the same key is a shortcut as before.
+/// </para>
+/// <para>
 /// A menu item's state is often set only as its menu opens, in
 /// <see cref="MenuItem.Opening"/>. Before a shortcut runs an item, the form raises
 /// Opening on the items above it, as opening the menu would: Ctrl+S pressed with the
@@ -23,6 +30,8 @@ public partial class Form
 {
     /// <summary>Shortcuts that run commands — for actions with no menu item to carry
     /// the shortcut. Items of the menu bar run their own gestures and need no binding.</summary>
+    /// <remarks>A gesture of a single letter or digit — the M of a move tool — runs
+    /// only while the focus is not in a field: there the key types.</remarks>
     public List<KeyBinding> KeyBindings { get; } = [];
 
     /// <summary>Run the shortcut of this key, if the form has one that can run now.</summary>
@@ -32,6 +41,10 @@ public partial class Form
         if (key is Key.Shift or Key.LeftShift or Key.RightShift or
             Key.Control or Key.LeftControl or Key.RightControl or
             Key.Alt or Key.LeftAlt or Key.RightAlt)
+            return false;
+
+        // the focused field types this key: its character is on the way as text input
+        if (TypesIntoFocus(key, modifiers))
             return false;
 
         // ToArray: a command may change the bindings, adding a mode's own keys
@@ -87,6 +100,37 @@ public partial class Form
 
         return false;
     }
+
+    /// <summary>Whether the key types into the focused element: the element takes text
+    /// input, and the key with these modifiers makes a character.</summary>
+    /// <remarks>
+    /// <para>
+    /// Shift alone still types — Shift+M is a capital M. Ctrl or Alt make it a command,
+    /// as everywhere: Ctrl+S in a field saves. AltGr comes as Ctrl+Alt on Windows and
+    /// types too, but a shortcut on Ctrl+Alt+letter is the application's explicit choice,
+    /// and it stays one.
+    /// </para>
+    /// <para>
+    /// A read-only field keeps the keys as well: the focus is in a field, and a letter
+    /// pressed there is meant for it, not for the tools around it.
+    /// </para>
+    /// </remarks>
+    private bool TypesIntoFocus(Key key, KeyModifiers modifiers) =>
+        (modifiers & ~KeyModifiers.Shift) == KeyModifiers.None
+        && IsTypingKey(key)
+        && _focusDispatcher.FocusedElement is { AcceptsTextInput: true };
+
+    /// <summary>A key that makes a character: letters, digits, punctuation, Space and
+    /// the keypad's digits and operators. Not Enter, Tab, Backspace, Delete or the
+    /// arrows — a field takes those in KeyDown itself, and an F-key never types.</summary>
+    internal static bool IsTypingKey(Key key) => key is
+        Key.Space
+        or (>= Key.D0 and <= Key.D9)
+        or (>= Key.A and <= Key.Z)
+        or (>= Key.NumPad0 and <= Key.Divide)
+        or (>= Key.OemSemicolon and <= Key.OemTilde)
+        or (>= Key.OemOpenBrackets and <= Key.OemQuotes)
+        or Key.OemBackslash;
 
     private static bool HasGesture(MenuItem item, Key key, KeyModifiers modifiers)
     {

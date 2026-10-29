@@ -474,6 +474,66 @@ public class StylingTests
     }
 
     [Fact]
+    public void PositionsFollowRemovalsMovesReplacementsAndClears()
+    {
+        Label[] labels = [.. Enumerable.Range(0, 6).Select(i => new Label { Text = i.ToString(System.Globalization.CultureInfo.InvariantCulture) })];
+        var panel = Column(labels);
+
+        Form form = CreateForm(panel);
+        form.Styles.Add(new Style("Label:odd") { [UIElement.OpacityProperty] = 0.5f });
+
+        // 0.19.1: the places are numbered by the panel, not searched for: every change
+        // that moves children must renumber them
+        void AssertOddAreDimmed()
+        {
+            form.UpdateLayout();
+
+            for (int i = 0; i < panel.Children.Count; i++)
+                Assert.Equal(i % 2 == 0 ? 0.5f : 1f, panel.Children[i].Opacity);
+        }
+
+        AssertOddAreDimmed();
+
+        panel.Children.RemoveAt(0);
+        AssertOddAreDimmed();
+
+        panel.Children.Move(0, 3);
+        AssertOddAreDimmed();
+
+        panel.Children[1] = new Label { Text = "replaced" };
+        AssertOddAreDimmed();
+
+        panel.Children.Add(new Label { Text = "appended" });
+        panel.Children.Insert(2, new Label { Text = "inserted" });
+        AssertOddAreDimmed();
+
+        panel.Children.Clear();
+        panel.Children.Add(new Label { Text = "first" });
+        panel.Children.Add(new Label { Text = "second" });
+        AssertOddAreDimmed();
+    }
+
+    [Fact]
+    public void AChildMovedToAnotherPanelIsCountedThere()
+    {
+        var left = Column(new Label(), new Label(), new Label());
+        var right = Column(new Label());
+
+        Form form = CreateForm(Column(left, right));
+        form.Styles.Add(new Style("Label:last-child") { [UIElement.OpacityProperty] = 0.5f });
+
+        var moved = (Label)left.Children[2];
+        left.Children.Remove(moved);
+        right.Children.Insert(0, moved);
+
+        form.UpdateLayout();
+
+        Assert.Equal(0.5f, left.Children[1].Opacity);
+        Assert.Equal(1f, moved.Opacity);
+        Assert.Equal(0.5f, right.Children[1].Opacity);
+    }
+
+    [Fact]
     public void CustomPseudoClassOfAControl()
     {
         var busy = new BusyLabel { Text = "loading" };
