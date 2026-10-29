@@ -85,6 +85,8 @@ public sealed class Styles : Collection<Style>
     /// <param name="watch">Reload the sheet when it or one of its imports is saved —
     /// styles edited live, in a running application. Meant for development: a
     /// published application has nobody editing its sheets.</param>
+    /// <exception cref="FileNotFoundException">There is no file at the path, outside
+    /// the previewer — see <see cref="StyleSheet.Load(string)"/>.</exception>
     public StyleSheetLink Load(string path, bool watch = false)
     {
         StyleSheetLink link = Add(StyleSheet.Load(path));

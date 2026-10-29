@@ -101,6 +101,52 @@ public class DispatcherTimerTests
     }
 
     [Fact]
+    public void ATickThatNeverRanDoesNotSilenceTheNextRun()
+    {
+        (Form form, HeadlessPlatform platform) = Open();
+        using var timer = new DispatcherTimer(form) { Interval = TimeSpan.FromHours(1) };
+
+        int ticks = 0;
+        timer.Tick += (_, _) => ticks++;
+        timer.Start();
+
+        // 0.19.1: a tick queued and not yet run — or never to run — left the "queued"
+        // flag set, Stop didn't clear it, and after Start every elapse was dropped
+        timer.Elapse();
+        timer.Stop();
+        timer.Start();
+        timer.Elapse();
+        platform.PumpAll();
+
+        Assert.Equal(1, ticks);
+    }
+
+    [Fact]
+    public void ATickTakenForLostIsQueuedAgainButTicksOnce()
+    {
+        (Form form, HeadlessPlatform platform) = Open();
+        using var timer = new DispatcherTimer(form) { Interval = TimeSpan.FromHours(1), LostTickAfter = TimeSpan.Zero };
+
+        int ticks = 0;
+        timer.Tick += (_, _) => ticks++;
+        timer.Start();
+
+        // with no patience at all, every elapse takes the queued tick for lost
+        timer.Elapse();
+        timer.Elapse();
+        timer.Elapse();
+        platform.PumpAll();
+
+        // the superseded ones came after all, and did nothing
+        Assert.Equal(1, ticks);
+
+        timer.Elapse();
+        platform.PumpAll();
+
+        Assert.Equal(2, ticks);
+    }
+
+    [Fact]
     public void ClosingTheOwnerStopsTheTimer()
     {
         (Form form, HeadlessPlatform platform) = Open();

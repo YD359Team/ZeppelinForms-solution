@@ -57,6 +57,9 @@ public sealed class StyleSheetLink : IDisposable
     public event EventHandler<StyleSheet>? Reloaded;
 
     /// <summary>Read the sheet's file again and put the new styles in place of the old.</summary>
+    /// <exception cref="InvalidOperationException">The sheet was parsed from text.</exception>
+    /// <exception cref="FileNotFoundException">The file is gone, outside the previewer;
+    /// the styles stay as they were.</exception>
     public void Reload()
     {
         if (Sheet.Path is not { } path)

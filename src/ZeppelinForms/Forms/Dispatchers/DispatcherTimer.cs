@@ -25,6 +25,14 @@ namespace ZeppelinForms.Dispatchers;
 /// Stop doesn't run after it, and one queued before a restart doesn't count for the
 /// new run.
 /// </para>
+/// <para>
+/// A queued tick that never runs — the window it was posted through closed first, the
+/// dispatcher stopped taking work — doesn't stop the timer: a restart starts with
+/// nothing queued, and within a run a tick queued longer than a second is taken for
+/// lost, and the next elapse queues another. If the lost one comes after all, it
+/// does nothing: only the latest queued tick raises <see cref="Tick"/>, so a busy UI
+/// thread still gets one tick after it, not two.
+/// </para>
 /// </remarks>
 /// <example>
 /// <code>
@@ -49,8 +57,23 @@ public sealed class DispatcherTimer : IDisposable
     /// it on; a tick queued under an older run is dropped when it comes.</summary>
     private int _generation;
 
-    /// <summary>A tick is queued and not yet run: the elapses after it are dropped.</summary>
-    private int _tickQueued;
+    /// <summary>The ticket of the tick queued and not yet run; 0 — none. While there is
+    /// one, the elapses after it are dropped.</summary>
+    /// <remarks>
+    /// A ticket rather than a flag: a flag set by a tick that never came stayed set
+    /// for good — Stop didn't clear it, and every Start after it dropped all ticks in
+    /// silence. Now Stop and every new run clear it, and a tick whose ticket is no
+    /// longer the queued one — queued before a restart, or taken for lost and queued
+    /// again — does nothing when it comes.
+    /// </remarks>
+    private long _queuedTicket;
+
+    /// <summary>The last ticket given out: tickets never repeat, so a stale tick is
+    /// never taken for the current one.</summary>
+    private long _lastTicket;
+
+    /// <summary>When the queued tick was queued, by <see cref="Environment.TickCount64"/>.</summary>
+    private long _queuedAt;
 
     /// <summary>A timer of the calling thread's dispatcher, or of the UI thread's when
     /// the calling thread has opened no window yet — the usual case for a timer made
@@ -130,6 +153,17 @@ public sealed class DispatcherTimer : IDisposable
     /// <summary>Anything the application wants to keep with the timer.</summary>
     public object? Tag { get; set; }
 
+    /// <summary>How long a queued tick may stay unrun before it is taken for lost and
+    /// another one is queued; a second by default. A test sets it to zero to lose
+    /// a tick on purpose.</summary>
+    /// <remarks>
+    /// Not a cadence: a UI thread busy for a minute gets a few dozen empty queue items,
+    /// one per second, and a single <see cref="Tick"/> after it — the superseded
+    /// tickets do nothing. Short enough that a lost tick costs about a second of
+    /// silence, long enough that a hung thread doesn't flood its queue.
+    /// </remarks>
+    internal TimeSpan LostTickAfter { get; set; } = TimeSpan.FromSeconds(1);
+
     /// <summary>The dispatcher the ticks come through: the owner form's while it has
     /// one, otherwise the one the timer was made on.</summary>
     public Dispatcher Dispatcher => _owner?.Dispatcher ?? _dispatcher ?? Dispatcher.UIThread;
@@ -157,6 +191,10 @@ public sealed class DispatcherTimer : IDisposable
 
             _enabled = false;
             _generation++;
+
+            // a tick still on its way — or lost on it — must not hold back the next Start
+            _queuedTicket = 0;
+
             _timer?.Change(Timeout.Infinite, Timeout.Infinite);
         }
     }
@@ -171,6 +209,7 @@ public sealed class DispatcherTimer : IDisposable
             _disposed = true;
             _enabled = false;
             _generation++;
+            _queuedTicket = 0;
 
             _timer?.Dispose();
             _timer = null;
@@ -185,6 +224,10 @@ public sealed class DispatcherTimer : IDisposable
     private void Arm()
     {
         _generation++;
+
+        // a new run starts with nothing queued: a tick of the old one is dropped when
+        // it comes, and must not drop the new run's ticks while it waits
+        _queuedTicket = 0;
 
         // the timer's state is the generation it ticks for: a callback of the old run
         // that is already on its way is told apart from the new one
@@ -206,27 +249,56 @@ public sealed class DispatcherTimer : IDisposable
     internal void Elapse(int? run = null)
     {
         int generation;
+        long ticket;
 
         lock (_sync)
         {
             // stopped, or restarted since this pool timer was made: its elapse is
             // not one of the current run's, and would come early for it
             if (!_enabled || (run is { } r && r != _generation)) return;
+
+            long now = Environment.TickCount64;
+
+            // a tick is on its way: this elapse is dropped — unless the tick has been
+            // on its way so long that it is taken for lost
+            if (_queuedTicket != 0 && now - _queuedAt < (long)LostTickAfter.TotalMilliseconds)
+                return;
+
             generation = _generation;
+            ticket = ++_lastTicket;
+
+            _queuedTicket = ticket;
+            _queuedAt = now;
         }
 
-        if (Interlocked.Exchange(ref _tickQueued, 1) == 1) return;
-
-        Dispatcher.BeginInvoke(() => Deliver(generation));
+        try
+        {
+            Dispatcher.BeginInvoke(() => Deliver(generation, ticket));
+        }
+        catch (InvalidOperationException)
+        {
+            // a dispatcher that takes no work any more: the tick wasn't queued, so it
+            // must not be waited for. On a pool thread the exception would take the
+            // process down for a tick nobody can receive
+            lock (_sync)
+            {
+                if (_queuedTicket == ticket) _queuedTicket = 0;
+            }
+        }
     }
 
-    /// <summary>On the UI thread: raise the tick if the run that queued it is still on.</summary>
-    private void Deliver(int generation)
+    /// <summary>On the UI thread: raise the tick if it is still the queued one and the
+    /// run that queued it is still on.</summary>
+    private void Deliver(int generation, long ticket)
     {
-        Volatile.Write(ref _tickQueued, 0);
-
         lock (_sync)
         {
+            // superseded: queued before a Stop or a restart, or taken for lost and
+            // queued again — the newer one raises the tick, this one doesn't
+            if (ticket != _queuedTicket) return;
+
+            _queuedTicket = 0;
+
             if (!_enabled || generation != _generation) return;
         }
 
