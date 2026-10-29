@@ -2,9 +2,56 @@
 
 ## [0.19.1]
 
+### Breaking changes
+
+- `StyleSheet.Load`, `Styles.Load` and `StyleSheetLink.Reload` throw `FileNotFoundException`
+  for a file that isn't there, with the full path the relative one was resolved to. It used
+  to be an empty sheet with a diagnostic, and the form came up unstyled with only the debug
+  output saying why. A missing `@import` is still a diagnostic, as any other mistake inside
+  a sheet: a half-typed import in a watched sheet doesn't take the application down on save
+- In the previewer a missing sheet is a diagnostic, as before: its host has a working folder
+  of its own, and a path right for the application may be wrong there. A watched sheet
+  loads once its file appears
+
 ### Fixes
 
 - Explicit restriction App rerun. Second call `App.Run` will throwing exception
+- `DispatcherTimer` stopped ticking for good when a queued tick never ran: `Stop` didn't
+  clear the "queued" flag, and every `Start` after it dropped all ticks in silence. A new
+  run starts with nothing queued; within a run a tick queued for more than a second is
+  taken for lost and queued again, and the lost one, if it comes after all, does nothing —
+  a busy UI thread still gets one tick after it, not two. A dispatcher that no longer takes
+  work no longer throws on the timer's pool thread
+- A binding whose value doesn't fit the property — text that is no number, a value of a
+  type with no conversion — no longer throws in a debug build of the framework: the write
+  is skipped and reported to the debug output, as a value typed into a field already was.
+  In the previewer that exception came out of layout on every frame
+- A binding to a `string` property shows a `Guid`, a `TimeSpan` or any other value without
+  `IConvertible` as its text instead of leaving the element empty
+- The previewer's sheet check reports a file deleted since the IDE asked instead of ending
+  the host's loop
+
+### Performance
+
+- A binding's conversions are made once per pair of types and kept, and each binding keeps
+  the last one it used: a write no longer works out nullable, enum and type code from the
+  types. An integer goes into an enum property as the member's value, with no text in
+  between. The culture is still read at the moment of the conversion
+- Skia text: no global lock around typefaces. A hit takes no lock at all, misses of
+  different families and files resolve in parallel — `MatchFamily` and `FromFile`, on Linux
+  a fontconfig pass, no longer hold up every other thread — and two threads on the same
+  miss still resolve it once. Fallback hits take only the cache's own lock, misses lock one
+  of 16 stripes instead of everything, and the application's fallback files are checked
+  with per-thread fonts
+- A font file that can't be loaded is remembered until `Invalidate`, not read again for
+  every size and thread
+
+### New API
+
+- `App.IsDesignMode`: whether the code runs in the previewer's host, as WinForms'
+  `DesignMode` — to skip in a preview what a design machine can't do. The host also logs
+  contract violations of a debug build of the framework instead of throwing them, so the
+  previewed view is drawn
 
 
 ## [0.19.0] Nevada
