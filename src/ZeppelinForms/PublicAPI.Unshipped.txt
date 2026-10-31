@@ -114,6 +114,8 @@ ZeppelinForms.Data.Binding.Path.get -> ZeppelinForms.Data.BindingPath!
 ZeppelinForms.Data.Binding.UsesDataContext.get -> bool
 ZeppelinForms.Data.BindingPath
 ZeppelinForms.Data.BindingPath.BindingPath(string! text, System.Type! sourceType, System.Type! valueType, params ZeppelinForms.Data.BindingStep[]! steps) -> void
+ZeppelinForms.Data.BindingPath.Set.get -> System.Action<object!, object?>?
+ZeppelinForms.Data.BindingPath.Set.init -> void
 ZeppelinForms.Data.BindingPath.SourceType.get -> System.Type!
 ZeppelinForms.Data.BindingPath.Steps.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Data.BindingStep>!
 ZeppelinForms.Data.BindingPath.Text.get -> string!

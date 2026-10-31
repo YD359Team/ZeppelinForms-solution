@@ -71,12 +71,12 @@ public sealed class BindingPath
 
     public IReadOnlyList<BindingStep> Steps => _steps;
 
+    /// <summary>The write of the last property, given the object that has it and the value
+    /// converted to <see cref="ValueType"/>. Null — the path is read only, and a binding
+    /// both ways along it is refused.</summary>
+    public Action<object, object?>? Set { get; init; }
+
     /// <summary>The last property read and written as its own type, without a box when
-    /// it is the bound property's type: see <see cref="BindingValue"/>. Null — through
-    /// the last step and <see cref="Set"/>, as object. The typed overloads of
-    /// <c>UIElement.Bind</c> and the markup's <c>{Bind …}</c> give one.</summary>
-    /// <remarks>The last step stays: the binding follows the object it reads from, and
-    /// converts through it where the types differ.</remarks>
     public BindingValue? Value { get; init; }
 
     public override string ToString() => Text;
