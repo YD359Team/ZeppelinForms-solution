@@ -1516,6 +1516,12 @@ ZeppelinForms.Forms.Controls.Charts.CandlestickChart.BodyRatio.set -> void
 ZeppelinForms.Forms.Controls.Charts.CandlestickChart.BullColor.get -> ZeppelinForms.Drawing.Primitives.Color
 ZeppelinForms.Forms.Controls.Charts.CandlestickChart.BullColor.set -> void
 ZeppelinForms.Forms.Controls.Charts.CandlestickChart.Candles.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.Charts.Candle!>!
+ZeppelinForms.Forms.Controls.Charts.CandlestickChart.HoverColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Charts.CandlestickChart.HoverColor.set -> void
+ZeppelinForms.Forms.Controls.Charts.CandlestickChart.ReadoutBackground.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Charts.CandlestickChart.ReadoutBackground.set -> void
+ZeppelinForms.Forms.Controls.Charts.CandlestickChart.ShowReadout.get -> bool
+ZeppelinForms.Forms.Controls.Charts.CandlestickChart.ShowReadout.set -> void
 ZeppelinForms.Forms.Controls.Charts.CandlestickChart.Candles.init -> void
 ZeppelinForms.Forms.Controls.Charts.CandlestickChart.CandlestickChart() -> void
 ZeppelinForms.Forms.Controls.Charts.CandlestickChart.HollowBullish.get -> bool
@@ -6818,6 +6824,8 @@ static readonly ZeppelinForms.Forms.Controls.Calendar.SelectionColorProperty -> 
 static readonly ZeppelinForms.Forms.Controls.Calendar.TodayColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 static readonly ZeppelinForms.Forms.Controls.Charts.CartesianChartBase.AxisColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 static readonly ZeppelinForms.Forms.Controls.Charts.CartesianChartBase.GridColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Charts.CandlestickChart.HoverColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Charts.CandlestickChart.ReadoutBackgroundProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 static readonly ZeppelinForms.Forms.Controls.Charts.ChartBase.LabelColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 static readonly ZeppelinForms.Forms.Controls.Charts.ChartBase.TitleColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 static readonly ZeppelinForms.Forms.Controls.Charts.RadarChart.AxisColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!

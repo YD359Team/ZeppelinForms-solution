@@ -217,6 +217,9 @@ public abstract partial class UIElement
     /// </remarks>
     protected virtual void OnStyledPropertyChanged(StyledProperty property) { }
 
+    /// <summary>Tell outside subscribers that a styled property changed. Goes last,
+    /// after the element's own reaction and the invalidation: by the time
+    /// a subscriber reads the value, the element is already consistent.</summary>
     // one instance per property, made with it: the arguments carry nothing but the
     // name, and every change of a property with a subscriber — a binding to this
     // element, an inspector — made new ones
