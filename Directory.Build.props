@@ -1,6 +1,6 @@
 <Project>
 	<PropertyGroup>
-		<Version>0.19.2</Version>
+		<Version>0.20.0</Version>
 		
 		<!-- The version without a prerelease part, numbers only: what a VSIX identity and
 		     an Android versionCode can take. Follows /p:Version when CI passes the tag's
