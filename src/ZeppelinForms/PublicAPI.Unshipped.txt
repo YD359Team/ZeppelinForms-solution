@@ -114,8 +114,6 @@ ZeppelinForms.Data.Binding.Path.get -> ZeppelinForms.Data.BindingPath!
 ZeppelinForms.Data.Binding.UsesDataContext.get -> bool
 ZeppelinForms.Data.BindingPath
 ZeppelinForms.Data.BindingPath.BindingPath(string! text, System.Type! sourceType, System.Type! valueType, params ZeppelinForms.Data.BindingStep[]! steps) -> void
-ZeppelinForms.Data.BindingPath.Set.get -> System.Action<object!, object?>?
-ZeppelinForms.Data.BindingPath.Set.init -> void
 ZeppelinForms.Data.BindingPath.SourceType.get -> System.Type!
 ZeppelinForms.Data.BindingPath.Steps.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Data.BindingStep>!
 ZeppelinForms.Data.BindingPath.Text.get -> string!
@@ -456,3 +454,34 @@ static readonly ZeppelinForms.Forms.Controls.SwipeView.ItemWidthProperty -> Zepp
 virtual ZeppelinForms.Forms.Controls.Navigation.Page.CanLeaveAsync() -> System.Threading.Tasks.Task<bool>!
 virtual ZeppelinForms.Forms.Controls.Navigation.Page.OnNavigatedFrom(ZeppelinForms.Forms.Controls.Navigation.NavigationEventArgs! e) -> void
 virtual ZeppelinForms.Forms.Controls.Navigation.Page.OnNavigatedTo(ZeppelinForms.Forms.Controls.Navigation.NavigationEventArgs! e) -> void
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.CandlestickChart.HoverColor.get -> ZeppelinForms.Drawing.Primitives.Color
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.CandlestickChart.HoverColor.set -> void
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.CandlestickChart.ReadoutBackground.get -> ZeppelinForms.Drawing.Primitives.Color
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.CandlestickChart.ReadoutBackground.set -> void
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.CandlestickChart.ShowReadout.get -> bool
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.CandlestickChart.ShowReadout.set -> void
+*REMOVED*static readonly ZeppelinForms.Forms.Controls.Charts.CandlestickChart.HoverColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+*REMOVED*static readonly ZeppelinForms.Forms.Controls.Charts.CandlestickChart.ReadoutBackgroundProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+ZeppelinForms.Forms.Controls.Charts.ChartBase.HoverColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Charts.ChartBase.HoverColor.set -> void
+ZeppelinForms.Forms.Controls.Charts.ChartBase.ReadoutBackground.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Charts.ChartBase.ReadoutBackground.set -> void
+ZeppelinForms.Forms.Controls.Charts.ChartBase.ShowReadout.get -> bool
+ZeppelinForms.Forms.Controls.Charts.ChartBase.ShowReadout.set -> void
+static readonly ZeppelinForms.Forms.Controls.Charts.ChartBase.HoverColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Charts.ChartBase.ReadoutBackgroundProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+override ZeppelinForms.Forms.Controls.Charts.BarChart.OnMouseExit(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Charts.BarChart.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Charts.LineChart.OnMouseExit(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Charts.LineChart.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Charts.RadarChart.OnMouseExit(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Charts.RadarChart.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+ZeppelinForms.Data.BindingPath.Value.get -> ZeppelinForms.Data.BindingValue?
+ZeppelinForms.Data.BindingPath.Value.init -> void
+ZeppelinForms.Data.BindingValue
+abstract ZeppelinForms.Data.BindingValue.ValueType.get -> System.Type!
+ZeppelinForms.Data.BindingValue<TValue>
+ZeppelinForms.Data.BindingValue<TValue>.BindingValue(System.Func<object!, TValue>! get, System.Action<object!, TValue>? set = null) -> void
+ZeppelinForms.Data.BindingValue<TValue>.Get.get -> System.Func<object!, TValue>!
+ZeppelinForms.Data.BindingValue<TValue>.Set.get -> System.Action<object!, TValue>?
+override ZeppelinForms.Data.BindingValue<TValue>.ValueType.get -> System.Type!

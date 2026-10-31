@@ -244,6 +244,12 @@ public abstract partial class UIElement
             new BindingStep(null, source => get((TSource)source)))
         {
             Set = set is null ? null : (source, value) => set((TSource)source, (TValue)value!),
+
+            // the same reads and writes as the value's own type: a value type moves
+            // without a box into a property of that type
+            Value = new BindingValue<TValue>(
+                source => get((TSource)source),
+                set is null ? null : (source, value) => set((TSource)source, value)),
         };
     }
 
@@ -302,6 +308,15 @@ public abstract partial class UIElement
     {
         property.WriteBoxedDirect(this, value);
 
+        AfterBoundWrite(property);
+    }
+
+    /// <summary>What follows a binding's write, whichever way the value came: written
+    /// boxed above, or as its type by the binding's typed end
+    /// (<see cref="StyledProperty{T}"/>'s own write — a generic method here would carry
+    /// the property's trimming annotation to every typed binding's value type).</summary>
+    internal void AfterBoundWrite(StyledProperty property)
+    {
         SetBit(ref _assigned, property.Index);
 
         // the element's own reaction goes before the invalidation,
@@ -312,6 +327,20 @@ public abstract partial class UIElement
         else InvalidateVisual();
 
         RaisePropertyChanged(property);
+    }
+
+    /// <summary>An explicit assignment to a bound property, as its type: TwoWay hands
+    /// the value to the source — without a box where the path's end is of the type —,
+    /// OneWay is broken.</summary>
+    private void PushOrBreakBinding<T>(StyledProperty<T> property, T value)
+    {
+        if (_bindings is null || !_bindings.TryGetValue(property.Index, out Binding? binding))
+            return;
+
+        if (binding.Mode == BindingMode.TwoWay)
+            binding.PushToSource(value);
+        else
+            Unbind(property);
     }
 
     /// <summary>An explicit assignment to a bound property: TwoWay hands the value
@@ -337,7 +366,7 @@ public abstract partial class UIElement
     /// </remarks>
     protected void NotifyBoundValueChanged(StyledProperty property, object? value)
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property.Name));
+        PropertyChanged?.Invoke(this, property.ChangedEventArgs);
 
         if (_bindings is null ||
             !_bindings.TryGetValue(property.Index, out Binding? binding) ||

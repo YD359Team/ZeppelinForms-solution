@@ -51,6 +51,10 @@ public abstract class StyledProperty
     /// <summary>Whether it is inherited down the tree, like the font.</summary>
     public bool Inherits { get; }
 
+    /// <summary>The arguments of the element's PropertyChanged for this property, made
+    /// once: they hold nothing but the name.</summary>
+    internal System.ComponentModel.PropertyChangedEventArgs ChangedEventArgs { get; }
+
     protected StyledProperty(
         string name, Type ownerType, [DynamicallyAccessedMembers(ValueTypeMembers)] Type valueType,
         string category, bool affectsLayout, bool inherits)
@@ -61,6 +65,7 @@ public abstract class StyledProperty
         Category = category;
         AffectsLayout = affectsLayout;
         Inherits = inherits;
+        ChangedEventArgs = new System.ComponentModel.PropertyChangedEventArgs(name);
 
         lock (RegistrySync)
         {

@@ -720,6 +720,41 @@ public class MarkupGeneratorTests
     }
 
     [Fact]
+    public void ATypedBindingMovesAValueOfItsTypeBothWays()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.Typed" xmlns:vm="using:App.ViewModels" x:DataType="vm:OrderViewModel"
+                        xmlns:x="https://zeppelinforms.dev/markup/x">
+              <Label Name="Cell" Column="{Bind Quantity, Mode=TwoWay}"/>
+              <Label Name="Status" Text="{Bind Status}"/>
+            </StackPanel>
+            """, ViewModels);
+
+        Assert.Empty(result.Errors);
+
+        // 0.19.2: the last property comes as its own type, read and written without a box
+        Assert.Contains("BindingValue<int>", result.Source);
+
+        var panel = (StackPanel)result.Create("App.Typed");
+        object vm = Activator.CreateInstance(result.Assembly!.GetType("App.ViewModels.OrderViewModel", throwOnError: true)!)!;
+        panel.DataContext = vm;
+
+        Label cell = Field<Label>(panel, "Cell");
+        Assert.Equal(1, cell.Column);
+        Assert.Equal("New", Field<Label>(panel, "Status").Text);
+
+        Write(vm, "Quantity", 3);
+        Assert.Equal(3, cell.Column);
+
+        cell.Column = 5;
+        Assert.Equal(5, Read(vm, "Quantity"));
+
+        // back to a value the element showed before: written again
+        Write(vm, "Quantity", 3);
+        Assert.Equal(3, cell.Column);
+    }
+
+    [Fact]
     public void TheDataContextCanBeMadeInTheMarkup()
     {
         Result result = Build("""

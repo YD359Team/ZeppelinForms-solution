@@ -73,6 +73,11 @@ internal sealed class MarkupCompiler
 
     private static readonly SymbolDisplayFormat TypeFormat = MarkupValues.TypeFormat;
 
+    /// <summary>The type as declared, with its <c>?</c>: a generic argument the generated
+    /// lambdas return and take as they are.</summary>
+    private static readonly SymbolDisplayFormat AnnotatedTypeFormat =
+        TypeFormat.AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+
     private readonly string _path;
     private readonly string _text;
     private readonly Compilation _compilation;
@@ -930,7 +935,9 @@ internal sealed class MarkupCompiler
     }
 
     /// <summary>new BindingPath("Customer.Name", typeof(Vm), typeof(string), new BindingStep("Customer", …), …)
-    /// with Set for a path both ways. Null — a step that isn't there, reported.</summary>
+    /// with the last property as its own type — Value, read and for a path both ways
+    /// written without a box — and Set for a path both ways. Null — a step that isn't
+    /// there, reported.</summary>
     private string? PathExpression(PendingBinding binding, INamedTypeSymbol sourceType, string[] steps, out IPropertySymbol? last)
     {
         last = null;
@@ -963,18 +970,34 @@ internal sealed class MarkupCompiler
 
         code.Append(TypeName(last!.Type)).Append(')').Append(reads).Append(')');
 
+        if (binding.TwoWay && !IsWritable(last))
+        {
+            Report(MarkupDiagnostics.BadBinding, binding.Line,
+                "'" + binding.Path + "' can't be written, and Mode=TwoWay writes it: its last property needs a setter the markup can call");
+            return null;
+        }
+
+        string lastOwner = TypeName(last.ContainingType);
+
+        // the last property as its type: a value type bound to a property of that type
+        // moves without a box. The type as declared, nullability included — the read
+        // returns it as it is
+        code.Append(" { Value = new global::ZeppelinForms.Data.BindingValue<")
+            .Append(last.Type.ToDisplayString(AnnotatedTypeFormat))
+            .Append(">(static s => ((").Append(lastOwner).Append(")s).").Append(last.Name);
+
+        if (binding.TwoWay)
+            code.Append(", static (o, v) => ((").Append(lastOwner).Append(")o).").Append(last.Name).Append(" = v");
+
+        code.Append(')');
+
         if (binding.TwoWay)
         {
-            if (!IsWritable(last))
-            {
-                Report(MarkupDiagnostics.BadBinding, binding.Line,
-                    "'" + binding.Path + "' can't be written, and Mode=TwoWay writes it: its last property needs a setter the markup can call");
-                return null;
-            }
-
-            code.Append(" { Set = static (o, v) => ((").Append(TypeName(last.ContainingType)).Append(")o).")
-                .Append(last.Name).Append(" = ").Append(Unbox("v", last.Type)).Append(" }");
+            code.Append(", Set = static (o, v) => ((").Append(lastOwner).Append(")o).")
+                .Append(last.Name).Append(" = ").Append(Unbox("v", last.Type));
         }
+
+        code.Append(" }");
 
         return code.ToString();
     }
