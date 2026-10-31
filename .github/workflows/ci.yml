@@ -17,7 +17,70 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # What the push or the pull request touched, for the jobs below to skip what it can't
+  # break: a change to the VS Code extension doesn't rebuild the framework on two systems,
+  # a change to a test doesn't pack the templates. A run by hand, a new branch and anything
+  # the diff can't be taken for run everything. The rules go from the folders a job builds
+  # or reads; a file under no rule (a new folder) runs the framework's build, so a new
+  # place is never left unchecked. A skipped job counts as passed for a required check
+  changes:
+    runs-on: ubuntu-latest
+
+    outputs:
+      dotnet: ${{ steps.filter.outputs.dotnet }}
+      vsix: ${{ steps.filter.outputs.vsix }}
+      editors: ${{ steps.filter.outputs.editors }}
+      templates: ${{ steps.filter.outputs.templates }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Что изменилось
+        id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.sha }}
+        run: |
+          everything() {
+            for job in dotnet vsix editors templates; do echo "$job=true" >> "$GITHUB_OUTPUT"; done
+          }
+
+          if [ "$EVENT" = workflow_dispatch ] || [ -z "$BASE" ] \
+             || [ "$BASE" = 0000000000000000000000000000000000000000 ] \
+             || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "no diff to go by: everything runs"
+            everything
+            exit 0
+          fi
+
+          changed=$(git diff --name-only "$BASE" "$HEAD")
+          echo "$changed"
+
+          # what every .NET job builds from: the framework, the build's settings, this file
+          shared='^(src/|global\.json$|nuget\.config$|Directory\.[^/]*\.props$|ZeppelinForms\.globalconfig$|\.github/workflows/ci\.yml$)'
+
+          any() { printf '%s\n' "$changed" | grep -qE "$1" && echo true || echo false; }
+
+          # the solution's build and tests: every file but those nothing in the solution reads
+          if printf '%s\n' "$changed" | grep -vqE '^(docs/|assets/|tools/ZeppelinForms\.(VSCode|Rider)/|\.github/workflows/(release|bench|wiki)\.yml$)|\.md$'; then
+            echo "dotnet=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "dotnet=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "vsix=$(any "$shared|^tools/ZeppelinForms\.(VisualStudio|Design|Designer|LanguageServer)/")" >> "$GITHUB_OUTPUT"
+          echo "editors=$(any "$shared|^tools/|^examples/ZF SharedLib/")" >> "$GITHUB_OUTPUT"
+          echo "templates=$(any "$shared|^templates/")" >> "$GITHUB_OUTPUT"
+
+          cat "$GITHUB_OUTPUT"
+
   build:
+    needs: changes
+    if: needs.changes.outputs.dotnet == 'true'
+
     strategy:
       fail-fast: false
       matrix:
@@ -32,6 +95,15 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # the packages of the last run with the same projects: restore checks them instead of
+      # downloading. A changed project or version takes the nearest older cache and adds
+      # what is missing
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json', 'nuget.config') }}
+          restore-keys: nuget-${{ runner.os }}-
+
       - name: Установка зависимостей (Linux)
         if: matrix.os == 'ubuntu-latest'
         # Mesa's EGL and llvmpipe: GlesSkiaParityTests draw with the GLES backend in an
@@ -39,47 +111,45 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1 xvfb libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri
 
       - name: Установка workloads
+        # Linux only: the Android and browser projects are built there, on Windows the
+        # solution filter leaves them out (see below), and the workloads — the longest
+        # step of the Windows run — aren't needed.
         # the workloads of the installed SDK, not the newest workload set: a set can
         # be published before all of its manifests are (10.0.402.1 named an iOS manifest
         # nuget.org didn't have yet), and the install failed on both runners
+        if: matrix.os == 'ubuntu-latest'
         run: dotnet workload install wasm-tools android --skip-manifest-update
 
-      - run: dotnet restore
-      - run: dotnet build --no-restore --configuration Release
+      # Linux builds the whole solution, analyzers included: they read the same code on
+      # either system, so once is enough, and Linux is where every project builds.
+      # Windows builds the solution without the Android and browser projects
+      # (.github/ci/windows.slnf) — what is Windows' own there is its platform and the
+      # tests running on it — and skips the analyzers. Source generators still run:
+      # RunAnalyzersDuringBuild=false turns off diagnostics, not generation
+      - name: Сборка (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          dotnet restore
+          dotnet build --no-restore --configuration Release
 
-      # the Visual Studio extension is not in the solution: it builds with Visual
-      # Studio's MSBuild only. Built here so that a change to the framework that
-      # breaks the previewer shows up before a release tag does
-      - uses: microsoft/setup-msbuild@v2
+      - name: Сборка (Windows)
         if: matrix.os == 'windows-latest'
+        run: |
+          dotnet restore .github/ci/windows.slnf
+          dotnet build .github/ci/windows.slnf --no-restore --configuration Release -p:RunAnalyzersDuringBuild=false
 
-      - name: Расширение Visual Studio
-        if: matrix.os == 'windows-latest'
-        run: msbuild tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.sln /restore /p:Configuration=Release /p:DeployExtension=false /v:minimal /bl:vsix.binlog
-
-      - name: Выгрузить расширение
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v6
-        with:
-          name: vsix
-          path: tools/ZeppelinForms.VisualStudio/bin/**/*.vsix
-          if-no-files-found: error
-
-      # the build log of the extension, for when there is no .vsix: which targets
-      # ran and which were skipped, and why. Opens in the MSBuild Structured Log Viewer
-      - name: Выгрузить журнал сборки расширения
-        if: failure() && matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v6
-        with:
-          name: vsix-binlog
-          path: vsix.binlog
-          if-no-files-found: ignore
-
+      # the test projects one by one: dotnet test without a project reads the whole
+      # solution, and the Android and browser projects can't be read without workloads
       - name: Тесты (Windows)
         # a hung test ends the step rather than holding the runner for six hours
         timeout-minutes: 30
         if: matrix.os == 'windows-latest'
-        run: dotnet test --no-build --configuration Release -- --output Detailed
+        run: dotnet test --project tests/ZeppelinForms.UnitTests/ZeppelinForms.UnitTests.csproj --no-build --configuration Release -- --output Detailed
+
+      - name: Тесты внешних контролов (Windows)
+        timeout-minutes: 30
+        if: matrix.os == 'windows-latest'
+        run: dotnet test --project tests/ZeppelinForms.ExternalControlTests/ZeppelinForms.ExternalControlTests.csproj --no-build --configuration Release -- --output Detailed
 
       - name: Тесты (Linux)
         # a hung test ends the step rather than holding the runner for six hours
@@ -107,11 +177,58 @@ jobs:
           path: '**/TestResults/**'
           if-no-files-found: ignore
 
+  # the Visual Studio extension is not in the solution: it builds with Visual
+  # Studio's MSBuild only. Built here so that a change to the framework that
+  # breaks the previewer shows up before a release tag does. A job of its own,
+  # alongside the build rather than after it: it publishes the designer host and the
+  # language server itself and needs nothing the build made
+  vsix:
+    needs: changes
+    if: needs.changes.outputs.vsix == 'true'
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-vsix-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json', 'nuget.config') }}
+          restore-keys: nuget-vsix-${{ runner.os }}-
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Расширение Visual Studio
+        run: msbuild tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.sln /restore /p:Configuration=Release /p:DeployExtension=false /v:minimal /bl:vsix.binlog
+
+      - name: Выгрузить расширение
+        uses: actions/upload-artifact@v6
+        with:
+          name: vsix
+          path: tools/ZeppelinForms.VisualStudio/bin/**/*.vsix
+          if-no-files-found: error
+
+      # the build log of the extension, for when there is no .vsix: which targets
+      # ran and which were skipped, and why. Opens in the MSBuild Structured Log Viewer
+      - name: Выгрузить журнал сборки расширения
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: vsix-binlog
+          path: vsix.binlog
+          if-no-files-found: ignore
+
   # The VS Code extension and the Rider plugin: built outside the solution, each with its own
   # tools, on Linux. Both speak the designer protocol in their own language, so their tests
   # read bytes .NET wrote, and the Rider plugin's also hold a conversation with a real host
   # about the examples' library
   editors:
+    needs: changes
+    if: needs.changes.outputs.editors == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -176,6 +293,8 @@ jobs:
   # those packages — a change to the framework that breaks the template, or a template
   # that no longer builds, shows up here and not after a release
   templates:
+    needs: changes
+    if: needs.changes.outputs.templates == 'true'
     runs-on: ubuntu-latest
 
     steps:

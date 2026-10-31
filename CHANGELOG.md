@@ -1,6 +1,25 @@
 # Changes
 
-## [0.20.0]
+## [0.20.0]	Lighthouse of Alexandria
+
+### Forms
+
+- A form follows the theme, the text scale and the language through one subscription,
+  kept from its constructor until its window closes and renewed with the next window; a
+  change made while it was closed is applied when it is shown again, as before. The three
+  used to be dropped and renewed each in its own place — the language's and the text
+  scale's twice at close, two of the focus events twice at `Dispose`. The focus events
+  are no longer dropped at `Dispose` at all: the form owns their source
+
+### Build
+
+- CI on Windows builds the solution without the Android and browser projects
+  (`.github/ci/windows.slnf`) and installs no workloads; they are built on Linux and by
+  the templates' job. The analyzers run once, on Linux
+- The Visual Studio extension is built in a job of its own, alongside the build
+- The jobs are skipped when the change can't affect them: the editors' job for a change
+  to the framework's tests, the solution's build for a change to the VS Code extension
+- Restored NuGet packages are cached between runs
 
 
 ## [0.19.2]

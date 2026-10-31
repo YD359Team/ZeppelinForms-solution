@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/.github/" />
+  <Folder Name="/.github/ci/">
+    <File Path=".github/ci/windows.slnf" />
+  </Folder>
   <Folder Name="/.github/workflows/">
     <File Path=".github/workflows/bench.yml" />
     <File Path=".github/workflows/ci.yml" />
