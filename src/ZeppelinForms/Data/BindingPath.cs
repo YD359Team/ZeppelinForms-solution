@@ -76,7 +76,7 @@ public sealed class BindingPath
     /// both ways along it is refused.</summary>
     public Action<object, object?>? Set { get; init; }
 
-    /// <summary>The last property read and written as its own type, without a box when
+    /// <summary>The last property read and written as its own type, without a box when.</summary>
     public BindingValue? Value { get; init; }
 
     public override string ToString() => Text;
