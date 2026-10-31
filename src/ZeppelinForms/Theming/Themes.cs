@@ -541,18 +541,14 @@ public static partial class Themes
             {
                 chart.TitleColor = c.Text;
                 chart.LabelColor = c.TextSecondary;
+                chart.HoverColor = new Color(24, c.Text.R, c.Text.G, c.Text.B);
+                chart.ReadoutBackground = new Color(230, c.Surface.R, c.Surface.G, c.Surface.B);
             })
 
             .For<CartesianChartBase>((chart, c) =>
             {
                 chart.AxisColor = c.TextSecondary;
                 chart.GridColor = new Color(28, c.Text.R, c.Text.G, c.Text.B);
-            })
-
-            .For<CandlestickChart>((chart, c) =>
-            {
-                chart.HoverColor = new Color(24, c.Text.R, c.Text.G, c.Text.B);
-                chart.ReadoutBackground = new Color(230, c.Surface.R, c.Surface.G, c.Surface.B);
             })
 
             .For<RadarChart>((chart, c) =>

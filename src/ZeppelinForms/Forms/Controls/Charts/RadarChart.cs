@@ -2,6 +2,7 @@
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
+using ZeppelinForms.Input.Mouse;
 
 namespace ZeppelinForms.Forms.Controls.Charts;
 
@@ -15,9 +16,21 @@ namespace ZeppelinForms.Forms.Controls.Charts;
 /// by eye, they grow as the square of the value. So the series are drawn with
 /// a translucent fill on top of each other rather than a solid one: the shape
 /// matters, not the size of the patch.
+/// <para>
+/// The pointer picks the ray nearest to it by angle, anywhere over the chart's disc: the
+/// ray is drawn in full, every series' point on it grows, and a readout gives their
+/// values. Over a ray the eye compares series exactly where the shapes can't tell.
+/// </para>
 /// </remarks>
 public partial class RadarChart : ChartBase
 {
+    /// <summary>The axis under the pointer; -1 — none.</summary>
+    private int _hovered = -1;
+
+    /// <summary>The axis under the pointer, of <see cref="Categories"/>; -1 — none.
+    /// For tests and for the accessibility of the chart.</summary>
+    internal int HoveredAxis => _hovered;
+
     /// <summary>Axis labels. Their count sets the number of rays.</summary>
     public List<string> Categories { get; init; } = [];
 
@@ -134,6 +147,12 @@ public partial class RadarChart : ChartBase
         if (radius <= 0) return;
 
         DrawGrid(g, center, radius, axes);
+
+        // the hovered ray over the grid, under the series: in the labels' color, so it
+        // reads as the one the readout speaks of
+        if (_hovered >= 0 && _hovered < axes)
+            g.DrawLine(center, At(center, radius, _hovered, axes), LabelColor, 1.5f);
+
         DrawLabels(g, center, radius, axes);
 
         float scale = Scale;
@@ -175,7 +194,76 @@ public partial class RadarChart : ChartBase
                         color);
         }
 
+        if (_hovered >= 0 && _hovered < axes)
+            DrawHover(g, center, radius, axes, scale);
+
         if (ShowLegend) DrawLegend(g);
+    }
+
+
+    /// <summary>Every series' point on the hovered ray, grown, and the readout of their values.</summary>
+    private void DrawHover(Graphics g, Point center, float radius, int axes, float scale)
+    {
+        var rows = new List<(string, Color)>(Series.Count);
+
+        for (int s = 0; s < Series.Count; s++)
+        {
+            ChartSeries series = Series[s];
+            Color color = series.Color ?? ChartPalette.At(s);
+
+            // a missing value counts as zero, as it is drawn
+            float value = _hovered < series.Values.Count ? series.Values[_hovered] : 0f;
+
+            DrawHoveredPoint(g, At(center, radius * Math.Clamp(value / scale, 0f, 1f), _hovered, axes), PointRadius, color);
+            rows.Add(($"{SeriesName(series, s)}: {value.ToString("0.##", System.Globalization.CultureInfo.CurrentCulture)}", color));
+        }
+
+        // beside the end of the ray, inside the chart's disc and its labels
+        Point end = At(center, radius, _hovered, axes);
+        Rectangle content = ContentBounds;
+        var area = new Rectangle(content.Position, new Size(content.Width - LegendWidth, content.Height));
+
+        DrawReadout(g, area, end.X, end.Y, Categories[_hovered], rows);
+    }
+
+    protected override void OnMouseMove(MouseMoveEventArgs e)
+    {
+        int axis = -1;
+        int axes = Categories.Count;
+
+        if (axes >= 3)
+        {
+            var (center, radius) = Layout;
+            Point pointer = LocalPointer(e.Location);
+
+            float dx = pointer.X - center.X;
+            float dy = pointer.Y - center.Y;
+            float distance = MathF.Sqrt(dx * dx + dy * dy);
+
+            // over the disc and its labels, not right at the center, where every ray
+            // is equally near and the choice would jump with each pixel
+            if (radius > 0 && distance <= radius + LabelMargin && distance >= Math.Min(8f, radius / 4f))
+            {
+                // the angle from 12 o'clock clockwise, as the rays go
+                float angle = MathF.Atan2(dy, dx) * 180f / MathF.PI + 90f;
+                if (angle < 0) angle += 360f;
+
+                axis = (int)MathF.Round(angle / (360f / axes)) % axes;
+            }
+        }
+
+        if (axis == _hovered) return;
+
+        _hovered = axis;
+        InvalidateVisual();
+    }
+
+    protected override void OnMouseExit(MouseMoveEventArgs e)
+    {
+        if (_hovered < 0) return;
+
+        _hovered = -1;
+        InvalidateVisual();
     }
 
     private void DrawGrid(Graphics g, Point center, float radius, int axes)

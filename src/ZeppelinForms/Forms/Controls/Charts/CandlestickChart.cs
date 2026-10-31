@@ -25,17 +25,10 @@ public partial class CandlestickChart : CartesianChartBase
     public Color BullColor { get; set; } = new(255, 0x19, 0x87, 0x54);
     public Color BearColor { get; set; } = new(255, 0xDC, 0x35, 0x45);
 
-    /// <summary>The band behind the hovered candle. Was a fixed translucent black,
-    /// invisible on a dark background.</summary>
-    [Styled(Category = "Chart")]
-    public partial Color HoverColor { get; set; }
-    private static Color HoverColorDefault => new(24, 0, 0, 0);
-
-    /// <summary>The backing of the price readout. Was a fixed translucent white,
-    /// a bright patch on a dark background.</summary>
-    [Styled(Category = "Chart")]
-    public partial Color ReadoutBackground { get; set; }
-    private static Color ReadoutBackgroundDefault => new(220, 255, 255, 255);
+    // HoverColor, ReadoutBackground and ShowReadout are ChartBase's since 0.19.2: every
+    // chart highlights what the pointer is over now. They were made styled here because
+    // the fixed translucent black and white of the first version disappeared on a dark
+    // background — the base keeps that
 
     /// <summary>Draw rising candles hollow — that is how stock terminals
     /// usually show them.</summary>
@@ -48,9 +41,6 @@ public partial class CandlestickChart : CartesianChartBase
 
     /// <summary>The margin at the edges of the scale, as a fraction of the price range.</summary>
     public float RangePadding { get; set; } = 0.06f;
-
-    /// <summary>Show the prices of the hovered candle in the corner of the plot.</summary>
-    public bool ShowReadout { get; set; } = true;
 
     // a price is never zero: the range is computed from the data itself
     protected override bool IncludeZero => false;
@@ -183,11 +173,11 @@ public partial class CandlestickChart : CartesianChartBase
 
     protected override void OnMouseMove(MouseMoveEventArgs e)
     {
-        Point abs = GetAbsolutePosition();
         Rectangle plot = PlotArea;
 
-        float x = e.Location.X - abs.X;
-        float y = e.Location.Y - abs.Y;
+        Point pointer = LocalPointer(e.Location);
+        float x = pointer.X;
+        float y = pointer.Y;
 
         int index = -1;
 
