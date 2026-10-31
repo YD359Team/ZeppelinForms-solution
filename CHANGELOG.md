@@ -1,5 +1,38 @@
 # Changes
 
+## [0.19.2]
+
+### Breaking changes
+
+- `HoverColor`, `ReadoutBackground` and `ShowReadout` moved from `CandlestickChart` to
+  `ChartBase`: every chart has them now, and the theme gives them to every chart. Code and
+  style sheets that set them on a candlestick chart build as before; a compiled assembly
+  that used `CandlestickChart.HoverColorProperty` or `ReadoutBackgroundProperty` needs a rebuild
+
+### Charts
+
+- `LineChart`, `BarChart` and `RadarChart` answer the pointer, as the pie and the candles
+  do. Lines: the nearest category is marked with a band, its points grow, and a readout
+  beside it gives every series' value; over a function, a guide at the pointer's argument,
+  the curve's point there and its value. Bars: the category's group is marked, the bar
+  right under the pointer outlined, and the readout gives the group's values. Radar: the
+  ray nearest by angle is drawn in full, every series' point on it grows, and the readout
+  gives their values
+- The readout stands beside what it describes and moves to its other side when it doesn't
+  fit; `ShowReadout = false` turns it off
+
+### Performance
+
+- Bindings move a value of the bound property's own type without a box: an `int`, a
+  `bool`, a `Color` went through `object` on every read from the source and every write
+  back — 24 bytes a change each way —, now nothing. The typed `Bind` overloads and the
+  markup's `{Bind …}` give the path's last property as its type
+  (`BindingPath.Value`, `BindingValue<TValue>`); a path without it, or bound to a property
+  of another type, converts through `object` as before
+- An element's `PropertyChanged` arguments are made once per styled property, not on
+  every change
+
+
 ## [0.19.1]
 
 ### Breaking changes

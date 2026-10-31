@@ -79,6 +79,11 @@ public sealed class Binding
     private Type? _toSourceFrom;
     private Func<object, object?>? _toSource;
 
+    /// <summary>The end at the element as the property's own type, when the path gives
+    /// its last property as that type: the value goes through without a box. Null —
+    /// through object, converted.</summary>
+    private readonly BindingEnd? _end;
+
     /// <summary>A value that couldn't be converted, with the message written to the
     /// debug output: for tests, and for whatever wants to show broken bindings.</summary>
     internal static event EventHandler<string>? ConversionFailed;
@@ -98,6 +103,7 @@ public sealed class Binding
         Path = path;
         Mode = mode;
         UsesDataContext = usesDataContext;
+        _end = targetProperty is not null ? path.Value?.EndFor(targetProperty) : null;
 
         _owners = new object?[path.Length];
         _followed = new INotifyPropertyChanged?[path.Length];
@@ -193,6 +199,25 @@ public sealed class Binding
             return;
         }
 
+        // the typed end: read, compared and written as the property's type, no box
+        if (_end is not null)
+        {
+            if (!_end.Take(_owners[^1])) return;
+
+            _updating = true;
+
+            try
+            {
+                _end.Write(element);
+            }
+            finally
+            {
+                _updating = false;
+            }
+
+            return;
+        }
+
         object? value;
 
         if (!TryRead(out object? raw))
@@ -247,6 +272,32 @@ public sealed class Binding
         }
     }
 
+    /// <summary>Write the element's value to the source, as its type: without a box
+    /// where the path's end is of it. TwoWay only.</summary>
+    internal void PushToSource<T>(T value)
+    {
+        if (_end is not BindingEnd<T> end || !end.CanWrite)
+        {
+            PushToSource((object?)value);
+            return;
+        }
+
+        if (_detached || Mode != BindingMode.TwoWay || _updating) return;
+
+        if (_owners[^1] is not { } owner) return;
+
+        _updating = true;
+
+        try
+        {
+            end.WriteBack(owner, value);
+        }
+        finally
+        {
+            _updating = false;
+        }
+    }
+
     /// <summary>Write the element's value to the source. TwoWay only.</summary>
     internal void PushToSource(object? value)
     {
@@ -264,6 +315,7 @@ public sealed class Binding
             // back to the old value later is a change to write again
             _written = value;
             _hasWritten = true;
+            _end?.RememberBoxed(value);
         }
         catch (Exception e) when (e is InvalidCastException or FormatException or OverflowException or ArgumentException)
         {

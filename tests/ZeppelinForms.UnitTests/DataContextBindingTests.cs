@@ -189,6 +189,63 @@ public class DataContextBindingTests
         }
     }
 
+    private sealed class Counter : INotifyPropertyChanged
+    {
+        private static readonly PropertyChangedEventArgs ValueChanged = new(nameof(Value));
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public int Value
+        {
+            get;
+            set
+            {
+                if (field == value) return;
+
+                field = value;
+                PropertyChanged?.Invoke(this, ValueChanged);
+            }
+        }
+    }
+
+    [Fact]
+    public void ATypedBindingMovesAValueWithoutABox()
+    {
+        var counter = new Counter();
+        var label = new Label();
+        var form = new Form { Size = new Size(200, 100), Content = label };
+        new HeadlessPlatform().CreateWindow(form);
+        form.UpdateLayout();
+
+        label.Bind(ZeppelinForms.Forms.Controls.Base.UIElement.ColumnProperty, counter, c => c.Value, (c, v) => c.Value = v);
+
+        // warmed up: the first writes make what is made once
+        for (int i = 0; i < 10; i++)
+        {
+            counter.Value = i;
+            label.Column = 100 + i;
+        }
+
+        // 0.19.2: an int went through object both ways — 24 bytes a change each way
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        for (int i = 0; i < 1000; i++)
+            counter.Value = 1000 + i;
+
+        for (int i = 0; i < 1000; i++)
+            label.Column = 5000 + i;
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(5999, counter.Value);
+        Assert.Equal(5999, label.Column);
+        Assert.True(allocated < 1000, $"{allocated} bytes for 2000 changes");
+
+        // the source changed back to a value the element had: written again
+        counter.Value = 5998;
+        Assert.Equal(5998, label.Column);
+    }
+
     [Fact]
     public void APathFollowsEveryObjectOnTheWay()
     {
