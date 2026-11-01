@@ -27,12 +27,19 @@ public partial class DataGridView
     /// <see cref="Items"/> is the grid's own again.
     /// </para>
     /// </remarks>
+    /// <summary>The rows may come from a data source: a tree grid's come from its nodes.</summary>
+    private protected virtual bool AcceptsDataSource => true;
+
     public IEnumerable? DataSource
     {
         get => _dataSource?.Source;
         set
         {
             if (ReferenceEquals(value, _dataSource?.Source)) return;
+
+            if (value is not null && !AcceptsDataSource)
+                throw new InvalidOperationException(
+                    $"{GetType().Name} makes its rows from its nodes: give it an ItemsSource, not a DataSource.");
 
             // the cell being edited may be of a record the new source hasn't
             CancelEdit();

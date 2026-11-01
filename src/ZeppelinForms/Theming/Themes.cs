@@ -246,6 +246,10 @@ public static partial class Themes
                 grid.CheckGlyphColor = c.TextOnAccent;
             })
 
+            // the expander of a tree grid as a tree view's rows have it; the grid's own
+            // colors come from the rule of DataGridView above
+            .For<TreeDataGrid>((grid, c) => grid.GlyphColor = c.TextSecondary)
+
             .For<TextBox>((box, c) =>
             {
                 box.Background = c.Surface;

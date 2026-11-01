@@ -1,5 +1,6 @@
 ﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls;
+using ZeppelinForms.Forms.Controls.Tree;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.DataGrid;
 using ZeppelinForms.Forms.Controls.Text;
@@ -189,6 +190,8 @@ public static partial class Themes
                 grid.CheckColor = c.Accent;
                 grid.CheckGlyphColor = c.TextOnAccent;
             })
+
+            .For<TreeDataGrid>((grid, c) => grid.GlyphColor = c.Text)
 
             .For<MenuBar>((menu, c) =>
             {

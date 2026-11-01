@@ -20,7 +20,7 @@ namespace ZeppelinForms.Forms.Controls.Tree;
 /// are public, while for the tree they are internal — any write from outside
 /// would drift apart from the projection.
 /// </remarks>
-public partial class TreeView : DecoratedPanel, IInputElement
+public partial class TreeView : DecoratedPanel, IInputElement, ITreeHost
 {
     private readonly VirtualizingStackPanel _panel = new();
     private readonly List<object> _flat = [];

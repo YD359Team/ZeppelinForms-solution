@@ -5,9 +5,20 @@ using ZeppelinForms.Core.Collections;
 
 namespace ZeppelinForms.Forms.Controls.Tree;
 
+/// <summary>What a source makes its nodes in: a <see cref="TreeView"/> or a <see cref="TreeDataGrid"/>.</summary>
+internal interface ITreeHost
+{
+    IList<TreeNode> Nodes { get; }
+
+    void BeginUpdate();
+
+    void EndUpdate();
+}
+
 /// <summary>
 /// The nodes of a tree made from data: the view model's own objects and their children,
-/// see <see cref="TreeView.ItemsSource"/>. Made with <see cref="Create"/>.
+/// see <see cref="TreeView.ItemsSource"/> and <see cref="TreeDataGrid.ItemsSource"/>.
+/// Made with <see cref="Create"/>.
 /// </summary>
 /// <example>
 /// <code>
@@ -43,7 +54,7 @@ public abstract class TreeItemsSource
 
     /// <summary>The tree is in a form: the nodes are put in step with the data, and the
     /// data is listened to.</summary>
-    internal abstract void Attach(TreeView tree);
+    internal abstract void Attach(ITreeHost tree);
 
     /// <summary>The tree left its form, or the source was replaced: the data is no longer
     /// listened to and holds nothing of the tree. The nodes stay.</summary>
@@ -51,7 +62,7 @@ public abstract class TreeItemsSource
 
     /// <summary>The nodes made from the data before the tree is in a form, listening to
     /// nothing yet.</summary>
-    internal abstract void Fill(TreeView tree);
+    internal abstract void Fill(ITreeHost tree);
 
     /// <summary>A node of the source is being expanded: its children are made now, the
     /// first time.</summary>
@@ -88,7 +99,7 @@ public sealed class TreeItemsSource<T> : TreeItemsSource where T : class
     /// <summary>The nodes of each item: the same item may stand in two places of a tree.</summary>
     private readonly Dictionary<T, List<TreeNode>> _byModel = new(ReferenceEqualityComparer.Instance);
 
-    private TreeView? _tree;
+    private ITreeHost? _tree;
 
     /// <summary>The source listens to the data: the tree is in a form.</summary>
     private bool _listening;
@@ -133,13 +144,13 @@ public sealed class TreeItemsSource<T> : TreeItemsSource where T : class
 
     // ===== the tree's side =====
 
-    internal override void Fill(TreeView tree)
+    internal override void Fill(ITreeHost tree)
     {
         _tree = tree;
         Sync(null, _roots);
     }
 
-    internal override void Attach(TreeView tree)
+    internal override void Attach(ITreeHost tree)
     {
         _tree = tree;
 

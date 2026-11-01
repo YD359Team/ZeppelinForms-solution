@@ -44,6 +44,11 @@
 
 ### TreeView
 
+- `TreeDataGrid`: a data grid whose rows are the expanded nodes of a tree, the tree's column
+  indented by depth with the expander in it. Columns, editing, selection and
+  virtualization are the grid's; a row's record is its node's `Content`, and the nodes
+  come from `Nodes` or an `ItemsSource`. A sort orders each node's children, not the
+  rows; Right and Left expand, collapse and move along the tree
 - `TreeView.ItemsSource`: a tree made from a view model's items —
   `TreeItemsSource.Create(roots, item => item.Children)`, with `WithExpanded` and
   `WithChecked` for the expansion and the check boxes both ways. The children of an item

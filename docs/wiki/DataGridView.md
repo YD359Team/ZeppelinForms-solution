@@ -210,3 +210,37 @@ grid.RowStyle = item => ((Process)item).Responding ? null : stopped;
 ```
 
 `ScrollPastEnd` lets the grid scroll until the last row stands under the header.
+
+## Trees with columns
+
+`TreeDataGrid` is a data grid whose rows are the expanded nodes of a tree. Everything of
+the grid stays — the column types, editing, selection, resizing, virtualization —, and the
+tree's column (`TreeColumnIndex`, the first by default) indents its cells by depth and
+holds the expander.
+
+```csharp
+var files = new TreeDataGrid
+{
+    Columns =
+    {
+        new DataGridViewColumn<Entry, string>(e => e.Name),
+        new DataGridViewColumn<Entry, long>(e => e.Size),
+    },
+    ItemsSource = TreeItemsSource.Create(vm.Entries, e => e.Children),
+};
+```
+
+A row's record is its node's `Content`, so typed columns read the items as they are. The
+nodes come from `ItemsSource` — as a [tree view's](Lists-and-Virtualization#from-data) do —
+or are put into `Nodes` by hand. A sort orders the children of each node: a child stays
+under its parent. Right expands the lead row's node or goes to its first child, Left
+collapses it or goes to its parent. `Items` is the tree's: written from outside it throws,
+and a `DataSource` is not taken.
+
+| Member | |
+| ------ | - |
+| `Nodes`, `ItemsSource` | The tree |
+| `NodeAt(row)`, `RowOf(node)`, `SelectedNode` | Between rows and nodes |
+| `ExpandAll`, `CollapseAll`, `BeginUpdate`, `EndUpdate` | As on `TreeView` |
+| `NodeExpanding` | The place to make a node's children on demand |
+| `Indent`, `GlyphColor` | The look of the tree's column |

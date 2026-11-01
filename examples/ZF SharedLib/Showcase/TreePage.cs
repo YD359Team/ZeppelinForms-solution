@@ -2,6 +2,7 @@ using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Controls.DataGrid;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Controls.Tree;
 using ZeppelinForms.Forms.Styling;
@@ -167,6 +168,47 @@ internal static class TreePage
         ]);
 
         return Demo.Page("Tree", "Nested data: nodes with children, expanded on demand.",
-            Demo.Section("Tree view", demo, "Right and Left expand and collapse, Up and Down move, Shift and Ctrl select several; Space checks the selected nodes — a developer checks its games, and shows when only some are — F2 renames, Enter or a double click opens a game, the right button has a menu; only the visible rows are made"));
+            Demo.Section("Tree view", demo, "Right and Left expand and collapse, Up and Down move, Shift and Ctrl select several; Space checks the selected nodes — a developer checks its games, and shows when only some are — F2 renames, Enter or a double click opens a game, the right button has a menu; only the visible rows are made"),
+            Demo.Section("Tree with columns", CreateGrid(), "A TreeDataGrid: the rows of a grid are the expanded nodes. A click on a header sorts the games of each developer, not the rows — a game stays under its developer; Right and Left open and close the tree"));
+    }
+
+    /// <summary>The same games in a tree grid: a developer's row and its games' rows, with
+    /// the year and the genre in columns of their own.</summary>
+    private static UIElement CreateGrid()
+    {
+        var grid = new TreeDataGrid
+        {
+            Size = new(float.NaN, 280),
+            Columns =
+            {
+                // the developer's row has its name for a title and no year: the columns
+                // read either kind of record
+                new DataGridViewColumn
+                {
+                    Header = "Title",
+                    Width = GridLength.Star(),
+                    Value = item => item is Game game ? game.Title : item,
+                },
+                new DataGridViewColumn
+                {
+                    Header = "Year",
+                    Width = GridLength.Fixed(80),
+                    Value = item => item is Game game ? game.Year : null,
+                },
+            },
+        };
+
+        foreach (IGrouping<string, Game> group in Samples.Games
+            .GroupBy(game => game.Developer)
+            .OrderBy(group => group.Key, StringComparer.CurrentCulture))
+        {
+            TreeNode developer = new(group.Key);
+            developer.Children.AddRange(group.Select(game => new TreeNode(game)));
+            grid.Nodes.Add(developer);
+        }
+
+        if (grid.Nodes.Count > 0) grid.Nodes[0].IsExpanded = true;
+
+        return grid;
     }
 }
