@@ -1,4 +1,6 @@
-﻿using Xunit;
+﻿using System.Globalization;
+using Xunit;
+using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
@@ -597,21 +599,38 @@ public class DockHostTests
     [Fact]
     public void TheMenuOfATabOffersWhatItsFlagsAllow()
     {
-        var (host, editor, readme, _, _) = Ide();
-        Show(host);
+        WithCulture("en-US", () =>
+        {
+            var (host, editor, readme, _, _) = Ide();
+            Show(host);
 
-        readme.CanFloat = false;
-        editor.CanClose = false;
+            readme.CanFloat = false;
+            editor.CanClose = false;
 
-        List<MenuItem> menu = host.MenuFor(readme);
-        List<string> texts = [.. menu.Where(m => !m.IsSeparator).Select(m => m.Text)];
+            List<MenuItem> menu = host.MenuFor(readme);
+            List<string> texts = [.. menu.Where(m => !m.IsSeparator).Select(m => m.Text)];
 
-        Assert.DoesNotContain("Float", texts);
-        Assert.Contains("Auto hide", texts);
-        Assert.Contains("Close", texts);
-        Assert.DoesNotContain("Close others", texts);
+            Assert.DoesNotContain(Localization.Get(ZfText.DockFloat), texts);
+            Assert.Contains(Localization.Get(ZfText.DockAutoHide), texts);
+            Assert.Contains(Localization.Get(ZfText.DockClose), texts);
+            Assert.DoesNotContain(Localization.Get(ZfText.DockCloseOthers), texts);
+            menu.Single(m => m.Text == "Auto hide").RaiseClick();
+            Assert.Equal(DockState.AutoHidden, readme.State);
+        });
+    }
 
-        menu.Single(m => m.Text == "Auto hide").RaiseClick();
-        Assert.Equal(DockState.AutoHidden, readme.State);
+    private static void WithCulture(string name, Action test)
+    {
+        CultureInfo before = Localization.Culture;
+
+        try
+        {
+            Localization.Culture = new CultureInfo(name);
+            test();
+        }
+        finally
+        {
+            Localization.Culture = before;
+        }
     }
 }
