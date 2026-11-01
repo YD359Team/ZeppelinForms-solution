@@ -292,7 +292,7 @@ public class ObservableCollectionsTests
     // ===== ZF0001 =====
 
     [Fact]
-    public void AZfCollectionMayBeGivenInAnInitializer()
+    public async Task AZfCollectionMayBeGivenInAnInitializer()
     {
         const string code = """
             using System.Collections.ObjectModel;
@@ -322,9 +322,9 @@ public class ObservableCollectionsTests
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-        ImmutableArray<Diagnostic> diagnostics = compilation
+        ImmutableArray<Diagnostic> diagnostics = await compilation
             .WithAnalyzers([new ObservableCollectionAssignmentAnalyzer()])
-            .GetAnalyzerDiagnosticsAsync(CancellationToken.None).GetAwaiter().GetResult();
+            .GetAnalyzerDiagnosticsAsync(TestContext.Current.CancellationToken);
 
         // the plain ObservableCollection replaced is still told of; the chart's isn't
         Diagnostic only = Assert.Single(diagnostics);

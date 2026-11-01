@@ -42,6 +42,7 @@ The showcase — every control, the styles and the effects — runs in the brows
 - [Controls](Controls) — what there is, and how to write your own
 - [Lists and virtualization](Lists-and-Virtualization) — list boxes over long data
 - [Data grid](DataGridView) — typed columns, editing, selection, sorting
+- [Docking](Docking) — an IDE's panels: docked, tabbed, floating, auto-hidden, saved as JSON
 - [Data binding](Data-Binding) — bindings, data sources, `DataSource<T>`
 - [Mobile and navigation](Mobile-and-Navigation) — a stack of pages, back, app and navigation bars, sheets, swipes, snackbars, the safe area
 

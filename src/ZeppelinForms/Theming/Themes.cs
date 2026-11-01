@@ -5,6 +5,7 @@ using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Charts;
 using ZeppelinForms.Forms.Controls.DataGrid;
+using ZeppelinForms.Forms.Controls.Docking;
 using ZeppelinForms.Forms.Controls.Map;
 using ZeppelinForms.Forms.Controls.Navigation;
 using ZeppelinForms.Forms.Controls.Shapes;
@@ -372,6 +373,20 @@ public static partial class Themes
                             strip.DisabledTextColor = c.TextDisabled;
                             strip.AccentColor = c.Accent;
                         })
+
+            .For<DockHost>((dock, c) =>
+            {
+                dock.SplitterColor = c.Surface;
+                dock.SplitterHoverColor = c.SurfacePressed;
+                dock.PanelBorderColor = c.Border;
+                dock.PanelBackgroundColor = c.Background;
+                dock.AccentColor = c.Accent;
+                dock.HeaderColor = c.Surface;
+                dock.ActiveHeaderColor = c.Selection;
+                dock.ButtonHoverColor = c.SurfaceHover;
+                dock.PreviewColor = c.Accent.WithA(56);
+                dock.CompassColor = c.Surface;
+            })
 
             .For<MenuList>((menu, c) =>
             {

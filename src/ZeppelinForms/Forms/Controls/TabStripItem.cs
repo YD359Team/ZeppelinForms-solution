@@ -98,6 +98,17 @@ public sealed class TabMovedEventArgs(TabStripItem item, int oldIndex, int newIn
     public int NewIndex { get; } = newIndex;
 }
 
+/// <summary>A tab was dragged off the strip (<see cref="TabStrip.CanDragOut"/>). The strip
+/// has let the drag go: a handler that takes the pointer — a docking host, a browser
+/// opening a window — carries it on until the button is released.</summary>
+public sealed class TabDraggedOutEventArgs(TabStripItem item, Point location) : EventArgs
+{
+    public TabStripItem Item { get; } = item;
+
+    /// <summary>Where the pointer is, in the form's coordinates.</summary>
+    public Point Location { get; } = location;
+}
+
 /// <summary>
 /// A strip of tabs without pages — the tabs of a browser or an editor, where what a
 /// tab opens is up to the application. Tabs close, a new one is asked for with the
@@ -129,6 +140,10 @@ public partial class TabStrip : InteractiveControl
     /// <summary>How far the pointer goes before a press becomes a drag: a click
     /// that wobbles a pixel is still a click.</summary>
     private const float DragThreshold = 4f;
+
+    /// <summary>How far above or below the strip a dragged tab goes before it leaves
+    /// it: a reorder that strays a little stays a reorder.</summary>
+    private const float DragOutDistance = 16f;
 
     private readonly List<float> _widths = [];
 
@@ -234,6 +249,14 @@ public partial class TabStrip : InteractiveControl
 
     /// <summary>Tabs are dragged to another place.</summary>
     public bool CanReorder { get; set; } = true;
+
+    /// <summary>A tab dragged up or down off the strip leaves it: the strip raises
+    /// <see cref="TabDraggedOut"/> and lets the drag go. Off by default — a tab then
+    /// stays on the strip however far the pointer goes.</summary>
+    public bool CanDragOut { get; set; }
+
+    /// <summary>A tab was dragged off the strip; see <see cref="CanDragOut"/>.</summary>
+    public event EventHandler<TabDraggedOutEventArgs>? TabDraggedOut;
 
     /// <summary>The narrowest a tab gets before the strip starts to scroll.</summary>
     public float MinTabWidth
@@ -586,6 +609,13 @@ public partial class TabStrip : InteractiveControl
     {
         Point local = ToLocal(e.Location);
 
+        if (_press == Press.Tab && CanDragOut && _pressIndex >= 0 && _pressIndex < Items.Count
+            && (local.Y < -DragOutDistance || local.Y > ActualSize.Height + DragOutDistance))
+        {
+            DragOut(Items[_pressIndex], e.Location);
+            return;
+        }
+
         if (_press == Press.Tab && CanReorder && _pressIndex >= 0)
         {
             if (!_dragging && Math.Abs(e.Location.X - _pressX) >= DragThreshold)
@@ -651,6 +681,23 @@ public partial class TabStrip : InteractiveControl
             return;
         }
     }
+
+    /// <summary>The press is over for the strip: the handler of the event may take the
+    /// pointer for itself, and the capture is let go only if nobody did.</summary>
+    private void DragOut(TabStripItem item, Point location)
+    {
+        _press = Press.None;
+        _pressIndex = -1;
+        _dragging = false;
+
+        TabDraggedOut?.Invoke(this, new TabDraggedOutEventArgs(item, location));
+
+        ReleaseMouseCapture();
+        InvalidateVisual();
+    }
+
+    /// <summary>The tab under a point in the form's coordinates; −1 — none.</summary>
+    internal int TabIndexAt(Point location) => IndexAt(ToLocal(location));
 
     protected override void OnMouseExit(MouseMoveEventArgs e)
     {

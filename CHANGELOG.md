@@ -76,6 +76,30 @@
 - `TreeView.CreateItem` makes the rows: a tree of its own returns rows that override
   `TreeViewItem.DrawExpander`
 
+### Docking
+
+- `DockHost` (`ZeppelinForms.Forms.Controls.Docking`): panels the user arranges, as in an
+  IDE — side by side and as tabs with splitters between them, floating in windows of their
+  own over the layout, pinned to an edge to slide out while they are used. A panel is a
+  `DockItem`: an `Id`, a title and an icon for its tab, the content
+- Placed by `DockTo` (a tab of the target's group, or a side of it with a share of its
+  extent), `Float`, `AutoHide`, `Hide`, `Show` and `Close`; a hidden item goes back where
+  it was, and the items of a group that left it one by one meet again in one group
+- By the user's hands: a tab dragged off its strip shows the compass over the group under
+  the pointer and on the host's edges, and docks where it is dropped — or floats, dropped
+  anywhere else; Esc cancels. A window is moved by its title, resized by its frame, and
+  docked back by a double click; a tab floats by a double click; the pin slides a group to
+  its edge; the menu of a tab floats, pins and closes
+- `SaveLayout` and `LoadLayout`: the arrangement as JSON — the splits and their shares, the
+  tabs, the windows, the edges, the hidden items, the active one —, read back into the
+  host's items by id or into the ones a resolver makes. Written and read by hand, the same
+  after trimming and AOT; a text that is not a layout changes nothing
+- `ActiveItemChanged`, `ItemClosing` (which may keep the item), `ItemClosed`, `LayoutChanged`
+- The floating windows are inside the host, not windows of the system: the same on every
+  platform, a browser's and a phone's included
+- `TabStrip.CanDragOut` and `TabDraggedOut`: a tab dragged up or down off the strip is let
+  go to whoever takes the pointer — the dock host, or an application opening a window
+
 ### Graphics
 
 - `Glow` on every element: light along its border, as a neon tube gives it — the line, a

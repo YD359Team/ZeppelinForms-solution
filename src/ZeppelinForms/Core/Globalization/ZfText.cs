@@ -80,6 +80,20 @@ public static class ZfText
     public static readonly TextKey CloseTab = new("zf.tabs.close", "Close tab");
     public static readonly TextKey NewTab = new("zf.tabs.new", "New tab");
 
+    // ===== DockHost =====
+
+    /// <summary>A docked panel taken out into a window of its own inside the host.</summary>
+    public static readonly TextKey DockFloat = new("zf.dock.float", "Float");
+
+    /// <summary>A floating or hidden panel put back where it was docked.</summary>
+    public static readonly TextKey DockBack = new("zf.dock.dock", "Dock");
+
+    /// <summary>A panel pinned to the host's edge: it slides out while it is used.</summary>
+    public static readonly TextKey DockAutoHide = new("zf.dock.autohide", "Auto hide");
+
+    public static readonly TextKey DockClose = new("zf.dock.close", "Close");
+    public static readonly TextKey DockCloseOthers = new("zf.dock.closeothers", "Close others");
+
 
     // ===== SplitView =====
 

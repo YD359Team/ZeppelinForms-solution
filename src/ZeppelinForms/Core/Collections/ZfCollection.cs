@@ -109,12 +109,15 @@ public class ZfCollection<T> : ObservableCollection<T>
         RaiseReset();
     }
 
-    /// <summary>Sort in place by the default order of the items, or by a comparer.</summary>
-    public void Sort(IComparer<T>? comparer = null)
-    {
-        IComparer<T> order = comparer ?? Comparer<T>.Default;
+    /// <summary>Sort in place by the default order of the items.</summary>
+    public void Sort() => Sort(Comparer<T>.Default.Compare);
 
-        Sort(order.Compare);
+    /// <summary>Sort in place by a comparer.</summary>
+    public void Sort(IComparer<T> comparer)
+    {
+        ArgumentNullException.ThrowIfNull(comparer);
+
+        Sort(comparer.Compare);
     }
 
     private void RaiseReset() => RaiseChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));

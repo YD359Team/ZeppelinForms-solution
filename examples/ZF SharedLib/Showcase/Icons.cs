@@ -21,6 +21,7 @@ internal static class Icons
     public static IconSource Drag { get; } = Line("M12 3 V21 M3 12 H21 M12 3 L9 6 M12 3 L15 6 M12 21 L9 18 M12 21 L15 18 M3 12 L6 9 M3 12 L6 15 M21 12 L18 9 M21 12 L18 15");
     public static IconSource Panels { get; } = Line("M3 3 H10 V10 H3 Z M14 3 H21 V10 H14 Z M3 14 H10 V21 H3 Z M14 14 H21 V21 H14 Z");
     public static IconSource Split { get; } = Line("M3 4 H21 V20 H3 Z M11 4 V20 M7 11 L5 12 L7 13 M15 11 L17 12 L15 13");
+    public static IconSource Dock { get; } = Line("M3 4 H21 V20 H3 Z M9 4 V20 M9 14 H21 M13 7 H18 V11 H13 Z");
     public static IconSource Box { get; } = Line("M3 7 L12 3 L21 7 V17 L12 21 L3 17 Z M3 7 L12 11 L21 7 M12 11 V21");
     public static IconSource Tabs { get; } = Line("M3 8 H21 V20 H3 Z M3 8 V4 H9 V8 M9 4 H15 V8");
     public static IconSource Phone { get; } = Line("M7 2 H17 V22 H7 Z M11 18.5 H13");

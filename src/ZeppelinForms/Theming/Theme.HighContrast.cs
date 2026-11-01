@@ -3,6 +3,7 @@ using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Tree;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.DataGrid;
+using ZeppelinForms.Forms.Controls.Docking;
 using ZeppelinForms.Forms.Controls.Text;
 
 namespace ZeppelinForms.Theming;
@@ -243,6 +244,20 @@ public static partial class Themes
                                         strip.AccentColor = c.Accent;
                                         strip.ButtonHoverColor = c.Accent;
                                     })
+
+            .For<DockHost>((dock, c) =>
+            {
+                dock.SplitterColor = c.Border;
+                dock.SplitterHoverColor = c.Accent;
+                dock.PanelBorderColor = c.Border;
+                dock.PanelBackgroundColor = c.Background;
+                dock.AccentColor = c.Accent;
+                dock.HeaderColor = c.Background;
+                dock.ActiveHeaderColor = c.Background;
+                dock.ButtonHoverColor = c.Accent;
+                dock.PreviewColor = c.Accent.WithA(80);
+                dock.CompassColor = c.Background;
+            })
 
 
             // no tint: a translucent wash is a shade, and contrast has none.
