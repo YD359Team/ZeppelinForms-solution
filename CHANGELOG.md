@@ -2,6 +2,8 @@
 
 ## [0.20.0]	Lighthouse of Alexandria
 
+![Nevada](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.20.0.jpg)
+
 ### Breaking changes
 
 - A tree's check boxes cascade by default (`TreeView.CheckPropagation = Cascade`):
