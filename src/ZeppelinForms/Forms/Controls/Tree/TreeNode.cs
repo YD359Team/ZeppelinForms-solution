@@ -1,5 +1,7 @@
-﻿using System.Collections.ObjectModel;
+﻿﻿using System.Collections;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Drawing;
 
@@ -17,7 +19,11 @@ public enum TreeChangeKind
 }
 
 /// <summary>A tree node. The data lies in Content, the control is built from it.</summary>
-public sealed class TreeNode
+/// <remarks>Since 0.20 the node raises <see cref="PropertyChanged"/>: a binding to
+/// <see cref="IsExpanded"/>, <see cref="CheckedState"/> or <see cref="Content"/> follows
+/// the node, and one to <c>Children.Count</c> follows its children — the collection
+/// raises its own.</remarks>
+public sealed class TreeNode : INotifyPropertyChanged
 {
     public TreeNode()
     {
@@ -25,6 +31,11 @@ public sealed class TreeNode
     }
 
     public TreeNode(object? content) : this() => Content = content;
+
+    /// <summary>A property of the node changed: <see cref="Content"/>, <see cref="Icon"/>,
+    /// <see cref="CheckedState"/> and <see cref="IsChecked"/>, <see cref="IsExpanded"/>,
+    /// <see cref="HasUnrealizedChildren"/>, <see cref="HasChildren"/>, <see cref="Parent"/>.</summary>
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public object? Content
     {
@@ -35,6 +46,7 @@ public sealed class TreeNode
 
             field = value;
             RaiseChanged(TreeChangeKind.Content);
+            Notify(s_content);
         }
     }
 
@@ -49,30 +61,69 @@ public sealed class TreeNode
 
             field = value;
             RaiseChanged(TreeChangeKind.Content);
+            Notify(s_icon);
         }
     }
 
     /// <summary>The node's check box, shown while the tree's
-    /// <see cref="TreeView.CheckBoxes"/> is on: visible, enabled, exported.</summary>
-    /// <remarks>Each node keeps its own: checking a parent doesn't check its children,
-    /// and a parent doesn't show what its children are. A bone hidden with its parent
-    /// shown is a state of its own, not a third state of the parent.</remarks>
+    /// <see cref="TreeView.CheckBoxes"/> is on: visible, enabled, exported. True only
+    /// when it is <see cref="CheckedState.Checked"/>; setting it gives Checked or Unchecked.</summary>
+    /// <remarks>What a change does to the rest of the tree — the children checked with
+    /// their parent, a parent showing what its children are — is the tree's
+    /// <see cref="TreeView.CheckPropagation"/>.</remarks>
     public bool IsChecked
     {
-        get;
-        set
-        {
-            if (field == value) return;
+        get => CheckedState == CheckedState.Checked;
+        set => CheckedState = value ? CheckedState.Checked : CheckedState.Unchecked;
+    }
 
-            field = value;
-            RaiseChanged(TreeChangeKind.Content);
-            RaiseCheckedChanged();
-        }
+    /// <summary>The state of the node's check box, the third one included: a parent some
+    /// of whose children are checked, see <see cref="TreeView.CheckPropagation"/>.</summary>
+    /// <remarks>The tree may change the state it was given at once: under
+    /// <see cref="CheckPropagation.Cascade"/> a parent shows its children, so
+    /// <see cref="CheckedState.Intermediate"/> set on one whose children all agree gives
+    /// way to what they are; under <see cref="CheckPropagation.Indicate"/> a parent
+    /// unchecked with a checked node inside shows Intermediate.</remarks>
+    public CheckedState CheckedState
+    {
+        get => _checkedState;
+        set => SetCheckedState(value);
+    }
+
+    private CheckedState _checkedState;
+
+    /// <summary>Change the state. The tree's propagation goes through here as well: it
+    /// tells its own changes apart from the others by when they come, see TreeView.</summary>
+    internal void SetCheckedState(CheckedState value)
+    {
+        if (_checkedState == value) return;
+
+        bool wasChecked = _checkedState == CheckedState.Checked;
+
+        _checkedState = value;
+
+        RaiseChanged(TreeChangeKind.Content);
+        Notify(s_checkedState);
+
+        if (wasChecked != (value == CheckedState.Checked))
+            Notify(s_isChecked);
+
+        RaiseCheckedChanged();
     }
 
     public ObservableCollection<TreeNode> Children { get; } = [];
 
-    public TreeNode? Parent { get; private set; }
+    public TreeNode? Parent
+    {
+        get;
+        private set
+        {
+            if (ReferenceEquals(field, value)) return;
+
+            field = value;
+            Notify(s_parent);
+        }
+    }
 
     public bool IsExpanded
     {
@@ -88,6 +139,7 @@ public sealed class TreeNode
             if (value) RaiseExpanding();
 
             RaiseChanged(TreeChangeKind.Structure);
+            Notify(s_isExpanded);
         }
     }
 
@@ -105,10 +157,16 @@ public sealed class TreeNode
 
             field = value;
             RaiseChanged(TreeChangeKind.Content);
+            Notify(s_hasUnrealizedChildren);
+            NotifyHasChildren();
         }
     }
 
     public bool HasChildren => Children.Count > 0 || HasUnrealizedChildren;
+
+    /// <summary><see cref="HasChildren"/> as last announced: it is computed, and a change
+    /// of it is told only when it really flips — not on every child added.</summary>
+    private bool _hadChildren;
 
     /// <summary>The depth from the root. Computed by walking up rather than stored:
     /// a stored field would have to be updated on every subtree move,
@@ -139,6 +197,13 @@ public sealed class TreeNode
     /// <summary>A node of the subtree is being expanded — raised at the root,
     /// as <see cref="Changed"/> is.</summary>
     internal event Action<TreeNode>? Expanding;
+
+    /// <summary>The children of a node of the subtree changed — raised at the root, as
+    /// <see cref="Changed"/> is, with the node and the children added (null — none,
+    /// or the collection was reset). Before the <see cref="TreeChangeKind.Structure"/>
+    /// change it comes with: the check boxes of the new children are put in order
+    /// before the rows are rebuilt.</summary>
+    internal event Action<TreeNode, IList?>? ChildrenChanged;
 
     public void Expand() => IsExpanded = true;
 
@@ -171,36 +236,51 @@ public sealed class TreeNode
             }
         }
 
+        RaiseChildrenChanged(e.NewItems);
         RaiseChanged(TreeChangeKind.Structure);
+        NotifyHasChildren();
     }
 
-    private void RaiseExpanding()
+    private void NotifyHasChildren()
     {
-        TreeNode root = this;
+        bool has = HasChildren;
 
-        while (root.Parent is not null)
-            root = root.Parent;
+        if (has == _hadChildren) return;
 
-        root.Expanding?.Invoke(this);
+        _hadChildren = has;
+        Notify(s_hasChildren);
     }
 
-    private void RaiseCheckedChanged()
+    private void Notify(PropertyChangedEventArgs args) => PropertyChanged?.Invoke(this, args);
+
+    private TreeNode Root
     {
-        TreeNode root = this;
+        get
+        {
+            TreeNode root = this;
 
-        while (root.Parent is not null)
-            root = root.Parent;
+            while (root.Parent is not null)
+                root = root.Parent;
 
-        root.CheckedChanged?.Invoke(this);
+            return root;
+        }
     }
 
-    private void RaiseChanged(TreeChangeKind kind)
-    {
-        TreeNode root = this;
+    private void RaiseExpanding() => Root.Expanding?.Invoke(this);
 
-        while (root.Parent is not null)
-            root = root.Parent;
+    private void RaiseCheckedChanged() => Root.CheckedChanged?.Invoke(this);
 
-        root.Changed?.Invoke(this, kind);
-    }
+    private void RaiseChildrenChanged(IList? added) => Root.ChildrenChanged?.Invoke(this, added);
+
+    private void RaiseChanged(TreeChangeKind kind) => Root.Changed?.Invoke(this, kind);
+
+    // made once: a tree of thousands of nodes would otherwise make an argument per change
+    private static readonly PropertyChangedEventArgs s_content = new(nameof(Content));
+    private static readonly PropertyChangedEventArgs s_icon = new(nameof(Icon));
+    private static readonly PropertyChangedEventArgs s_isChecked = new(nameof(IsChecked));
+    private static readonly PropertyChangedEventArgs s_checkedState = new(nameof(CheckedState));
+    private static readonly PropertyChangedEventArgs s_parent = new(nameof(Parent));
+    private static readonly PropertyChangedEventArgs s_isExpanded = new(nameof(IsExpanded));
+    private static readonly PropertyChangedEventArgs s_hasUnrealizedChildren = new(nameof(HasUnrealizedChildren));
+    private static readonly PropertyChangedEventArgs s_hasChildren = new(nameof(HasChildren));
 }

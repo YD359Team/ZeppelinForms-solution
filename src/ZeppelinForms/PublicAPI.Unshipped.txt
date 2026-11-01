@@ -1,1 +1,41 @@
 #nullable enable
+*REMOVED*ZeppelinForms.Forms.Controls.Tree.TreeView.NodeCheckedChanged -> System.EventHandler<ZeppelinForms.Forms.Controls.Tree.TreeNode!>?
+ZeppelinForms.Forms.Controls.Tree.CheckPropagation
+ZeppelinForms.Forms.Controls.Tree.CheckPropagation.Cascade = 0 -> ZeppelinForms.Forms.Controls.Tree.CheckPropagation
+ZeppelinForms.Forms.Controls.Tree.CheckPropagation.Indicate = 1 -> ZeppelinForms.Forms.Controls.Tree.CheckPropagation
+ZeppelinForms.Forms.Controls.Tree.CheckPropagation.None = 2 -> ZeppelinForms.Forms.Controls.Tree.CheckPropagation
+ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph
+ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph.Chevron = 0 -> ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph
+ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph.None = 3 -> ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph
+ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph.PlusMinus = 2 -> ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph
+ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph.Triangle = 1 -> ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph
+ZeppelinForms.Forms.Controls.Tree.TreeNode.CheckedState.get -> ZeppelinForms.Forms.Controls.CheckedState
+ZeppelinForms.Forms.Controls.Tree.TreeNode.CheckedState.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNode.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+ZeppelinForms.Forms.Controls.Tree.TreeNodeCheckedEventArgs
+ZeppelinForms.Forms.Controls.Tree.TreeNodeCheckedEventArgs.ChangedNodes.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Controls.Tree.TreeNode!>!
+ZeppelinForms.Forms.Controls.Tree.TreeNodeCheckedEventArgs.Node.get -> ZeppelinForms.Forms.Controls.Tree.TreeNode!
+ZeppelinForms.Forms.Controls.Tree.TreeNodeCheckedEventArgs.TreeNodeCheckedEventArgs(ZeppelinForms.Forms.Controls.Tree.TreeNode! node, System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Controls.Tree.TreeNode!>! changedNodes) -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.CheckPropagation.get -> ZeppelinForms.Forms.Controls.Tree.CheckPropagation
+ZeppelinForms.Forms.Controls.Tree.TreeView.CheckPropagation.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.NodeCheckedChanged -> System.EventHandler<ZeppelinForms.Forms.Controls.Tree.TreeNodeCheckedEventArgs!>?
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CollapsedIcon.get -> ZeppelinForms.Drawing.IconSource?
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CollapsedIcon.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpandedIcon.get -> ZeppelinForms.Drawing.IconSource?
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpandedIcon.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderGlyph.get -> ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderGlyph.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderGlyphSize.get -> float
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderGlyphSize.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderWidth.get -> float
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderWidth.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.IndeterminateGlyph.get -> ZeppelinForms.Forms.Controls.IndeterminateGlyph
+ZeppelinForms.Forms.Controls.Tree.TreeViewItem.IndeterminateGlyph.set -> void
+static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CollapsedIconProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.IconSource?>!
+static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpandedIconProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.IconSource?>!
+static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderGlyphProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph>!
+static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderGlyphSizeProperty -> ZeppelinForms.Forms.Styling.StyledProperty<float>!
+static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderWidthProperty -> ZeppelinForms.Forms.Styling.StyledProperty<float>!
+static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.IndeterminateGlyphProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Forms.Controls.IndeterminateGlyph>!
+virtual ZeppelinForms.Forms.Controls.Tree.TreeView.CreateItem(ZeppelinForms.Forms.Controls.Tree.TreeNode! node) -> ZeppelinForms.Forms.Controls.Tree.TreeViewItem!
+virtual ZeppelinForms.Forms.Controls.Tree.TreeViewItem.DrawExpander(ZeppelinForms.Drawing.Graphics! g, ZeppelinForms.Drawing.Primitives.Rectangle bounds, float progress) -> void

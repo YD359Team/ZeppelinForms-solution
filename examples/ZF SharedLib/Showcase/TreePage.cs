@@ -4,6 +4,7 @@ using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Controls.Tree;
+using ZeppelinForms.Forms.Styling;
 using ZF_SharedLib.Models;
 
 namespace ZF_SharedLib.Showcase;
@@ -123,15 +124,49 @@ internal static class TreePage
             tree.SelectedNode = hades;
         };
 
+        // what a check takes along: the subtree and the parents (Cascade), only a mark
+        // on the parents (Indicate), or nothing
+        var propagation = new ComboBox { Items = { "Cascade", "Indicate", "None" }, SelectedIndex = 0 };
+        propagation.SelectionChanged += (_, _) => tree.CheckPropagation = (CheckPropagation)propagation.SelectedIndex;
+
+        // the expander's shape for every row, through a style on the tree: the rows
+        // are made and dropped as they scroll, a style reaches each one
+        Style? expanderStyle = null;
+        var expander = new ComboBox { Items = { "Chevron", "Triangle", "Plus and minus", "None" }, SelectedIndex = 0 };
+        expander.SelectionChanged += (_, _) =>
+        {
+            if (expanderStyle is not null) tree.Styles.Remove(expanderStyle);
+
+            expanderStyle = new Style("TreeViewItem")
+                .Set(TreeViewItem.ExpanderGlyphProperty, (ExpanderGlyph)expander.SelectedIndex);
+            tree.Styles.Add(expanderStyle);
+        };
+
+        // one event per check, however many nodes it took along
+        tree.NodeCheckedChanged += (_, e) =>
+        {
+            string caption = tree.ItemText?.Invoke(e.Node) ?? string.Empty;
+
+            selection.Text = e.ChangedNodes.Count == 1
+                ? $"{caption}: {e.Node.CheckedState}"
+                : $"{caption}: {e.Node.CheckedState}, {e.ChangedNodes.Count} nodes changed";
+        };
+
         var demo = new StackPanel
         {
             Orientation = ZeppelinForms.Forms.Enums.Orientation.Vertical,
             Spacing = 10,
             CrossAxisAlignment = ZeppelinForms.Forms.Enums.CrossAxisAlignment.Stretch,
         };
-        demo.Children.AddRange([Demo.Row(expand, collapse, reveal), tree, selection]);
+        demo.Children.AddRange(
+        [
+            Demo.Row(expand, collapse, reveal),
+            Demo.Row(Demo.Labeled("Check boxes", propagation), Demo.Labeled("Expander", expander)),
+            tree,
+            selection,
+        ]);
 
         return Demo.Page("Tree", "Nested data: nodes with children, expanded on demand.",
-            Demo.Section("Tree view", demo, "Right and Left expand and collapse, Up and Down move, Shift and Ctrl select several; Space checks the selected nodes, F2 renames, Enter or a double click opens a game, the right button has a menu; only the visible rows are made"));
+            Demo.Section("Tree view", demo, "Right and Left expand and collapse, Up and Down move, Shift and Ctrl select several; Space checks the selected nodes — a developer checks its games, and shows when only some are — F2 renames, Enter or a double click opens a game, the right button has a menu; only the visible rows are made"));
     }
 }

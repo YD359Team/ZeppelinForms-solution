@@ -2,6 +2,42 @@
 
 ## [0.20.0]	Lighthouse of Alexandria
 
+### Breaking changes
+
+- A tree's check boxes cascade by default (`TreeView.CheckPropagation = Cascade`):
+  checking a node checks its subtree, and a parent shows its children — checked,
+  unchecked, or `CheckedState.Intermediate` when only some are. Until 0.20 every node kept
+  its own state; `CheckPropagation.None` keeps that
+- `TreeView.NodeCheckedChanged` is an `EventHandler<TreeNodeCheckedEventArgs>`, raised once
+  per change with the node it started from (`Node`) and every node it changed
+  (`ChangedNodes`). It was an `EventHandler<TreeNode>` raised per node: `(_, node) => …`
+  becomes `(_, e) => … e.Node …`
+- `TreeViewItem.GlyphWidth` is obsolete: the expander's strip is the styled
+  `ExpanderWidth`, 18 as the constant was
+
+### TreeView
+
+- `TreeView.CheckPropagation`: `Cascade`, `Indicate` — the children are left alone and a
+  parent not checked itself shows the third state while a node inside it is checked —
+  or `None`. Changing it puts the tree in order by the new rule
+- `TreeNode.CheckedState` with the third state; `IsChecked` is true for `Checked` only, and
+  a click or Space on an intermediate node checks it. The check box draws the third state
+  by the row's `IndeterminateGlyph`, as `CheckBox` does; screen readers hear it as mixed
+- Under `Cascade` a node expanded for the first time gives the children it made in
+  `NodeExpanding` its own state; children added or removed later are shown by their
+  parent. Children added between `BeginUpdate` and `EndUpdate` are read once, at the end
+- `TreeNode` raises `PropertyChanged` — `IsExpanded`, `CheckedState`, `IsChecked`,
+  `Content`, `Icon`, `HasChildren`, `HasUnrealizedChildren`, `Parent` —, so bindings follow
+  a node; `Children` raises its own, `Count` among them
+- A row takes its node's pseudo-classes: `:expanded`, `:selected`, `:checked`,
+  `:indeterminate`
+- The expander is styled: `ExpanderGlyph` (`Chevron`, `Triangle`, `PlusMinus`, `None`),
+  `ExpanderWidth`, `ExpanderGlyphSize`, and icons of one's own — `CollapsedIcon`, which
+  turns a quarter as the node expands, and `ExpandedIcon` in place of the turn
+- The expander turns as the node expands (120 ms; at once with reduced motion)
+- `TreeView.CreateItem` makes the rows: a tree of its own returns rows that override
+  `TreeViewItem.DrawExpander`
+
 ### Forms
 
 - A form follows the theme, the text scale and the language through one subscription,
