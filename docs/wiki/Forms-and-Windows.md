@@ -206,6 +206,41 @@ every form shows on the one entry, and `App.Id` has to be the name of its .deskt
 `PlatformCapabilities.TaskbarProgress`, `TaskbarBadge` and `WindowAttention` tell what the
 platform can. Values set before the form is shown come with its window.
 
+### The jump list
+
+`App.JumpList` is the menu of the application's button — the one a right click opens on
+Windows. It belongs to the application, not to a form, and the system keeps it even when
+the application isn't running.
+
+```csharp
+App.JumpList.Tasks.Add(new JumpTask("New document", "--new") { Description = "Start with an empty document" });
+App.JumpList.Tasks.Add(JumpTask.Separator());
+App.JumpList.Tasks.Add(new JumpTask("Settings", "--settings"));
+
+var pinned = new JumpCategory("Projects");
+pinned.Items.Add(new JumpTask("Orders", "--open orders.zfp"));
+App.JumpList.Categories.Add(pinned);
+
+App.JumpList.ShowRecent = true;     // the system's recent documents
+App.JumpList.Apply();               // after new App(platform); true — the platform took it
+
+App.AddRecentDocument(path);        // a document opened: for the recent and frequent ones
+```
+
+- **Tasks** start the application again with their `Arguments`, and the application reads
+  them from its command line.
+  - When it runs as `dotnet app.dll`, the task starts the host with the assembly.
+  - A task can start another program instead (`ApplicationPath`) and take an icon of a file
+    (`IconPath`, `IconIndex`).
+- **Categories**: a category with a link the user removed from the list is refused by the
+  shell, while the rest of the list still goes in.
+- **The recent and frequent documents** list only files of the types the application is
+  registered to open.
+- **Where it works**: `PlatformCapabilities.JumpList` says whether the platform has a jump
+  list; today that is Windows. Elsewhere `Apply` returns false.
+- **In tests**: the headless platform keeps what it was given (`JumpListTasks`,
+  `JumpListCategories`, `RecentDocuments`).
+
 ## Notifications
 
 `Notifications.Show` shows the system's notification — outside the windows, in the corner

@@ -109,12 +109,23 @@
   outlined), outlined fields, Material's check box, radio button, switch and slider, a
   ripple on a press, the navigation bar's indicator, Roboto and Material's type scale
 - `Themes.CupertinoLight` and `CupertinoDark`: iOS — the grouped background and its cards,
-  UIKit's semantic colors, fields and buttons as fills, the gray, filled and plain buttons,
+  UIKit's semantic colors, fields and buttons as fills, the gray, filled and tinted buttons,
   round check boxes, the green switch, a tab bar without an indicator, San Francisco with a
   body of 17. An accent is a tint, as in iOS
 - `ThemeMetrics.Material`, `ThemeMetrics.Cupertino`, `TypeRamp.Material`,
   `TypeRamp.Cupertino`, and `FontWeight.Medium` (500) for Material's labels
 - The previewers of Visual Studio and Rider, and `[Preview(Theme = …)]`, offer the four
+
+### Taskbar
+
+- `App.JumpList`: the jump list of the application's taskbar button on Windows — tasks that
+  start the application again with arguments of their own, separators, categories of links,
+  the system's recent and frequent documents —, handed to the shell as a whole by `Apply`
+  (`ICustomDestinationList`). Under `dotnet app.dll` a task starts the host with the
+  assembly; a category the shell refuses leaves the rest of the list in place
+- `App.AddRecentDocument`: a document opened, for the system's recent lists
+- `PlatformCapabilities.JumpList`; the headless platform keeps the list it was given
+- The Windows showcase offers its Docking, Charts and Settings pages in its jump list
 
 ### Graphics
 
@@ -146,6 +157,8 @@
 - A scrolling panel cuts what it draws under its children where it cuts them: a list
   scrolled so that its selected or hovered row went past the top drew the row's highlight
   above the list — over a combo box under its drop-down
+- `DateTimePicker` and `TimePicker` keep 8 between their text and their icon: sized to their
+  content, the two touched
 - The showcase's native controls page keeps the bar of its scrolled list beside the rows:
   laid over them, it went under the native control
 

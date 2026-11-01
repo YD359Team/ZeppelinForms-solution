@@ -15,6 +15,10 @@ public class TimePicker : InteractiveControl
 {
     private const float IconWidth = 18f;
 
+    /// <summary>Between the text and the icon: the two used to touch in a picker sized
+    /// to its content.</summary>
+    private const float IconGap = 8f;
+
     private readonly FlyoutHost _flyout;
 
     public TimeOnly Value { get; private set; } = new(12, 0);
@@ -84,7 +88,7 @@ public class TimePicker : InteractiveControl
         var content = ContentBounds;
 
         g.DrawTextLine(FormattedValue,
-            new Rectangle(content.Position, new Size(Math.Max(0, content.Width - IconWidth), content.Height)),
+            new Rectangle(content.Position, new Size(Math.Max(0, content.Width - IconWidth - IconGap), content.Height)),
             TextColor, EffectiveFont,
             HorizontalContentAlignment.Left, VerticalContentAlignment.Center);
 
@@ -211,7 +215,7 @@ public class TimePicker : InteractiveControl
 
         return ResolveSize(
             new Size(
-                textSize.Width + IconWidth + Padding.Horizontal,
+                textSize.Width + IconGap + IconWidth + Padding.Horizontal,
                 textSize.Height + Padding.Vertical + 6),
             availableSize);
     }

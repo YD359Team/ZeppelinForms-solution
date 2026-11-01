@@ -242,6 +242,44 @@ ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderWidth.get -> float
 ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderWidth.set -> void
 ZeppelinForms.Forms.Controls.Tree.TreeViewItem.IndeterminateGlyph.get -> ZeppelinForms.Forms.Controls.IndeterminateGlyph
 ZeppelinForms.Forms.Controls.Tree.TreeViewItem.IndeterminateGlyph.set -> void
+ZeppelinForms.Headless.HeadlessPlatform.JumpListApplyCount.get -> int
+ZeppelinForms.Headless.HeadlessPlatform.JumpListCategories.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.JumpCategory!>!
+ZeppelinForms.Headless.HeadlessPlatform.JumpListTasks.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.JumpTask!>!
+ZeppelinForms.Headless.HeadlessPlatform.RecentDocuments.get -> System.Collections.Generic.IReadOnlyList<string!>!
+ZeppelinForms.Headless.HeadlessPlatform.RefuseJumpList.get -> bool
+ZeppelinForms.Headless.HeadlessPlatform.RefuseJumpList.set -> void
+ZeppelinForms.JumpCategory
+ZeppelinForms.JumpCategory.Items.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.JumpTask!>!
+ZeppelinForms.JumpCategory.JumpCategory(string! title) -> void
+ZeppelinForms.JumpCategory.Title.get -> string!
+ZeppelinForms.JumpCategory.Title.set -> void
+ZeppelinForms.JumpList
+ZeppelinForms.JumpList.Apply() -> bool
+ZeppelinForms.JumpList.Categories.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.JumpCategory!>!
+ZeppelinForms.JumpList.Clear() -> bool
+ZeppelinForms.JumpList.ShowFrequent.get -> bool
+ZeppelinForms.JumpList.ShowFrequent.set -> void
+ZeppelinForms.JumpList.ShowRecent.get -> bool
+ZeppelinForms.JumpList.ShowRecent.set -> void
+ZeppelinForms.JumpList.Tasks.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.JumpTask!>!
+ZeppelinForms.JumpTask
+ZeppelinForms.JumpTask.ApplicationPath.get -> string?
+ZeppelinForms.JumpTask.ApplicationPath.set -> void
+ZeppelinForms.JumpTask.Arguments.get -> string!
+ZeppelinForms.JumpTask.Arguments.set -> void
+ZeppelinForms.JumpTask.Description.get -> string?
+ZeppelinForms.JumpTask.Description.set -> void
+ZeppelinForms.JumpTask.IconIndex.get -> int
+ZeppelinForms.JumpTask.IconIndex.set -> void
+ZeppelinForms.JumpTask.IconPath.get -> string?
+ZeppelinForms.JumpTask.IconPath.set -> void
+ZeppelinForms.JumpTask.IsSeparator.get -> bool
+ZeppelinForms.JumpTask.JumpTask(string! title, string! arguments = "") -> void
+ZeppelinForms.JumpTask.Title.get -> string!
+ZeppelinForms.JumpTask.Title.set -> void
+ZeppelinForms.JumpTask.WorkingDirectory.get -> string?
+ZeppelinForms.JumpTask.WorkingDirectory.set -> void
+ZeppelinForms.PlatformCapabilities.JumpList = 128 -> ZeppelinForms.PlatformCapabilities
 override ZeppelinForms.Drawing.Primitives.Glow.Equals(object? obj) -> bool
 override ZeppelinForms.Drawing.Primitives.Glow.GetHashCode() -> int
 override ZeppelinForms.Drawing.Primitives.Glow.ToString() -> string!
@@ -268,6 +306,10 @@ override ZeppelinForms.Forms.Controls.Tree.TreeDataGrid.OnDetached() -> void
 override ZeppelinForms.Forms.Controls.Tree.TreeDataGrid.OnKeyDown(ZeppelinForms.Input.Keyboard.KeyEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Tree.TreeView.OnAttached() -> void
 override ZeppelinForms.Forms.Controls.Tree.TreeView.OnDetached() -> void
+override ZeppelinForms.JumpCategory.ToString() -> string!
+override ZeppelinForms.JumpTask.ToString() -> string!
+static ZeppelinForms.App.AddRecentDocument(string! path) -> void
+static ZeppelinForms.App.JumpList.get -> ZeppelinForms.JumpList!
 static ZeppelinForms.Drawing.Primitives.Glow.Comet.get -> ZeppelinForms.Drawing.Primitives.Glow!
 static ZeppelinForms.Drawing.Primitives.Glow.Neon.get -> ZeppelinForms.Drawing.Primitives.Glow!
 static ZeppelinForms.Drawing.Primitives.Glow.operator !=(ZeppelinForms.Drawing.Primitives.Glow? left, ZeppelinForms.Drawing.Primitives.Glow? right) -> bool
@@ -275,6 +317,7 @@ static ZeppelinForms.Drawing.Primitives.Glow.operator ==(ZeppelinForms.Drawing.P
 static ZeppelinForms.Drawing.Primitives.Halo.operator !=(ZeppelinForms.Drawing.Primitives.Halo? left, ZeppelinForms.Drawing.Primitives.Halo? right) -> bool
 static ZeppelinForms.Drawing.Primitives.Halo.operator ==(ZeppelinForms.Drawing.Primitives.Halo? left, ZeppelinForms.Drawing.Primitives.Halo? right) -> bool
 static ZeppelinForms.Forms.Controls.Tree.TreeItemsSource.Create<T>(System.Collections.Generic.IEnumerable<T!>! roots, System.Func<T!, System.Collections.Generic.IEnumerable<T!>?>! children) -> ZeppelinForms.Forms.Controls.Tree.TreeItemsSource<T!>!
+static ZeppelinForms.JumpTask.Separator() -> ZeppelinForms.JumpTask!
 static ZeppelinForms.Theming.ThemeMetrics.Cupertino.get -> ZeppelinForms.Theming.ThemeMetrics!
 static ZeppelinForms.Theming.ThemeMetrics.Material.get -> ZeppelinForms.Theming.ThemeMetrics!
 static ZeppelinForms.Theming.Themes.CupertinoDark.get -> ZeppelinForms.Theming.Theme!

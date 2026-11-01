@@ -21,7 +21,7 @@ namespace ZeppelinForms.Theming;
 /// <para>
 /// A neutral <see cref="Button"/> is iOS's gray button — a fill with the label in the
 /// accent —, <see cref="PrimaryButton"/> the filled one, <see cref="SecondaryButton"/> the
-/// plain one, a label in the accent and nothing round it. A press dims rather than ripples.
+/// tinted one, a pale fill of the accent under a label in it. A press dims rather than ripples.
 /// Text fields are fills, without an outline or an underline. The face is San Francisco
 /// where the system has it, and the body is 17, as on an iPhone.
 /// </para>
@@ -185,13 +185,17 @@ public static partial class Themes
                 button.PressedTextColor = c.TextOnAccent.WithA(0xB3);
             })
 
-            // plain: the label alone
+            // tinted: the accent's own pale fill under a label in the accent. It was the plain
+            // button — the label alone —, and a row of them on the black of the dark theme
+            // had no shape at all: a secondary action is a button the eye must find
             .For<SecondaryButton>((button, c) =>
             {
-                button.BackgroundColor = Colors.Transparent;
-                button.HoverBackgroundColor = c.SurfaceHover;
-                button.PressedBackgroundColor = Colors.Transparent;
-                button.DisabledBackgroundColor = Colors.Transparent;
+                float tint = c.IsDark ? 0.24f : 0.15f;
+
+                button.BackgroundColor = Color.Lerp(c.Surface, c.Accent, tint);
+                button.HoverBackgroundColor = Color.Lerp(c.Surface, c.Accent, tint + 0.06f);
+                button.PressedBackgroundColor = Color.Lerp(c.Surface, c.Accent, tint + 0.12f);
+                button.DisabledBackgroundColor = c.ControlFill;
                 button.TextColor = c.Accent;
             })
 

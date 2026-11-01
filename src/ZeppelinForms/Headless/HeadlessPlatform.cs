@@ -16,7 +16,7 @@ public sealed partial class HeadlessPlatform : IPlatform, INestedLoopSupport
     public PlatformCapabilities Capabilities =>
         PlatformCapabilities.WindowPositioning | PlatformCapabilities.WindowHiding | PlatformCapabilities.SystemTray
         | PlatformCapabilities.TaskbarProgress | PlatformCapabilities.TaskbarBadge | PlatformCapabilities.WindowAttention
-        | PlatformCapabilities.Notifications;
+        | PlatformCapabilities.Notifications | PlatformCapabilities.JumpList;
 
     private readonly List<HeadlessWindow> _windows = [];
     private readonly Queue<Action> _pending = new();

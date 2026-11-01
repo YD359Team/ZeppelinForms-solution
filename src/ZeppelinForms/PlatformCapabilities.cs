@@ -48,4 +48,7 @@ public enum PlatformCapabilities
     /// a notification daemon on the session bus on Linux; the Notification API in the
     /// browser, where the user may still refuse the permission. Not on Android yet.</summary>
     Notifications = 1 << 6,
+
+    /// <summary>A jump list on the application's button: <see cref="JumpList"/>.</summary>
+    JumpList = 1 << 7,
 }

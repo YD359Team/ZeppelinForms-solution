@@ -124,6 +124,18 @@ public partial class ExampleMainForm : Form
         FitToWidth();
     }
 
+    /// <summary>Open the page of the menu with this name — "Docking", "Settings" —, as a
+    /// task of the Windows jump list asks. False — there is none.</summary>
+    public bool ShowPage(string name)
+    {
+        if (_showcase.Items.Concat(_showcase.FooterItems)
+                .FirstOrDefault(i => string.Equals(i.Text, name, StringComparison.OrdinalIgnoreCase)) is not { } item)
+            return false;
+
+        _showcase.SelectedItem = item;
+        return true;
+    }
+
     /// <summary>A phone gets a menu over the pages, closed until it is wanted; a desktop
     /// window keeps it open beside them.</summary>
     private void FitToWidth()

@@ -172,6 +172,23 @@ public class MaterialCupertinoThemeTests
         Assert.Equal(new Color(255, 0xAF, 0x52, 0xDE), purple.Colors.Accent);
     }
 
+    /// <summary>A secondary button is iOS's tinted one: a fill of its own, seen on the black
+    /// of the dark theme. As a plain label a calculator's column of them had no shape.</summary>
+    [Fact]
+    public void ASecondaryButtonHasAShapeOnTheDarkPage()
+    {
+        WithTheme(Themes.CupertinoDark, () =>
+        {
+            var button = new SecondaryButton { Text = "÷" };
+            Show(button);
+
+            ThemeColors c = Themes.CupertinoDark.Colors;
+
+            Assert.True(button.BackgroundColor.ContrastRatio(c.Background) >= 1.5f, button.BackgroundColor.ToString());
+            Assert.Equal(c.Accent, button.TextColor);
+        });
+    }
+
     [Fact]
     public void ABodyIsSeventeenAsOnAnIPhone()
     {
