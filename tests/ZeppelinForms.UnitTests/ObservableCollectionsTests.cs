@@ -318,7 +318,7 @@ public class ObservableCollectionsTests
 
         CSharpCompilation compilation = CSharpCompilation.Create(
             "Zf0001",
-            [CSharpSyntaxTree.ParseText(code, new CSharpParseOptions(LanguageVersion.Latest))],
+            [CSharpSyntaxTree.ParseText(code, new CSharpParseOptions(LanguageVersion.Latest), cancellationToken: TestContext.Current.CancellationToken)],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
