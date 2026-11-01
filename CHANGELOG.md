@@ -100,6 +100,22 @@
 - `TabStrip.CanDragOut` and `TabDraggedOut`: a tab dragged up or down off the strip is let
   go to whoever takes the pointer — the dock host, or an application opening a window
 
+### Themes
+
+- `Themes.MaterialLight` and `MaterialDark`: Material 3. The scheme is made from a seed color
+  as Material You makes it — tonal palettes of the seed's hue and each role a tone of one of
+  them —, and `WithAccent` makes it again from another seed, the surfaces tinted as well:
+  with `App.UseSystemTheme` it is Android's dynamic color. Pill buttons (tonal, filled,
+  outlined), outlined fields, Material's check box, radio button, switch and slider, a
+  ripple on a press, the navigation bar's indicator, Roboto and Material's type scale
+- `Themes.CupertinoLight` and `CupertinoDark`: iOS — the grouped background and its cards,
+  UIKit's semantic colors, fields and buttons as fills, the gray, filled and plain buttons,
+  round check boxes, the green switch, a tab bar without an indicator, San Francisco with a
+  body of 17. An accent is a tint, as in iOS
+- `ThemeMetrics.Material`, `ThemeMetrics.Cupertino`, `TypeRamp.Material`,
+  `TypeRamp.Cupertino`, and `FontWeight.Medium` (500) for Material's labels
+- The previewers of Visual Studio and Rider, and `[Preview(Theme = …)]`, offer the four
+
 ### Graphics
 
 - `Glow` on every element: light along its border, as a neon tube gives it — the line, a

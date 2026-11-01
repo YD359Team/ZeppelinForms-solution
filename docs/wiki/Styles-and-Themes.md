@@ -2,7 +2,7 @@
 
 The look of an application comes from three places, from the weakest:
 
-1. **the theme** — light, dark, Fluent, high contrast: a rule per control type;
+1. **the theme** — light, dark, Fluent, Material, Cupertino, high contrast: a rule per control type;
 2. **styles** — style sheets (`.zss`) or `Style` objects of the application, a form or an element;
 3. **code** — a value set on an element.
 
@@ -22,7 +22,32 @@ App.UseSystemTheme(Themes.FluentLight, Themes.FluentDark); // follow the system
 | ----- | - |
 | `Themes.Light`, `Themes.Dark` | The classic ones |
 | `Themes.FluentLight`, `Themes.FluentDark` | WinUI 3's palette and shapes |
+| `Themes.MaterialLight`, `Themes.MaterialDark` | Material 3: a scheme made from a seed color, pill buttons, outlined fields, ripples, Roboto |
+| `Themes.CupertinoLight`, `Themes.CupertinoDark` | iOS: the grouped background, the system colors, fills instead of outlines, the green switch, San Francisco at 17 |
 | `Themes.HighContrastBlack`, `Themes.HighContrastWhite` | Taken over by the system's high contrast mode, see [Accessibility](Accessibility) |
+
+Each theme takes an accent its own way. A Fluent theme takes the accent's shade for its page.
+A Material theme makes its whole scheme again from the accent as a seed: the primary, the
+containers, and the surfaces tinted by it, the way Material You's dynamic color does. Given
+the system's accent through `App.UseSystemTheme`, that is Android 12's dynamic color. A
+Cupertino theme takes the accent as a tint, as iOS does, and keeps its grey selection and
+its green switch.
+
+```csharp
+App.UseSystemTheme(Themes.MaterialLight, Themes.MaterialDark);       // Material You from the system's accent
+App.Theme = Themes.MaterialLight.WithAccent(new Color(255, 0x00, 0x6A, 0x6A));  // a teal scheme
+App.Theme = Themes.CupertinoDark.WithAccent(new Color(255, 0xAF, 0x52, 0xDE));  // a purple tint
+```
+
+Material's state layers (8 % on hover, 10 % on press) and UIKit's translucent labels and
+fills are worked out in advance into opaque colors, so the themes need no alpha blending
+from the renderer. The Cupertino colors are Apple's own: the secondary label and white on
+the blue read below what WCAG asks of body text. Where that matters, prefer high contrast,
+or give the theme an accent of your own.
+
+The shapes and the type ramps come with the themes too: `ThemeMetrics.Material` and
+`ThemeMetrics.Cupertino`, and `TypeRamp.Material` and `TypeRamp.Cupertino`. Material's
+labels are `FontWeight.Medium`.
 
 A theme is a set of rules matched by control type and applied from the base type down: a rule
 for `Button` extends the one for `ButtonBase` rather than replacing it.

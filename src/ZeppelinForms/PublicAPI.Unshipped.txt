@@ -31,6 +31,7 @@ ZeppelinForms.Core.Collections.ZfCollection<T>.Sort(System.Collections.Generic.I
 ZeppelinForms.Core.Collections.ZfCollection<T>.Sort(System.Comparison<T>! comparison) -> void
 ZeppelinForms.Core.Collections.ZfCollection<T>.ZfCollection() -> void
 ZeppelinForms.Core.Collections.ZfCollection<T>.ZfCollection(System.Collections.Generic.IEnumerable<T>! items) -> void
+ZeppelinForms.Drawing.FontWeight.Medium = 500 -> ZeppelinForms.Drawing.FontWeight
 ZeppelinForms.Drawing.Primitives.Glow
 ZeppelinForms.Drawing.Primitives.Glow.<Clone>$() -> ZeppelinForms.Drawing.Primitives.Glow!
 ZeppelinForms.Drawing.Primitives.Glow.Blur.get -> float
@@ -274,6 +275,14 @@ static ZeppelinForms.Drawing.Primitives.Glow.operator ==(ZeppelinForms.Drawing.P
 static ZeppelinForms.Drawing.Primitives.Halo.operator !=(ZeppelinForms.Drawing.Primitives.Halo? left, ZeppelinForms.Drawing.Primitives.Halo? right) -> bool
 static ZeppelinForms.Drawing.Primitives.Halo.operator ==(ZeppelinForms.Drawing.Primitives.Halo? left, ZeppelinForms.Drawing.Primitives.Halo? right) -> bool
 static ZeppelinForms.Forms.Controls.Tree.TreeItemsSource.Create<T>(System.Collections.Generic.IEnumerable<T!>! roots, System.Func<T!, System.Collections.Generic.IEnumerable<T!>?>! children) -> ZeppelinForms.Forms.Controls.Tree.TreeItemsSource<T!>!
+static ZeppelinForms.Theming.ThemeMetrics.Cupertino.get -> ZeppelinForms.Theming.ThemeMetrics!
+static ZeppelinForms.Theming.ThemeMetrics.Material.get -> ZeppelinForms.Theming.ThemeMetrics!
+static ZeppelinForms.Theming.Themes.CupertinoDark.get -> ZeppelinForms.Theming.Theme!
+static ZeppelinForms.Theming.Themes.CupertinoLight.get -> ZeppelinForms.Theming.Theme!
+static ZeppelinForms.Theming.Themes.MaterialDark.get -> ZeppelinForms.Theming.Theme!
+static ZeppelinForms.Theming.Themes.MaterialLight.get -> ZeppelinForms.Theming.Theme!
+static ZeppelinForms.Theming.TypeRamp.Cupertino.get -> ZeppelinForms.Theming.TypeRamp!
+static ZeppelinForms.Theming.TypeRamp.Material.get -> ZeppelinForms.Theming.TypeRamp!
 static readonly ZeppelinForms.Core.Globalization.ZfText.DockAutoHide -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.DockBack -> ZeppelinForms.Core.Globalization.TextKey!
 static readonly ZeppelinForms.Core.Globalization.ZfText.DockClose -> ZeppelinForms.Core.Globalization.TextKey!

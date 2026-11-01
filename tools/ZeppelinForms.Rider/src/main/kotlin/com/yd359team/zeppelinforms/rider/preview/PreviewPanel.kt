@@ -564,7 +564,7 @@ internal class PreviewPanel(private val project: Project) : JPanel(BorderLayout(
         /** Hidden this long, the window lets the host go; shown again, it starts one. */
         const val RELEASE_AFTER_MS = 2 * 60 * 1000
 
-        val THEMES = listOf("", "Light", "Dark", "FluentLight", "FluentDark", "HighContrastBlack", "HighContrastWhite")
+        val THEMES = listOf("", "Light", "Dark", "FluentLight", "FluentDark", "MaterialLight", "MaterialDark", "CupertinoLight", "CupertinoDark", "HighContrastBlack", "HighContrastWhite")
         val CULTURES = listOf("", "en-US", "ru-RU", "de-DE", "ja-JP", "ar-SA", "he-IL")
 
         /** Width −1: the window's size; 0: the preview's own. */

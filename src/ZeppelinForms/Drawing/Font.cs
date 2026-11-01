@@ -47,6 +47,10 @@ public enum FontWeight
 {
     Light = 300,
     Normal = 400,
+
+    /// <summary>Between normal and semi-bold: the weight of Material's labels and titles.</summary>
+    Medium = 500,
+
     SemiBold = 600,
     Bold = 700,
 }

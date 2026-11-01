@@ -34,6 +34,29 @@ public sealed record ThemeMetrics
         FocusStrokeInnerThickness = 1f,
     };
 
+    /// <summary>Material 3: the extra-small shape for fields and small controls — 4 dp —
+    /// and the medium one, 12 dp, for what floats; a focus indicator of 3 dp in one stroke.
+    /// Buttons are pills, whatever the token: the theme's rule shapes them.</summary>
+    public static ThemeMetrics Material { get; } = new()
+    {
+        ControlCornerRadius = new(4f),
+        OverlayCornerRadius = new(12f),
+        StrokeThickness = 1f,
+        FocusStrokeThickness = 3f,
+        FocusStrokeInnerThickness = 0f,
+    };
+
+    /// <summary>iOS: controls rounded 10, menus and alerts 13; the focus of a keyboard as
+    /// iPadOS draws it, a ring of the accent, 3 thick.</summary>
+    public static ThemeMetrics Cupertino { get; } = new()
+    {
+        ControlCornerRadius = new(10f),
+        OverlayCornerRadius = new(13f),
+        StrokeThickness = 1f,
+        FocusStrokeThickness = 3f,
+        FocusStrokeInnerThickness = 0f,
+    };
+
     /// <summary>The rounding of small controls: buttons, text boxes,
     /// check boxes, combo boxes.</summary>
     public CornerRadius ControlCornerRadius { get; init; } = new(4f);

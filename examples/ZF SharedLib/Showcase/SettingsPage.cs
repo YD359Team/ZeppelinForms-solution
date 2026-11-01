@@ -25,6 +25,10 @@ internal static class SettingsPage
         ("Dark", Themes.Dark),
         ("Fluent light", Themes.FluentLight),
         ("Fluent dark", Themes.FluentDark),
+        ("Material light", Themes.MaterialLight),
+        ("Material dark", Themes.MaterialDark),
+        ("Cupertino light", Themes.CupertinoLight),
+        ("Cupertino dark", Themes.CupertinoDark),
         ("High contrast black", Themes.HighContrastBlack),
         ("High contrast white", Themes.HighContrastWhite),
     ];

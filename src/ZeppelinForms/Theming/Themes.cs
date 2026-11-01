@@ -76,14 +76,16 @@ public static partial class Themes
         ScrollThumb = new Color(110, 255, 255, 255),
     }, "Dark");
 
-    /// <summary>The rules shared by every built-in theme. The Fluent themes start
-    /// from them and replace the rules of the types they draw differently.</summary>
+    /// <summary>The rules shared by every built-in theme. The Fluent, Material and
+    /// Cupertino themes start from them and replace the rules of the types they draw
+    /// differently.</summary>
     private static Theme Build(
         ThemeColors colors,
         string name,
         ThemeMetrics? metrics = null,
         Font? baseFont = null,
-        Func<ThemeColors, AccentPalette, ThemeColors>? accentRule = null)
+        Func<ThemeColors, AccentPalette, ThemeColors>? accentRule = null,
+        TypeRamp? typeRamp = null)
     {
         return new Theme
         {
@@ -92,6 +94,7 @@ public static partial class Themes
             Metrics = metrics ?? ThemeMetrics.Default,
             BaseFont = baseFont ?? Font.Default,
             AccentRule = accentRule ?? Theme.ClassicAccent,
+            TypeRamp = typeRamp ?? TypeRamp.Default,
         }
 
             // text color is inherited, so it is set once at the root:
