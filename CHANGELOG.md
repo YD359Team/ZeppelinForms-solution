@@ -14,9 +14,42 @@
   becomes `(_, e) => … e.Node …`
 - `TreeViewItem.GlyphWidth` is obsolete: the expander's strip is the styled
   `ExpanderWidth`, 18 as the constant was
+- The collections of the controls are `ZfCollection<T>` (an `ObservableCollection<T>`)
+  instead of `List<T>`: `ComboBox.Items`, `CheckedComboBox.Items`, `MenuBar.Items`,
+  `TabControl.Tabs`, `DataGridView.Columns`, `Table.Columns` and `Rows`,
+  `Grid.RowDefinitions` and `ColumnDefinitions`, the charts' `Categories`, `Series`,
+  `Slices`, `Candles` and `ChartSeries.Values`, `MapControl.Markers`, `PolygonShape.Points`,
+  `RichLabel.Inlines`, and `TreeNode.Children`. Initializers, collection expressions
+  (`Values = [1, 2, 3]`) and `AddRange` build as before; code that held one of them in a
+  `List<T>` variable or called another `List<T>` method needs a change, and a compiled
+  assembly a rebuild. The items of a menu (`MenuItem.Items`, `SplitButton.Items`,
+  `TrayIcon.Menu`) stay lists: they are read each time the menu opens
+
+### Collections
+
+- `ZfCollection<T>` (`ZeppelinForms.Core.Collections`): an `ObservableCollection<T>` with
+  `AddRange`, `ReplaceAll`, `RemoveAll` and a stable `Sort`, each one notification rather
+  than one per item
+- A change of a control's collection shows at once — a value added to a chart's series, a
+  column to a grid, a menu to the bar, a row to a table — and a binding to `Count`
+  follows it. Until 0.20 it went unseen until something else redrew the control
+- What a control kept by an index follows its item: the selected tab and combo box item,
+  the checked items of a `CheckedComboBox`, the sort column, the current cell and the
+  selected columns of a `DataGridView`. An item taken out takes its selection with it,
+  and that is a change of the selection; a chart forgets the point under the pointer
+- ZF0001 no longer reports `Values = [1, 2]` and the like: a control's `ZfCollection`
+  takes the one it is given in its initializer
+- `TreeNode.Children.Clear()` lets the children go: they kept the node as their parent,
+  and could not be added to another one
 
 ### TreeView
 
+- `TreeView.ItemsSource`: a tree made from a view model's items —
+  `TreeItemsSource.Create(roots, item => item.Children)`, with `WithExpanded` and
+  `WithChecked` for the expansion and the check boxes both ways. The children of an item
+  become nodes when its node is expanded the first time; the collections and the items
+  that tell of their changes are followed while the tree is in a form, and a node moved
+  in the data stays itself — expanded, selected, with its children
 - `TreeView.CheckPropagation`: `Cascade`, `Indicate` — the children are left alone and a
   parent not checked itself shows the third state while a node inside it is checked —
   or `None`. Changing it puts the tree in order by the new rule

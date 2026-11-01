@@ -2,6 +2,7 @@
 using System.Collections.Specialized;
 using ZeppelinForms.Core.Text;
 using ZeppelinForms.Data;
+using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -85,7 +86,16 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     /// record, and a stale sort order may point past the end of the collection.</summary>
     private object? _selectedRecord;
 
-    public List<DataGridViewColumn> Columns { get; init; } = [];
+    /// <summary>The columns. A column added, removed or moved shows at once, and the
+    /// sort, the current cell and the selection keep to their columns wherever they
+    /// move: since 0.20 a <see cref="ZfCollection{T}"/>, see DataGridView.Columns.cs.</summary>
+    public ZfCollection<DataGridViewColumn> Columns
+    {
+        get => _columns;
+        init => ZfCollectionOwner.Replace(ref _columns, value, OnColumnsChanged);
+    }
+
+    private ZfCollection<DataGridViewColumn> _columns = [];
 
     /// <summary>Data rows. The type of the items is arbitrary — the columns know
     /// what to take out of them.</summary>
@@ -100,6 +110,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     public DataGridView()
     {
         Items.CollectionChanged += OnItemsChanged;
+        _columns.CollectionChanged += OnColumnsChanged;
 
         // the grid scrolls by itself, bypassing PanelControl, so it needs
         // a scroll gesture of its own — but the physics is the same, shared

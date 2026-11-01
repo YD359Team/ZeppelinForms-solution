@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Mouse;
@@ -28,8 +30,33 @@ public class LineChart : CartesianChartBase
     /// <summary>The function's argument under the pointer; NaN — none.</summary>
     internal float HoveredArgument => _hoveredX;
 
-    public List<string> Categories { get; init; } = [];
-    public List<ChartSeries> Series { get; init; } = [];
+    /// <summary>The categories' labels, one per value of a series. Since 0.20 a
+    /// <see cref="ZfCollection{T}"/>: a change shows at once.</summary>
+    public ZfCollection<string> Categories
+    {
+        get => _categories;
+        init => ZfCollectionOwner.Replace(ref _categories, value, OnDataCollectionChanged);
+    }
+
+    private ZfCollection<string> _categories = [];
+
+    /// <summary>The series. A series added, removed, or changed in itself — its values,
+    /// name or color — shows at once.</summary>
+    public ZfCollection<ChartSeries> Series
+    {
+        get => _series;
+        init => ZfCollectionOwner.Replace(ref _series, value, OnSeriesChanged);
+    }
+
+    private ZfCollection<ChartSeries> _series = [];
+
+    public LineChart()
+    {
+        _categories.CollectionChanged += OnDataCollectionChanged;
+        _series.CollectionChanged += OnSeriesChanged;
+    }
+
+    private void OnSeriesChanged(object? sender, NotifyCollectionChangedEventArgs e) => WatchSeries(_series);
 
     /// <summary>A function to plot. If set, Series are ignored.</summary>
     public Func<float, float>? Function { get; set; }
@@ -306,6 +333,13 @@ public class LineChart : CartesianChartBase
 
         _hovered = index;
         InvalidateVisual();
+    }
+
+    /// <summary>The data changed: the category under the pointer may be gone.</summary>
+    private protected override void ForgetHover()
+    {
+        _hovered = -1;
+        _hoveredX = float.NaN;
     }
 
     protected override void OnMouseExit(MouseMoveEventArgs e)

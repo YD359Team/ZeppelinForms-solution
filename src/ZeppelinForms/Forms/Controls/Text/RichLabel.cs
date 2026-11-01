@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -9,7 +11,23 @@ namespace ZeppelinForms.Forms.Controls.Text;
 /// <summary>A line of text assembled from runs with different formatting.</summary>
 public partial class RichLabel : DecoratedControl
 {
-    public List<TextRun> Inlines { get; init; } = [];
+    /// <summary>The runs of the line. A run added or replaced measures the label again:
+    /// since 0.20 a <see cref="ZfCollection{T}"/>, it was a list only <see cref="SetText"/>
+    /// told the label about.</summary>
+    public ZfCollection<TextRun> Inlines
+    {
+        get => _inlines;
+        init => ZfCollectionOwner.Replace(ref _inlines, value, OnInlinesChanged);
+    }
+
+    private ZfCollection<TextRun> _inlines = [];
+
+    public RichLabel()
+    {
+        _inlines.CollectionChanged += OnInlinesChanged;
+    }
+
+    private void OnInlinesChanged(object? sender, NotifyCollectionChangedEventArgs e) => Invalidate();
 
     /// <summary>Where the line stands across its room. Named and styled as on every
     /// other control with a caption.</summary>
@@ -24,9 +42,8 @@ public partial class RichLabel : DecoratedControl
 
     public void SetText(params TextRun[] runs)
     {
-        Inlines.Clear();
-        Inlines.AddRange(runs);
-        Invalidate();
+        // one change rather than a clear and a run each: the label is measured once
+        Inlines.ReplaceAll(runs);
     }
 
     /// <summary>The runs with TextTransform applied. Without a transform the list

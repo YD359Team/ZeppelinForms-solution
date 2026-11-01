@@ -1,5 +1,56 @@
 #nullable enable
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.BarChart.Categories.get -> System.Collections.Generic.List<string!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.BarChart.Series.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.Charts.ChartSeries!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.CandlestickChart.Candles.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.Charts.Candle!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.ChartSeries.Values.get -> System.Collections.Generic.List<float>!
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.LineChart.Categories.get -> System.Collections.Generic.List<string!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.LineChart.Series.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.Charts.ChartSeries!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.PieChart.Slices.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.Charts.PieSlice!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.RadarChart.Categories.get -> System.Collections.Generic.List<string!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Charts.RadarChart.Series.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.Charts.ChartSeries!>!
+*REMOVED*ZeppelinForms.Forms.Controls.CheckedComboBox.Items.get -> System.Collections.Generic.List<object!>!
+*REMOVED*ZeppelinForms.Forms.Controls.ComboBox.Items.get -> System.Collections.Generic.List<object!>!
+*REMOVED*ZeppelinForms.Forms.Controls.DataGrid.DataGridView.Columns.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Grid.ColumnDefinitions.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.GridLength>!
+*REMOVED*ZeppelinForms.Forms.Controls.Grid.RowDefinitions.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.GridLength>!
+*REMOVED*ZeppelinForms.Forms.Controls.Map.MapControl.Markers.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.Map.MapMarker!>!
+*REMOVED*ZeppelinForms.Forms.Controls.MenuBar.Items.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Shapes.PolygonShape.Points.get -> System.Collections.Generic.List<ZeppelinForms.Drawing.Primitives.Point>!
+*REMOVED*ZeppelinForms.Forms.Controls.TabControl.Tabs.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.TabItem!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Table.Columns.get -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.TableColumn!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Table.Rows.get -> System.Collections.Generic.List<string?[]!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Text.RichLabel.Inlines.get -> System.Collections.Generic.List<ZeppelinForms.Drawing.TextRun!>!
+*REMOVED*ZeppelinForms.Forms.Controls.Tree.TreeNode.Children.get -> System.Collections.ObjectModel.ObservableCollection<ZeppelinForms.Forms.Controls.Tree.TreeNode!>!
 *REMOVED*ZeppelinForms.Forms.Controls.Tree.TreeView.NodeCheckedChanged -> System.EventHandler<ZeppelinForms.Forms.Controls.Tree.TreeNode!>?
+ZeppelinForms.Core.Collections.ZfCollection<T>
+ZeppelinForms.Core.Collections.ZfCollection<T>.AddRange(System.Collections.Generic.IEnumerable<T>! items) -> void
+ZeppelinForms.Core.Collections.ZfCollection<T>.RemoveAll(System.Predicate<T>! match) -> int
+ZeppelinForms.Core.Collections.ZfCollection<T>.ReplaceAll(System.Collections.Generic.IEnumerable<T>! items) -> void
+ZeppelinForms.Core.Collections.ZfCollection<T>.Sort(System.Collections.Generic.IComparer<T>? comparer = null) -> void
+ZeppelinForms.Core.Collections.ZfCollection<T>.Sort(System.Comparison<T>! comparison) -> void
+ZeppelinForms.Core.Collections.ZfCollection<T>.ZfCollection() -> void
+ZeppelinForms.Core.Collections.ZfCollection<T>.ZfCollection(System.Collections.Generic.IEnumerable<T>! items) -> void
+ZeppelinForms.Forms.Controls.Charts.BarChart.Categories.get -> ZeppelinForms.Core.Collections.ZfCollection<string!>!
+ZeppelinForms.Forms.Controls.Charts.BarChart.Series.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.Charts.ChartSeries!>!
+ZeppelinForms.Forms.Controls.Charts.CandlestickChart.Candles.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.Charts.Candle!>!
+ZeppelinForms.Forms.Controls.Charts.ChartSeries.Values.get -> ZeppelinForms.Core.Collections.ZfCollection<float>!
+ZeppelinForms.Forms.Controls.Charts.LineChart.Categories.get -> ZeppelinForms.Core.Collections.ZfCollection<string!>!
+ZeppelinForms.Forms.Controls.Charts.LineChart.Series.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.Charts.ChartSeries!>!
+ZeppelinForms.Forms.Controls.Charts.PieChart.Slices.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.Charts.PieSlice!>!
+ZeppelinForms.Forms.Controls.Charts.RadarChart.Categories.get -> ZeppelinForms.Core.Collections.ZfCollection<string!>!
+ZeppelinForms.Forms.Controls.Charts.RadarChart.Series.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.Charts.ChartSeries!>!
+ZeppelinForms.Forms.Controls.CheckedComboBox.Items.get -> ZeppelinForms.Core.Collections.ZfCollection<object!>!
+ZeppelinForms.Forms.Controls.ComboBox.Items.get -> ZeppelinForms.Core.Collections.ZfCollection<object!>!
+ZeppelinForms.Forms.Controls.DataGrid.DataGridView.Columns.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.DataGrid.DataGridViewColumn!>!
+ZeppelinForms.Forms.Controls.Grid.ColumnDefinitions.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.GridLength>!
+ZeppelinForms.Forms.Controls.Grid.RowDefinitions.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.GridLength>!
+ZeppelinForms.Forms.Controls.Map.MapControl.Markers.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.Map.MapMarker!>!
+ZeppelinForms.Forms.Controls.MenuBar.Items.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.MenuItem!>!
+ZeppelinForms.Forms.Controls.Shapes.PolygonShape.Points.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Drawing.Primitives.Point>!
+ZeppelinForms.Forms.Controls.TabControl.Tabs.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.TabItem!>!
+ZeppelinForms.Forms.Controls.Table.Columns.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.TableColumn!>!
+ZeppelinForms.Forms.Controls.Table.Rows.get -> ZeppelinForms.Core.Collections.ZfCollection<string?[]!>!
+ZeppelinForms.Forms.Controls.Text.RichLabel.Inlines.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Drawing.TextRun!>!
 ZeppelinForms.Forms.Controls.Tree.CheckPropagation
 ZeppelinForms.Forms.Controls.Tree.CheckPropagation.Cascade = 0 -> ZeppelinForms.Forms.Controls.Tree.CheckPropagation
 ZeppelinForms.Forms.Controls.Tree.CheckPropagation.Indicate = 1 -> ZeppelinForms.Forms.Controls.Tree.CheckPropagation
@@ -9,8 +60,13 @@ ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph.Chevron = 0 -> ZeppelinForms.For
 ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph.None = 3 -> ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph
 ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph.PlusMinus = 2 -> ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph
 ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph.Triangle = 1 -> ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph
+ZeppelinForms.Forms.Controls.Tree.TreeItemsSource
+ZeppelinForms.Forms.Controls.Tree.TreeItemsSource<T>
+ZeppelinForms.Forms.Controls.Tree.TreeItemsSource<T>.WithChecked(System.Func<T!, bool>! get, System.Action<T!, bool>? set = null) -> ZeppelinForms.Forms.Controls.Tree.TreeItemsSource<T!>!
+ZeppelinForms.Forms.Controls.Tree.TreeItemsSource<T>.WithExpanded(System.Func<T!, bool>! get, System.Action<T!, bool>? set = null) -> ZeppelinForms.Forms.Controls.Tree.TreeItemsSource<T!>!
 ZeppelinForms.Forms.Controls.Tree.TreeNode.CheckedState.get -> ZeppelinForms.Forms.Controls.CheckedState
 ZeppelinForms.Forms.Controls.Tree.TreeNode.CheckedState.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeNode.Children.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.Tree.TreeNode!>!
 ZeppelinForms.Forms.Controls.Tree.TreeNode.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
 ZeppelinForms.Forms.Controls.Tree.TreeNodeCheckedEventArgs
 ZeppelinForms.Forms.Controls.Tree.TreeNodeCheckedEventArgs.ChangedNodes.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Controls.Tree.TreeNode!>!
@@ -18,6 +74,8 @@ ZeppelinForms.Forms.Controls.Tree.TreeNodeCheckedEventArgs.Node.get -> ZeppelinF
 ZeppelinForms.Forms.Controls.Tree.TreeNodeCheckedEventArgs.TreeNodeCheckedEventArgs(ZeppelinForms.Forms.Controls.Tree.TreeNode! node, System.Collections.Generic.IReadOnlyList<ZeppelinForms.Forms.Controls.Tree.TreeNode!>! changedNodes) -> void
 ZeppelinForms.Forms.Controls.Tree.TreeView.CheckPropagation.get -> ZeppelinForms.Forms.Controls.Tree.CheckPropagation
 ZeppelinForms.Forms.Controls.Tree.TreeView.CheckPropagation.set -> void
+ZeppelinForms.Forms.Controls.Tree.TreeView.ItemsSource.get -> ZeppelinForms.Forms.Controls.Tree.TreeItemsSource?
+ZeppelinForms.Forms.Controls.Tree.TreeView.ItemsSource.set -> void
 ZeppelinForms.Forms.Controls.Tree.TreeView.NodeCheckedChanged -> System.EventHandler<ZeppelinForms.Forms.Controls.Tree.TreeNodeCheckedEventArgs!>?
 ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CollapsedIcon.get -> ZeppelinForms.Drawing.IconSource?
 ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CollapsedIcon.set -> void
@@ -31,6 +89,9 @@ ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderWidth.get -> float
 ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderWidth.set -> void
 ZeppelinForms.Forms.Controls.Tree.TreeViewItem.IndeterminateGlyph.get -> ZeppelinForms.Forms.Controls.IndeterminateGlyph
 ZeppelinForms.Forms.Controls.Tree.TreeViewItem.IndeterminateGlyph.set -> void
+override ZeppelinForms.Forms.Controls.Tree.TreeView.OnAttached() -> void
+override ZeppelinForms.Forms.Controls.Tree.TreeView.OnDetached() -> void
+static ZeppelinForms.Forms.Controls.Tree.TreeItemsSource.Create<T>(System.Collections.Generic.IEnumerable<T!>! roots, System.Func<T!, System.Collections.Generic.IEnumerable<T!>?>! children) -> ZeppelinForms.Forms.Controls.Tree.TreeItemsSource<T!>!
 static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CollapsedIconProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.IconSource?>!
 static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpandedIconProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.IconSource?>!
 static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderGlyphProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Forms.Controls.Tree.ExpanderGlyph>!

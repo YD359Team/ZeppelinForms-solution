@@ -1,5 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Globalization;
+using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Core.System;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Imaging;
@@ -70,7 +72,17 @@ public partial class MapControl : InteractiveControl
     public double CenterLongitude => _centerLongitude;
     public int Zoom => _zoom;
 
-    public List<MapMarker> Markers { get; init; } = [];
+    /// <summary>The markers on the map. A marker added or removed shows at once: since
+    /// 0.20 a <see cref="ZfCollection{T}"/>.</summary>
+    public ZfCollection<MapMarker> Markers
+    {
+        get => _markers;
+        init => ZfCollectionOwner.Replace(ref _markers, value, OnMarkersChanged);
+    }
+
+    private ZfCollection<MapMarker> _markers = [];
+
+    private void OnMarkersChanged(object? sender, NotifyCollectionChangedEventArgs e) => InvalidateVisual();
 
     public bool ShowCoordinates { get; set; }
     public bool ShowAttribution { get; set; } = true;
@@ -86,6 +98,8 @@ public partial class MapControl : InteractiveControl
 
     public MapControl()
     {
+        _markers.CollectionChanged += OnMarkersChanged;
+
         SetControlDefault(BackgroundProperty, new Color(255, 0xE8, 0xE8, 0xE8));
         Cursor = CursorKind.SizeAll;
         SetControlDefault(BorderColorProperty, new Color(255, 190, 190, 190));

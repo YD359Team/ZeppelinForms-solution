@@ -1,7 +1,7 @@
 ﻿﻿using System.Collections;
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Diagnostics;
 using ZeppelinForms.Drawing;
 
@@ -111,7 +111,15 @@ public sealed class TreeNode : INotifyPropertyChanged
         RaiseCheckedChanged();
     }
 
-    public ObservableCollection<TreeNode> Children { get; } = [];
+    /// <summary>The node's children. Since 0.20 a <see cref="ZfCollection{T}"/>: a thousand
+    /// children added with <see cref="ZfCollection{T}.AddRange"/> are one change, not a
+    /// thousand. Clearing it lets the children go: they used to keep the node as their
+    /// <see cref="Parent"/>, and could not be put under another one.</summary>
+    public ZfCollection<TreeNode> Children { get; } = [];
+
+    /// <summary>The children as of the last change: a reset — Clear, ReplaceAll — tells
+    /// nothing of the ones it took away, and they are found by what is no longer here.</summary>
+    private readonly HashSet<TreeNode> _childSet = new(ReferenceEqualityComparer.Instance);
 
     public TreeNode? Parent
     {
@@ -218,6 +226,16 @@ public sealed class TreeNode : INotifyPropertyChanged
 
     private void OnChildrenChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            // the children taken away are the ones the node had and has no more
+            var now = new HashSet<TreeNode>(Children, ReferenceEqualityComparer.Instance);
+
+            foreach (TreeNode child in _childSet)
+                if (!now.Contains(child) && ReferenceEquals(child.Parent, this))
+                    child.Parent = null;
+        }
+
         if (e.OldItems is not null)
             foreach (TreeNode child in e.OldItems)
                 if (ReferenceEquals(child.Parent, this))
@@ -236,9 +254,48 @@ public sealed class TreeNode : INotifyPropertyChanged
             }
         }
 
-        RaiseChildrenChanged(e.NewItems);
+        // the same children twice in a row would keep the old node as their parent: a
+        // reset may bring back some of those it took away, and they are its again
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            foreach (TreeNode child in Children)
+            {
+                ZfContract.Require(child.Parent is null || ReferenceEquals(child.Parent, this),
+                    "The node already belongs to another parent — remove it from there first.");
+
+                child.Parent = this;
+            }
+        }
+
+        // kept change by change: rebuilt only on a reset, a child added one at a time
+        // costs one entry rather than a walk over all its siblings
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            _childSet.Clear();
+            _childSet.UnionWith(Children);
+        }
+        else
+        {
+            if (e.OldItems is not null)
+                foreach (TreeNode child in e.OldItems)
+                    _childSet.Remove(child);
+
+            if (e.NewItems is not null)
+                foreach (TreeNode child in e.NewItems)
+                    _childSet.Add(child);
+        }
+
+        RaiseChildrenChanged(e.Action == NotifyCollectionChangedAction.Reset ? Children : e.NewItems);
         RaiseChanged(TreeChangeKind.Structure);
         NotifyHasChildren();
+    }
+
+    /// <summary>What the content shows changed, though it is the same object: a model of
+    /// <see cref="TreeView.ItemsSource"/> told so. The row is drawn again.</summary>
+    internal void NotifyContentChanged()
+    {
+        RaiseChanged(TreeChangeKind.Content);
+        Notify(s_content);
     }
 
     private void NotifyHasChildren()

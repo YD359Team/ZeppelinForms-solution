@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -18,7 +20,20 @@ public partial class ComboBox : InteractiveControl
     private readonly FlyoutHost _flyout;
     private int _selectedIndex = -1;
 
-    public List<object> Items { get; init; } = [];
+    /// <summary>The items. An item added or removed shows at once, and the selected one
+    /// stays selected wherever it moves: since 0.20 a <see cref="ZfCollection{T}"/>, it
+    /// was a list.</summary>
+    public ZfCollection<object> Items
+    {
+        get => _items;
+        init => ZfCollectionOwner.Replace(ref _items, value, OnItemsChanged);
+    }
+
+    private ZfCollection<object> _items = [];
+
+    /// <summary>The selected item itself: the selection follows it through a change of
+    /// <see cref="Items"/>, not its index.</summary>
+    private object? _selected;
 
     /// <summary>How to show an item. ToString() by default.</summary>
     public Func<object, string>? DisplaySelector
@@ -45,6 +60,7 @@ public partial class ComboBox : InteractiveControl
             if (_selectedIndex == clamped) return;
 
             _selectedIndex = clamped;
+            _selected = clamped >= 0 ? Items[clamped] : null;
             SelectionChanged?.Invoke(this, EventArgs.Empty);
             InvalidateVisual();
         }
@@ -83,6 +99,8 @@ public partial class ComboBox : InteractiveControl
 
     public ComboBox()
     {
+        _items.CollectionChanged += OnItemsChanged;
+
         SetControlDefault(BackgroundProperty, Colors.White);
         SetControlDefault(PaddingProperty, new(6, 3));
         Cursor = CursorKind.Hand;
@@ -95,6 +113,51 @@ public partial class ComboBox : InteractiveControl
     /// <summary>Whether the drop-down is open — for the accessibility peer,
     /// which reports it as the expanded state.</summary>
     internal bool IsDropDownOpen => _flyout.IsOpen;
+
+    /// <summary>The items changed: the selected one keeps the selection at its new place;
+    /// taken out, the selection goes — and that is a change of it. The width is
+    /// measured from the texts again.</summary>
+    private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // a data source in the middle of writing the items: the pick is put back once it
+        // is done, see OnDataSourceChanged — a move is a remove and an insert, and the
+        // pick would be lost between them
+        if (_pickRemembered)
+        {
+            Invalidate();
+            return;
+        }
+
+        if (_selectedIndex >= 0)
+        {
+            int moved = IndexOfInstance(_selected);
+
+            if (moved >= 0)
+            {
+                _selectedIndex = moved;
+            }
+            else
+            {
+                _selectedIndex = -1;
+                _selected = null;
+                SelectionChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        Invalidate();
+    }
+
+    /// <summary>Where this very item is — by reference, as the data source finds it: a
+    /// record's Equals must not hand the selection to another record.</summary>
+    private int IndexOfInstance(object? item)
+    {
+        if (item is null) return -1;
+
+        for (int i = 0; i < Items.Count; i++)
+            if (ReferenceEquals(Items[i], item)) return i;
+
+        return -1;
+    }
 
     private string TextOf(object item) => DisplaySelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;
 

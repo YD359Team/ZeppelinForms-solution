@@ -181,7 +181,7 @@ public partial class TreeView : DecoratedPanel, IInputElement
 
     private void OnNodeExpanding(TreeNode node)
     {
-        if (NodeExpanding is null) return;
+        if (NodeExpanding is null && _itemsSource is null) return;
 
         // what the node was before it had children to show: a checked folder read now
         // checks the files it got, see CascadeIntoNewChildren
@@ -192,11 +192,15 @@ public partial class TreeView : DecoratedPanel, IInputElement
 
         try
         {
-            NodeExpanding.Invoke(this, node);
+            // the source's children first: a handler of the event sees them made
+            _itemsSource?.Realize(node);
+
+            NodeExpanding?.Invoke(this, node);
         }
         finally
         {
-            if (!hadChildren && node.Children.Count > 0)
+            // children whose items have check states of their own keep them
+            if (!hadChildren && node.Children.Count > 0 && _itemsSource is not { ReadsChecked: true })
                 CascadeIntoNewChildren(node, before);
 
             EndUpdate();

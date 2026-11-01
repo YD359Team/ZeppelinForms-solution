@@ -78,6 +78,28 @@ caption.Bind(Label.TextProperty, node, n => n.IsExpanded ? "Open" : "Closed");
 count.Bind(Label.TextProperty, node.Children, c => $"{c.Count} items");
 ```
 
+### From data
+
+`ItemsSource` makes the tree from a view model's own items rather than from nodes put in
+by hand. Each node's `Content` is its item; an item's children become nodes when its node
+is expanded the first time.
+
+```csharp
+tree.ItemsSource = TreeItemsSource.Create(vm.Folders, folder => folder.Children)
+    .WithExpanded(folder => folder.IsOpen, (folder, open) => folder.IsOpen = open)
+    .WithChecked(folder => folder.IsIncluded, (folder, included) => folder.IsIncluded = included);
+
+Folder? picked = tree.SelectedNode?.Content as Folder;
+```
+
+While the tree is in a form, collections that tell of their changes (an
+`ObservableCollection`) and items that do (`INotifyPropertyChanged`) are followed: an item
+added becomes a node, a renamed one is drawn again, and a node moved in the data stays
+itself — expanded, selected, with its children. With `WithExpanded` and `WithChecked` the
+expansion and the check boxes go both ways; under `Cascade` the items' own states are the
+truth, and a parent's item is told what its children make it. Out of the form the tree
+holds on to nothing of the data, and catches up when it comes back.
+
 ### Check boxes
 
 `CheckBoxes = true` puts a check box before every node; a click or Space checks it.

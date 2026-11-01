@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -20,7 +22,20 @@ public partial class TabControl : DecoratedPanel, IInputElement
     private int _selectedIndex = -1;
     private int _hoveredIndex = -1;
 
-    public List<TabItem> Tabs { get; init; } = [];
+    /// <summary>The tabs. A tab added or removed shows at once, and the selected one stays
+    /// selected wherever it moves: since 0.20 a <see cref="ZfCollection{T}"/>, it was a
+    /// list a change of which went unseen.</summary>
+    public ZfCollection<TabItem> Tabs
+    {
+        get => _tabs;
+        init => ZfCollectionOwner.Replace(ref _tabs, value, OnTabsChanged);
+    }
+
+    private ZfCollection<TabItem> _tabs = [];
+
+    /// <summary>The tab whose content is in the tree: followed through a change of
+    /// <see cref="Tabs"/> by itself, not by its index.</summary>
+    private TabItem? _shownTab;
 
     public TabStripPlacement TabStripPlacement
     {
@@ -66,7 +81,9 @@ public partial class TabControl : DecoratedPanel, IInputElement
     }
 
     // Tabs is a plain list and may shrink under a stale index:
-    // indexing it directly threw ArgumentOutOfRangeException
+    // indexing it directly threw ArgumentOutOfRangeException. Since 0.20 the index
+    // follows the tabs (OnTabsChanged); the check stays for a change made in a handler
+    // of Tabs' own CollectionChanged, before the control's
     public TabItem? SelectedTab =>
         _selectedIndex >= 0 && _selectedIndex < Tabs.Count ? Tabs[_selectedIndex] : null;
 
@@ -100,6 +117,8 @@ public partial class TabControl : DecoratedPanel, IInputElement
 
     public TabControl()
     {
+        _tabs.CollectionChanged += OnTabsChanged;
+
         SetControlDefault(BorderColorProperty, new Color(255, 205, 205, 205));
         SetControlDefault(BorderWidthProperty, 1f);
     }
@@ -114,6 +133,34 @@ public partial class TabControl : DecoratedPanel, IInputElement
             SelectedIndex = 0;
     }
 
+    /// <summary>The tabs changed. The selected tab keeps the selection at its new place;
+    /// one removed gives it to the tab that came to its place, or the last — and that is
+    /// a change of selection.</summary>
+    private void OnTabsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        _hoveredIndex = -1;
+
+        if (_shownTab is null)
+        {
+            // nothing selected: an index set before the tabs came may point at one now
+            if (_selectedIndex >= Tabs.Count) _selectedIndex = -1;
+        }
+        else if (Tabs.IndexOf(_shownTab) is var moved and >= 0)
+        {
+            _selectedIndex = moved;
+        }
+        else
+        {
+            int next = Tabs.Count == 0 ? -1 : Math.Min(_selectedIndex, Tabs.Count - 1);
+
+            _selectedIndex = next;
+            SwapContent();
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        Invalidate();
+    }
+
     private void SwapContent()
     {
         // only the active tab's content is kept in the tree: the others
@@ -121,7 +168,9 @@ public partial class TabControl : DecoratedPanel, IInputElement
         while (Children.Count > 0)
             Children.RemoveAt(Children.Count - 1);
 
-        if (SelectedTab?.Content is UIElement content)
+        _shownTab = SelectedTab;
+
+        if (_shownTab?.Content is UIElement content)
             Children.Add(content);
     }
 
