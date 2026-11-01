@@ -125,6 +125,23 @@
   scale's twice at close, two of the focus events twice at `Dispose`. The focus events
   are no longer dropped at `Dispose` at all: the form owns their source
 
+### Fixes
+
+- A scrolling panel cuts what it draws under its children where it cuts them: a list
+  scrolled so that its selected or hovered row went past the top drew the row's highlight
+  above the list — over a combo box under its drop-down
+- The showcase's native controls page keeps the bar of its scrolled list beside the rows:
+  laid over them, it went under the native control
+
+### AI tooling
+
+- `AGENTS.md` in the repository: the projects, the build and the tests, the rules the build
+  enforces, the conventions of the framework's code — for Claude Code, Codex, Copilot,
+  Cursor and the like; `CLAUDE.md` points to it
+- `zf-app` makes an `AGENTS.md` of the application's own: what ZeppelinForms is and is not,
+  the projects, how its UI, dialogs, threads, bindings and controls are written, how it is
+  tested
+
 ### Build
 
 - CI on Windows builds the solution without the Android and browser projects

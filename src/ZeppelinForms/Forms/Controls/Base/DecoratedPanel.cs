@@ -17,7 +17,21 @@ public abstract class DecoratedPanel : PanelControl
 
         // the panel's content is drawn before the children: the renderer calls
         // Draw and then walks Children
+        if (!ScrollsHorizontally && !ScrollsVertically)
+        {
+            DrawContent(g);
+            return;
+        }
+
+        // A scrolling panel's own content scrolls with its children, and is cut where
+        // they are: the renderer clips the children to ClipBounds, and the content
+        // drawn under them was left unclipped. A list scrolled so that its selected
+        // row went past the top drew the row's highlight above the list — over a
+        // combo box under its drop-down, over whatever was there
+        g.Save();
+        g.ClipRect(ClipBounds);
         DrawContent(g);
+        g.Restore();
     }
 
     /// <summary>Own drawing under the children — row highlighting, a grid, guides.</summary>

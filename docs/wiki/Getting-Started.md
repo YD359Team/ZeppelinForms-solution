@@ -39,6 +39,11 @@ project needs the `wasm-tools` workload, the Android one the `android` workload
 `--zfVersion` says otherwise. The pages and the frame are described in
 [Mobile and navigation](Mobile-and-Navigation).
 
+The application also gets an `AGENTS.md` (and a `CLAUDE.md` that points to it) for AI coding
+agents: what ZeppelinForms is and isn't, the projects, and how the UI, the dialogs, the
+threads, the bindings and the controls of one's own are written here. Keep it up to date as
+the application grows; agents read it before they change anything.
+
 ## Windows
 
 A `WinExe` project for `net10.0-windows`:
