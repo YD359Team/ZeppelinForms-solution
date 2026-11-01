@@ -161,6 +161,28 @@ public sealed class GlesSkiaParityTests : IClassFixture<SnapshotFixture>, IClass
         AssertParity(form, "paths", maxVisibleRatio: 0.015f);
     }
 
+    /// <summary>0.20: the radial and the sweep gradient, and the glow along a border, as
+    /// both backends draw them — the GLES one reads the ramp from an offset per pixel.</summary>
+    [Fact]
+    public void RadialSweepAndGlowMatch()
+    {
+        Form form = Form(new Scene(g =>
+        {
+            g.FillRadialGradient(new Rectangle(10, 10, 120, 120), new CornerRadius(16),
+                [new GradientStop(Warm, 0f), new GradientStop(Accent, 0.6f), new GradientStop(Ink, 1f)],
+                new Point(60, 60), 70f);
+
+            g.FillSweepGradient(new Rectangle(150, 10, 120, 120), new CornerRadius(60),
+                [new GradientStop(Red, 0f), new GradientStop(Green, 0.5f), new GradientStop(Red, 1f)],
+                new Point(210, 70), -90f);
+
+            g.FillRectangle(new Rectangle(290, 10, 100, 120), Ink);
+            g.DrawGlow(new Rectangle(310, 40, 60, 60), new CornerRadius(10), Warm, 4f, 12f);
+        }), 400, 150);
+
+        AssertParity(form, "light", maxVisibleRatio: 0.02f);
+    }
+
     [Fact]
     public void PicturesMatch()
     {

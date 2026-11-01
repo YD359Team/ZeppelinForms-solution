@@ -844,6 +844,85 @@ internal sealed partial class GlesGraphics : Graphics
         }
     }
 
+    /// <summary>A radial gradient: each corner carries its offset to the center over the
+    /// gradient's radius, and the shader takes the length of the interpolated offset.</summary>
+    public override void FillRadialGradient(
+        Rectangle bounds, CornerRadius radius, GradientStop[] stops, Point center, float gradientRadius)
+    {
+        ArgumentNullException.ThrowIfNull(stops);
+
+        if (stops.Length == 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        if (stops.Length == 1 || gradientRadius <= 0f)
+        {
+            FillRoundRectangle(bounds, radius, stops[^1].Color);
+            return;
+        }
+
+        float scale = 1f / gradientRadius;
+
+        FillCenteredGradient(bounds, radius, stops, mode: 1, (x, y) =>
+            ((x - center.X) * scale, (y - center.Y) * scale));
+    }
+
+    /// <summary>A sweep gradient: each corner carries its offset to the center turned back
+    /// by the start angle, and the shader takes the angle of the interpolated offset.</summary>
+    public override void FillSweepGradient(
+        Rectangle bounds, CornerRadius radius, GradientStop[] stops, Point center, float startAngle)
+    {
+        ArgumentNullException.ThrowIfNull(stops);
+
+        if (stops.Length == 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        if (stops.Length == 1)
+        {
+            FillRoundRectangle(bounds, radius, stops[0].Color);
+            return;
+        }
+
+        float radians = -startAngle * MathF.PI / 180f;
+        float cos = MathF.Cos(radians);
+        float sin = MathF.Sin(radians);
+
+        FillCenteredGradient(bounds, radius, stops, mode: 2, (x, y) =>
+        {
+            float dx = x - center.X;
+            float dy = y - center.Y;
+
+            return (dx * cos - dy * sin, dx * sin + dy * cos);
+        });
+    }
+
+    /// <summary>A gradient read from an offset to its center: the offset is affine in the
+    /// shape's space, so one a corner is exact everywhere between them.</summary>
+    private void FillCenteredGradient(
+        Rectangle bounds, CornerRadius radius, GradientStop[] stops, int mode, Func<float, float, (float U, float V)> offset)
+    {
+        float row = _renderer.GradientRow(stops);
+
+        float margin = 1.5f / _state.Matrix.MinScale;
+        Rectangle device = _state.Matrix.MapBounds(Inflate(bounds, margin));
+        Span<Vertex> quad = Quad(device);
+        if (quad.IsEmpty) return;
+
+        WriteShapeQuad(quad, bounds, Shaders.ShapeRoundRect, Shaders.PaintGradient, Clamp(radius, bounds), 0, 0xFFFFFFFF, margin);
+
+        float cx = bounds.X + bounds.Width / 2f;
+        float cy = bounds.Y + bounds.Height / 2f;
+
+        for (int i = 0; i < 4; i++)
+        {
+            ref Vertex v = ref quad[i];
+
+            (float u, float w) = offset(cx + v.LocalX, cy + v.LocalY);
+
+            v.E0 = u;
+            v.E1 = row;
+            v.E2 = mode;
+            v.E3 = w;
+        }
+    }
+
     public override void FillNoise(Rectangle bounds, float opacity)
     {
         if (opacity <= 0 || bounds.Width <= 0 || bounds.Height <= 0) return;

@@ -16,7 +16,7 @@
 /// The kind is <c>shape + 8 × paint</c>. Shapes: 0 — none, the quad itself; 1 — a rounded
 /// rectangle; 2 — an ellipse; 3 — a Gaussian-blurred rectangle. Paints: 0 — the color;
 /// 1 — a picture times the color; 2 — the color through a coverage mask; 3 — a gradient
-/// ramp; 4 — a layer, desaturated and faded; 5 — fractal noise; 6 — the color through a
+/// ramp, linear, radial or sweep; 4 — a layer, desaturated and faded; 5 — fractal noise; 6 — the color through a
 /// glyph of the glyph atlas; 7 — a layer put over a copy of what is under it in a blend
 /// mode, the result replacing what is there.
 /// </para>
@@ -354,7 +354,15 @@ internal static class Shaders
             }
             else if (paint == 3)
             {
-                float t = clamp(vExtra.x, 0.0, 1.0);
+                // the ramp's position: along the line, interpolated as it is (0); the
+                // distance from the center (1); the angle round it, clockwise from the
+                // start (2) — both from the offset to the center, which is affine
+                int mode = int(vExtra.z + 0.5);
+                vec2 offset = vec2(vExtra.x, vExtra.w);
+                float t = mode == 1 ? length(offset)
+                        : mode == 2 ? fract(atan(offset.y, offset.x) / 6.28318531)
+                        : vExtra.x;
+                t = clamp(t, 0.0, 1.0);
                 color = texture(uRamp, vec2((t * 255.0 + 0.5) / 256.0, vExtra.y)) * vColor.a;
             }
             else if (paint == 4)

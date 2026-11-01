@@ -76,6 +76,22 @@
 - `TreeView.CreateItem` makes the rows: a tree of its own returns rows that override
   `TreeViewItem.DrawExpander`
 
+### Graphics
+
+- `Glow` on every element: light along its border, as a neon tube gives it — the line, a
+  white-hot core and the light diffused round it. `GlowMotion.Comet` runs a comet of light
+  with a fading tail round the border instead, once a `Period`; it runs only while the
+  element is drawn, and stands with reduced motion
+- `Halo` on every element: light behind it — of its own shape (`HaloShape.Content`: what it
+  draws, blurred, in the halo's color; a glyph glows round its strokes) or round
+  (`HaloShape.Radial`, a lamp behind it)
+- Both are styled: `Glow: #00E5FF 14 2 comet`, `Halo: #FFD700 16 radial` in a style sheet;
+  their light is in the element's dirty region
+- `Graphics.FillRadialGradient`, `FillSweepGradient` and `DrawGlow`: exact on Skia and the
+  GLES backend — whose shader reads the ramp from each pixel's offset to the center —, and
+  drawn from rings, wedges and a blurred layer by any other backend: the methods are
+  virtual, so a backend of another package keeps building
+
 ### Forms
 
 - A form follows the theme, the text scale and the language through one subscription,

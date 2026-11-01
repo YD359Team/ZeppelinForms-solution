@@ -766,6 +766,12 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
                 bounds = bounds.Inflate(spread);
             }
 
+            // a glow's and a halo's light reach past the bounds as a shadow's does
+            float light = LightReach;
+
+            if (light > 0f)
+                bounds = bounds.Inflate(light);
+
             // drawing of one's own past the bounds, such as a focus ring around an
             // indicator at the edge. Taken by its largest side and after the
             // transforms, like the shadow: a few pixels need no exact geometry

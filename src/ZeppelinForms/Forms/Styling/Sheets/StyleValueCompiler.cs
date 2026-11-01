@@ -153,6 +153,8 @@ internal static class StyleValueCompiler
         type == typeof(Size) ? typeof(Size) :
         type == typeof(Point) ? typeof(Point) :
         type == typeof(BoxShadow) ? typeof(BoxShadow) :
+        type == typeof(Glow) ? typeof(Glow) :
+        type == typeof(Halo) ? typeof(Halo) :
         type == typeof(GradientStop) ? typeof(GradientStop) :
         type == typeof(Drawing.Font) ? typeof(Drawing.Font) :
         null;

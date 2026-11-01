@@ -30,6 +30,44 @@ ZeppelinForms.Core.Collections.ZfCollection<T>.Sort(System.Collections.Generic.I
 ZeppelinForms.Core.Collections.ZfCollection<T>.Sort(System.Comparison<T>! comparison) -> void
 ZeppelinForms.Core.Collections.ZfCollection<T>.ZfCollection() -> void
 ZeppelinForms.Core.Collections.ZfCollection<T>.ZfCollection(System.Collections.Generic.IEnumerable<T>! items) -> void
+ZeppelinForms.Drawing.Primitives.Glow
+ZeppelinForms.Drawing.Primitives.Glow.<Clone>$() -> ZeppelinForms.Drawing.Primitives.Glow!
+ZeppelinForms.Drawing.Primitives.Glow.Blur.get -> float
+ZeppelinForms.Drawing.Primitives.Glow.Blur.init -> void
+ZeppelinForms.Drawing.Primitives.Glow.Color.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Drawing.Primitives.Glow.Color.init -> void
+ZeppelinForms.Drawing.Primitives.Glow.CometLength.get -> float
+ZeppelinForms.Drawing.Primitives.Glow.CometLength.init -> void
+ZeppelinForms.Drawing.Primitives.Glow.Deconstruct(out ZeppelinForms.Drawing.Primitives.Color Color, out float Blur, out float Width, out ZeppelinForms.Drawing.Primitives.GlowMotion Motion) -> void
+ZeppelinForms.Drawing.Primitives.Glow.Equals(ZeppelinForms.Drawing.Primitives.Glow? other) -> bool
+ZeppelinForms.Drawing.Primitives.Glow.Glow(ZeppelinForms.Drawing.Primitives.Color Color, float Blur = 12, float Width = 2, ZeppelinForms.Drawing.Primitives.GlowMotion Motion = ZeppelinForms.Drawing.Primitives.GlowMotion.Static) -> void
+ZeppelinForms.Drawing.Primitives.Glow.Motion.get -> ZeppelinForms.Drawing.Primitives.GlowMotion
+ZeppelinForms.Drawing.Primitives.Glow.Motion.init -> void
+ZeppelinForms.Drawing.Primitives.Glow.Period.get -> System.TimeSpan
+ZeppelinForms.Drawing.Primitives.Glow.Period.init -> void
+ZeppelinForms.Drawing.Primitives.Glow.Width.get -> float
+ZeppelinForms.Drawing.Primitives.Glow.Width.init -> void
+ZeppelinForms.Drawing.Primitives.GlowMotion
+ZeppelinForms.Drawing.Primitives.GlowMotion.Comet = 1 -> ZeppelinForms.Drawing.Primitives.GlowMotion
+ZeppelinForms.Drawing.Primitives.GlowMotion.Static = 0 -> ZeppelinForms.Drawing.Primitives.GlowMotion
+ZeppelinForms.Drawing.Primitives.Halo
+ZeppelinForms.Drawing.Primitives.Halo.<Clone>$() -> ZeppelinForms.Drawing.Primitives.Halo!
+ZeppelinForms.Drawing.Primitives.Halo.Color.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Drawing.Primitives.Halo.Color.init -> void
+ZeppelinForms.Drawing.Primitives.Halo.Deconstruct(out ZeppelinForms.Drawing.Primitives.Color Color, out float Radius, out ZeppelinForms.Drawing.Primitives.HaloShape Shape) -> void
+ZeppelinForms.Drawing.Primitives.Halo.Equals(ZeppelinForms.Drawing.Primitives.Halo? other) -> bool
+ZeppelinForms.Drawing.Primitives.Halo.Halo(ZeppelinForms.Drawing.Primitives.Color Color, float Radius = 16, ZeppelinForms.Drawing.Primitives.HaloShape Shape = ZeppelinForms.Drawing.Primitives.HaloShape.Content) -> void
+ZeppelinForms.Drawing.Primitives.Halo.Radius.get -> float
+ZeppelinForms.Drawing.Primitives.Halo.Radius.init -> void
+ZeppelinForms.Drawing.Primitives.Halo.Shape.get -> ZeppelinForms.Drawing.Primitives.HaloShape
+ZeppelinForms.Drawing.Primitives.Halo.Shape.init -> void
+ZeppelinForms.Drawing.Primitives.HaloShape
+ZeppelinForms.Drawing.Primitives.HaloShape.Content = 0 -> ZeppelinForms.Drawing.Primitives.HaloShape
+ZeppelinForms.Drawing.Primitives.HaloShape.Radial = 1 -> ZeppelinForms.Drawing.Primitives.HaloShape
+ZeppelinForms.Forms.Controls.Base.UIElement.Glow.get -> ZeppelinForms.Drawing.Primitives.Glow?
+ZeppelinForms.Forms.Controls.Base.UIElement.Glow.set -> void
+ZeppelinForms.Forms.Controls.Base.UIElement.Halo.get -> ZeppelinForms.Drawing.Primitives.Halo?
+ZeppelinForms.Forms.Controls.Base.UIElement.Halo.set -> void
 ZeppelinForms.Forms.Controls.Charts.BarChart.Categories.get -> ZeppelinForms.Core.Collections.ZfCollection<string!>!
 ZeppelinForms.Forms.Controls.Charts.BarChart.Series.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.Charts.ChartSeries!>!
 ZeppelinForms.Forms.Controls.Charts.CandlestickChart.Candles.get -> ZeppelinForms.Core.Collections.ZfCollection<ZeppelinForms.Forms.Controls.Charts.Candle!>!
@@ -109,12 +147,26 @@ ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderWidth.get -> float
 ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderWidth.set -> void
 ZeppelinForms.Forms.Controls.Tree.TreeViewItem.IndeterminateGlyph.get -> ZeppelinForms.Forms.Controls.IndeterminateGlyph
 ZeppelinForms.Forms.Controls.Tree.TreeViewItem.IndeterminateGlyph.set -> void
+override ZeppelinForms.Drawing.Primitives.Glow.Equals(object? obj) -> bool
+override ZeppelinForms.Drawing.Primitives.Glow.GetHashCode() -> int
+override ZeppelinForms.Drawing.Primitives.Glow.ToString() -> string!
+override ZeppelinForms.Drawing.Primitives.Halo.Equals(object? obj) -> bool
+override ZeppelinForms.Drawing.Primitives.Halo.GetHashCode() -> int
+override ZeppelinForms.Drawing.Primitives.Halo.ToString() -> string!
 override ZeppelinForms.Forms.Controls.Tree.TreeDataGrid.OnAttached() -> void
 override ZeppelinForms.Forms.Controls.Tree.TreeDataGrid.OnDetached() -> void
 override ZeppelinForms.Forms.Controls.Tree.TreeDataGrid.OnKeyDown(ZeppelinForms.Input.Keyboard.KeyEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Tree.TreeView.OnAttached() -> void
 override ZeppelinForms.Forms.Controls.Tree.TreeView.OnDetached() -> void
+static ZeppelinForms.Drawing.Primitives.Glow.Comet.get -> ZeppelinForms.Drawing.Primitives.Glow!
+static ZeppelinForms.Drawing.Primitives.Glow.Neon.get -> ZeppelinForms.Drawing.Primitives.Glow!
+static ZeppelinForms.Drawing.Primitives.Glow.operator !=(ZeppelinForms.Drawing.Primitives.Glow? left, ZeppelinForms.Drawing.Primitives.Glow? right) -> bool
+static ZeppelinForms.Drawing.Primitives.Glow.operator ==(ZeppelinForms.Drawing.Primitives.Glow? left, ZeppelinForms.Drawing.Primitives.Glow? right) -> bool
+static ZeppelinForms.Drawing.Primitives.Halo.operator !=(ZeppelinForms.Drawing.Primitives.Halo? left, ZeppelinForms.Drawing.Primitives.Halo? right) -> bool
+static ZeppelinForms.Drawing.Primitives.Halo.operator ==(ZeppelinForms.Drawing.Primitives.Halo? left, ZeppelinForms.Drawing.Primitives.Halo? right) -> bool
 static ZeppelinForms.Forms.Controls.Tree.TreeItemsSource.Create<T>(System.Collections.Generic.IEnumerable<T!>! roots, System.Func<T!, System.Collections.Generic.IEnumerable<T!>?>! children) -> ZeppelinForms.Forms.Controls.Tree.TreeItemsSource<T!>!
+static readonly ZeppelinForms.Forms.Controls.Base.UIElement.GlowProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Glow?>!
+static readonly ZeppelinForms.Forms.Controls.Base.UIElement.HaloProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Halo?>!
 static readonly ZeppelinForms.Forms.Controls.Tree.TreeDataGrid.GlyphColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
 static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.CollapsedIconProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.IconSource?>!
 static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpandedIconProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.IconSource?>!
@@ -122,5 +174,8 @@ static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderGlyphProp
 static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderGlyphSizeProperty -> ZeppelinForms.Forms.Styling.StyledProperty<float>!
 static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.ExpanderWidthProperty -> ZeppelinForms.Forms.Styling.StyledProperty<float>!
 static readonly ZeppelinForms.Forms.Controls.Tree.TreeViewItem.IndeterminateGlyphProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Forms.Controls.IndeterminateGlyph>!
+virtual ZeppelinForms.Drawing.Graphics.DrawGlow(ZeppelinForms.Drawing.Primitives.Rectangle rect, ZeppelinForms.Drawing.Primitives.CornerRadius radius, ZeppelinForms.Drawing.Primitives.Color color, float width, float blur) -> void
+virtual ZeppelinForms.Drawing.Graphics.FillRadialGradient(ZeppelinForms.Drawing.Primitives.Rectangle bounds, ZeppelinForms.Drawing.Primitives.CornerRadius radius, ZeppelinForms.Drawing.Primitives.GradientStop[]! stops, ZeppelinForms.Drawing.Primitives.Point center, float gradientRadius) -> void
+virtual ZeppelinForms.Drawing.Graphics.FillSweepGradient(ZeppelinForms.Drawing.Primitives.Rectangle bounds, ZeppelinForms.Drawing.Primitives.CornerRadius radius, ZeppelinForms.Drawing.Primitives.GradientStop[]! stops, ZeppelinForms.Drawing.Primitives.Point center, float startAngle) -> void
 virtual ZeppelinForms.Forms.Controls.Tree.TreeView.CreateItem(ZeppelinForms.Forms.Controls.Tree.TreeNode! node) -> ZeppelinForms.Forms.Controls.Tree.TreeViewItem!
 virtual ZeppelinForms.Forms.Controls.Tree.TreeViewItem.DrawExpander(ZeppelinForms.Drawing.Graphics! g, ZeppelinForms.Drawing.Primitives.Rectangle bounds, float progress) -> void

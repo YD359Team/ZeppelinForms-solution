@@ -18,8 +18,9 @@ protected override void DrawContent(Graphics g)
 ```
 
 `Graphics` has rectangles, rounded rectangles, ellipses, arcs, lines, polylines, polygons,
-pies, SVG path data (`DrawSvgPath`), images, gradients, shadows, text and text runs, clips,
-transforms and layers. A control that needs more draws with Skia itself: `g is SkiaGraphics
+pies, SVG path data (`DrawSvgPath`), images, gradients — linear (`FillGradient`), radial
+(`FillRadialGradient`) and sweep (`FillSweepGradient`) —, shadows, a glowing outline
+(`DrawGlow`), text and text runs, clips, transforms and layers. A control that needs more draws with Skia itself: `g is SkiaGraphics
 skia` gives `skia.Canvas`.
 
 ## Element-wide looks
@@ -30,6 +31,8 @@ Every element, with its descendants:
 | -------- | - |
 | `Opacity` | 0 — invisible, 1 — opaque |
 | `BoxShadow` | A CSS-like shadow |
+| `Glow` | Light along the border: a neon outline, standing or running, see [Light](#light) |
+| `Halo` | Light behind the element, see [Light](#light) |
 | `CornerRadius`, `Background`, `BorderColor`, `BorderWidth` | The decoration of `Decorated*` controls |
 | `TranslateX/Y`, `ScaleX/Y`, `Rotation` | Transforms around the center; clicks follow them |
 | `Effects` | A chain of visual effects |
@@ -48,6 +51,41 @@ logo.Glitch();          // and logo.StopGlitch()
 
 `AcrylicEffect` blurs what is under the element, `BlurEffect` the element itself,
 `ReflectionEffect` mirrors it under itself, `TransformEffect` skews and turns it.
+
+## Light
+
+`Glow` lights an element's border as a neon tube does: the line, a white-hot core in it,
+and its light diffused round it. With `GlowMotion.Comet` a comet of light with a fading
+tail runs round the border instead — clockwise, once a `Period`; with reduced motion it
+stands.
+
+```csharp
+card.Glow = new Glow(Colors.Cyan, Blur: 14, Width: 2);
+button.Glow = new Glow(Colors.HotPink, 10, 2.5f, GlowMotion.Comet)
+{
+    Period = TimeSpan.FromSeconds(2),
+    CometLength = 0.3f,     // the share of the border it covers, its tail included
+};
+```
+
+`Halo` is light behind an element. `HaloShape.Content` — the default — draws what the
+element draws once more in the halo's color, blurred: a glyph glows round its own strokes,
+a panel round what it holds. `HaloShape.Radial` is a round light, a lamp behind the element.
+
+```csharp
+star.Halo = new Halo(Colors.Gold, Radius: 14);
+avatar.Halo = new Halo(Colors.White, 40, HaloShape.Radial);
+```
+
+Both are styled properties, and both reach past the element as a shadow does — the dirty
+region takes their light:
+
+```css
+.neon   { Glow: #00E5FF 14 2; }
+.comet  { Glow: #FF2D95 10 2.5 comet; }
+.lit    { Halo: #FFD700 14; }
+.lamp   { Halo: #FFFFFF 40 radial; }
+```
 
 ## Blend modes
 
