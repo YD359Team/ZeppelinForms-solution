@@ -117,6 +117,12 @@ A computed property raises `PropertyChanged` for itself when what it reads chang
 MVVM binding needs. The showcase's `ProfileViewModel` and `ProfileCard.zfml` are a whole
 example written by hand.
 
+A view model may raise `PropertyChanged` on any thread — set from a worker, a timer, a
+socket's callback. The element is written on its form's UI thread: the change is queued
+there, once for all the changes told before its turn, and the binding reads its whole path
+again. A command's `CanExecuteChanged` raised on a worker enables its button the same way.
+An element that is in no form is written where it is told.
+
 ## Data sources
 
 `DataSource` on `DataGridView`, `ListBox` (any `ItemsControl`) and `ComboBox` takes the

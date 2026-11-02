@@ -97,6 +97,10 @@ public static class FormRenderer
         // every element is where this frame drew it: the native controls follow their
         // hosts now, so that a scrolled list and the player in it move together
         form.PlaceNativeControls();
+
+        // and the endless animations know whether they are in view: a scroll brings a
+        // spinner back without a layout pass, and its frames must come back with it
+        form.ReviewFrames();
     }
 
     private static void DrawInspector(Form form, Graphics g)

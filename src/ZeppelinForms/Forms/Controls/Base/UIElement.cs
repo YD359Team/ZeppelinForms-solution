@@ -819,6 +819,22 @@ public abstract partial class UIElement : IGridPlaceable, IBorderedElement, INot
         return _cachedOwner;
     }
 
+    /// <summary>The form the element is in, found from another thread: the walk of
+    /// <see cref="FindOwner"/> without its cache.</summary>
+    /// <remarks>A view model telling of a change on a worker thread needs the form's
+    /// dispatcher. FindOwner would write its cache there, in two fields the UI thread
+    /// may be writing at the same moment — and an owner of the old tree could stay
+    /// cached under the new generation. The answer may be stale by the time it is
+    /// used: at worst the work goes through another window of the same thread.</remarks>
+    internal Form? PeekOwner()
+    {
+        UIElement root = this;
+        while (root.Parent is { } parent)
+            root = parent;
+
+        return root.Owner;
+    }
+
     protected virtual void OnDetached() { }
 
     internal void RaiseDetached()

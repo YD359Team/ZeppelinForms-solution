@@ -73,6 +73,9 @@ public partial class Form
 
         window.SetVisible(false);
         SetVisibleState(false);
+
+        // nobody sees what moves in a hidden window: its animations wait for Show
+        SetWindowHidden(true);
     }
 
     /// <summary>A window already shown in this life: on the screen it is left alone, a
@@ -102,6 +105,10 @@ public partial class Form
 
     private void SetVisibleState(bool visible)
     {
+        // shown again, the window's animations get their frames back; hiding is
+        // Hide's alone — a closing form has no frames to stop
+        if (visible) SetWindowHidden(false);
+
         if (_visible == visible) return;
 
         _visible = visible;

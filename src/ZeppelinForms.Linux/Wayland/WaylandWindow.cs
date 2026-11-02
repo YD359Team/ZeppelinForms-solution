@@ -63,6 +63,10 @@ internal sealed partial class WaylandWindow : IPlatformWindow, IDesktopWindow, I
     private bool _pendingMaximized;
     private bool _pendingActivated;
 
+    /// <summary>The compositor doesn't show the window (xdg-shell 6): minimized, on
+    /// another workspace, entirely covered. The one way Wayland tells of it.</summary>
+    private bool _pendingSuspended;
+
     /// <summary>The client area in logical units, as Form.Size is on Linux.</summary>
     private int _width;
     private int _height;
@@ -311,6 +315,7 @@ internal sealed partial class WaylandWindow : IPlatformWindow, IDesktopWindow, I
         _pendingMaximized = false;
         _pendingActivated = false;
         _pendingTiled = false;
+        _pendingSuspended = false;
 
         // an array of uint32 xdg_toplevel.state values
         for (int i = 0; i + 4 <= states.Length; i += 4)
@@ -332,6 +337,10 @@ internal sealed partial class WaylandWindow : IPlatformWindow, IDesktopWindow, I
                 case XdgToplevel.State.TiledBottom:
                     _pendingTiled = true;
                     break;
+
+                case XdgToplevel.State.Suspended:
+                    _pendingSuspended = true;
+                    break;
             }
         }
     }
@@ -352,6 +361,10 @@ internal sealed partial class WaylandWindow : IPlatformWindow, IDesktopWindow, I
         _maximized = _pendingMaximized;
         _tiled = _pendingTiled;
         _decoration.IsActive = _pendingActivated;
+
+        // a suspended window shows nothing: its animations wait without frames. The
+        // platform's loop ticks by its own clock, not by frame callbacks, and ticked on
+        _form.SetWindowOutOfSight(_pendingSuspended);
 
         SyncFrame();
 

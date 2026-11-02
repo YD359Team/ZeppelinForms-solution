@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
+using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls.Base;
 
@@ -20,7 +21,9 @@ namespace ZeppelinForms.Animation;
 /// a hidden subtree does not advance — and no longer keeps frames coming:
 /// a collapsed Loader woke the window sixty times a second for nothing.
 /// The animation itself is not removed, though: the page will come back,
-/// and it must come alive again.
+/// and it must come alive again. The same holds for an endless animation
+/// scrolled out of view, and for every animation of a window that is out of
+/// sight — minimized, hidden, on another virtual desktop.
 ///
 /// Deferred work shares one timer. Previously the caret, the tooltip,
 /// the toast and the long press each started their own System.Threading.Timer,
@@ -50,6 +53,10 @@ internal sealed class FrameClock(Form form) : IDisposable
     private readonly List<Wake> _wakes = [];
     private readonly List<Wake> _due = [];
 
+    /// <summary>The element and its ancestors, root last, while <see cref="IsInView"/>
+    /// walks them: one list for every question instead of one per question.</summary>
+    private readonly List<UIElement> _chain = [];
+
     private System.Threading.Timer? _timer;
     private TimeSpan _lastFrame;
     private bool _suspended;
@@ -66,10 +73,113 @@ internal sealed class FrameClock(Form form) : IDisposable
         get
         {
             foreach (IAnimation animation in _animations)
-                if (animation.Target is not UIElement element || element.IsEffectivelyVisible)
+                if (Runs(animation))
                     return true;
 
             return false;
+        }
+    }
+
+    /// <summary>Whether an animation is advanced on this frame and keeps frames coming.</summary>
+    /// <remarks>
+    /// <para>
+    /// An animation in a hidden subtree is neither advanced nor redrawn. We don't remove
+    /// it: the page will come back, and the animation must come alive again.
+    /// </para>
+    /// <para>
+    /// An endless one — a spinner, a comet along a border, a scene rendered every
+    /// frame — also stands while its element is out of view: scrolled past the edge of
+    /// its panel, outside the window, under an opacity of zero. Until 0.21 a Loader in
+    /// a row scrolled away kept the window at sixty frames a second, and so did a comet
+    /// once started: it starts as its element is drawn, and nothing stopped it after.
+    /// </para>
+    /// <para>
+    /// A finite one runs to its end wherever its element is. A page sliding out of its
+    /// host leaves the view on its way, and its completion is what takes it off the
+    /// stack: stood still out of view, it would have stayed there for good.
+    /// </para>
+    /// </remarks>
+    private bool Runs(IAnimation animation)
+    {
+        if (animation.Target is not UIElement element) return true;
+
+        if (!element.IsEffectivelyVisible) return false;
+
+        return animation is not (LoopAnimation or FrameAnimation) || IsInView(element);
+    }
+
+    /// <summary>Whether any of the element may be on the screen: the renderer's culling,
+    /// done from the root down to the element as the renderer does it.</summary>
+    /// <remarks>
+    /// The same rules as ElementTreeRenderer's: an ancestor's content area narrows what
+    /// is visible, a zero opacity draws nothing, and where offsets no longer add up —
+    /// rotation, scale, a content transform of one's own — the subtree counts as
+    /// visible, as the renderer draws it whole. Not "was it drawn in the last frame":
+    /// with partial redraws an element on the screen isn't drawn in a frame that doesn't
+    /// touch it, and an animation stood still for that would never be drawn again.
+    /// </remarks>
+    private bool IsInView(UIElement element)
+    {
+        for (UIElement? node = element; node is not null; node = node.Parent)
+            _chain.Add(node);
+
+        try
+        {
+            // the positions mid-transition, as they are drawn: a panel sliding in
+            // shows its spinner before it is in its place
+            using (UIElement.BeginPresentation())
+            {
+                var visible = new Rectangle(Point.Empty, form.ClientSize);
+                Point origin = Point.Empty;
+
+                for (int i = _chain.Count - 1; i >= 0; i--)
+                {
+                    UIElement node = _chain[i];
+
+                    if (Math.Clamp(node.Opacity, 0f, 1f) <= 0f) return false;
+
+                    if (!float.IsFinite(node.ActualSize.Width) || !float.IsFinite(node.ActualSize.Height))
+                        return false;
+
+                    var placed = new Point(origin.X + node.Position.X, origin.Y + node.Position.Y);
+
+                    if (!node.LocalDirtyBounds.Offset(placed.X, placed.Y).IntersectsWith(visible))
+                        return false;
+
+                    if (i == 0) return true;
+
+                    if (node.HasComplexTransform) return true;
+
+                    var position = new Point(placed.X + node.TranslateX, placed.Y + node.TranslateY);
+
+                    switch (node)
+                    {
+                        case WrapControl wrap:
+                            if (wrap.TransformsChild) return true;
+
+                            visible = visible.Intersect(wrap.ClipBounds.Offset(position.X, position.Y));
+                            break;
+
+                        case PanelControl panel:
+                            visible = visible.Intersect(panel.ClipBounds.Offset(position.X, position.Y));
+                            break;
+
+                        // an element whose children the renderer doesn't walk draws them
+                        // its own way: where they are is not ours to say
+                        default:
+                            return true;
+                    }
+
+                    origin = position;
+                }
+
+                return true;
+            }
+        }
+        finally
+        {
+            // the list must not keep the elements alive
+            _chain.Clear();
         }
     }
 
@@ -217,8 +327,9 @@ internal sealed class FrameClock(Form form) : IDisposable
             // an animation in a hidden subtree is neither advanced nor redrawn.
             // We don't remove it: the page will come back, and the animation
             // must come alive again. PageControl hides pages without detaching
-            // them, so Detached cannot be relied on here
-            if (animation.Target is UIElement hidden && !hidden.IsEffectivelyVisible)
+            // them, so Detached cannot be relied on here. An endless one out of
+            // view stands the same way, see Runs
+            if (!Runs(animation))
                 continue;
 
             bool alive;
@@ -262,14 +373,17 @@ internal sealed class FrameClock(Form form) : IDisposable
     /// <summary>Reconsider whether frames are needed right now. Called after
     /// any change in the set of animations and from Form.Invalidate:
     /// visibility is a layout property, and a change of it always
-    /// passes through there.</summary>
+    /// passes through there. And after every frame drawn: a scroll moves
+    /// elements into view without a layout pass.</summary>
     public void Review()
     {
         lock (_locker)
         {
             if (form.PlatformWindow?.Frames is not { } frames) return;
 
-            if (_suspended || !HasVisibleAnimation)
+            // a window out of sight shows no frame, whatever moves in it: a minimized
+            // window used to tick on, and every running animation with it
+            if (_suspended || form.IsWindowOutOfSight || !HasVisibleAnimation)
             {
                 if (frames.IsRunning) frames.Stop();
                 return;
@@ -284,7 +398,8 @@ internal sealed class FrameClock(Form form) : IDisposable
         }
     }
 
-    /// <summary>The application went to the background or the window was minimized.</summary>
+    /// <summary>The application went to the background. A window minimized or hidden
+    /// is the form's own, see Form.IsWindowOutOfSight.</summary>
     public void Suspend()
     {
         _suspended = true;

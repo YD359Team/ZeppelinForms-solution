@@ -37,6 +37,13 @@ public enum BindingMode
 /// the user's typing, not of the framework, and an exception in the middle of layout
 /// took a whole previewed form down with it, again on every frame.
 /// </para>
+/// <para>
+/// A change told on another thread than the form's — a view model filled by a worker,
+/// a timer, a socket — is carried to the form's UI thread: the element is written there,
+/// once for any number of changes told before it got its turn. Until 0.21 the element
+/// was written on the thread that raised <c>PropertyChanged</c>, in the middle of
+/// whatever layout and drawing were doing on the UI thread.
+/// </para>
 /// </remarks>
 public sealed class Binding
 {
@@ -69,6 +76,10 @@ public sealed class Binding
     private bool _updating;
 
     private bool _detached;
+
+    /// <summary>1 — a change told on another thread waits for its turn on the UI thread;
+    /// the changes told after it ride along.</summary>
+    private int _refreshQueued;
 
     // The conversions last used, by the runtime type of the value they were made for:
     // a binding sees values of one type almost always, so the shared table of
@@ -343,6 +354,10 @@ public sealed class Binding
         if (name is not null && !string.IsNullOrEmpty(e.PropertyName) && e.PropertyName != name)
             return;
 
+        // told on a worker thread: nothing of the binding or the element is touched
+        // here, the whole path is read again on the form's thread
+        if (QueueIfOffThread()) return;
+
         if (_updating) return;
 
         // an object on the way gave another one: read it, and follow from there
@@ -352,6 +367,40 @@ public sealed class Binding
             Follow(step + 1);
         }
 
+        PushToTarget();
+    }
+
+    /// <summary>A change told on another thread than the form's: queue a refresh to the
+    /// form's dispatcher, unless one waits already. False — the calling thread is the
+    /// form's, or the element is in no form and nobody draws it.</summary>
+    private bool QueueIfOffThread()
+    {
+        if (!_target.TryGetTarget(out UIElement? element)) return false;
+
+        // the form's dispatcher, not Dispatcher.UIThread: a form has the dispatcher of
+        // the thread that opened its window. An element out of every form is written
+        // where it is told, as before — nothing draws it, and the form it enters
+        // reads it on its own thread
+        if (element.PeekOwner()?.Dispatcher is not { } dispatcher || dispatcher.CheckAccess())
+            return false;
+
+        if (Interlocked.Exchange(ref _refreshQueued, 1) == 0)
+            dispatcher.BeginInvoke(Refresh);
+
+        return true;
+    }
+
+    /// <summary>The changes told on other threads, taken on the UI thread: which steps
+    /// changed is no longer known, and several may have, so the whole path is followed
+    /// and read again from the source.</summary>
+    private void Refresh()
+    {
+        // first: a change told while this runs queues the next refresh
+        Volatile.Write(ref _refreshQueued, 0);
+
+        if (_detached) return;
+
+        Follow(0);
         PushToTarget();
     }
 

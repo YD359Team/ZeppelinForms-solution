@@ -2,6 +2,30 @@
 
 ## [0.21.0] Tower of Babel
 
+### Frames
+
+- A window out of sight asks for no frames: minimized (Windows, X11), hidden by `Hide`,
+  on another virtual desktop (Windows, through DWM's cloaking), suspended by the
+  compositor (Wayland: minimized, on another workspace, covered). Its animations wait
+  and go on from where they stood. Until 0.21 a minimized window ticked on at sixty
+  frames a second with every animation in it
+- An endless animation stands while its element is out of view — scrolled past the edge
+  of its panel, outside the window, under a zero opacity — and asks for no frames:
+  `AnimateLoop`, `AnimateFrames`, a spinner, a comet along a border. A Loader in a row
+  scrolled away kept the window busy, and so did a comet once started. Scrolled back,
+  it goes on. A finite animation runs to its end wherever its element is: a page
+  sliding out of view still finishes, and its completion still tidies up
+
+### Bindings
+
+- A view model told of a change on another thread — a worker, a timer, a socket — is
+  written into the element on the form's UI thread, once for all the changes told before
+  its turn, the whole path read again. It used to be written on the thread that raised
+  `PropertyChanged`, in the middle of layout and drawing. An element out of every form
+  is written where it is told, as before
+- A command's `CanExecuteChanged` raised on a worker thread — an `AsyncRelayCommand`
+  ending its work — enables or disables the button on the form's thread
+
 
 ## [0.20.0]	Lighthouse of Alexandria
 

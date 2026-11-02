@@ -505,4 +505,25 @@ internal static class NativeMethods
     // Calling it is mandatory, otherwise the source's memory leaks on every drop
     [DllImport("ole32.dll")]
     internal static extern void ReleaseStgMedium(ref STGMEDIUM medium);
+
+    // user32: events of other windows — here the cloaking of one's own, as DWM hides a
+    // window on another virtual desktop. Out of context: the callback comes through the
+    // message loop of the thread that set the hook, as a window message would
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    public delegate void WinEventProc(
+        nint hook,
+        uint eventType,
+        nint hwnd,
+        int idObject,
+        int idChild,
+        uint eventThread,
+        uint eventTime);
+
+    [DllImport("user32.dll")]
+    public static extern nint SetWinEventHook(
+        uint eventMin, uint eventMax, nint module, WinEventProc callback,
+        uint processId, uint threadId, uint flags);
+
+    [DllImport("user32.dll")]
+    public static extern bool UnhookWinEvent(nint hook);
 }

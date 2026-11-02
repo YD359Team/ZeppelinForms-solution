@@ -271,6 +271,10 @@ public abstract partial class ButtonBase : InteractiveControl
     /// button is in a form, so a long-lived command doesn't keep the form alive.</summary>
     private bool _commandHooked;
 
+    /// <summary>1 — a CanExecuteChanged told on a worker thread waits for its turn on
+    /// the UI thread; the ones told after it ride along.</summary>
+    private int _canExecuteQueued;
+
     /// <summary>Runs when the button is pressed, after <see cref="UIElement.Click"/>.
     /// While it can't run, the button is disabled.</summary>
     /// <remarks>
@@ -355,7 +359,27 @@ public abstract partial class ButtonBase : InteractiveControl
         OnCommandUnhooked(command);
     }
 
-    private void OnCanExecuteChanged(object? sender, EventArgs e) => UpdateCanExecute();
+    private void OnCanExecuteChanged(object? sender, EventArgs e)
+    {
+        // a command of a view model may tell of its change on the thread its work
+        // ended on — AsyncRelayCommand and the like. The button is enabled on the form's
+        // thread: until 0.21 it was written on the worker, in the middle of drawing
+        if (PeekOwner()?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess())
+        {
+            if (Interlocked.Exchange(ref _canExecuteQueued, 1) == 0)
+            {
+                dispatcher.BeginInvoke(() =>
+                {
+                    Volatile.Write(ref _canExecuteQueued, 0);
+                    UpdateCanExecute();
+                });
+            }
+
+            return;
+        }
+
+        UpdateCanExecute();
+    }
 
     /// <summary>Enable or disable the button as the command says — unless code set
     /// <see cref="UIElement.IsEnabled"/> itself, which wins as it wins over a binding.</summary>

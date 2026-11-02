@@ -37,8 +37,12 @@ public partial class Form : IDisposable
 
             if (value is null) return;
 
-            // a new window is a new life: the form may have been closed and shown again
+            // a new window is a new life: the form may have been closed and shown again.
+            // The old window's sight goes with it: closed while minimized, the form
+            // would have opened its next window without frames
             _isClosed = false;
+            _windowOutOfSightByPlatform = false;
+            _windowHidden = false;
 
             // what needs the window itself — a navigation stack the browser's history
             // follows — was attached before the form had one

@@ -519,6 +519,20 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                     break;
                 }
 
+            case X11.UnmapNotify:
+            case X11.MapNotify:
+                {
+                    // the window is iconified or hidden, and back. XAnyEvent's window is
+                    // the event window of XUnmapEvent and XMapEvent — ours, as the
+                    // structure events are selected on the window itself. Unmapped, it
+                    // shows nothing: its animations wait without frames
+                    var map = Marshal.PtrToStructure<X11.XAnyEvent>(eventPtr);
+
+                    if (_windows.TryGetValue(map.window, out X11Window? window))
+                        window.Form.SetWindowOutOfSight(type == X11.UnmapNotify);
+                    break;
+                }
+
             case X11.ConfigureNotify:
                 {
                     var configure = Marshal.PtrToStructure<X11.XConfigureEvent>(eventPtr);

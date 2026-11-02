@@ -94,6 +94,11 @@ internal static class X11
     public const int MotionNotify = 6;
     public const int LeaveNotify = 8;
     public const int Expose = 12;
+
+    // StructureNotifyMask: the window left the screen — minimized, hidden — and came back
+    public const int UnmapNotify = 18;
+    public const int MapNotify = 19;
+
     public const int ConfigureNotify = 22;
     public const int ClientMessage = 33;
 

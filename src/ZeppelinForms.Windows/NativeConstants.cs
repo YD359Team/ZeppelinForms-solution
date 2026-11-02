@@ -51,6 +51,14 @@ internal static class NativeConstants
     public const int SIZE_RESTORED = 0;
     public const int SIZE_MINIMIZED = 1;
     public const int SIZE_MAXIMIZED = 2;
+
+    // SetWinEventHook: DWM cloaks a window it doesn't show — on another virtual
+    // desktop — and uncloaks it as it comes back
+    public const uint EVENT_OBJECT_CLOAKED = 0x8017;
+    public const uint EVENT_OBJECT_UNCLOAKED = 0x8018;
+    public const uint WINEVENT_OUTOFCONTEXT = 0x0000;
+    public const int OBJID_WINDOW = 0;
+    public const int CHILDID_SELF = 0;
     public const uint WM_DPICHANGED = 0x02E0;
     public const int SWP_NOZORDER = 0x0004;
     public const int SWP_NOACTIVATE = 0x0010;

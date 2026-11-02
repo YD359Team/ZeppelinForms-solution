@@ -138,6 +138,9 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
         _surface = Win32SurfaceFactory.Create(_handle, _platform.Graphics);
         _scale = NativeMethods.GetDpiForWindow(_handle) / 96f;
 
+        // a window on another virtual desktop is cloaked by DWM: no frames for it
+        HookCloaking();
+
         PlaceAfterCreate(width, height);
 
         // the moves during CreateWindowEx came before the scale was known: from here
@@ -513,6 +516,7 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
 
             case NativeConstants.WM_NCDESTROY:
                 {
+                    UnhookCloaking(hWnd);
                     DestroyIcons();
                     DisposeTaskbar();
                     _surface?.Dispose();
@@ -537,6 +541,10 @@ internal sealed partial class Win32Window : IPlatformWindow, IDesktopWindow
                         NativeConstants.SIZE_MAXIMIZED => WindowState.Maximized,
                         _ => WindowState.Normal,
                     });
+
+                    // a minimized window shows nothing: its animations wait, without
+                    // frames, until it is restored
+                    SetMinimized(flag == NativeConstants.SIZE_MINIMIZED);
 
                     // on minimizing the system sends a 0×0 size — computing layout
                     // for a zero area is pointless and harmful (everything collapses)
