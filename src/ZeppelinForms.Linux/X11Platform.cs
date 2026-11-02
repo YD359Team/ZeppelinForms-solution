@@ -99,6 +99,9 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         graphics.Register();
 
         InitAppearance();
+
+        // screen readers: the application on the AT-SPI bus, where there is one
+        InitAccessibility();
     }
 
     private X11Clipboard? _clipboard;
@@ -330,6 +333,9 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         // the session bus: the portal's signals, handled on this thread
         App.RunGuarded(PollAppearance);
 
+        // the accessibility bus: a screen reader's questions, answered on this thread
+        App.RunGuarded(PollAccessibility);
+
         // the panels' calls to the tray icons: a click, the menu
         _tray.Poll();
 
@@ -374,6 +380,7 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
         // a theme change on the desktop wakes the loop like any input
         int nfds = WatchAppearance(ref readSet, fd + 1);
         nfds = WatchTray(ref readSet, nfds);
+        nfds = WatchAccessibility(ref readSet, nfds);
 
         X11.select(nfds, ref readSet, 0, 0, ref timeout);
     }

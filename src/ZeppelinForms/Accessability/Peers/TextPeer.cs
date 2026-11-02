@@ -37,6 +37,7 @@ public class TextBoxPeer : UIElementPeer
     {
         _box = owner;
         owner.TextChanged += (_, _) => RaisePropertyChanged(AccessibilityProperty.Value);
+        owner.SelectionChanged += (_, _) => RaisePropertyChanged(AccessibilityProperty.Caret);
         owner.ValidationChanged += (_, _) =>
         {
             RaisePropertyChanged(AccessibilityProperty.States);
@@ -50,6 +51,14 @@ public class TextBoxPeer : UIElementPeer
     /// may know, and it says "protected" for it.</summary>
     public override string? Value =>
         _box.PasswordChar is not null ? null : _box.Text ?? string.Empty;
+
+    /// <summary>The caret of a password isn't told either: where it stands would
+    /// tell how long the password is.</summary>
+    public override int CaretIndex => _box.PasswordChar is not null ? -1 : _box.CaretIndex;
+
+    public override int SelectionStart => _box.PasswordChar is not null ? -1 : _box.SelectionStart;
+
+    public override int SelectionLength => _box.PasswordChar is not null ? 0 : _box.SelectionLength;
 
     /// <summary>The validation message comes first: it is what needs attention.</summary>
     public override string? Description =>

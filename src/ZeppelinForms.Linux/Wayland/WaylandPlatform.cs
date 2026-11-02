@@ -277,6 +277,9 @@ public sealed partial class WaylandPlatform : IPlatform, INestedLoopSupport
 
         if (_appearance is not null)
             App.UseSystemAppearance(_appearance);
+
+        // screen readers: the application on the AT-SPI bus, where there is one
+        InitAccessibility();
     }
 
     private T Bind<T>(uint name, uint version) where T : WlProxy, IWlObject<T> =>
@@ -397,18 +400,19 @@ public sealed partial class WaylandPlatform : IPlatform, INestedLoopSupport
 
         _connection.Flush();
 
-        // the display, the wake pipe, the portal's bus, then the tray icons' and the
-        // notifications' buses
+        // the display, the wake pipe, the portal's bus, the accessibility bus, then the
+        // tray icons' and the notifications' buses
         _trayDescriptors.Clear();
         _tray.CollectFileDescriptors(_trayDescriptors);
 
-        Span<Poll.Entry> entries = stackalloc Poll.Entry[3 + _trayDescriptors.Count];
+        Span<Poll.Entry> entries = stackalloc Poll.Entry[4 + _trayDescriptors.Count];
         entries[0] = new Poll.Entry { Fd = _connection.FileDescriptor, Events = Poll.In };
         entries[1] = new Poll.Entry { Fd = _wake.FileDescriptor, Events = Poll.In };
         entries[2] = new Poll.Entry { Fd = _appearance?.FileDescriptor ?? -1, Events = Poll.In };
+        entries[3] = new Poll.Entry { Fd = _accessibility?.FileDescriptor ?? -1, Events = Poll.In };
 
         for (int i = 0; i < _trayDescriptors.Count; i++)
-            entries[3 + i] = new Poll.Entry { Fd = _trayDescriptors[i], Events = Poll.In };
+            entries[4 + i] = new Poll.Entry { Fd = _trayDescriptors[i], Events = Poll.In };
 
         Poll.Wait(entries, WaitTimeout());
 
@@ -446,6 +450,9 @@ public sealed partial class WaylandPlatform : IPlatform, INestedLoopSupport
             App.RunGuarded(action);
 
         App.RunGuarded(() => _appearance?.Poll());
+
+        // the accessibility bus: a screen reader's questions, answered on this thread
+        App.RunGuarded(() => _accessibility?.Poll());
 
         // the panels' calls to the tray icons: a click, the menu
         _tray.Poll();

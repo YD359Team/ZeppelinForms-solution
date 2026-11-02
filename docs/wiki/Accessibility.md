@@ -9,7 +9,14 @@ list of list items, a data grid a table of rows and cells, a tree view a tree.
 | Platform | Bridge |
 | -------- | ------ |
 | Windows | UI Automation: Narrator, NVDA, JAWS |
+| Linux | AT-SPI 2 on the accessibility bus: Orca, on X11 and Wayland |
 | Browser | An ARIA mirror of the tree beside the canvas, for the browser's screen readers |
+
+On Linux the application joins the desktop's accessibility bus as it starts, as GTK and Qt
+applications do; nothing more happens until a screen reader reads its tree. A text field
+reads by characters, words and lines, and what is typed into it is echoed. `NO_AT_BRIDGE=1`
+in the environment keeps the application off the bus. On Wayland a screen reader gets the
+elements' places within their window: the compositor tells no one where windows are.
 
 The name is worked out from what the control shows — a button's text, a check box's
 caption, the label in front of a field. Where nothing on screen says it, give it:

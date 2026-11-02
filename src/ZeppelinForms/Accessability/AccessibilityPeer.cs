@@ -43,6 +43,20 @@ public abstract class AccessibilityPeer
     /// shows. Null — the element has no value.</summary>
     public virtual string? Value => null;
 
+    /// <summary>Where the caret stands in <see cref="Value"/>, for a field the keyboard
+    /// edits: a screen reader reads the character, the word or the line it moved to.
+    /// −1 — no caret, or one that must not be told, as a password's.</summary>
+    public virtual int CaretIndex => -1;
+
+    /// <summary>Where the selection starts in <see cref="Value"/>; −1 — no selection
+    /// can be told. With <see cref="SelectionLength"/>, what a screen reader says is
+    /// selected.</summary>
+    public virtual int SelectionStart => -1;
+
+    /// <summary>How many characters are selected from <see cref="SelectionStart"/>;
+    /// 0 — none.</summary>
+    public virtual int SelectionLength => 0;
+
     /// <summary>The numeric value of a slider, a progress, a spin button.</summary>
     public virtual RangeInfo? Range => null;
 

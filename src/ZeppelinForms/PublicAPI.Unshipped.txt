@@ -1,1 +1,9 @@
 #nullable enable
+ZeppelinForms.Accessibility.AccessibilityProperty.Caret = 6 -> ZeppelinForms.Accessibility.AccessibilityProperty
+ZeppelinForms.Forms.Controls.Text.TextBox.SelectionChanged -> System.EventHandler?
+override ZeppelinForms.Accessibility.Peers.TextBoxPeer.CaretIndex.get -> int
+override ZeppelinForms.Accessibility.Peers.TextBoxPeer.SelectionLength.get -> int
+override ZeppelinForms.Accessibility.Peers.TextBoxPeer.SelectionStart.get -> int
+virtual ZeppelinForms.Accessibility.AccessibilityPeer.CaretIndex.get -> int
+virtual ZeppelinForms.Accessibility.AccessibilityPeer.SelectionLength.get -> int
+virtual ZeppelinForms.Accessibility.AccessibilityPeer.SelectionStart.get -> int

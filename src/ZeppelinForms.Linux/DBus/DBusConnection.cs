@@ -42,6 +42,9 @@ internal sealed class DBusConnection : IDisposable
     // the objects the application exports, by path
     private readonly Dictionary<string, IDBusObject> _objects = new(StringComparer.Ordinal);
 
+    // the subtrees it exports, by the path of their top
+    private readonly Dictionary<string, IDBusObject> _subtrees = new(StringComparer.Ordinal);
+
     // the serials of the calls waiting for a reply, and the replies a nested wait read
     // for an outer one
     private readonly HashSet<uint> _waiting = [];
@@ -64,9 +67,18 @@ internal sealed class DBusConnection : IDisposable
     private static extern uint getuid();
 
     /// <summary>Connect to the session bus and say Hello; null if there is none.</summary>
-    public static DBusConnection? ConnectSession(TimeSpan timeout)
+    public static DBusConnection? ConnectSession(TimeSpan timeout) =>
+        Connect(SessionAddresses(), timeout);
+
+    /// <summary>Connect to a bus by its address — "unix:path=…" or "unix:abstract=…",
+    /// several separated by semicolons, as a bus hands out the address of another one:
+    /// the accessibility bus's comes from org.a11y.Bus. Null if none answers.</summary>
+    public static DBusConnection? Connect(string addresses, TimeSpan timeout) =>
+        Connect(Endpoints(addresses), timeout);
+
+    private static DBusConnection? Connect(IEnumerable<UnixDomainSocketEndPoint> endpoints, TimeSpan timeout)
     {
-        foreach (UnixDomainSocketEndPoint endpoint in SessionAddresses())
+        foreach (UnixDomainSocketEndPoint endpoint in endpoints)
         {
             var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified)
             {
@@ -113,11 +125,17 @@ internal sealed class DBusConnection : IDisposable
             string? runtime = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
 
             if (!string.IsNullOrEmpty(runtime) && File.Exists(Path.Combine(runtime, "bus")))
-                yield return new UnixDomainSocketEndPoint(Path.Combine(runtime, "bus"));
+                return [new UnixDomainSocketEndPoint(Path.Combine(runtime, "bus"))];
 
-            yield break;
+            return [];
         }
 
+        return Endpoints(addresses);
+    }
+
+    /// <summary>The sockets of a bus address list, in order.</summary>
+    private static IEnumerable<UnixDomainSocketEndPoint> Endpoints(string addresses)
+    {
         foreach (string address in addresses.Split(';', StringSplitOptions.RemoveEmptyEntries))
         {
             if (!address.StartsWith("unix:", StringComparison.Ordinal)) continue;
@@ -261,6 +279,13 @@ internal sealed class DBusConnection : IDisposable
     public void Register(string path, IDBusObject target) => _objects[path] = target;
 
     public void Unregister(string path) => _objects.Remove(path);
+
+    /// <summary>Export every object under a path: the calls to the path itself and to any
+    /// path below it come to <see cref="IDBusObject.Call"/>, which reads the path from the
+    /// call. For trees whose objects come and go by the thousand — the accessibility
+    /// tree — where registering each one would mean keeping the bus's table in step with
+    /// the application's. An object registered at its own path wins over a subtree.</summary>
+    public void RegisterSubtree(string path, IDBusObject target) => _subtrees[path] = target;
 
     /// <summary>Send a signal from an exported object; nothing waits for it.</summary>
     public void Emit(string path, string @interface, string member, string signature, IReadOnlyList<object?> values) =>
@@ -420,6 +445,12 @@ internal sealed class DBusConnection : IDisposable
 
         if (_objects.TryGetValue(path, out IDBusObject? target))
             return target.Call(call);
+
+        foreach ((string top, IDBusObject subtree) in _subtrees)
+        {
+            if (path == top || path.StartsWith(top + "/", StringComparison.Ordinal))
+                return subtree.Call(call);
+        }
 
         // a path above the exported objects: a node that lists its children,
         // so that a tool walking the tree from "/" finds them

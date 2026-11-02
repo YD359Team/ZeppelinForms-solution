@@ -150,6 +150,8 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
             ResetCaretBlink();
             InvalidateVisual();
+
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
         };
     }
 
@@ -302,6 +304,11 @@ public partial class TextBox : TextInputControl, ITextElement, ITextCompositionT
 
     public event EventHandler? TextChanged;
     public event EventHandler? Accepted;
+
+    /// <summary>The caret moved or the selection changed: by the keyboard, the mouse,
+    /// typing, or code. <see cref="CaretIndex"/>, <see cref="SelectionStart"/> and
+    /// <see cref="SelectionLength"/> are the new ones.</summary>
+    public event EventHandler? SelectionChanged;
 
     // ===== icons =====
 

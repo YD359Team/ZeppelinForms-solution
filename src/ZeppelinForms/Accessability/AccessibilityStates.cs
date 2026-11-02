@@ -89,6 +89,10 @@ public enum AccessibilityProperty
     Range,
     States,
     Bounds,
+
+    /// <summary>The caret moved, or the selection changed, in a text field:
+    /// <see cref="AccessibilityPeer.CaretIndex"/> and the selection.</summary>
+    Caret,
 }
 
 /// <summary>A numeric value within limits: a slider, a progress, a spin button.</summary>

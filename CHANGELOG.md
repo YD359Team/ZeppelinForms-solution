@@ -14,6 +14,19 @@
 
 ### Accessibility
 
+- Linux has a screen reader bridge: AT-SPI 2, which Orca reads, on X11 and on Wayland. The
+  application joins the desktop's accessibility bus as it starts and is found among the
+  applications; its forms are frames with their elements' roles, names, states, values and
+  places. Buttons, check boxes and the other controls with actions run them; sliders and
+  progress bars give their range; a text field reads by characters, words and lines and
+  echoes what is typed; focus, state, name, value and text changes are sent as events, and
+  so are `Form.Announce` and live elements (AT-SPI's Announcement, Orca 46 and later). A
+  window's activation tells the screen reader where the user is. Until a screen reader reads
+  the tree, nothing is made or sent. `NO_AT_BRIDGE=1` keeps the application off the bus
+- `AccessibilityPeer.CaretIndex`, `SelectionStart` and `SelectionLength`, and
+  `AccessibilityProperty.Caret`: where the caret and the selection are in a field, for the
+  bridges that read text by pieces. `TextBoxPeer` gives them, except for a password
+- `TextBox.SelectionChanged`: the caret moved or the selection changed
 - An access key in another script answers its letter in the user's layout everywhere:
   `&Файл` is Alt+Ф on Linux (X11 and Wayland), in the browser and on Android, as it was
   on Windows only
