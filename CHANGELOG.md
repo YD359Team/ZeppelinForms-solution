@@ -2,7 +2,7 @@
 
 ## [0.20.0]	Lighthouse of Alexandria
 
-![Nevada](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.20.0.jpg)
+![Lighthouse of Alexandria](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.20.0.jpg)
 
 ### Breaking changes
 
