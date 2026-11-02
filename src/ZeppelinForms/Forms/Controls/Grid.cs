@@ -84,14 +84,20 @@ public class Grid : DecoratedPanel
         float[] colWidths = RedistributeStars(_colWidths, Tracks(ColumnDefinitions), content.Width);
         float[] rowHeights = RedistributeStars(_rowHeights, Tracks(RowDefinitions), content.Height);
 
+        // where each track starts, summed once: the start of a child's cell used to be
+        // summed again for every child, through LINQ — a form of a few hundred fields in a
+        // grid of a dozen rows paid for it on every arrange
+        float[] colStarts = Starts(colWidths);
+        float[] rowStarts = Starts(rowHeights);
+
         foreach (UIElement child in Children)
         {
             if (!child.IsVisible) continue;
 
             Thickness m = child.Margin;
 
-            float cellX = content.X + colWidths.Take(child.Column).Sum();
-            float cellY = content.Y + rowHeights.Take(child.Row).Sum();
+            float cellX = content.X + StartOf(colStarts, child.Column);
+            float cellY = content.Y + StartOf(rowStarts, child.Row);
 
             child.Arrange(new Rectangle(
                 new Point(cellX + m.Left, cellY + m.Top),
@@ -100,6 +106,24 @@ public class Grid : DecoratedPanel
                     Math.Max(0, SpanExtent(rowHeights, child.Row, child.RowSpan) - m.Vertical))));
         }
     }
+
+    /// <summary>The offset of every track from the first: one more than there are tracks,
+    /// the last being their total.</summary>
+    private static float[] Starts(float[] tracks)
+    {
+        float[] starts = new float[tracks.Length + 1];
+
+        for (int i = 0; i < tracks.Length; i++)
+            starts[i + 1] = starts[i] + tracks[i];
+
+        return starts;
+    }
+
+    /// <summary>Where the track of an index starts. An index past the tracks is the last
+    /// track, as <see cref="SpanExtent"/> takes it: a cell placed past the right edge got
+    /// the last column's width at a start past all of them.</summary>
+    private static float StartOf(float[] starts, int index) =>
+        starts[Math.Clamp(index, 0, Math.Max(0, starts.Length - 2))];
 
     /// <summary>The total size of the tracks the element occupies.</summary>
     private static float SpanExtent(float[] tracks, int start, int span)

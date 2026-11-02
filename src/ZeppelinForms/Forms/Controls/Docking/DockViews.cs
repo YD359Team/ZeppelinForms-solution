@@ -33,13 +33,25 @@ internal sealed class DockButtons
 
     public int Count => _buttons.Count;
 
-    public void Set(params ReadOnlySpan<(DockGlyph, Action)> buttons)
+    /// <summary>The buttons the header has now. True — another set of them: the header
+    /// is laid out again. The same glyphs keep their hover and press — a group made again
+    /// by every change of the host would drop the hover under the pointer.</summary>
+    public bool Set(params ReadOnlySpan<(DockGlyph, Action)> buttons)
     {
+        bool same = buttons.Length == _buttons.Count;
+
+        for (int i = 0; same && i < buttons.Length; i++)
+            same = buttons[i].Item1 == _buttons[i].Glyph;
+
         _buttons.Clear();
         _buttons.AddRange(buttons);
 
+        if (same) return false;
+
         _hovered = -1;
         _pressed = -1;
+
+        return true;
     }
 
     /// <summary>The square of button <paramref name="index"/>, counted from the right edge
@@ -228,10 +240,9 @@ internal sealed class DockGroupView : DecoratedPanel
         }
 
         // a docked group can be pinned away as a whole
-        if (Group.Float is null && Group.Selected is { CanAutoHide: true })
-            _buttons.Set((DockGlyph.Pin, () => _host.AutoHideGroup(Group)));
-        else
-            _buttons.Set();
+        bool buttonsChanged = Group.Float is null && Group.Selected is { CanAutoHide: true }
+            ? _buttons.Set((DockGlyph.Pin, () => _host.AutoHideGroup(Group)))
+            : _buttons.Set();
 
         List<UIElement> wanted = ShowsStrip ? [_strip] : [];
 
@@ -240,7 +251,10 @@ internal sealed class DockGroupView : DecoratedPanel
 
         DockHost.SetChildren(this, wanted);
 
-        Invalidate();
+        // a change of the children or the tabs lays the group out by itself; the header
+        // is measured again only for another set of buttons, and drawn again always
+        if (buttonsChanged) Invalidate();
+        else InvalidateVisual();
     }
 
     private void OnTabSelected(object? sender, EventArgs e)

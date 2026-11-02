@@ -369,6 +369,9 @@ public partial class DockHost
         }
 
         // everything is taken down first: the layout says where each item is
+        foreach (DockGroup group in DockTree.Groups(_root)) Retire(group);
+        foreach (DockFloat window in _floats) Retire(window.Group);
+
         _root = null;
         _floats.Clear();
         _lastActiveGroup = null;

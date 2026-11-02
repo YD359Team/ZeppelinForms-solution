@@ -286,6 +286,8 @@ override ZeppelinForms.Drawing.Primitives.Glow.ToString() -> string!
 override ZeppelinForms.Drawing.Primitives.Halo.Equals(object? obj) -> bool
 override ZeppelinForms.Drawing.Primitives.Halo.GetHashCode() -> int
 override ZeppelinForms.Drawing.Primitives.Halo.ToString() -> string!
+override ZeppelinForms.Forms.Controls.Charts.ChartBase.OnAttached() -> void
+override ZeppelinForms.Forms.Controls.Charts.ChartBase.OnDetached() -> void
 override ZeppelinForms.Forms.Controls.Docking.DockHost.ArrangeContentOverride(ZeppelinForms.Drawing.Primitives.Size contentSize) -> void
 override ZeppelinForms.Forms.Controls.Docking.DockHost.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
 override ZeppelinForms.Forms.Controls.Docking.DockHost.DrawDecoration(ZeppelinForms.Drawing.Graphics! g) -> void

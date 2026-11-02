@@ -252,6 +252,35 @@ public class GlowAndHaloTests
         });
     }
 
+    /// <summary>Leaving the form takes the comet's animation with it; shown again — a tab
+    /// page selected once more — the comet runs again. It used to stand still for good.</summary>
+    [Fact]
+    public void ACometRunsAgainWhenItsElementComesBack()
+    {
+        WithMotion(MotionPreference.Full, () =>
+        {
+            var box = Box(new Glow(Red, Motion: GlowMotion.Comet));
+            Form form = Show(box);
+            Render(box);
+
+            Assert.True(form.IsAnimating(box, "glow-comet"));
+
+            form.Content = null;
+            Assert.False(form.IsAnimating(box, "glow-comet"));
+
+            form.Content = box;
+            form.UpdateLayout();
+            Render(box);
+
+            Assert.True(form.IsAnimating(box, "glow-comet"));
+
+            float phase = box.GlowPhase;
+            form.Clock.Advance(TimeSpan.FromMilliseconds(300));
+
+            Assert.NotEqual(phase, box.GlowPhase);
+        });
+    }
+
     // ===== halo =====
 
     [Fact]

@@ -195,26 +195,64 @@ public abstract partial class ChartBase : DecoratedControl
     /// <summary>A collection of data of the chart changed.</summary>
     private protected void OnDataCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => OnDataChanged();
 
-    /// <summary>The series the chart listens to: a value added to one shows as a series
-    /// added to the chart does.</summary>
+    /// <summary>The series the chart has: a value added to one shows as a series added to
+    /// the chart does.</summary>
     private HashSet<ChartSeries>? _watchedSeries;
+
+    /// <summary>The chart listens to its series: while it is in a form. A series is often
+    /// the view model's and outlives the chart; listened to for good, it kept every chart
+    /// it was ever shown in.</summary>
+    private bool _listeningToSeries;
 
     /// <summary>The chart's series changed: it listens to the ones it has now and to no
     /// others, and is drawn again.</summary>
     private protected void WatchSeries(IEnumerable<ChartSeries> series)
     {
-        var now = new HashSet<ChartSeries>(series);
+        var now = new HashSet<ChartSeries>(series, ReferenceEqualityComparer.Instance);
 
-        if (_watchedSeries is not null)
-            foreach (ChartSeries gone in _watchedSeries)
-                if (!now.Contains(gone)) gone.Changed -= OnDataChanged;
+        if (_listeningToSeries)
+        {
+            if (_watchedSeries is not null)
+                foreach (ChartSeries gone in _watchedSeries)
+                    if (!now.Contains(gone)) gone.Changed -= OnDataChanged;
 
-        foreach (ChartSeries added in now)
-            if (_watchedSeries is null || !_watchedSeries.Contains(added)) added.Changed += OnDataChanged;
+            foreach (ChartSeries added in now)
+                if (_watchedSeries is null || !_watchedSeries.Contains(added)) added.Changed += OnDataChanged;
+        }
 
         _watchedSeries = now;
 
         OnDataChanged();
+    }
+
+    protected override void OnAttached()
+    {
+        base.OnAttached();
+
+        if (_listeningToSeries) return;
+
+        _listeningToSeries = true;
+
+        if (_watchedSeries is not null)
+            foreach (ChartSeries series in _watchedSeries)
+                series.Changed += OnDataChanged;
+
+        // what changed while nobody listened
+        OnDataChanged();
+    }
+
+    protected override void OnDetached()
+    {
+        if (_listeningToSeries)
+        {
+            _listeningToSeries = false;
+
+            if (_watchedSeries is not null)
+                foreach (ChartSeries series in _watchedSeries)
+                    series.Changed -= OnDataChanged;
+        }
+
+        base.OnDetached();
     }
 
     /// <summary>A series' name in a readout: its own, or its number.</summary>

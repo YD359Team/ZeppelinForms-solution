@@ -159,6 +159,19 @@
 - A scrolling panel cuts what it draws under its children where it cuts them: a list
   scrolled so that its selected or hovered row went past the top drew the row's highlight
   above the list — over a combo box under its drop-down
+- A comet (`GlowMotion.Comet`) runs again when its element comes back to the form — a tab
+  page selected once more, a panel docked elsewhere. Leaving the form took its animation
+  with it, and the element, still thinking it ran, never started it again
+- A chart listens to its series only while it is in a form: a series is often the view
+  model's, and listened to for good it kept alive every chart it was ever shown in. A value
+  added while the chart was away shows when it comes back
+- `Grid` sums where each track starts once per arrange instead of once per child, through
+  LINQ; a cell past the last column is in the last column, as its width already was — its
+  start was past all of them
+- `DockHost`: a group gone from the layout lets its view go, and the view its content — a
+  hidden item's element stayed a child of a view nobody showed, kept alive by the item
+  remembering the group. A group's header keeps the hover of its buttons as the host
+  updates, and is laid out again only when its buttons change
 - `DateTimePicker` and `TimePicker` keep 8 between their text and their icon: sized to their
   content, the two touched
 - The showcase's native controls page keeps the bar of its scrolled list beside the rows:

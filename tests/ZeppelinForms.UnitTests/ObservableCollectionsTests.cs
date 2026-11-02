@@ -113,6 +113,44 @@ public class ObservableCollectionsTests
         Assert.Equal(before, window.InvalidateCount);
     }
 
+    /// <summary>A series is often the view model's and outlives the chart: the chart
+    /// listens to it only while it is in a form, and catches up as it comes back.</summary>
+    [Fact]
+    public void AChartOutOfTheFormLeavesItsSeriesAlone()
+    {
+        var series = new ChartSeries { Values = [1, 2, 3] };
+
+        WeakReference chart = ShowAndTakeAway(series);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(chart.IsAlive, "the series kept the chart it was shown in");
+
+        // and one shown again hears it again
+        var line = new LineChart { Categories = ["a", "b", "c", "d"], Series = { series } };
+        var (form, window) = Show(line);
+
+        form.Content = null;
+        series.Values.Add(4);
+        form.Content = line;
+        form.UpdateLayout();
+
+        int before = window.InvalidateCount;
+        series.Values.Add(5);
+        Assert.True(window.InvalidateCount > before);
+
+        static WeakReference ShowAndTakeAway(ChartSeries series)
+        {
+            var chart = new LineChart { Categories = ["a", "b", "c"], Series = { series } };
+            var (form, _) = Show(chart);
+
+            form.Content = null;
+            return new WeakReference(chart);
+        }
+    }
+
     [Fact]
     public void ACollectionGivenInTheInitializerIsHeardToo()
     {

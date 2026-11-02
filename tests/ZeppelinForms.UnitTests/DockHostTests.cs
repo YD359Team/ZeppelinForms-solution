@@ -133,6 +133,23 @@ public class DockHostTests
         _ = output;
     }
 
+    /// <summary>A group gone from the layout holds nothing: a hidden item's content was
+    /// left a child of the group's view, which the item kept alive by remembering the group.</summary>
+    [Fact]
+    public void AGoneGroupLetsItsContentGo()
+    {
+        var (host, _, _, files, _) = Ide();
+        Show(host);
+
+        host.Hide(files);
+
+        Assert.Null(files.Content!.Parent);
+        Assert.Null(files.LastGroup!.View);
+
+        host.Show(files);
+        Assert.True(IsShown(files));
+    }
+
     [Fact]
     public void AFloatingItemIsAWindowInsideTheHostAndDocksBack()
     {

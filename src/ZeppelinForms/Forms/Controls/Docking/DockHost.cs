@@ -365,6 +365,20 @@ public partial class DockHost : DecoratedPanel
             _root = DockTree.Remove(_root, group);
 
         if (ReferenceEquals(_lastActiveGroup, group)) _lastActiveGroup = null;
+
+        Retire(group);
+    }
+
+    /// <summary>A group out of the layout lets its view go, and the view its children.</summary>
+    /// <remarks>An item keeps the group it left in mind (<see cref="DockItem.LastGroup"/>),
+    /// and the group kept its view: a hidden item's content stayed a child of a view nobody
+    /// showed, and the view, its strip and its tabs lived as long as the item.</remarks>
+    private static void Retire(DockGroup group)
+    {
+        if (group.View is not { } view) return;
+
+        group.View = null;
+        SetChildren(view, []);
     }
 
     private static void AddToGroup(DockGroup group, DockItem item, bool select = true)

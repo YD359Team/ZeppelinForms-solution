@@ -39,6 +39,13 @@ public partial class UIElement
     /// motion turned off again, starts on its next frame.</summary>
     internal void EnsureGlowRunning()
     {
+        // a comet stopped from outside is forgotten, and starts again here: leaving the
+        // form takes the animations of the subtree with it, without a word to the element.
+        // A comet on a tab page shown again, on a panel docked elsewhere, used to stand
+        // still from then on — the element still thought it ran
+        if (_glowClock is { } clock && (!ReferenceEquals(FindOwner(), clock) || !clock.IsAnimating(this, GlowAnimation)))
+            _glowClock = null;
+
         if (_glowClock is not null || !GlowRuns || FindOwner() is not { } form) return;
 
         _glowClock = form;
