@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Forms.Controls.Base;
+﻿using System.Diagnostics.CodeAnalysis;
+using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Styling;
 
 namespace ZeppelinForms.Data;
@@ -56,6 +57,13 @@ public sealed class BindingValue<TValue>(Func<object, TValue> get, Action<object
 
     public override Type ValueType => typeof(TValue);
 
+    /// <remarks>The end holds the property, whose type argument the trimmer wants its
+    /// members kept for — and they are: the property exists, and it was registered with
+    /// that very type, annotated. TValue isn't annotated here, as the requirement would go
+    /// on to every public Bind with a value type of its own.</remarks>
+    [UnconditionalSuppressMessage("Trimming", "IL2091",
+        Justification = "A StyledProperty<TValue> is only matched, never made: it was registered with TValue " +
+                        "annotated, so the members it needs are kept for this very TValue.")]
     internal override BindingEnd? EndFor(StyledProperty property) =>
         property is StyledProperty<TValue> typed ? new BindingEnd<TValue>(this, typed) : null;
 }
@@ -80,7 +88,8 @@ internal abstract class BindingEnd
     public abstract void RememberBoxed(object? value);
 }
 
-internal sealed class BindingEnd<TValue>(BindingValue<TValue> value, StyledProperty<TValue> property) : BindingEnd
+internal sealed class BindingEnd<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] TValue>(
+    BindingValue<TValue> value, StyledProperty<TValue> property) : BindingEnd
 {
     private TValue _last = default!;
     private bool _hasLast;

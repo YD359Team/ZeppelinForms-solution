@@ -1,4 +1,4 @@
-﻿﻿using System.ComponentModel;
+﻿﻿﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using ZeppelinForms.Data;
@@ -92,7 +92,7 @@ public abstract partial class UIElement
     /// whole, but only the source itself is followed: for every object on the way, write
     /// it in markup, <c>{Bind Customer.Name}</c>, or make a <see cref="BindingPath"/>.</remarks>
     /// <example><c>status.Bind(Label.TextProperty, order, o =&gt; o.Status);</c></example>
-    public Binding Bind<TSource, TValue>(StyledProperty<TValue> property, TSource source, Func<TSource, TValue> get)
+    public Binding Bind<TSource, [DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] TValue>(StyledProperty<TValue> property, TSource source, Func<TSource, TValue> get)
     {
         ArgumentNullException.ThrowIfNull(source);
 
@@ -102,7 +102,7 @@ public abstract partial class UIElement
     /// <summary>Bind a property to a value of the source both ways: the element's changes
     /// go to the source through <paramref name="set"/>.</summary>
     /// <example><c>name.Bind(TextBox.TextProperty, order, o =&gt; o.Name, (o, v) =&gt; o.Name = v);</c></example>
-    public Binding Bind<TSource, TValue>(
+    public Binding Bind<TSource, [DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] TValue>(
         StyledProperty<TValue> property, TSource source, Func<TSource, TValue> get, Action<TSource, TValue> set)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -119,13 +119,13 @@ public abstract partial class UIElement
     /// not a <typeparamref name="TSource"/> is no value — the property's default.
     /// </remarks>
     /// <example><c>status.Bind(Label.TextProperty, (OrderViewModel vm) =&gt; vm.Status);</c></example>
-    public Binding Bind<TSource, TValue>(StyledProperty<TValue> property, Func<TSource, TValue> get) =>
+    public Binding Bind<TSource, [DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] TValue>(StyledProperty<TValue> property, Func<TSource, TValue> get) =>
         BindTo(property, source: null, usesDataContext: true, PathOf(get, set: null), BindingMode.OneWay);
 
     /// <summary>Bind a property to a value of the element's <see cref="DataContext"/> both
     /// ways: the element's changes go to the view model through <paramref name="set"/>.</summary>
     /// <example><c>name.Bind(TextBox.TextProperty, (OrderViewModel vm) =&gt; vm.Name, (vm, v) =&gt; vm.Name = v);</c></example>
-    public Binding Bind<TSource, TValue>(StyledProperty<TValue> property, Func<TSource, TValue> get, Action<TSource, TValue> set)
+    public Binding Bind<TSource, [DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] TValue>(StyledProperty<TValue> property, Func<TSource, TValue> get, Action<TSource, TValue> set)
     {
         ArgumentNullException.ThrowIfNull(set);
 
@@ -332,7 +332,7 @@ public abstract partial class UIElement
     /// <summary>An explicit assignment to a bound property, as its type: TwoWay hands
     /// the value to the source — without a box where the path's end is of the type —,
     /// OneWay is broken.</summary>
-    private void PushOrBreakBinding<T>(StyledProperty<T> property, T value)
+    private void PushOrBreakBinding<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(StyledProperty<T> property, T value)
     {
         if (_bindings is null || !_bindings.TryGetValue(property.Index, out Binding? binding))
             return;

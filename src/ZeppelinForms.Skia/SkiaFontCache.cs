@@ -1,5 +1,6 @@
 ﻿using SkiaSharp;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using ZeppelinForms.Core.Text;
@@ -564,9 +565,15 @@ internal static class SkiaFontCache
     /// A value of a typeface table: a hit without any lock; a miss resolved once, by the
     /// first thread to ask, while the others on the same key wait for its result.
     /// </summary>
-    /// <remarks>A resolution that throws is not kept: Lazy would keep the exception and
-    /// throw it for that key until the next <see cref="Invalidate"/>.</remarks>
-    private static TValue GetOrResolve<TKey, TValue>(
+    /// <remarks>
+    /// <para>A resolution that throws is not kept: Lazy would keep the exception and
+    /// throw it for that key until the next <see cref="Invalidate"/>.</para>
+    /// <para>The entry is made here, not in a factory lambda of GetOrAdd: a static lambda
+    /// of a generic method lives in a generic class of the compiler's, and the trimmer
+    /// wants Lazy's annotation there too — the WebAssembly publish failed on it (IL2091).
+    /// An entry made for a key another thread added first is dropped unevaluated.</para>
+    /// </remarks>
+    private static TValue GetOrResolve<TKey, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TValue>(
         ConcurrentDictionary<TKey, Lazy<TValue>> table,
         TKey key,
         Func<TKey, TValue> resolve)
@@ -576,8 +583,7 @@ internal static class SkiaFontCache
         {
             entry = table.GetOrAdd(
                 key,
-                static (k, r) => new Lazy<TValue>(() => r(k), LazyThreadSafetyMode.ExecutionAndPublication),
-                resolve);
+                new Lazy<TValue>(() => resolve(key), LazyThreadSafetyMode.ExecutionAndPublication));
         }
 
         try

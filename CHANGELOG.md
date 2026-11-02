@@ -97,6 +97,12 @@
   application's window came up over it, as the dialog closed. The dialog destroyed its
   window while the owner was still disabled, and Windows gave the activation elsewhere.
   The owner is enabled first now, as `EndDialog` does
+- WebAssembly: publishing with trimming failed (IL2091). A binding's typed end held a
+  `StyledProperty<TValue>` of a `TValue` without the annotation the property's type asks
+  for, and the Skia font cache made a `Lazy<TValue>` in a lambda of the compiler's. The
+  generic `UIElement.Bind` overloads ask for the annotation of `StyledProperty<T>` too,
+  as `SetValue` does; a concrete type — any binding of a known property — meets it. A
+  test checks the signatures of the core and of Skia, as a build doesn't run the trimmer
 - Markdown: the box of a task list item was cut on its left. It is centered in the
   marker column, and its border is drawn inside the box
 - Example: the mobile page's message form fills the screen — the fields stretched, the

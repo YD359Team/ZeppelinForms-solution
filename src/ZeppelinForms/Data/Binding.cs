@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Styling;
 
@@ -285,7 +286,7 @@ public sealed class Binding
 
     /// <summary>Write the element's value to the source, as its type: without a box
     /// where the path's end is of it. TwoWay only.</summary>
-    internal void PushToSource<T>(T value)
+    internal void PushToSource<[DynamicallyAccessedMembers(StyledProperty.ValueTypeMembers)] T>(T value)
     {
         if (_end is not BindingEnd<T> end || !end.CanWrite)
         {
