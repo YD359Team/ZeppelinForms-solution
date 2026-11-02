@@ -71,6 +71,31 @@ export function systemColors() {
     return colors.join("|");
 }
 
+// The size of text the user asked the browser for — its "Font size" setting — as a
+// multiplier of the standard 16px. Read from the "medium" keyword, which the page's
+// own CSS doesn't touch, unlike the root element's size. The probe is one em wide:
+// a ResizeObserver on it tells of a change of the setting on the fly (see init)
+let textSizeProbe = null;
+
+function textProbe() {
+    if (!textSizeProbe) {
+        textSizeProbe = document.createElement("div");
+        textSizeProbe.setAttribute("aria-hidden", "true");
+        Object.assign(textSizeProbe.style, {
+            position: "absolute", left: "-1000px", top: "0", width: "1em", height: "0",
+            fontSize: "medium", visibility: "hidden", pointerEvents: "none",
+        });
+        document.body.appendChild(textSizeProbe);
+    }
+
+    return textSizeProbe;
+}
+
+export function textScale() {
+    const size = parseFloat(getComputedStyle(textProbe()).fontSize);
+    return size > 0 ? size / 16 : 1;
+}
+
 export function prefersDarkColorScheme() {
     return darkScheme.matches;
 }
@@ -410,6 +435,17 @@ export function init(canvasId) {
 
     // forced colors on or off — the browser's high contrast
     forcedColors.addEventListener("change", () => zf().OnColorSchemeChange());
+
+    // the browser's text size changed: the probe's em changed with it, and .NET
+    // re-reads the appearance along with the text scale
+    let probeWidth = textProbe().getBoundingClientRect().width;
+    new ResizeObserver(() => {
+        const width = textProbe().getBoundingClientRect().width;
+        if (width === probeWidth) return;
+
+        probeWidth = width;
+        zf().OnColorSchemeChange();
+    }).observe(textProbe());
 
     // pagehide rather than beforeunload: on mobile the latter often doesn't come
     window.addEventListener("pagehide", () => zf().OnPageHide());

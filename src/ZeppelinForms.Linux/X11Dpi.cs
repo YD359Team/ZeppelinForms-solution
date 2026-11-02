@@ -11,10 +11,15 @@ internal static class X11Dpi
     /// The interface scale. Sources in decreasing order of reliability:
     /// Xft.dpi from the X resources, environment variables, the screen's physical size.
     /// </summary>
-    public static float GetScale(nint display, int screen)
+    /// <param name="textScaleInXftDpi">The text size the desktop folded into Xft.dpi:
+    /// GNOME's settings daemon writes 96 × text scaling × window scale there. It is
+    /// taken out — a text size is App.TextScale's, applied to text alone, while this
+    /// scale enlarges everything. Until 0.21 "Large Text" on GNOME made every icon,
+    /// padding and stroke a quarter larger as well. 1 — nothing folded in.</param>
+    public static float GetScale(nint display, int screen, float textScaleInXftDpi)
     {
         if (TryFromResources(display, out float fromResources))
-            return Normalize(fromResources / BaseDpi);
+            return Normalize(fromResources / TextScaleOut(textScaleInXftDpi) / BaseDpi);
 
         if (TryFromEnvironment(out float fromEnv))
             return Normalize(fromEnv);
@@ -28,10 +33,10 @@ internal static class X11Dpi
     /// <summary>The pixel density without rounding to a quarter and without clamping
     /// to [1, 4] — unlike GetScale, which coarsens the result on purpose so that the
     /// interface isn't drawn crooked. Gesture thresholds need the raw density.</summary>
-    public static float GetDpi(nint display, int screen)
+    public static float GetDpi(nint display, int screen, float textScaleInXftDpi)
     {
         if (TryFromResources(display, out float fromResources))
-            return fromResources;
+            return fromResources / TextScaleOut(textScaleInXftDpi);
 
         if (TryFromPhysicalSize(display, screen, out float fromPhysical))
             return fromPhysical;
@@ -43,6 +48,10 @@ internal static class X11Dpi
 
         return BaseDpi;
     }
+
+    /// <summary>The text size to divide Xft.dpi by: a broken one counts as none.</summary>
+    private static float TextScaleOut(float textScaleInXftDpi) =>
+        float.IsFinite(textScaleInXftDpi) && textScaleInXftDpi > 0f ? textScaleInXftDpi : 1f;
 
     private static bool TryFromResources(nint display, out float dpi)
     {

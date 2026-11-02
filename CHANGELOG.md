@@ -2,6 +2,28 @@
 
 ## [0.21.0] Tower of Babel
 
+### Breaking changes
+
+- X11 on GNOME: the display scale no longer includes GNOME's text scaling factor ("Large
+  Text"). GNOME folds it into Xft.dpi, and every icon, padding and stroke grew with the
+  text. The factor is the text scale now, as on Windows: call `App.UseSystemTextScale()`
+  to follow it. Until then an application on such a desktop is drawn smaller than before
+- Alt with a letter no longer types the letter into the focused field on Linux, in the
+  browser and on Android: it is an access key in the user's layout, as on Windows. Ctrl
+  with a printable key types nothing on X11 and Wayland, as it typed nothing elsewhere
+
+### Accessibility
+
+- An access key in another script answers its letter in the user's layout everywhere:
+  `&Файл` is Alt+Ф on Linux (X11 and Wayland), in the browser and on Android, as it was
+  on Windows only
+- The system text size reaches `App.TextScale` on Linux and in the browser: GNOME's text
+  scaling factor and KDE's general font size (against its 10 points) through the desktop
+  portal, the browser's font size setting from the CSS `medium` size. Changes follow on
+  the fly
+- High contrast on KDE takes the colors of the user's color scheme from the portal, as
+  Windows and the browser give theirs; other Linux desktops keep the built-in palettes
+
 ### Frames
 
 - A window out of sight asks for no frames: minimized (Windows, X11), hidden by `Hide`,

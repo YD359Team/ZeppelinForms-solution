@@ -141,4 +141,36 @@ public partial class Form
 
         _focusDispatcher.FocusedElement?.RaiseTextInput(c);
     }
+
+    /// <summary>A character a key gave in the user's layout, with the modifiers held:
+    /// for a platform that gets both from one event — X11, Wayland, the browser,
+    /// Android. Windows tells them apart itself, WM_CHAR from WM_SYSCHAR.</summary>
+    /// <remarks>
+    /// <para>
+    /// Alt alone makes it the character of an access key, as WM_SYSCHAR is: "&amp;Файл"
+    /// answers Alt+Ф, which no key code names. Until 0.21 only Windows did: elsewhere
+    /// Alt with a letter of another script ran nothing, and the letter was typed into
+    /// the focused field instead.
+    /// </para>
+    /// <para>
+    /// Control alone makes a shortcut, and nothing is typed. Both together are AltGr on
+    /// European layouts — the browsers on Windows report it so — and that is how @, €
+    /// and [ are typed on a German keyboard: they are text.
+    /// </para>
+    /// </remarks>
+    internal void OnKeyCharacter(char c, KeyModifiers modifiers)
+    {
+        bool control = (modifiers & KeyModifiers.Control) != 0;
+        bool alt = (modifiers & KeyModifiers.Alt) != 0;
+
+        if (alt && !control)
+        {
+            OnAccessKeyChar(c);
+            return;
+        }
+
+        if (control && !alt) return;
+
+        OnTextInput(c);
+    }
 }

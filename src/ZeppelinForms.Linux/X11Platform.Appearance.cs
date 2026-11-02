@@ -1,7 +1,7 @@
 ﻿namespace ZeppelinForms.Linux;
 
-/// <summary>The desktop's light or dark mode and accent, through the XDG Desktop
-/// Portal on the session bus, see <see cref="PortalAppearance"/>.</summary>
+/// <summary>The desktop's light or dark mode, accent, contrast and text size, through
+/// the XDG Desktop Portal on the session bus, see <see cref="PortalAppearance"/>.</summary>
 /// <remarks>
 /// The bus socket is watched by the loop's own select next to the X connection,
 /// so a change on the desktop wakes the loop like any input, and the portal's
@@ -20,6 +20,10 @@ public sealed partial class X11Platform
         if (_appearance is not null)
             App.UseSystemAppearance(_appearance);
     }
+
+    /// <summary>The text size GNOME folded into Xft.dpi, as the portal tells it at
+    /// the window's creation; 1 without GNOME or without a portal.</summary>
+    internal float TextScaleInXftDpi => _appearance?.TextScaleInXftDpi ?? 1f;
 
     /// <summary>Add the bus socket to the select set; returns the new nfds.
     /// fd_set holds 1024 descriptors, and a socket past them is not watched —

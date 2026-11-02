@@ -113,8 +113,12 @@ internal sealed partial class X11Window : IPlatformWindow, IDesktopWindow
         _display = _platform.Display;
         int screen = X11.XDefaultScreen(_display);
 
-        _scale = X11Dpi.GetScale(_display, screen);
-        Displays.Current = new X11DisplayProvider(_display, _scale, X11Dpi.GetDpi(_display, screen));
+        // GNOME's text size is in Xft.dpi on X11: taken out of the screen's scale,
+        // it is applied to text alone, through App.TextScale
+        float textScale = _platform.TextScaleInXftDpi;
+
+        _scale = X11Dpi.GetScale(_display, screen, textScale);
+        Displays.Current = new X11DisplayProvider(_display, _scale, X11Dpi.GetDpi(_display, screen, textScale));
 
         // the size within the form's limits and the place its WindowStartupLocation
         // asks for; the place is repeated in the size hints, or the manager ignores it

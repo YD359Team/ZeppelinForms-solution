@@ -187,20 +187,18 @@ internal sealed partial class BrowserWindow : IPlatformWindow, ITextInputMethodW
         var mods = (KeyModifiers)modifiers;
         _form.OnKeyDown(BrowserKeyMap.FromCode(code), mods, isRepeat);
 
-        // Control or Alt alone makes a shortcut, not input. Both together are AltGr
-        // on European layouts — browsers on Windows report it as Ctrl+Alt — and that
-        // is how @, € and [ are typed on a German keyboard. The old check dropped text
-        // whenever either was down, and those characters could not be typed at all
-        bool control = (mods & KeyModifiers.Control) != 0;
-        bool alt = (mods & KeyModifiers.Alt) != 0;
-
-        if (control != alt) return;
-
+        // Control alone makes a shortcut, not input; Alt alone, an access key in the
+        // user's layout — "&Файл" answers Alt+Ф. Both together are AltGr on European
+        // layouts — browsers on Windows report it as Ctrl+Alt — and that is how @, €
+        // and [ are typed on a German keyboard. The old check dropped text whenever
+        // either was down, and those characters could not be typed at all. The form
+        // sorts them (Form.OnKeyCharacter).
+        //
         // one visible character may be two chars (an emoji, a letter beyond the BMP):
         // they go one by one, and the text controls assemble the pair themselves
         if (BrowserKeyMap.ToTextInput(key) is { } text)
             foreach (char c in text)
-                _form.OnTextInput(c);
+                _form.OnKeyCharacter(c, mods);
     }
 
     internal void HandleKeyUp(string code, int modifiers) =>

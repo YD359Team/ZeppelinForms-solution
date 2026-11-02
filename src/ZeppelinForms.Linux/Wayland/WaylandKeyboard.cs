@@ -207,10 +207,11 @@ internal sealed unsafe class WaylandKeyboard : IDisposable
         window.Form.OnKeyDown(X11KeyMap.ToKey(ShortcutKeysym(key)), Modifiers, isRepeat);
 
         // printable characters with a separate call, as on X11; surrogate pairs go char
-        // by char, and the text controls assemble them themselves
+        // by char, and the text controls assemble them themselves. With Alt they are
+        // access keys in the user's layout, not text
         foreach (char c in Text(key))
             if (!char.IsControl(c))
-                window.Form.OnTextInput(c);
+                window.Form.OnKeyCharacter(c, Modifiers);
     }
 
     /// <summary>The keysym of the first layout's first level: what shortcuts are matched by.</summary>

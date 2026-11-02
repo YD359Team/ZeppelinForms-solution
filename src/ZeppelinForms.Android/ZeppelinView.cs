@@ -230,13 +230,18 @@ public sealed class ZeppelinView : SKCanvasView
         // WM_KEYDOWN. Control characters are cut off: Backspace and Enter already
         // went above as keys, and inserting them as text too means getting them twice.
         // A character beyond the BMP is split into its surrogate pair rather than
-        // cut down to one char
-        int unicode = e.UnicodeChar;
+        // cut down to one char.
+        // With Alt the key's character is read without it: Alt on a hardware keyboard
+        // picks the key's alternate symbol, and an access key wants the letter itself —
+        // "&Файл" answers Alt+Ф. The form takes it as an access key, not as text
+        int unicode = (modifiers & KeyModifiers.Alt) != 0
+            ? e.GetUnicodeChar(e.MetaState & ~MetaKeyStates.AltMask)
+            : e.UnicodeChar;
 
         if (unicode is > 0x1F and not 0x7F and <= 0x10FFFF)
         {
             foreach (char c in char.ConvertFromUtf32(unicode))
-                target.Form.OnTextInput(c);
+                target.Form.OnKeyCharacter(c, modifiers);
         }
 
         return key != Key.None || unicode > 0;

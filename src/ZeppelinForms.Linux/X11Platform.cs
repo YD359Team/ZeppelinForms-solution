@@ -587,10 +587,11 @@ public sealed partial class X11Platform : IPlatform, INestedLoopSupport
                     window.Form.OnKeyDown(X11KeyMap.ToKey(keysym), modifiers, isRepeat);
 
                     // printable characters with a separate call; surrogate pairs go
-                    // char by char, and the text controls assemble them themselves
+                    // char by char, and the text controls assemble them themselves.
+                    // With Alt they are access keys in the user's layout, not text
                     foreach (char c in window.LookupText(eventPtr))
                         if (!char.IsControl(c))
-                            window.Form.OnTextInput(c);
+                            window.Form.OnKeyCharacter(c, modifiers);
 
                     break;
                 }

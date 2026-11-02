@@ -6,13 +6,21 @@ using ZeppelinForms.Theming;
 namespace ZeppelinForms.Browser;
 
 /// <summary>The color scheme from prefers-color-scheme, the accent from the CSS
-/// system color AccentColor.</summary>
+/// system color AccentColor, the text size from the browser's font size setting.</summary>
 /// <remarks>
+/// <para>
 /// The scheme comes with a change event of its own. The accent has none: it is
 /// re-read when the scheme changes and when the tab becomes visible again — the
 /// user changes it in the system settings, which means leaving the page. A browser
 /// that doesn't know AccentColor gives no accent, and the theme keeps its own:
 /// Chromium doesn't support it, Firefox and Safari do.
+/// </para>
+/// <para>
+/// The text size is the CSS "medium" size against the standard 16px: what the user
+/// set as the browser's font size, which the page's own CSS can't change. The zoom
+/// of the page is something else — the device pixel ratio, the display scale — and
+/// enlarges everything. A probe one em wide tells of a change on the fly.
+/// </para>
 /// </remarks>
 public sealed partial class BrowserPlatform : ISystemAppearance
 {
@@ -20,6 +28,7 @@ public sealed partial class BrowserPlatform : ISystemAppearance
     private Color? _accent;
     private bool _isHighContrast;
     private HighContrastPalette? _highContrast;
+    private float _textScale = 1f;
     private EventHandler? _appearanceChanged;
 
     public bool IsDark => _isDark;
@@ -31,6 +40,10 @@ public sealed partial class BrowserPlatform : ISystemAppearance
     public bool IsHighContrast => _isHighContrast;
 
     public HighContrastPalette? HighContrastPalette => _highContrast;
+
+    /// <summary>The browser's font size setting: 1 for the standard 16px, 1.25 for
+    /// Chromium's "Large" (20px).</summary>
+    public float TextScale => _textScale;
 
     // explicit: ISystemMotionSettings has a Changed of its own
     event EventHandler? ISystemAppearance.Changed
@@ -45,20 +58,23 @@ public sealed partial class BrowserPlatform : ISystemAppearance
         _accent = ParseCssColor(Interop.SystemAccentColor());
         _isHighContrast = Interop.ForcedColorsActive();
         _highContrast = _isHighContrast ? ReadHighContrast() : null;
+        _textScale = ReadTextScale();
 
         App.UseSystemAppearance(this);
     }
 
-    /// <summary>Re-read both, report only a real change.</summary>
+    /// <summary>Re-read all of it, report only a real change.</summary>
     internal void RefreshAppearance()
     {
         bool dark = Interop.PrefersDarkColorScheme();
         Color? accent = ParseCssColor(Interop.SystemAccentColor());
         bool isHighContrast = Interop.ForcedColorsActive();
         HighContrastPalette? highContrast = isHighContrast ? ReadHighContrast() : null;
+        float textScale = ReadTextScale();
 
         if (dark == _isDark && accent == _accent &&
-            isHighContrast == _isHighContrast && highContrast == _highContrast)
+            isHighContrast == _isHighContrast && highContrast == _highContrast &&
+            textScale == _textScale)
         {
             return;
         }
@@ -67,8 +83,17 @@ public sealed partial class BrowserPlatform : ISystemAppearance
         _accent = accent;
         _isHighContrast = isHighContrast;
         _highContrast = highContrast;
+        _textScale = textScale;
 
         _appearanceChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>The browser's text size; a value that can't be a size is 1.</summary>
+    private static float ReadTextScale()
+    {
+        double scale = Interop.TextScale();
+
+        return double.IsFinite(scale) && scale > 0d ? (float)scale : 1f;
     }
 
     /// <summary>The forced colors; null when the browser didn't give all eight —

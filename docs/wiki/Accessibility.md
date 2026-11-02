@@ -53,13 +53,30 @@ on by default for menu items, `UseMnemonic = true` for other controls.
 var save = new Button { Text = "&Save", UseMnemonic = true };   // Alt+S
 ```
 
+A caption in another script answers its own letter in the user's layout: `&Файл` is Alt+Ф
+on every platform, as Alt with the key's Latin letter answers a Latin caption.
+
 ## High contrast and text scale
 
 The system's high contrast mode takes over every theme with its own colors — opt out with
 `App.RespectHighContrast = false`. `App.IsHighContrastActive` tells whether it is on.
 
+| Platform | Contrast is on | Its colors |
+| -------- | -------------- | ---------- |
+| Windows | a contrast theme | the theme's |
+| Browser | forced colors | the CSS system colors |
+| Linux | "contrast" of the desktop portal | KDE's color scheme; elsewhere the built-in black or white palette, by the dark mode |
+| Android | high-contrast text | the built-in palette |
+
 `App.UseSystemTextScale()` follows the system's text size setting; `App.TextScale` is the
 factor in effect, and `App.TextScaleChanged` tells when it changes.
+
+| Platform | The setting |
+| -------- | ----------- |
+| Windows | Accessibility › Text size |
+| Android | the font scale |
+| Linux | GNOME's text scaling factor ("Large Text"); KDE's general font against its 10 points |
+| Browser | the browser's font size setting (the page zoom is the display scale, not this) |
 
 ## Motion
 

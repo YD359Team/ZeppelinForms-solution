@@ -48,6 +48,11 @@ internal static partial class Interop
     [JSImport("systemColors", ModuleName)]
     internal static partial string SystemColors();
 
+    /// <summary>The browser's text size as a multiplier of the standard 16px: its
+    /// "Font size" setting, read from the CSS "medium" size.</summary>
+    [JSImport("textScale", ModuleName)]
+    internal static partial double TextScale();
+
     /// <summary>The page address. HttpClient in a browser doesn't know its origin
     /// by itself, and it doesn't accept relative addresses without a BaseAddress.</summary>
     [JSImport("baseUri", ModuleName)]
