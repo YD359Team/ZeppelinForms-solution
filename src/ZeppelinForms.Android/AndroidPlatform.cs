@@ -4,6 +4,7 @@ using Android.Text;
 using Android.Views;
 using Android.Views.InputMethods;
 using SkiaSharp;
+using ZeppelinForms.Accessibility;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
@@ -119,6 +120,14 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
 
     private AndroidWindow? Root => _windows.Count > 0 ? _windows[0] : null;
 
+    /// <summary>The forms as TalkBack reads them; null until the surface is made.</summary>
+    internal AndroidAccessibility? Accessibility { get; private set; }
+
+    /// <summary>The windows for the accessibility tree, the bottom one first: one whose
+    /// input a modal dialog took is out of the services' reach too.</summary>
+    internal IReadOnlyList<VirtualViewTree.Layer> AccessibilityLayers() =>
+        [.. _windows.Select(window => new VirtualViewTree.Layer(window.Form, window.Origin, !window.IsInputEnabled))];
+
     public IPlatformWindow CreateWindow(Form form)
     {
         var window = new AndroidWindow(this, form);
@@ -132,6 +141,7 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
             Scale = _activity.Resources?.DisplayMetrics?.Density ?? 1f;
 
             _view = new ZeppelinView(_activity, this);
+            Accessibility = new AndroidAccessibility(this, _view);
 
             // explicitly, rather than relying on the SetContentView default: SKCanvasView
             // brings its own LayoutParams, and with WRAP_CONTENT the default
@@ -496,6 +506,9 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
 
             window.Form.TakeDirtyRegion();
         }
+
+        // what was drawn may have moved what TalkBack has read
+        Accessibility?.AfterFrame();
     }
 
     private void DimBelow(Graphics g)
@@ -546,6 +559,10 @@ public sealed partial class AndroidPlatform : IPlatform, ISystemMotionSettings, 
     /// Each action is one step of the UI loop, guarded on its own.
     /// </remarks>
     internal void Post(Action action) => _uiHandler.Post(() => App.RunGuarded(action));
+
+    /// <summary>Run on the UI thread after a delay, guarded like <see cref="Post"/>.</summary>
+    internal void PostDelayed(Action action, long delayMs) =>
+        _uiHandler.PostDelayed(() => App.RunGuarded(action), delayMs);
 
     internal AndroidWindow? InputTarget()
     {

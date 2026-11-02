@@ -11,12 +11,21 @@ list of list items, a data grid a table of rows and cells, a tree view a tree.
 | Windows | UI Automation: Narrator, NVDA, JAWS |
 | Linux | AT-SPI 2 on the accessibility bus: Orca, on X11 and Wayland |
 | Browser | An ARIA mirror of the tree beside the canvas, for the browser's screen readers |
+| Android | Virtual views of the surface, as Android's custom views give them: TalkBack |
 
 On Linux the application joins the desktop's accessibility bus as it starts, as GTK and Qt
 applications do; nothing more happens until a screen reader reads its tree. A text field
 reads by characters, words and lines, and what is typed into it is echoed. `NO_AT_BRIDGE=1`
 in the environment keeps the application off the bus. On Wayland a screen reader gets the
 elements' places within their window: the compositor tells no one where windows are.
+
+On Android the forms are a tree of virtual views under the surface, numbered nodes an
+accessibility service reads one by one. With TalkBack on, a finger moving over the screen
+reads the element under it; a swipe moves to the next one; a double tap does what a tap on
+the element does — presses a button, toggles a check box, focuses a field and opens the
+keyboard. Swiping up and down adjusts a slider, a field echoes what is typed, a dialog says
+its title as it opens, and the windows under a modal dialog are out of reach. Nothing is
+made until a service reads the tree.
 
 The name is worked out from what the control shows — a button's text, a check box's
 caption, the label in front of a field. Where nothing on screen says it, give it:

@@ -94,6 +94,25 @@ public sealed class ZeppelinView : SKCanvasView
         }
     }
 
+    /// <summary>The forms as virtual views: what TalkBack reads instead of one opaque
+    /// image. Asked for only while an accessibility service is on.</summary>
+    public override global::Android.Views.Accessibility.AccessibilityNodeProvider? AccessibilityNodeProvider =>
+        _platform.Accessibility ?? base.AccessibilityNodeProvider;
+
+    /// <summary>With touch exploration on, the finger's moves come as hover events: the
+    /// node under it is the one TalkBack reads. A mouse's hover, and a finger over no
+    /// node, go on to OnGenericMotionEvent as before.</summary>
+    public override bool OnHoverEvent(MotionEvent? e)
+    {
+        if (e is not null &&
+            App.RunGuarded(() => _platform.Accessibility?.HandleHover(e) == true, whenHandled: true))
+        {
+            return true;
+        }
+
+        return base.OnHoverEvent(e);
+    }
+
     public override bool OnGenericMotionEvent(MotionEvent? e) =>
         e is not null && App.RunGuarded(() => HandleGenericMotion(e), whenHandled: true);
 

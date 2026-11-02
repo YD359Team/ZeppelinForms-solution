@@ -23,6 +23,16 @@
   so are `Form.Announce` and live elements (AT-SPI's Announcement, Orca 46 and later). A
   window's activation tells the screen reader where the user is. Until a screen reader reads
   the tree, nothing is made or sent. `NO_AT_BRIDGE=1` keeps the application off the bus
+- Android has a screen reader bridge: the forms are virtual views of the surface — numbered
+  nodes under it, as Android's custom views give theirs — and TalkBack reads them. Until
+  0.21 the whole application was one unnamed image to it. A finger exploring the screen
+  reads the element under it, swipes go from element to element, a double tap presses,
+  toggles, selects, expands or focuses (a field opens the keyboard), swipes up and down
+  adjust a slider. Fields have their text and their label as the hint, and echo what is
+  typed; lists and grids say the item's place; a dialog says its title as it opens, and
+  the windows under it are out of reach; `Form.Announce` and live elements are read out.
+  Nodes moved by scrolling, layout or animation are told after the frames, at most four
+  times a second. Nothing is made until a service reads the tree
 - `AccessibilityPeer.CaretIndex`, `SelectionStart` and `SelectionLength`, and
   `AccessibilityProperty.Caret`: where the caret and the selection are in a field, for the
   bridges that read text by pieces. `TextBoxPeer` gives them, except for a password
