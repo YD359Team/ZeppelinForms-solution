@@ -38,3 +38,16 @@ public sealed class TreeNodeEditedEventArgs(TreeNode node, string text) : EventA
     /// unless rejected; any other content is the handler's to change.</summary>
     public bool Cancel { get; set; }
 }
+
+/// <summary>Nodes were checked or unchecked, see <see cref="TreeView.NodeCheckedChanged"/>.</summary>
+public sealed class TreeNodeCheckedEventArgs(TreeNode node, IReadOnlyList<TreeNode> changedNodes) : EventArgs
+{
+    /// <summary>Where the change started: the node clicked, toggled with Space or set
+    /// from code — or the parent whose children came or went.</summary>
+    public TreeNode Node { get; } = node;
+
+    /// <summary>Every node whose state the change changed, each once, in the order they
+    /// changed: the node itself first when its own state changed, then the subtree it
+    /// took along and the parents that show it.</summary>
+    public IReadOnlyList<TreeNode> ChangedNodes { get; } = changedNodes;
+}

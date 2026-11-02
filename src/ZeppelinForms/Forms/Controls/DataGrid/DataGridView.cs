@@ -2,6 +2,7 @@
 using System.Collections.Specialized;
 using ZeppelinForms.Core.Text;
 using ZeppelinForms.Data;
+using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -85,7 +86,16 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     /// record, and a stale sort order may point past the end of the collection.</summary>
     private object? _selectedRecord;
 
-    public List<DataGridViewColumn> Columns { get; init; } = [];
+    /// <summary>The columns. A column added, removed or moved shows at once, and the
+    /// sort, the current cell and the selection keep to their columns wherever they
+    /// move: since 0.20 a <see cref="ZfCollection{T}"/>, see DataGridView.Columns.cs.</summary>
+    public ZfCollection<DataGridViewColumn> Columns
+    {
+        get => _columns;
+        init => ZfCollectionOwner.Replace(ref _columns, value, OnColumnsChanged);
+    }
+
+    private ZfCollection<DataGridViewColumn> _columns = [];
 
     /// <summary>Data rows. The type of the items is arbitrary — the columns know
     /// what to take out of them.</summary>
@@ -100,6 +110,7 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     public DataGridView()
     {
         Items.CollectionChanged += OnItemsChanged;
+        _columns.CollectionChanged += OnColumnsChanged;
 
         // the grid scrolls by itself, bypassing PanelControl, so it needs
         // a scroll gesture of its own — but the physics is the same, shared
@@ -293,6 +304,14 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
     /// <summary>Build the display order for the current contents and sort column.</summary>
     private void BuildOrder()
     {
+        // a grid that orders its rows itself — a tree sorts siblings, not rows
+        if (!SortsByOrder)
+        {
+            _order = null;
+            OnSortOrderChanged();
+            return;
+        }
+
         if (SortColumnIndex < 0 || SortColumnIndex >= Columns.Count)
         {
             _order = null;
@@ -892,6 +911,14 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
 
         int cellColumn = ColumnAt(local);
 
+        // the part of the cell before its content — a tree's expander — takes the click
+        if (cellColumn >= 0 && CellIndent(row, cellColumn) > 0f &&
+            OnCellAdornmentClick(row, cellColumn, local.X - (ColumnLeft(cellColumn) - _scrollX - _overscroll.X) - CellPadding.Left))
+        {
+            e.Handled = true;
+            return;
+        }
+
         // past the last column there is a row, but no cell and no column
         if (cellColumn < 0 && SelectionUnit != DataGridViewSelectionUnit.FullRow) return;
 
@@ -915,8 +942,53 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
         int row = RowAt(e.Location);
         int column = ColumnAt(local);
 
+        // a double click on an expander is two clicks on it, not an edit
+        if (row >= 0 && column >= 0 && IsOnCellAdornment(row, column, local))
+        {
+            e.Handled = true;
+            return;
+        }
+
         if (row >= 0 && column >= 0 && BeginEdit(row, column))
             e.Handled = true;
+    }
+
+    // ===== what a derived grid adds to a cell: TreeDataGrid =====
+
+    /// <summary>How much of a cell, from its left, is given to something before its
+    /// content — the indent and the expander of a tree's column. The content, its
+    /// editor included, stands after it.</summary>
+    private protected virtual float CellIndent(int row, int column) => 0f;
+
+    /// <summary>Draw what stands before a cell's content, in the cell as the padding
+    /// leaves it. Called only for a cell with an indent.</summary>
+    private protected virtual void DrawCellAdornment(Graphics g, int row, int column, Rectangle cell)
+    {
+    }
+
+    /// <summary>A click in a cell with an indent, <paramref name="x"/> from where its
+    /// padding ends. True — the click was the adornment's: it doesn't select.</summary>
+    private protected virtual bool OnCellAdornmentClick(int row, int column, float x) => false;
+
+    /// <summary>Whether a point of the control's own is on a cell's adornment.</summary>
+    private bool IsOnCellAdornment(int row, int column, Point local)
+    {
+        float indent = CellIndent(row, column);
+
+        if (indent <= 0f) return false;
+
+        float x = local.X - (ColumnLeft(column) - _scrollX - _overscroll.X) - CellPadding.Left;
+
+        return x >= 0f && x < indent;
+    }
+
+    /// <summary>The grid orders its rows by <see cref="SortColumnIndex"/> itself: false —
+    /// a derived grid does, in <see cref="OnSortOrderChanged"/>.</summary>
+    private protected virtual bool SortsByOrder => true;
+
+    /// <summary>The sort or the rows changed, for a grid that orders its rows itself.</summary>
+    private protected virtual void OnSortOrderChanged()
+    {
     }
 
     /// <summary>How a click changes the selection: by the mode, and by Shift and Ctrl
@@ -1181,6 +1253,19 @@ public partial class DataGridView : DecoratedControl, ITouchScrollTarget
                     new Size(
                         Math.Max(0, width - CellPadding.Horizontal),
                         Math.Max(0, RowHeight - CellPadding.Vertical)));
+
+                // a cell may give part of itself to something before its content: the
+                // indent and the expander of a tree's column
+                float indent = CellIndent(row, col);
+
+                if (indent > 0f)
+                {
+                    DrawCellAdornment(g, row, col, cell);
+
+                    cell = new Rectangle(
+                        new Point(cell.X + indent, cell.Y),
+                        new Size(Math.Max(0, cell.Width - indent), cell.Height));
+                }
 
                 Color cellText = text;
 

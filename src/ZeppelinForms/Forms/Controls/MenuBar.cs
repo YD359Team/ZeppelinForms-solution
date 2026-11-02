@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -24,7 +26,16 @@ public partial class MenuBar : DecoratedControl
     /// <summary>The form whose FlyoutClosed we listen to while a submenu is open.</summary>
     private Form? _menuOwner;
 
-    public List<MenuItem> Items { get; init; } = [];
+    /// <summary>The menus of the bar. A menu added or removed shows at once: since 0.20
+    /// a <see cref="ZfCollection{T}"/>, it was a list. The items of a menu
+    /// (<see cref="MenuItem.Items"/>) stay a list: they are read each time it opens.</summary>
+    public ZfCollection<MenuItem> Items
+    {
+        get => _items;
+        init => ZfCollectionOwner.Replace(ref _items, value, OnItemsChanged);
+    }
+
+    private ZfCollection<MenuItem> _items = [];
 
     [Styled(Category = "Menu")]
     public partial Color HoverColor { get; set; }
@@ -44,9 +55,26 @@ public partial class MenuBar : DecoratedControl
 
     public MenuBar()
     {
+        _items.CollectionChanged += OnItemsChanged;
+
         SetControlDefault(BackgroundProperty, new Color(255, 248, 248, 248));
         SetControlDefault(HorizontalAlignmentProperty, Enums.HorizontalAlignment.Stretch);
         SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Top);
+    }
+
+    /// <summary>The menus changed: an open submenu is of a menu that may be elsewhere now
+    /// or gone, so it closes, and the highlight goes; the bar is measured again.</summary>
+    private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_openIndex >= 0)
+        {
+            FindOwner()?.CloseAllFlyouts();
+            _openIndex = -1;
+        }
+
+        _hoveredIndex = _keyboardMode && Items.Count > 0 ? Math.Min(Math.Max(_hoveredIndex, 0), Items.Count - 1) : -1;
+
+        Invalidate();
     }
 
     /// <summary>The width of an item's cell, by its caption as shown —
@@ -212,8 +240,14 @@ public partial class MenuBar : DecoratedControl
     }
 
     /// <summary>The item whose caption marks this access key; −1 — none.</summary>
-    internal int IndexOfAccessKey(char key) =>
-        Items.FindIndex(item => item.IsEffectivelyEnabled && Mnemonic.Key(item.Text) == key);
+    internal int IndexOfAccessKey(char key)
+    {
+        for (int i = 0; i < Items.Count; i++)
+            if (Items[i].IsEffectivelyEnabled && Mnemonic.Key(Items[i].Text) == key)
+                return i;
+
+        return -1;
+    }
 
     /// <summary>An item's cell in the form's coordinates — for the accessibility
     /// peer, whose items are not elements and have no bounds of their own.</summary>

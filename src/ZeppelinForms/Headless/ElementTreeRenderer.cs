@@ -118,6 +118,11 @@ public static class ElementTreeRenderer
         // GripBox's handles and the dirty bounds, which rotate once, drifted apart
         // from the element. Both second rotations are gone together
 
+        // the halo behind everything of the element, its shadow included: the light is
+        // what the element stands in
+        if (element.Halo is { } halo)
+            DrawHalo(element, halo, g, position);
+
         if (element.BoxShadow is { } shadow)
             g.DrawShadow(element.LocalBounds, shadow);
 
@@ -135,6 +140,35 @@ public static class ElementTreeRenderer
         FlowDirection outerDirection = g.TextDirection;
         g.TextDirection = element.EffectiveFlowDirection;
 
+        DrawBody(element, g, position, clip, cullChildren);
+
+        // the light along the border over what the element drew: a neon tube lies on
+        // the border, and its light falls on the content near it too
+        if (element.Glow is { } glow)
+            DrawGlow(element, glow, g);
+
+        g.TextEffects = outerText;
+        g.TextDirection = outerDirection;
+
+        if (effects is { IsEmpty: false })
+            effects.End(g, element.LocalBounds);
+
+        if (needsLayer)
+            g.Restore();
+
+        if (blendLayer)
+            g.Restore();
+
+        g.Restore();
+    }
+
+    /// <summary>What the element draws and its descendants: the body without its shadow,
+    /// effects and light — drawn once more, in the halo's color, for a halo of its shape.</summary>
+    /// <param name="position">The element's absolute position, its draw-time offset in.</param>
+    /// <param name="clip">The visible area, as <see cref="Draw(UIElement, Graphics, Point, Rectangle?, bool, bool)"/> has it.</param>
+    /// <param name="cullChildren">Whether the descendants may be culled by it.</param>
+    private static void DrawBody(UIElement element, Graphics g, Point position, Rectangle? clip, bool cullChildren)
+    {
         switch (element)
         {
             case UnitControl unit:
@@ -193,21 +227,146 @@ public static class ElementTreeRenderer
                 panel.DrawOverlay(g);
                 break;
         }
-
-        g.TextEffects = outerText;
-        g.TextDirection = outerDirection;
-
-        if (effects is { IsEmpty: false })
-            effects.End(g, element.LocalBounds);
-
-        if (needsLayer)
-            g.Restore();
-
-        if (blendLayer)
-            g.Restore();
-
-        g.Restore();
     }
+
+    // ===== light =====
+
+    /// <summary>A halo: the element's own shape blurred and tinted behind it, or a round
+    /// light from its middle out past its edges.</summary>
+    private static void DrawHalo(UIElement element, Halo halo, Graphics g, Point position)
+    {
+        if (halo.Color.A == 0 || halo.Radius <= 0f) return;
+
+        Rectangle bounds = element.LocalBounds;
+
+        if (halo.Shape == HaloShape.Radial)
+        {
+            var center = new Point(bounds.X + bounds.Width / 2f, bounds.Y + bounds.Height / 2f);
+
+            // from the middle to past the farthest corner: the light is full over the
+            // element, and fades out round it
+            float inner = MathF.Sqrt(bounds.Width * bounds.Width + bounds.Height * bounds.Height) / 2f;
+            float outer = inner + halo.Radius;
+            float full = inner / outer;
+
+            GradientStop[] stops =
+            [
+                new(halo.Color, 0f),
+                new(halo.Color.WithA((byte)(halo.Color.A * 0.85f)), full),
+                new(halo.Color.WithA((byte)(halo.Color.A * 0.3f)), full + (1f - full) * 0.45f),
+                new(halo.Color.WithA(0), 1f),
+            ];
+
+            var square = new Rectangle(new Point(center.X - outer, center.Y - outer), new Size(outer * 2f, outer * 2f));
+
+            g.FillRadialGradient(square, new CornerRadius(outer), stops, center, outer);
+            return;
+        }
+
+        // the body once more, its alpha kept and its colors the halo's, blurred: a
+        // glyph glows round its own strokes, a panel round what it holds. Twice — a wide
+        // light and a near one: one blur alone spreads a thin stroke too thin to see
+        Silhouette(halo.Radius);
+        Silhouette(halo.Radius * 0.4f);
+
+        void Silhouette(float blur)
+        {
+            g.SaveBlurLayer(blur);
+            g.SaveLayer(1f);
+
+            DrawBody(element, g, position, clip: null, cullChildren: false);
+
+            g.SaveLayer(1f, BlendMode.SourceIn);
+            g.FillRectangle(bounds.Inflate(halo.Reach), halo.Color);
+            g.Restore();
+
+            g.Restore();
+            g.Restore();
+        }
+    }
+
+    /// <summary>A glow along the border: standing, or a comet running round it.</summary>
+    private static void DrawGlow(UIElement element, Glow glow, Graphics g)
+    {
+        if (glow.Color.A == 0 || glow.Width <= 0f) return;
+
+        // the line on the border's middle, or inside the bounds for one thinner than it
+        float inset = MathF.Max(element.BorderWidth, glow.Width) / 2f;
+        Rectangle bounds = element.LocalBounds;
+
+        var line = new Rectangle(
+            new Point(bounds.X + inset, bounds.Y + inset),
+            new Size(MathF.Max(0f, bounds.Width - inset * 2f), MathF.Max(0f, bounds.Height - inset * 2f)));
+
+        CornerRadius radius = Shrink(element.CornerRadius, inset);
+
+        // a white-hot core in the light's color: what a neon tube looks like
+        Color core = Color.Lerp(glow.Color, Colors.White, 0.55f).WithA(glow.Color.A);
+
+        if (!element.GlowRuns)
+        {
+            // a wide light and a near one: blurred alone, a line of a few pixels spreads
+            // too thin to read as light
+            g.DrawGlow(line, radius, glow.Color, glow.Width * 3f, glow.Blur);
+            g.DrawGlow(line, radius, glow.Color, glow.Width * 2f, glow.Blur * 0.4f);
+            g.DrawRoundRectangle(line, radius, glow.Color, glow.Width);
+            g.DrawRoundRectangle(line, radius, core, MathF.Max(1f, glow.Width * 0.4f));
+            return;
+        }
+
+        element.EnsureGlowRunning();
+
+        var path = new BorderPath(line, radius);
+        if (path.Length <= 0f) return;
+
+        // the border itself faintly, for the comet to run along
+        g.DrawRoundRectangle(line, radius, glow.Color.WithA((byte)(glow.Color.A * 0.18f)), glow.Width);
+
+        float tail = Math.Clamp(glow.CometLength, 0.05f, 1f) * path.Length;
+        float head = element.GlowPhase * path.Length;
+        int pieces = Math.Clamp((int)(tail / 3f), 12, 96);
+        float step = tail / pieces;
+
+        if (glow.Blur > 0f)
+        {
+            g.SaveBlurLayer(glow.Blur);
+            DrawComet(g, path, head, tail, step, pieces, glow.Color, glow.Width * 3f);
+            g.Restore();
+
+            g.SaveBlurLayer(glow.Blur * 0.4f);
+            DrawComet(g, path, head, tail, step, pieces, glow.Color, glow.Width * 2f);
+            g.Restore();
+        }
+
+        DrawComet(g, path, head, tail, step, pieces, glow.Color, glow.Width);
+        DrawComet(g, path, head, tail * 0.35f, step * 0.35f, pieces, core, MathF.Max(1f, glow.Width * 0.4f));
+    }
+
+    /// <summary>The comet as short pieces, brighter and wider towards the head.</summary>
+    private static void DrawComet(
+        Graphics g, BorderPath path, float head, float tail, float step, int pieces, Color color, float width)
+    {
+        Point previous = path.At(head - tail);
+
+        for (int i = 1; i <= pieces; i++)
+        {
+            Point next = path.At(head - tail + step * i);
+
+            // the tail fades in as a square: most of the light is near the head
+            float share = (float)i / pieces;
+            float strength = share * share;
+
+            g.DrawLine(previous, next, color.WithA((byte)(color.A * strength)), width * (0.45f + 0.55f * share));
+
+            previous = next;
+        }
+    }
+
+    private static CornerRadius Shrink(CornerRadius radius, float by) => new(
+        MathF.Max(0f, radius.TopLeft - by),
+        MathF.Max(0f, radius.TopRight - by),
+        MathF.Max(0f, radius.BottomRight - by),
+        MathF.Max(0f, radius.BottomLeft - by));
 
     /// <summary>Draw an outgoing child in the look matching the passed part
     /// of the disappearance. No culling: there are only a few ghosts,

@@ -46,7 +46,8 @@ public partial class WindowsPlatform : IPlatform, INestedLoopSupport, ISystemMot
     /// <summary>A Win32 window places itself.</summary>
     public PlatformCapabilities Capabilities => PlatformCapabilities.WindowPositioning 
         | PlatformCapabilities.WindowHiding | PlatformCapabilities.SystemTray
-        | PlatformCapabilities.TaskbarProgress | PlatformCapabilities.TaskbarBadge | PlatformCapabilities.WindowAttention;
+        | PlatformCapabilities.TaskbarProgress | PlatformCapabilities.TaskbarBadge | PlatformCapabilities.WindowAttention
+        | PlatformCapabilities.JumpList;
 
     public bool PrefersReducedMotion => _reducedMotion;
 

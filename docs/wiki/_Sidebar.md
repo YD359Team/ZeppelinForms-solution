@@ -10,6 +10,7 @@
 - [Controls](Controls)
 - [Lists and virtualization](Lists-and-Virtualization)
 - [Data grid](DataGridView)
+- [Docking](Docking)
 - [Data binding](Data-Binding)
 - [Mobile and navigation](Mobile-and-Navigation)
 

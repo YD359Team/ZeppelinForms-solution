@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -167,6 +168,91 @@ public abstract partial class ChartBase : DecoratedControl
 
         g.FillEllipse(new Rectangle(new Point(at.X - outer, at.Y - outer), new Size(outer * 2, outer * 2)), ReadoutBackground.WithA(255));
         g.FillEllipse(new Rectangle(new Point(at.X - radius - 1.5f, at.Y - radius - 1.5f), new Size((radius + 1.5f) * 2, (radius + 1.5f) * 2)), color);
+    }
+
+    // ===== the data =====
+
+    /// <summary>The chart's data changed — a value, a category, a series, a slice: the
+    /// pointer's place is forgotten, it may point past the data now, and the chart is
+    /// drawn again.</summary>
+    private protected void OnDataChanged()
+    {
+        ForgetHover();
+
+        // a legend measured by its labels changes the chart's size
+        if (MeasuresData) Invalidate();
+        else InvalidateVisual();
+    }
+
+    /// <summary>The chart measures by its data: a legend as wide as its widest label.</summary>
+    private protected virtual bool MeasuresData => false;
+
+    /// <summary>Forget what the pointer is over: an index into the data.</summary>
+    private protected virtual void ForgetHover()
+    {
+    }
+
+    /// <summary>A collection of data of the chart changed.</summary>
+    private protected void OnDataCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => OnDataChanged();
+
+    /// <summary>The series the chart has: a value added to one shows as a series added to
+    /// the chart does.</summary>
+    private HashSet<ChartSeries>? _watchedSeries;
+
+    /// <summary>The chart listens to its series: while it is in a form. A series is often
+    /// the view model's and outlives the chart; listened to for good, it kept every chart
+    /// it was ever shown in.</summary>
+    private bool _listeningToSeries;
+
+    /// <summary>The chart's series changed: it listens to the ones it has now and to no
+    /// others, and is drawn again.</summary>
+    private protected void WatchSeries(IEnumerable<ChartSeries> series)
+    {
+        var now = new HashSet<ChartSeries>(series, ReferenceEqualityComparer.Instance);
+
+        if (_listeningToSeries)
+        {
+            if (_watchedSeries is not null)
+                foreach (ChartSeries gone in _watchedSeries)
+                    if (!now.Contains(gone)) gone.Changed -= OnDataChanged;
+
+            foreach (ChartSeries added in now)
+                if (_watchedSeries is null || !_watchedSeries.Contains(added)) added.Changed += OnDataChanged;
+        }
+
+        _watchedSeries = now;
+
+        OnDataChanged();
+    }
+
+    protected override void OnAttached()
+    {
+        base.OnAttached();
+
+        if (_listeningToSeries) return;
+
+        _listeningToSeries = true;
+
+        if (_watchedSeries is not null)
+            foreach (ChartSeries series in _watchedSeries)
+                series.Changed += OnDataChanged;
+
+        // what changed while nobody listened
+        OnDataChanged();
+    }
+
+    protected override void OnDetached()
+    {
+        if (_listeningToSeries)
+        {
+            _listeningToSeries = false;
+
+            if (_watchedSeries is not null)
+                foreach (ChartSeries series in _watchedSeries)
+                    series.Changed -= OnDataChanged;
+        }
+
+        base.OnDetached();
     }
 
     /// <summary>A series' name in a readout: its own, or its number.</summary>

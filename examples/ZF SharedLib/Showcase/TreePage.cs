@@ -2,8 +2,10 @@ using ZeppelinForms.Animation;
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
+using ZeppelinForms.Forms.Controls.DataGrid;
 using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Controls.Tree;
+using ZeppelinForms.Forms.Styling;
 using ZF_SharedLib.Models;
 
 namespace ZF_SharedLib.Showcase;
@@ -123,15 +125,90 @@ internal static class TreePage
             tree.SelectedNode = hades;
         };
 
+        // what a check takes along: the subtree and the parents (Cascade), only a mark
+        // on the parents (Indicate), or nothing
+        var propagation = new ComboBox { Items = { "Cascade", "Indicate", "None" }, SelectedIndex = 0 };
+        propagation.SelectionChanged += (_, _) => tree.CheckPropagation = (CheckPropagation)propagation.SelectedIndex;
+
+        // the expander's shape for every row, through a style on the tree: the rows
+        // are made and dropped as they scroll, a style reaches each one
+        Style? expanderStyle = null;
+        var expander = new ComboBox { Items = { "Chevron", "Triangle", "Plus and minus", "None" }, SelectedIndex = 0 };
+        expander.SelectionChanged += (_, _) =>
+        {
+            if (expanderStyle is not null) tree.Styles.Remove(expanderStyle);
+
+            expanderStyle = new Style("TreeViewItem")
+                .Set(TreeViewItem.ExpanderGlyphProperty, (ExpanderGlyph)expander.SelectedIndex);
+            tree.Styles.Add(expanderStyle);
+        };
+
+        // one event per check, however many nodes it took along
+        tree.NodeCheckedChanged += (_, e) =>
+        {
+            string caption = tree.ItemText?.Invoke(e.Node) ?? string.Empty;
+
+            selection.Text = e.ChangedNodes.Count == 1
+                ? $"{caption}: {e.Node.CheckedState}"
+                : $"{caption}: {e.Node.CheckedState}, {e.ChangedNodes.Count} nodes changed";
+        };
+
         var demo = new StackPanel
         {
             Orientation = ZeppelinForms.Forms.Enums.Orientation.Vertical,
             Spacing = 10,
             CrossAxisAlignment = ZeppelinForms.Forms.Enums.CrossAxisAlignment.Stretch,
         };
-        demo.Children.AddRange([Demo.Row(expand, collapse, reveal), tree, selection]);
+        demo.Children.AddRange(
+        [
+            Demo.Row(expand, collapse, reveal),
+            Demo.Row(Demo.Labeled("Check boxes", propagation), Demo.Labeled("Expander", expander)),
+            tree,
+            selection,
+        ]);
 
         return Demo.Page("Tree", "Nested data: nodes with children, expanded on demand.",
-            Demo.Section("Tree view", demo, "Right and Left expand and collapse, Up and Down move, Shift and Ctrl select several; Space checks the selected nodes, F2 renames, Enter or a double click opens a game, the right button has a menu; only the visible rows are made"));
+            Demo.Section("Tree view", demo, "Right and Left expand and collapse, Up and Down move, Shift and Ctrl select several; Space checks the selected nodes — a developer checks its games, and shows when only some are — F2 renames, Enter or a double click opens a game, the right button has a menu; only the visible rows are made"),
+            Demo.Section("Tree with columns", CreateGrid(), "A TreeDataGrid: the rows of a grid are the expanded nodes. A click on a header sorts the games of each developer, not the rows — a game stays under its developer; Right and Left open and close the tree"));
+    }
+
+    /// <summary>The same games in a tree grid: a developer's row and its games' rows, with
+    /// the year and the genre in columns of their own.</summary>
+    private static UIElement CreateGrid()
+    {
+        var grid = new TreeDataGrid
+        {
+            Size = new(float.NaN, 280),
+            Columns =
+            {
+                // the developer's row has its name for a title and no year: the columns
+                // read either kind of record
+                new DataGridViewColumn
+                {
+                    Header = "Title",
+                    Width = GridLength.Star(),
+                    Value = item => item is Game game ? game.Title : item,
+                },
+                new DataGridViewColumn
+                {
+                    Header = "Year",
+                    Width = GridLength.Fixed(80),
+                    Value = item => item is Game game ? game.Year : null,
+                },
+            },
+        };
+
+        foreach (IGrouping<string, Game> group in Samples.Games
+            .GroupBy(game => game.Developer)
+            .OrderBy(group => group.Key, StringComparer.CurrentCulture))
+        {
+            TreeNode developer = new(group.Key);
+            developer.Children.AddRange(group.Select(game => new TreeNode(game)));
+            grid.Nodes.Add(developer);
+        }
+
+        if (grid.Nodes.Count > 0) grid.Nodes[0].IsExpanded = true;
+
+        return grid;
     }
 }

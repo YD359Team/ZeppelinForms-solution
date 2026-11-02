@@ -59,7 +59,8 @@ public sealed class PreviewAttribute : Attribute
     public float Height { get; set; }
 
     /// <summary>A theme of <see cref="Theming.Themes"/> by name — "Light", "Dark",
-    /// "FluentLight", "FluentDark", "HighContrastBlack", "HighContrastWhite"; null —
+    /// "FluentLight", "FluentDark", "MaterialLight", "MaterialDark", "CupertinoLight",
+    /// "CupertinoDark", "HighContrastBlack", "HighContrastWhite"; null —
     /// the previewer's choice.</summary>
     public string? Theme { get; set; }
 

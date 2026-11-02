@@ -1,12 +1,28 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 
 namespace ZeppelinForms.Forms.Controls.Shapes;
 
 public class PolygonShape : Shape
 {
-    /// <summary>Points as fractions of the control's size (0..1).</summary>
-    public List<Point> Points { get; init; } = [];
+    /// <summary>Points as fractions of the control's size (0..1). A point added or moved
+    /// redraws the polygon: since 0.20 a <see cref="ZfCollection{T}"/>.</summary>
+    public ZfCollection<Point> Points
+    {
+        get => _points;
+        init => ZfCollectionOwner.Replace(ref _points, value, OnPointsChanged);
+    }
+
+    private ZfCollection<Point> _points = [];
+
+    public PolygonShape()
+    {
+        _points.CollectionChanged += OnPointsChanged;
+    }
+
+    private void OnPointsChanged(object? sender, NotifyCollectionChangedEventArgs e) => InvalidateVisual();
 
     /// <remarks>
     /// Fill used to be ignored: only the outline was drawn, and a polygon with

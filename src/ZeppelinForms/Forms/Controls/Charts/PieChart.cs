@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -10,7 +11,22 @@ public class PieChart : ChartBase
 {
     private int _hoveredSlice = -1;
 
-    public List<PieSlice> Slices { get; init; } = [];
+    /// <summary>The slices. Since 0.20 a <see cref="ZfCollection{T}"/>: a change shows at once.</summary>
+    public ZfCollection<PieSlice> Slices
+    {
+        get => _slices;
+        init => ZfCollectionOwner.Replace(ref _slices, value, OnDataCollectionChanged);
+    }
+
+    private ZfCollection<PieSlice> _slices = [];
+
+    public PieChart()
+    {
+        _slices.CollectionChanged += OnDataCollectionChanged;
+    }
+
+    /// <summary>The legend is as wide as the widest slice's label.</summary>
+    private protected override bool MeasuresData => true;
 
     /// <summary>The fraction of the radius cut out in the center. 0 — a regular pie, 0.5 — a ring.</summary>
     public float HoleRatio { get; set; }
@@ -214,6 +230,9 @@ public class PieChart : ChartBase
         _hoveredSlice = slice;
         InvalidateVisual();
     }
+
+    /// <summary>The slices changed: the one under the pointer may be gone.</summary>
+    private protected override void ForgetHover() => _hoveredSlice = -1;
 
     protected override void OnMouseExit(MouseMoveEventArgs e)
     {

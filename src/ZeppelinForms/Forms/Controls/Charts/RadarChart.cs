@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
@@ -31,10 +33,37 @@ public partial class RadarChart : ChartBase
     /// For tests and for the accessibility of the chart.</summary>
     internal int HoveredAxis => _hovered;
 
-    /// <summary>Axis labels. Their count sets the number of rays.</summary>
-    public List<string> Categories { get; init; } = [];
+    /// <summary>Axis labels. Their count sets the number of rays. Since 0.20 a
+    /// <see cref="ZfCollection{T}"/>: a change shows at once.</summary>
+    public ZfCollection<string> Categories
+    {
+        get => _categories;
+        init => ZfCollectionOwner.Replace(ref _categories, value, OnDataCollectionChanged);
+    }
 
-    public List<ChartSeries> Series { get; init; } = [];
+    private ZfCollection<string> _categories = [];
+
+
+    /// <summary>The series. A series added, removed, or changed in itself — its values,
+    /// name or color — shows at once.</summary>
+    public ZfCollection<ChartSeries> Series
+    {
+        get => _series;
+        init => ZfCollectionOwner.Replace(ref _series, value, OnSeriesChanged);
+    }
+
+    private ZfCollection<ChartSeries> _series = [];
+
+    public RadarChart()
+    {
+        _categories.CollectionChanged += OnDataCollectionChanged;
+        _series.CollectionChanged += OnSeriesChanged;
+    }
+
+    private void OnSeriesChanged(object? sender, NotifyCollectionChangedEventArgs e) => WatchSeries(_series);
+
+    /// <summary>The legend is as wide as the widest series' name.</summary>
+    private protected override bool MeasuresData => true;
 
     /// <summary>The top of the scale. null — by the largest value of the series.</summary>
     public float? MaxValue { get; set; }
@@ -257,6 +286,9 @@ public partial class RadarChart : ChartBase
         _hovered = axis;
         InvalidateVisual();
     }
+
+    /// <summary>The data changed: the ray under the pointer may be gone.</summary>
+    private protected override void ForgetHover() => _hovered = -1;
 
     protected override void OnMouseExit(MouseMoveEventArgs e)
     {

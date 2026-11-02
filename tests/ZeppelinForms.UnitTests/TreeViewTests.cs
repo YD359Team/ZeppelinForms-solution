@@ -196,11 +196,11 @@ public class TreeViewTests
         var (form, tree, _, spine, _, _) = Create(t => t.CheckBoxes = true);
 
         TreeNode? changed = null;
-        tree.NodeCheckedChanged += (_, node) => changed = node;
+        tree.NodeCheckedChanged += (_, e) => changed = e.Node;
 
         TreeViewItem row = Row(tree, spine);
         Point at = row.GetAbsolutePosition();
-        float boxX = at.X + row.Padding.Left + spine.Level * tree.Indent - tree.Indent + TreeViewItem.GlyphWidth + 6;
+        float boxX = at.X + row.Padding.Left + spine.Level * tree.Indent - tree.Indent + row.ExpanderWidth + 6;
 
         HeadlessInput.Click(form, boxX, at.Y + row.ActualSize.Height / 2f);
 
@@ -212,9 +212,11 @@ public class TreeViewTests
     [Fact]
     public void SpaceChecksAllTheSelectedNodesTogether()
     {
+        // each node by itself: under Cascade checking Head would check Spine, its only child
         var (form, tree, _, spine, head, hips) = Create(t =>
         {
             t.CheckBoxes = true;
+            t.CheckPropagation = CheckPropagation.None;
             t.SelectionMode = SelectionMode.Multiple;
         });
 
@@ -239,7 +241,12 @@ public class TreeViewTests
     [Fact]
     public void CheckingAParentLeavesTheChildren()
     {
-        var (_, _, root, spine, _, _) = Create(t => t.CheckBoxes = true);
+        // the tree before 0.20, kept as CheckPropagation.None; the default cascades, see TreeViewCheckTests
+        var (_, _, root, spine, _, _) = Create(t =>
+        {
+            t.CheckBoxes = true;
+            t.CheckPropagation = CheckPropagation.None;
+        });
 
         root.IsChecked = true;
 

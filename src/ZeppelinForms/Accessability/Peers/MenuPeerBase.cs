@@ -13,7 +13,7 @@ public abstract class MenuPeerBase : UIElementPeer
 
     protected MenuPeerBase(Forms.Controls.Base.UIElement owner) : base(owner) { }
 
-    internal abstract List<MenuItem> Items { get; }
+    internal abstract IList<MenuItem> Items { get; }
 
     public override IReadOnlyList<AccessibilityPeer> Children
     {
@@ -47,7 +47,7 @@ public class MenuBarPeer(MenuBar owner) : MenuPeerBase(owner)
 {
     protected override AccessibilityRole DefaultRole => AccessibilityRole.MenuBar;
 
-    internal override List<MenuItem> Items => owner.Items;
+    internal override IList<MenuItem> Items => owner.Items;
 
     internal override Rectangle ItemBounds(int index) => owner.ItemBounds(index);
 
@@ -85,7 +85,7 @@ public class MenuListPeer(MenuList owner) : MenuPeerBase(owner)
 {
     protected override AccessibilityRole DefaultRole => AccessibilityRole.Menu;
 
-    internal override List<MenuItem> Items => owner.Items;
+    internal override IList<MenuItem> Items => owner.Items;
 
     internal override Rectangle ItemBounds(int index) => owner.ItemBounds(index);
 

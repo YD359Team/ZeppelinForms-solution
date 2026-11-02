@@ -52,14 +52,19 @@ public partial class ComboBox
         _pickedBeforeChange = null;
         _pickRemembered = false;
 
-        int index = picked is null ? -1 : Items.FindIndex(item => ReferenceEquals(item, picked));
+        int index = IndexOfInstance(picked);
 
         // the same item on another row: the pick moves with it quietly — nothing
         // the user picked has changed
         if (index >= 0)
+        {
             _selectedIndex = index;
+            _selected = picked;
+        }
         else
+        {
             SelectedIndex = -1;
+        }
 
         // the width is measured from the texts
         Invalidate();
@@ -116,8 +121,9 @@ public partial class ComboBox
         public void ResetTo(IReadOnlyList<object> items)
         {
             owner.RememberPick();
-            owner.Items.Clear();
-            owner.Items.AddRange(items);
+
+            // one change rather than a clear and an add per item
+            owner.Items.ReplaceAll(items);
         }
     }
 }

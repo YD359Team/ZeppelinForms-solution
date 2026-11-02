@@ -86,8 +86,16 @@ public class TreeNodePeer : AccessibilityPeer
             if (ReferenceEquals(_tree.SelectedNode, _node) && _tree.IsFocused)
                 states |= AccessibilityStates.Focused;
 
-            if (_tree.CheckBoxes && _node.IsChecked)
-                states |= AccessibilityStates.Checked;
+            if (_tree.CheckBoxes)
+            {
+                // the third state as the check box gives it: UIA's Indeterminate, ARIA's mixed
+                states |= _node.CheckedState switch
+                {
+                    Forms.Controls.CheckedState.Checked => AccessibilityStates.Checked,
+                    Forms.Controls.CheckedState.Intermediate => AccessibilityStates.Mixed,
+                    _ => AccessibilityStates.None,
+                };
+            }
 
             if (!_tree.IsEffectivelyEnabled) states |= AccessibilityStates.Disabled;
 
@@ -163,6 +171,7 @@ public class TreeNodePeer : AccessibilityPeer
     {
         if (!_tree.CheckBoxes || !_tree.IsEffectivelyEnabled) return false;
 
+        // the third state checks, as a click on the box does
         _node.IsChecked = !_node.IsChecked;
         RaisePropertyChanged(AccessibilityProperty.States);
         return true;

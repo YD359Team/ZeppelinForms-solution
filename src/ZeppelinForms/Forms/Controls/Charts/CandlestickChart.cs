@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
@@ -20,7 +21,20 @@ public partial class CandlestickChart : CartesianChartBase
 {
     private int _hovered = -1;
 
-    public List<Candle> Candles { get; init; } = [];
+    /// <summary>The candles, oldest first. Since 0.20 a <see cref="ZfCollection{T}"/>: a
+    /// candle added as the market moves shows at once.</summary>
+    public ZfCollection<Candle> Candles
+    {
+        get => _candles;
+        init => ZfCollectionOwner.Replace(ref _candles, value, OnDataCollectionChanged);
+    }
+
+    private ZfCollection<Candle> _candles = [];
+
+    public CandlestickChart()
+    {
+        _candles.CollectionChanged += OnDataCollectionChanged;
+    }
 
     public Color BullColor { get; set; } = new(255, 0x19, 0x87, 0x54);
     public Color BearColor { get; set; } = new(255, 0xDC, 0x35, 0x45);
@@ -191,6 +205,9 @@ public partial class CandlestickChart : CartesianChartBase
         _hovered = index;
         InvalidateVisual();
     }
+
+    /// <summary>The candles changed: the one under the pointer may be gone.</summary>
+    private protected override void ForgetHover() => _hovered = -1;
 
     protected override void OnMouseExit(MouseMoveEventArgs e)
     {

@@ -5,6 +5,7 @@ using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Charts;
 using ZeppelinForms.Forms.Controls.DataGrid;
+using ZeppelinForms.Forms.Controls.Docking;
 using ZeppelinForms.Forms.Controls.Map;
 using ZeppelinForms.Forms.Controls.Navigation;
 using ZeppelinForms.Forms.Controls.Shapes;
@@ -75,14 +76,16 @@ public static partial class Themes
         ScrollThumb = new Color(110, 255, 255, 255),
     }, "Dark");
 
-    /// <summary>The rules shared by every built-in theme. The Fluent themes start
-    /// from them and replace the rules of the types they draw differently.</summary>
+    /// <summary>The rules shared by every built-in theme. The Fluent, Material and
+    /// Cupertino themes start from them and replace the rules of the types they draw
+    /// differently.</summary>
     private static Theme Build(
         ThemeColors colors,
         string name,
         ThemeMetrics? metrics = null,
         Font? baseFont = null,
-        Func<ThemeColors, AccentPalette, ThemeColors>? accentRule = null)
+        Func<ThemeColors, AccentPalette, ThemeColors>? accentRule = null,
+        TypeRamp? typeRamp = null)
     {
         return new Theme
         {
@@ -91,6 +94,7 @@ public static partial class Themes
             Metrics = metrics ?? ThemeMetrics.Default,
             BaseFont = baseFont ?? Font.Default,
             AccentRule = accentRule ?? Theme.ClassicAccent,
+            TypeRamp = typeRamp ?? TypeRamp.Default,
         }
 
             // text color is inherited, so it is set once at the root:
@@ -246,6 +250,10 @@ public static partial class Themes
                 grid.CheckGlyphColor = c.TextOnAccent;
             })
 
+            // the expander of a tree grid as a tree view's rows have it; the grid's own
+            // colors come from the rule of DataGridView above
+            .For<TreeDataGrid>((grid, c) => grid.GlyphColor = c.TextSecondary)
+
             .For<TextBox>((box, c) =>
             {
                 box.Background = c.Surface;
@@ -368,6 +376,20 @@ public static partial class Themes
                             strip.DisabledTextColor = c.TextDisabled;
                             strip.AccentColor = c.Accent;
                         })
+
+            .For<DockHost>((dock, c) =>
+            {
+                dock.SplitterColor = c.Surface;
+                dock.SplitterHoverColor = c.SurfacePressed;
+                dock.PanelBorderColor = c.Border;
+                dock.PanelBackgroundColor = c.Background;
+                dock.AccentColor = c.Accent;
+                dock.HeaderColor = c.Surface;
+                dock.ActiveHeaderColor = c.Selection;
+                dock.ButtonHoverColor = c.SurfaceHover;
+                dock.PreviewColor = c.Accent.WithA(56);
+                dock.CompassColor = c.Surface;
+            })
 
             .For<MenuList>((menu, c) =>
             {

@@ -1,4 +1,6 @@
 ﻿using ZeppelinForms.Core.Globalization;
+using System.Collections.Specialized;
+using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -18,7 +20,20 @@ public partial class CheckedComboBox : InteractiveControl
     private readonly FlyoutHost _flyout;
     private readonly HashSet<int> _checked = [];
 
-    public List<object> Items { get; init; } = [];
+    /// <summary>The items. An item added or removed shows at once, and the checked ones
+    /// stay checked wherever they move: since 0.20 a <see cref="ZfCollection{T}"/>, it
+    /// was a list.</summary>
+    public ZfCollection<object> Items
+    {
+        get => _items;
+        init => ZfCollectionOwner.Replace(ref _items, value, OnItemsChanged);
+    }
+
+    private ZfCollection<object> _items = [];
+
+    /// <summary>The items as they were before the last change: the checked indices are
+    /// read through it to the items they meant.</summary>
+    private object[] _itemsBefore = [];
     public Func<object, string>? DisplaySelector { get; set; }
 
     /// <summary>Text when nothing is checked. Null — the localized default,
@@ -62,6 +77,8 @@ public partial class CheckedComboBox : InteractiveControl
 
     public CheckedComboBox()
     {
+        _items.CollectionChanged += OnItemsChanged;
+
         SetControlDefault(BackgroundProperty, Colors.White);
         SetControlDefault(PaddingProperty, new(6, 3));
         Cursor = CursorKind.Hand;
@@ -70,6 +87,38 @@ public partial class CheckedComboBox : InteractiveControl
 
         _flyout = new FlyoutHost(this);
         _flyout.Closed += (_, _) => InvalidateVisual();
+    }
+
+    /// <summary>The items changed: the checked ones stay checked at their new places,
+    /// the ones taken out are no longer checked — and that is a change of the selection.</summary>
+    private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        object[] before = _itemsBefore;
+        _itemsBefore = [.. Items];
+
+        if (_checked.Count > 0)
+        {
+            int[] was = [.. _checked];
+            _checked.Clear();
+
+            // by reference: a record's Equals must not check another record
+            foreach (int index in was)
+                if (index < before.Length && IndexOfInstance(before[index]) is var now and >= 0)
+                    _checked.Add(now);
+
+            if (_checked.Count != was.Length)
+                SelectionChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        Invalidate();
+    }
+
+    private int IndexOfInstance(object item)
+    {
+        for (int i = 0; i < Items.Count; i++)
+            if (ReferenceEquals(Items[i], item)) return i;
+
+        return -1;
     }
 
     private string TextOf(object item) => DisplaySelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;

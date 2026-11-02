@@ -55,6 +55,14 @@ public sealed class ObservableCollectionAssignmentAnalyzer : DiagnosticAnalyzer
         if (observableCollectionType is null || !InheritsFrom(targetType, observableCollectionType))
             return;
 
+        // a control's ZfCollection takes another in its place: the property's init moves
+        // the control's handler over to it — "Values = [1, 2, 3]" is how a chart is filled
+        INamedTypeSymbol? zfCollectionType = context.Compilation
+            .GetTypeByMetadataName("ZeppelinForms.Core.Collections.ZfCollection`1");
+
+        if (zfCollectionType is not null && InheritsFrom(targetType, zfCollectionType))
+            return;
+
         context.ReportDiagnostic(Diagnostic.Create(
             Rule, assignment.GetLocation(), assignment.Left.ToString()));
     }

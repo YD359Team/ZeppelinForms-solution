@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -27,10 +29,28 @@ public partial class Table : DecoratedPanel
     /// </remarks>
     private float _computedRowHeight;
 
-    public List<TableColumn> Columns { get; init; } = [];
+    /// <summary>The columns. A column added or removed lays the table out again: since
+    /// 0.20 a <see cref="ZfCollection{T}"/>, it was a list.</summary>
+    public ZfCollection<TableColumn> Columns
+    {
+        get => _columns;
+        init => ZfCollectionOwner.Replace(ref _columns, value, OnContentChanged);
+    }
 
-    /// <summary>Rows. Extra cells are ignored, missing ones are drawn empty.</summary>
-    public List<string?[]> Rows { get; init; } = [];
+    private ZfCollection<TableColumn> _columns = [];
+
+    /// <summary>Rows. Extra cells are ignored, missing ones are drawn empty. A row added,
+    /// removed or replaced shows at once: since 0.20 a <see cref="ZfCollection{T}"/>.</summary>
+    public ZfCollection<string?[]> Rows
+    {
+        get => _rows;
+        init => ZfCollectionOwner.Replace(ref _rows, value, OnContentChanged);
+    }
+
+    private ZfCollection<string?[]> _rows = [];
+
+    // the widths come from the cells: a change of either measures the table again
+    private void OnContentChanged(object? sender, NotifyCollectionChangedEventArgs e) => Invalidate();
 
     [Styled(Category = "Table", AffectsLayout = true)]
     public partial bool ShowHeader { get; set; }
@@ -76,14 +96,15 @@ public partial class Table : DecoratedPanel
     [Styled(Category = "Table")]
     public partial Color AlternateRowColor { get; set; }
 
-    /// <summary>Add a row. Rows is a plain list and says nothing about changes,
-    /// so a row added through it directly needs an explicit Invalidate.</summary>
+    /// <summary>Add a row.</summary>
+    /// <remarks>Until 0.20 Rows was a plain list that said nothing about changes, and a
+    /// row added through it directly needed an explicit Invalidate; now it tells the
+    /// table itself, and this is the same as <c>Rows.Add(cells)</c>.</remarks>
     public void AddRow(params string?[] cells)
     {
+        // a new row changes the height and possibly the Auto column widths: the
+        // collection's change lays the table out again
         Rows.Add(cells);
-
-        // a new row changes the height and possibly the Auto column widths
-        Invalidate();
     }
 
     /// <summary>A translucent shade of the text color. Stripes and lines built
@@ -96,6 +117,9 @@ public partial class Table : DecoratedPanel
 
     public Table()
     {
+        _columns.CollectionChanged += OnContentChanged;
+        _rows.CollectionChanged += OnContentChanged;
+
         // a table sizes to its content, as in Markdown. It can be stretched
         // manually, and then the star columns share the extra width
         SetControlDefault(HorizontalAlignmentProperty, HorizontalAlignment.Left);

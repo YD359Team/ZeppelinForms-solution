@@ -1,5 +1,202 @@
 # Changes
 
+## [0.20.0]	Lighthouse of Alexandria
+
+![Nevada](https://raw.githubusercontent.com/YD359Team/ZeppelinForms-solution/master/assets/Logo-0.20.0.jpg)
+
+### Breaking changes
+
+- A tree's check boxes cascade by default (`TreeView.CheckPropagation = Cascade`):
+  checking a node checks its subtree, and a parent shows its children — checked,
+  unchecked, or `CheckedState.Intermediate` when only some are. Until 0.20 every node kept
+  its own state; `CheckPropagation.None` keeps that
+- `TreeView.NodeCheckedChanged` is an `EventHandler<TreeNodeCheckedEventArgs>`, raised once
+  per change with the node it started from (`Node`) and every node it changed
+  (`ChangedNodes`). It was an `EventHandler<TreeNode>` raised per node: `(_, node) => …`
+  becomes `(_, e) => … e.Node …`
+- `TreeViewItem.GlyphWidth` is obsolete: the expander's strip is the styled
+  `ExpanderWidth`, 18 as the constant was
+- The collections of the controls are `ZfCollection<T>` (an `ObservableCollection<T>`)
+  instead of `List<T>`: `ComboBox.Items`, `CheckedComboBox.Items`, `MenuBar.Items`,
+  `TabControl.Tabs`, `DataGridView.Columns`, `Table.Columns` and `Rows`,
+  `Grid.RowDefinitions` and `ColumnDefinitions`, the charts' `Categories`, `Series`,
+  `Slices`, `Candles` and `ChartSeries.Values`, `MapControl.Markers`, `PolygonShape.Points`,
+  `RichLabel.Inlines`, and `TreeNode.Children`. Initializers, collection expressions
+  (`Values = [1, 2, 3]`) and `AddRange` build as before; code that held one of them in a
+  `List<T>` variable or called another `List<T>` method needs a change, and a compiled
+  assembly a rebuild. The items of a menu (`MenuItem.Items`, `SplitButton.Items`,
+  `TrayIcon.Menu`) stay lists: they are read each time the menu opens
+
+### Collections
+
+- `ZfCollection<T>` (`ZeppelinForms.Core.Collections`): an `ObservableCollection<T>` with
+  `AddRange`, `ReplaceAll`, `RemoveAll` and a stable `Sort`, each one notification rather
+  than one per item
+- A change of a control's collection shows at once — a value added to a chart's series, a
+  column to a grid, a menu to the bar, a row to a table — and a binding to `Count`
+  follows it. Until 0.20 it went unseen until something else redrew the control
+- What a control kept by an index follows its item: the selected tab and combo box item,
+  the checked items of a `CheckedComboBox`, the sort column, the current cell and the
+  selected columns of a `DataGridView`. An item taken out takes its selection with it,
+  and that is a change of the selection; a chart forgets the point under the pointer
+- ZF0001 no longer reports `Values = [1, 2]` and the like: a control's `ZfCollection`
+  takes the one it is given in its initializer
+- `TreeNode.Children.Clear()` lets the children go: they kept the node as their parent,
+  and could not be added to another one
+
+### TreeView
+
+- `TreeDataGrid`: a data grid whose rows are the expanded nodes of a tree, the tree's column
+  indented by depth with the expander in it. Columns, editing, selection and
+  virtualization are the grid's; a row's record is its node's `Content`, and the nodes
+  come from `Nodes` or an `ItemsSource`. A sort orders each node's children, not the
+  rows; Right and Left expand, collapse and move along the tree
+- `TreeView.ItemsSource`: a tree made from a view model's items —
+  `TreeItemsSource.Create(roots, item => item.Children)`, with `WithExpanded` and
+  `WithChecked` for the expansion and the check boxes both ways. The children of an item
+  become nodes when its node is expanded the first time; the collections and the items
+  that tell of their changes are followed while the tree is in a form, and a node moved
+  in the data stays itself — expanded, selected, with its children
+- `TreeView.CheckPropagation`: `Cascade`, `Indicate` — the children are left alone and a
+  parent not checked itself shows the third state while a node inside it is checked —
+  or `None`. Changing it puts the tree in order by the new rule
+- `TreeNode.CheckedState` with the third state; `IsChecked` is true for `Checked` only, and
+  a click or Space on an intermediate node checks it. The check box draws the third state
+  by the row's `IndeterminateGlyph`, as `CheckBox` does; screen readers hear it as mixed
+- Under `Cascade` a node expanded for the first time gives the children it made in
+  `NodeExpanding` its own state; children added or removed later are shown by their
+  parent. Children added between `BeginUpdate` and `EndUpdate` are read once, at the end
+- `TreeNode` raises `PropertyChanged` — `IsExpanded`, `CheckedState`, `IsChecked`,
+  `Content`, `Icon`, `HasChildren`, `HasUnrealizedChildren`, `Parent` —, so bindings follow
+  a node; `Children` raises its own, `Count` among them
+- A row takes its node's pseudo-classes: `:expanded`, `:selected`, `:checked`,
+  `:indeterminate`
+- The expander is styled: `ExpanderGlyph` (`Chevron`, `Triangle`, `PlusMinus`, `None`),
+  `ExpanderWidth`, `ExpanderGlyphSize`, and icons of one's own — `CollapsedIcon`, which
+  turns a quarter as the node expands, and `ExpandedIcon` in place of the turn
+- The expander turns as the node expands (120 ms; at once with reduced motion)
+- `TreeView.CreateItem` makes the rows: a tree of its own returns rows that override
+  `TreeViewItem.DrawExpander`
+
+### Docking
+
+- `DockHost` (`ZeppelinForms.Forms.Controls.Docking`): panels the user arranges, as in an
+  IDE — side by side and as tabs with splitters between them, floating in windows of their
+  own over the layout, pinned to an edge to slide out while they are used. A panel is a
+  `DockItem`: an `Id`, a title and an icon for its tab, the content
+- Placed by `DockTo` (a tab of the target's group, or a side of it with a share of its
+  extent), `Float`, `AutoHide`, `Hide`, `Show` and `Close`; a hidden item goes back where
+  it was, and the items of a group that left it one by one meet again in one group
+- By the user's hands: a tab dragged off its strip shows the compass over the group under
+  the pointer and on the host's edges, and docks where it is dropped — or floats, dropped
+  anywhere else; Esc cancels. A window is moved by its title, resized by its frame, and
+  docked back by a double click; a tab floats by a double click; the pin slides a group to
+  its edge; the menu of a tab floats, pins and closes
+- `SaveLayout` and `LoadLayout`: the arrangement as JSON — the splits and their shares, the
+  tabs, the windows, the edges, the hidden items, the active one —, read back into the
+  host's items by id or into the ones a resolver makes. Written and read by hand, the same
+  after trimming and AOT; a text that is not a layout changes nothing
+- `ActiveItemChanged`, `ItemClosing` (which may keep the item), `ItemClosed`, `LayoutChanged`
+- The floating windows are inside the host, not windows of the system: the same on every
+  platform, a browser's and a phone's included
+- `TabStrip.CanDragOut` and `TabDraggedOut`: a tab dragged up or down off the strip is let
+  go to whoever takes the pointer — the dock host, or an application opening a window
+
+### Themes
+
+- `Themes.MaterialLight` and `MaterialDark`: Material 3. The scheme is made from a seed color
+  as Material You makes it — tonal palettes of the seed's hue and each role a tone of one of
+  them —, and `WithAccent` makes it again from another seed, the surfaces tinted as well:
+  with `App.UseSystemTheme` it is Android's dynamic color. Pill buttons (tonal, filled,
+  outlined), outlined fields, Material's check box, radio button, switch and slider, a
+  ripple on a press, the navigation bar's indicator, Roboto and Material's type scale
+- `Themes.CupertinoLight` and `CupertinoDark`: iOS — the grouped background and its cards,
+  UIKit's semantic colors, fields and buttons as fills, the gray, filled and tinted buttons,
+  round check boxes, the green switch, a tab bar without an indicator, San Francisco with a
+  body of 17. An accent is a tint, as in iOS
+- `ThemeMetrics.Material`, `ThemeMetrics.Cupertino`, `TypeRamp.Material`,
+  `TypeRamp.Cupertino`, and `FontWeight.Medium` (500) for Material's labels
+- The previewers of Visual Studio and Rider, and `[Preview(Theme = …)]`, offer the four
+
+### Taskbar
+
+- `App.JumpList`: the jump list of the application's taskbar button on Windows — tasks that
+  start the application again with arguments of their own, separators, categories of links,
+  the system's recent and frequent documents —, handed to the shell as a whole by `Apply`
+  (`ICustomDestinationList`). Under `dotnet app.dll` a task starts the host with the
+  assembly; a category the shell refuses leaves the rest of the list in place
+- `App.AddRecentDocument`: a document opened, for the system's recent lists
+- `PlatformCapabilities.JumpList`; the headless platform keeps the list it was given
+- The Windows showcase offers its Docking, Charts and Settings pages in its jump list
+
+### Graphics
+
+- `Glow` on every element: light along its border, as a neon tube gives it — the line, a
+  white-hot core and the light diffused round it. `GlowMotion.Comet` runs a comet of light
+  with a fading tail round the border instead, once a `Period`; it runs only while the
+  element is drawn, and stands with reduced motion
+- `Halo` on every element: light behind it — of its own shape (`HaloShape.Content`: what it
+  draws, blurred, in the halo's color; a glyph glows round its strokes) or round
+  (`HaloShape.Radial`, a lamp behind it)
+- Both are styled: `Glow: #00E5FF 14 2 comet`, `Halo: #FFD700 16 radial` in a style sheet;
+  their light is in the element's dirty region
+- `Graphics.FillRadialGradient`, `FillSweepGradient` and `DrawGlow`: exact on Skia and the
+  GLES backend — whose shader reads the ramp from each pixel's offset to the center —, and
+  drawn from rings, wedges and a blurred layer by any other backend: the methods are
+  virtual, so a backend of another package keeps building
+
+### Forms
+
+- A form follows the theme, the text scale and the language through one subscription,
+  kept from its constructor until its window closes and renewed with the next window; a
+  change made while it was closed is applied when it is shown again, as before. The three
+  used to be dropped and renewed each in its own place — the language's and the text
+  scale's twice at close, two of the focus events twice at `Dispose`. The focus events
+  are no longer dropped at `Dispose` at all: the form owns their source
+
+### Fixes
+
+- A scrolling panel cuts what it draws under its children where it cuts them: a list
+  scrolled so that its selected or hovered row went past the top drew the row's highlight
+  above the list — over a combo box under its drop-down
+- A comet (`GlowMotion.Comet`) runs again when its element comes back to the form — a tab
+  page selected once more, a panel docked elsewhere. Leaving the form took its animation
+  with it, and the element, still thinking it ran, never started it again
+- A chart listens to its series only while it is in a form: a series is often the view
+  model's, and listened to for good it kept alive every chart it was ever shown in. A value
+  added while the chart was away shows when it comes back
+- `Grid` sums where each track starts once per arrange instead of once per child, through
+  LINQ; a cell past the last column is in the last column, as its width already was — its
+  start was past all of them
+- `DockHost`: a group gone from the layout lets its view go, and the view its content — a
+  hidden item's element stayed a child of a view nobody showed, kept alive by the item
+  remembering the group. A group's header keeps the hover of its buttons as the host
+  updates, and is laid out again only when its buttons change
+- `DateTimePicker` and `TimePicker` keep 8 between their text and their icon: sized to their
+  content, the two touched
+- The showcase's native controls page keeps the bar of its scrolled list beside the rows:
+  laid over them, it went under the native control
+
+### AI tooling
+
+- `AGENTS.md` in the repository: the projects, the build and the tests, the rules the build
+  enforces, the conventions of the framework's code — for Claude Code, Codex, Copilot,
+  Cursor and the like; `CLAUDE.md` points to it
+- `zf-app` makes an `AGENTS.md` of the application's own: what ZeppelinForms is and is not,
+  the projects, how its UI, dialogs, threads, bindings and controls are written, how it is
+  tested
+
+### Build
+
+- CI on Windows builds the solution without the Android and browser projects
+  (`.github/ci/windows.slnf`) and installs no workloads; they are built on Linux and by
+  the templates' job. The analyzers run once, on Linux
+- The Visual Studio extension is built in a job of its own, alongside the build
+- The jobs are skipped when the change can't affect them: the editors' job for a change
+  to the framework's tests, the solution's build for a change to the VS Code extension
+- Restored NuGet packages are cached between runs
+
+
 ## [0.19.2]
 
 ### Breaking changes

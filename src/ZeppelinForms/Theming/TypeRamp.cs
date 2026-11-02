@@ -28,6 +28,34 @@ public sealed record TypeRamp
     /// <summary>The Fluent 2 ramp.</summary>
     public static TypeRamp Default { get; } = new();
 
+    /// <summary>Material 3's type scale: body small, medium and large, label large, title
+    /// large, headline medium, display small and large.</summary>
+    public static TypeRamp Material { get; } = new()
+    {
+        Caption = new(12f, FontWeight.Normal),
+        Body = new(14f, FontWeight.Normal),
+        BodyStrong = new(14f, FontWeight.Medium),
+        BodyLarge = new(16f, FontWeight.Normal),
+        Subtitle = new(22f, FontWeight.Normal),
+        Title = new(28f, FontWeight.Normal),
+        TitleLarge = new(36f, FontWeight.Normal),
+        Display = new(57f, FontWeight.Normal),
+    };
+
+    /// <summary>The text styles of iOS: caption 1, body, headline, title 3, title 2, title 1,
+    /// the large title, and a display size past it.</summary>
+    public static TypeRamp Cupertino { get; } = new()
+    {
+        Caption = new(12f, FontWeight.Normal),
+        Body = new(17f, FontWeight.Normal),
+        BodyStrong = new(17f, FontWeight.SemiBold),
+        BodyLarge = new(20f, FontWeight.Normal),
+        Subtitle = new(22f, FontWeight.Normal),
+        Title = new(28f, FontWeight.Normal),
+        TitleLarge = new(34f, FontWeight.Bold),
+        Display = new(56f, FontWeight.Bold),
+    };
+
     public TypeRampStep Caption { get; init; } = new(12f, FontWeight.Normal);
     public TypeRampStep Body { get; init; } = new(14f, FontWeight.Normal);
     public TypeRampStep BodyStrong { get; init; } = new(14f, FontWeight.SemiBold);

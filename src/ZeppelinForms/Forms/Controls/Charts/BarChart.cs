@@ -1,4 +1,6 @@
-﻿using ZeppelinForms.Drawing;
+﻿using System.Collections.Specialized;
+using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Input.Mouse;
@@ -28,8 +30,33 @@ public class BarChart : CartesianChartBase
     /// <summary>The series of the bar under the pointer; -1 — none.</summary>
     internal int HoveredSeries => _hoveredSeries;
 
-    public List<string> Categories { get; init; } = [];
-    public List<ChartSeries> Series { get; init; } = [];
+    /// <summary>The categories' labels, one per value of a series. Since 0.20 a
+    /// <see cref="ZfCollection{T}"/>: a change shows at once.</summary>
+    public ZfCollection<string> Categories
+    {
+        get => _categories;
+        init => ZfCollectionOwner.Replace(ref _categories, value, OnDataCollectionChanged);
+    }
+
+    private ZfCollection<string> _categories = [];
+
+    /// <summary>The series. A series added, removed, or changed in itself — its values,
+    /// name or color — shows at once.</summary>
+    public ZfCollection<ChartSeries> Series
+    {
+        get => _series;
+        init => ZfCollectionOwner.Replace(ref _series, value, OnSeriesChanged);
+    }
+
+    private ZfCollection<ChartSeries> _series = [];
+
+    public BarChart()
+    {
+        _categories.CollectionChanged += OnDataCollectionChanged;
+        _series.CollectionChanged += OnSeriesChanged;
+    }
+
+    private void OnSeriesChanged(object? sender, NotifyCollectionChangedEventArgs e) => WatchSeries(_series);
 
     public float BarGap { get; set; } = 0.25f;      // a fraction of the group width
     public CornerRadius BarCornerRadius { get; set; } = new(3f, 3f, 0f, 0f);
@@ -159,6 +186,13 @@ public class BarChart : CartesianChartBase
         _hovered = category;
         _hoveredSeries = series;
         InvalidateVisual();
+    }
+
+    /// <summary>The data changed: the bar under the pointer may be gone.</summary>
+    private protected override void ForgetHover()
+    {
+        _hovered = -1;
+        _hoveredSeries = -1;
     }
 
     protected override void OnMouseExit(MouseMoveEventArgs e)

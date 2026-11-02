@@ -1222,6 +1222,117 @@ public sealed class SkiaGraphics : Graphics
         }
     }
 
+    public override void FillRadialGradient(
+        Rectangle bounds, CornerRadius radius, GradientStop[] stops, Point center, float gradientRadius)
+    {
+        ArgumentNullException.ThrowIfNull(stops);
+
+        if (stops.Length == 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        (SKColor[] colors, float[] positions) = Ramp(stops);
+
+        // a radius of nothing is all the last stop: Skia draws nothing for it
+        using SKShader shader = gradientRadius > 0f
+            ? SKShader.CreateRadialGradient(new SKPoint(center.X, center.Y), gradientRadius, colors, positions, SKShaderTileMode.Clamp)
+            : SKShader.CreateColor(colors[^1]);
+
+        FillWithShader(bounds, radius, shader);
+    }
+
+    public override void FillSweepGradient(
+        Rectangle bounds, CornerRadius radius, GradientStop[] stops, Point center, float startAngle)
+    {
+        ArgumentNullException.ThrowIfNull(stops);
+
+        if (stops.Length == 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        (SKColor[] colors, float[] positions) = Ramp(stops);
+
+        // Skia's sweep starts at 0° — right — and goes clockwise, as FillPie does; the
+        // start is a turn of the shader round the center
+        using SKShader shader = SKShader.CreateSweepGradient(
+            new SKPoint(center.X, center.Y), colors, positions,
+            SKMatrix.CreateRotationDegrees(startAngle, center.X, center.Y));
+
+        FillWithShader(bounds, radius, shader);
+    }
+
+    /// <summary>The shape filled by a shader made for this one draw.</summary>
+    private void FillWithShader(Rectangle bounds, CornerRadius radius, SKShader shader)
+    {
+        SKPaint paint = FillPaint(Colors.Black);
+        paint.Shader = shader;
+
+        try
+        {
+            if (radius.IsZero)
+            {
+                _canvas.DrawRect(new SKRect(bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height), paint);
+            }
+            else
+            {
+                using SKRoundRect rounded = MakeRoundRect(bounds, radius);
+                _canvas.DrawRoundRect(rounded, paint);
+            }
+        }
+        finally
+        {
+            // the brush is the pool's: it mustn't keep a shader that is disposed now
+            paint.Shader = null;
+        }
+    }
+
+    private static (SKColor[] Colors, float[] Positions) Ramp(GradientStop[] stops)
+    {
+        var colors = new SKColor[stops.Length];
+        var positions = new float[stops.Length];
+
+        for (int i = 0; i < stops.Length; i++)
+        {
+            Color c = stops[i].Color;
+            colors[i] = new SKColor(c.R, c.G, c.B, c.A);
+            positions[i] = Math.Clamp(stops[i].Offset, 0f, 1f);
+        }
+
+        return (colors, positions);
+    }
+
+    /// <summary>The stroke itself blurred, with a mask filter: no layer the size of the
+    /// canvas, as the default's blurred layer needs.</summary>
+    public override void DrawGlow(Rectangle rect, CornerRadius radius, Color color, float width, float blur)
+    {
+        if (color.A == 0 || width <= 0f) return;
+
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(color.R, color.G, color.B, color.A),
+            IsAntialias = true,
+            IsStroke = true,
+            StrokeWidth = width,
+        };
+
+        // sigma = blur / 2: the radius as a box shadow's, see DrawShadow
+        if (blur > 0f)
+            paint.MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, blur / 2f);
+
+        try
+        {
+            if (radius.IsZero)
+            {
+                _canvas.DrawRect(new SKRect(rect.X, rect.Y, rect.X + rect.Width, rect.Y + rect.Height), paint);
+            }
+            else
+            {
+                using SKRoundRect rounded = MakeRoundRect(rect, radius);
+                _canvas.DrawRoundRect(rounded, paint);
+            }
+        }
+        finally
+        {
+            paint.MaskFilter?.Dispose();
+        }
+    }
+
     /// <summary>A linear gradient from −(dx, dy) to (dx, dy).</summary>
     private static SKShader CreateGradientShader(GradientStop[] stops, float dx, float dy)
     {

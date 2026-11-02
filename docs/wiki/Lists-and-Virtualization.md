@@ -64,3 +64,78 @@ With virtualization the children are no longer one per item, and a child's index
 The keys move the selection and bring the row they reach into sight: Home, End, the
 arrows, and Shift with them in `Extended` mode. `ScrollPastEnd` lets a long list scroll on
 until its last row is at the top — see [Layout](Layout#scrolling-past-the-end).
+
+## Trees
+
+`TreeView` shows `TreeNode`s: `Nodes` holds the top ones, each node its `Children`. A node
+is a plain object the tree is built from — `Content` is the data, `ItemText` and
+`ItemIcon` on the tree make its caption and icon. Since 0.20 a node raises
+`PropertyChanged`, so a binding follows `IsExpanded`, `CheckedState` or `Content`, and one
+to `node.Children` follows `Count`:
+
+```csharp
+caption.Bind(Label.TextProperty, node, n => n.IsExpanded ? "Open" : "Closed");
+count.Bind(Label.TextProperty, node.Children, c => $"{c.Count} items");
+```
+
+### From data
+
+`ItemsSource` makes the tree from a view model's own items rather than from nodes put in
+by hand. Each node's `Content` is its item; an item's children become nodes when its node
+is expanded the first time.
+
+```csharp
+tree.ItemsSource = TreeItemsSource.Create(vm.Folders, folder => folder.Children)
+    .WithExpanded(folder => folder.IsOpen, (folder, open) => folder.IsOpen = open)
+    .WithChecked(folder => folder.IsIncluded, (folder, included) => folder.IsIncluded = included);
+
+Folder? picked = tree.SelectedNode?.Content as Folder;
+```
+
+While the tree is in a form, collections that tell of their changes (an
+`ObservableCollection`) and items that do (`INotifyPropertyChanged`) are followed: an item
+added becomes a node, a renamed one is drawn again, and a node moved in the data stays
+itself — expanded, selected, with its children. With `WithExpanded` and `WithChecked` the
+expansion and the check boxes go both ways; under `Cascade` the items' own states are the
+truth, and a parent's item is told what its children make it. Out of the form the tree
+holds on to nothing of the data, and catches up when it comes back.
+
+### Check boxes
+
+`CheckBoxes = true` puts a check box before every node; a click or Space checks it.
+`CheckPropagation` says what that does to the rest of the tree:
+
+| `CheckPropagation` | |
+| ------------------ | - |
+| `Cascade` (default) | The node takes its subtree along, and a parent shows its children: checked when all are, `Intermediate` when some are |
+| `Indicate` | The children are left alone; a parent not checked itself shows `Intermediate` while something inside it is checked |
+| `None` | Every node by itself — the tree before 0.20 |
+
+`TreeNode.CheckedState` has the third state; `IsChecked` is true for `Checked` only. A click
+on an intermediate node checks it. `NodeCheckedChanged` comes once per change, with the
+node it started from and every node it changed (`ChangedNodes`) — checking a folder of ten
+thousand files raises it once. Under `Cascade` the children a node makes in
+`NodeExpanding` take its state: a checked folder read later has its files checked.
+
+### Rows and the expander
+
+A row is a `TreeViewItem`, styled like any control, and it takes its node's pseudo-classes:
+`:expanded`, `:selected`, `:checked`, `:indeterminate`.
+
+```css
+TreeViewItem { ExpanderGlyph: Triangle; ExpanderWidth: 22; }
+TreeViewItem:expanded { GlyphColor: Colors.DodgerBlue; }
+TreeViewItem:indeterminate { IndeterminateGlyph: Square; }
+```
+
+| Property | |
+| -------- | - |
+| `ExpanderGlyph` | `Chevron` (default), `Triangle`, `PlusMinus`, `None` |
+| `ExpanderWidth` | The strip of the expander and its click zone; 18 by default, 0 — none |
+| `ExpanderGlyphSize` | The glyph across; 8 by default |
+| `CollapsedIcon`, `ExpandedIcon` | Icons of one's own. `CollapsedIcon` alone turns a quarter as the node expands |
+| `GlyphColor` | The expander and the empty check box |
+| `IndeterminateGlyph` | The third state of the check box, as `CheckBox` has it |
+
+The expander turns as the node expands, and at once with reduced motion. For anything else
+a tree of its own overrides `CreateItem` and returns rows that override `DrawExpander`.

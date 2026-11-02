@@ -42,7 +42,7 @@ namespace ZeppelinForms.VisualStudio;
 internal sealed class PreviewControl : UserControl
 {
     private static readonly string[] Themes =
-        ["", "Light", "Dark", "FluentLight", "FluentDark", "HighContrastBlack", "HighContrastWhite"];
+        ["", "Light", "Dark", "FluentLight", "FluentDark", "MaterialLight", "MaterialDark", "CupertinoLight", "CupertinoDark", "HighContrastBlack", "HighContrastWhite"];
 
     private static readonly string[] Cultures = ["", "en-US", "ru-RU", "de-DE", "ja-JP", "ar-SA", "he-IL"];
 

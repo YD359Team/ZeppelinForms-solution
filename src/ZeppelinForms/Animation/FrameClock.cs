@@ -120,6 +120,16 @@ internal sealed class FrameClock(Form form) : IDisposable
         Review();
     }
 
+    /// <summary>Whether an animation of the target runs under the key.</summary>
+    public bool Has(object target, string key)
+    {
+        foreach (IAnimation existing in _animations)
+            if (ReferenceEquals(existing.Target, target) && existing.Key == key)
+                return true;
+
+        return false;
+    }
+
     /// <summary>Remove animations whose targets are leaving the tree.</summary>
     public void CancelIn(UIElement root)
     {

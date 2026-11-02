@@ -48,33 +48,12 @@ public partial class Form : IDisposable
             // Invoke from other threads goes through the window's queue
             _dispatcher = Dispatcher.Attach(value).ForWindow(value);
 
-            // the theme subscription is renewed with every window: it is dropped
-            // at close (see OnWindowClosed), and a form shown again must follow
-            // the theme again. -= first, so that the subscription from the
-            // constructor is not doubled on the first show
-            App.ThemeChanged -= OnThemeChanged;
-            App.ThemeChanged += OnThemeChanged;
-
-            // the theme was switched while the form was closed — apply it now
-            if (_themeAtUnsubscribe is not null && !ReferenceEquals(_themeAtUnsubscribe, App.Theme))
-                OnThemeChanged(null, EventArgs.Empty);
-
-            _themeAtUnsubscribe = null;
-
-            // the text scale the same way: renewed with every window, and a change
-            // made while the form was closed is caught up with now
-            RenewTextScaleSubscription();
-
-            // the language subscription is renewed the same way as the theme's,
-            // and a language switched while the form was closed is applied now
-            Localization.Changed -= OnLocalizationChanged;
-            Localization.Changed += OnLocalizationChanged;
-
-            if (_localizationVersionAtUnsubscribe >= 0 &&
-                _localizationVersionAtUnsubscribe != Localization.Version)
-                OnLocalizationChanged(null, EventArgs.Empty);
-
-            _localizationVersionAtUnsubscribe = -1;
+            // the theme, text scale and language subscriptions are renewed with every
+            // window: they are dropped at close (see OnWindowClosed), and a form shown
+            // again must follow them again. A theme, scale or language switched while
+            // the form was closed is applied now. On the first show the form follows
+            // them already, from the constructor, and nothing is doubled
+            FollowApp();
 
             if (!s_openForms.Contains(this))
                 s_openForms.Add(this);
@@ -375,9 +354,7 @@ public partial class Form : IDisposable
 
     public Form()
     {
-        App.ThemeChanged += OnThemeChanged;
-        App.TextScaleChanged += OnTextScaleChanged;
-        Localization.Changed += OnLocalizationChanged;
+        FollowApp();
         _focusDispatcher.FocusChanged += OnFocusChangedForKeyboard;
         _focusDispatcher.FocusChanged += OnFocusChangedForAccessibility;
         _focusDispatcher.FocusChanged += OnFocusChangedForStyles;
@@ -491,13 +468,6 @@ public partial class Form : IDisposable
 
     private bool _isClosed;
 
-    /// <summary>The theme at the moment the form stopped listening to theme changes —
-    /// that is, at window close. Null while the form is subscribed.</summary>
-    private Theme? _themeAtUnsubscribe;
-
-    /// <summary>Localization.Version at window close; −1 while the form is subscribed.</summary>
-    private int _localizationVersionAtUnsubscribe = -1;
-
     /// <summary>The platform destroyed the window. The only point where waiting
     /// for a dialog completes: there is no need to tell apart where the closing
     /// came from, but it must not be missed — ShowDialogAsync would hang forever.</summary>
@@ -522,18 +492,9 @@ public partial class Form : IDisposable
         // App.ThemeChanged is static: while the form stays subscribed, the event
         // holds it together with its whole tree. A closed form nobody disposes —
         // every MessageBox, every InputBox — was never collected. The subscription
-        // is dropped here and renewed if the form is shown again
-        App.ThemeChanged -= OnThemeChanged;
-        App.TextScaleChanged -= OnTextScaleChanged;
-        Localization.Changed -= OnLocalizationChanged;
-        _themeAtUnsubscribe = App.Theme;
-
-        // the text scale's event is static too, and would hold the form the same way
-        DropTextScaleSubscription();
-
-        // static like the theme's event, and it would hold the form the same way
-        Localization.Changed -= OnLocalizationChanged;
-        _localizationVersionAtUnsubscribe = Localization.Version;
+        // is dropped here and renewed if the form is shown again; the text scale's
+        // and the language's events are static too, and go with it
+        StopFollowingApp();
 
         _clock?.Stop();
         _clock?.Dispose();
@@ -594,19 +555,15 @@ public partial class Form : IDisposable
         if (_disposed) return;
         _disposed = true;
 
-        App.ThemeChanged -= OnThemeChanged;
-        App.TextScaleChanged -= OnTextScaleChanged;
-        Localization.Changed -= OnLocalizationChanged;
+        StopFollowingApp();
 
-        _focusDispatcher.FocusChanged -= OnFocusChangedForKeyboard;
-        _focusDispatcher.FocusChanged -= OnFocusChangedForAccessibility;
-        _focusDispatcher.FocusChanged -= OnFocusChangedForStyles;
+        // the focus dispatcher's events are not unsubscribed: the dispatcher is the
+        // form's own and never leaves it, so its handlers hold nothing the form
+        // doesn't. Until 0.20 three of the four were dropped here, two of them twice
 
         _toolTipWake?.Dispose();
         _clock?.Dispose();
 
-        _focusDispatcher.FocusChanged -= OnFocusChangedForKeyboard;
-        _focusDispatcher.FocusChanged -= OnFocusChangedForStyles;
         _focusedForStyles = null;
 
         // a contact holds Chain — the whole path from the root to the pressed element.

@@ -34,6 +34,10 @@ public static class NativePage
         {
             Size = new Size(float.NaN, 240),
             OverflowY = Overflow.Auto,
+
+            // the bar beside the rows, not over them: the native control is a window
+            // above the form's picture, and an overlay bar would go under it
+            ScrollBarMode = ScrollBarMode.Inline,
             Spacing = 6,
             Padding = new Thickness(10),
             CrossAxisAlignment = CrossAxisAlignment.Stretch,

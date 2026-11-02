@@ -36,7 +36,7 @@ Every element supports padding, a margin, transparency, a box shadow, transforms
 `PageControl`, `PageIndicator`
 
 **Containers** — `Panel`, `StackPanel`, `WrapPanel`, `Grid`, `DockPanel`, `UniformGrid`,
-`SplitContainer`, `GridSplitter`, `Border`, `GradientBorder`, `GroupBox`, `Spoiler`,
+`SplitContainer`, `GridSplitter`, [`DockHost`](Docking), `Border`, `GradientBorder`, `GroupBox`, `Spoiler`,
 `ZoomBox`, `GripBox`, `AdaptiveLayout`, `LayoutBuilder`, `RefreshContainer`
 
 **Pictures and charts** — `PictureBox`, `ImageViewer`, `ImageGallery`, `SvgIcon`,

@@ -1,0 +1,24 @@
+{
+  "solution": {
+    "path": "../../ZeppelinForms solution.slnx",
+    "projects": [
+      "bench/ZeppelinForms.Benchmarks/ZeppelinForms.Benchmarks.csproj",
+      "examples/ZF Linux/ZF Linux.csproj",
+      "examples/ZF SharedLib/ZF SharedLib.csproj",
+      "examples/ZF Win/ZF Win.csproj",
+      "src/ZeppelinForms.Analyzers/ZeppelinForms.Analyzers.csproj",
+      "src/ZeppelinForms.Gles/ZeppelinForms.Gles.csproj",
+      "src/ZeppelinForms.Linux/ZeppelinForms.Linux.csproj",
+      "src/ZeppelinForms.Skia/ZeppelinForms.Skia.csproj",
+      "src/ZeppelinForms.Windows/ZeppelinForms.Windows.csproj",
+      "src/ZeppelinForms/ZeppelinForms.csproj",
+      "templates/ZeppelinForms.Templates/ZeppelinForms.Templates.csproj",
+      "tests/ZeppelinForms.ExternalControlTests/ZeppelinForms.ExternalControlTests.csproj",
+      "tests/ZeppelinForms.UnitTests/ZeppelinForms.UnitTests.csproj",
+      "tools/ZeppelinForms.Design/ZeppelinForms.Design.csproj",
+      "tools/ZeppelinForms.Designer/ZeppelinForms.Designer.csproj",
+      "tools/ZeppelinForms.LanguageServer/ZeppelinForms.LanguageServer.csproj",
+      "tools/ZeppelinForms.VisualStudio/ZeppelinForms.VisualStudio.csproj"
+    ]
+  }
+}

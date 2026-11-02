@@ -262,6 +262,17 @@ public partial class DataGridView
         float top = body.Y + cell.Row * RowHeight - _scrollY - _overscroll.Y;
         float width = _widths[cell.Column];
 
+        // the editor over the content, not over a tree's indent and expander
+        float indent = CellIndent(cell.Row, cell.Column);
+
+        if (indent > 0f)
+        {
+            float shift = Math.Min(width, CellPadding.Left + indent);
+
+            left += shift;
+            width -= shift;
+        }
+
         bool inSight =
             top >= body.Y - 0.5f && top + RowHeight <= body.Y + body.Height + 0.5f &&
             left >= body.X - 0.5f && left + width <= body.X + body.Width + 0.5f;

@@ -187,6 +187,97 @@ public abstract class Graphics
 
     /// <summary>A gradient fill.</summary>
     public abstract void FillGradient(Rectangle bounds, CornerRadius radius, GradientStop[] stops, float angle);
+
+    /// <summary>A radial gradient fill: the stops go outward from <paramref name="center"/>
+    /// and reach their end at <paramref name="gradientRadius"/>; past it the last stop's
+    /// color stays. The shape is <paramref name="bounds"/> rounded by <paramref name="radius"/>.</summary>
+    /// <remarks>Virtual since 0.20 with a backend of no gradients in mind: rings of the
+    /// stops' colors, clipped to the shape. Skia's and the GLES backend's are exact.</remarks>
+    public virtual void FillRadialGradient(
+        Rectangle bounds, CornerRadius radius, GradientStop[] stops, Point center, float gradientRadius)
+    {
+        ArgumentNullException.ThrowIfNull(stops);
+
+        if (stops.Length == 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        const int Rings = 24;
+
+        Save();
+        ClipRoundRect(bounds, radius);
+
+        // from the outside in: each ring covers the previous one's middle
+        FillRoundRectangle(bounds, radius, GradientMath.Sample(stops, 1f));
+
+        float r = MathF.Max(0f, gradientRadius);
+
+        for (int i = Rings; i >= 1; i--)
+        {
+            float ring = r * i / Rings;
+
+            FillEllipse(
+                new Rectangle(new Point(center.X - ring, center.Y - ring), new Size(ring * 2f, ring * 2f)),
+                GradientMath.Sample(stops, (i - 0.5f) / Rings));
+        }
+
+        Restore();
+    }
+
+    /// <summary>A sweep — conic — gradient fill: the stops go round
+    /// <paramref name="center"/> clockwise, starting at <paramref name="startAngle"/>
+    /// degrees, 0 pointing right. The shape is <paramref name="bounds"/> rounded by
+    /// <paramref name="radius"/>.</summary>
+    /// <remarks>Virtual since 0.20, as <see cref="FillRadialGradient"/> is: by default
+    /// wedges of the stops' colors.</remarks>
+    public virtual void FillSweepGradient(
+        Rectangle bounds, CornerRadius radius, GradientStop[] stops, Point center, float startAngle)
+    {
+        ArgumentNullException.ThrowIfNull(stops);
+
+        if (stops.Length == 0 || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        const int Wedges = 72;
+
+        // a circle round the center that covers the whole shape
+        float reach = MathF.Max(
+            MathF.Max(Distance(center, bounds.X, bounds.Y), Distance(center, bounds.X + bounds.Width, bounds.Y)),
+            MathF.Max(Distance(center, bounds.X, bounds.Y + bounds.Height), Distance(center, bounds.X + bounds.Width, bounds.Y + bounds.Height)));
+
+        var circle = new Rectangle(new Point(center.X - reach, center.Y - reach), new Size(reach * 2f, reach * 2f));
+
+        Save();
+        ClipRoundRect(bounds, radius);
+
+        for (int i = 0; i < Wedges; i++)
+        {
+            // a hair wider than its share: neighbours overlap, no seam shows between them
+            FillPie(circle, startAngle + 360f * i / Wedges, 360f / Wedges + 0.5f,
+                GradientMath.Sample(stops, (i + 0.5f) / Wedges));
+        }
+
+        Restore();
+
+        static float Distance(Point a, float x, float y) => MathF.Sqrt((a.X - x) * (a.X - x) + (a.Y - y) * (a.Y - y));
+    }
+
+    /// <summary>Light along the outline of a rounded rectangle, as a neon tube gives it:
+    /// the line <paramref name="width"/> wide, blurred by <paramref name="blur"/> — the
+    /// radius as a box shadow's is.</summary>
+    /// <remarks>Virtual since 0.20: by default the stroke in a blurred layer, which every
+    /// backend has. Skia's blurs the stroke itself.</remarks>
+    public virtual void DrawGlow(Rectangle rect, CornerRadius radius, Color color, float width, float blur)
+    {
+        if (color.A == 0 || width <= 0f) return;
+
+        if (blur <= 0f)
+        {
+            DrawRoundRectangle(rect, radius, color, width);
+            return;
+        }
+
+        SaveBlurLayer(blur);
+        DrawRoundRectangle(rect, radius, color, width);
+        Restore();
+    }
     /// <summary>Whether this canvas can divert drawing into a separate layer
     /// and hand over its content. Effects built on redrawing must ask:
     /// without support an element drawn into a capture simply disappears.</summary>

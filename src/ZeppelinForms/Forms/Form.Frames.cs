@@ -19,6 +19,9 @@ public partial class Form
 
     internal void RemoveAnimation(object target, string key) => Clock.Remove(target, key);
 
+    /// <summary>Whether an animation of the target runs under the key.</summary>
+    internal bool IsAnimating(object target, string key) => _clock?.Has(target, key) == true;
+
     /// <summary>A subtree is leaving the form — its animations are removed.</summary>
     internal void CancelAnimationsIn(UIElement root) => Clock.CancelIn(root);
 

@@ -20,6 +20,8 @@ internal static class EffectsPage
             Demo.Section("Over a picture", Gallery(), "Acrylic blurs what is under the element; Blur blurs the element itself"),
             Demo.Section("Tune them", Tuning(), "Effects are a chain on element.Effects; each is replaced as the sliders move"),
             Demo.Section("Shadows", Shadows(), "BoxShadow is a property, so a style sheet or a transition can set it"),
+            Demo.Section("Light", Light(), "Glow lights the border — standing, or a comet running round it; Halo is light behind an element, of its own shape or round. With reduced motion the comet stands"),
+            Demo.Section("Gradients", Gradients(), "Background gradients go along a line; FillRadialGradient and FillSweepGradient draw them round a center"),
             Demo.Section("Opacity", Opacity()),
             Demo.Section("Blend modes", Blending(), "BlendMode puts an element over what is under it as Avalonia's BitmapBlendingMode and CSS mix-blend-mode do"),
             Demo.Section("Glitch", Glitch(), "element.Glitch() and element.StopGlitch()"));
@@ -233,6 +235,106 @@ internal static class EffectsPage
             Card("Large", BoxShadow.Large),
             Card("Colored", new BoxShadow(0, 6, 16, 0, new Color(140, 0x0D, 0x6E, 0xFD))),
             Card("Spread", new BoxShadow(0, 0, 0, 4, new Color(255, 0xD6, 0x33, 0x84))));
+    }
+
+    private static UIElement Light()
+    {
+        Border Tile(string text, Action<Border> light)
+        {
+            var tile = new Border
+            {
+                Size = new(150, 80),
+                CornerRadius = new(10),
+                Background = new Color(255, 0x10, 0x14, 0x24),
+                Margin = new(18),
+                Child = new Label
+                {
+                    Text = text,
+                    TextColor = Colors.White,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                },
+            };
+
+            light(tile);
+            return tile;
+        }
+
+        var cyan = new Color(255, 0x00, 0xE5, 0xFF);
+        var pink = new Color(255, 0xFF, 0x2D, 0x95);
+        var gold = new Color(255, 0xFF, 0xC8, 0x3D);
+
+        // the halo of a glyph's own shape: the star's strokes glow, not a box round it
+        var star = new SvgIcon
+        {
+            PathData = "M12 2 L15 9 L22 9.5 L16.5 14 L18.5 21 L12 17 L5.5 21 L7.5 14 L2 9.5 L9 9 Z",
+            Color = gold,
+            IconSize = 56,
+            Margin = new(24),
+            Halo = new Halo(gold, 14),
+        };
+
+        var lamp = new Border
+        {
+            Size = new(56, 56),
+            CornerRadius = new(28),
+            Background = Colors.White,
+            Margin = new(36),
+            Halo = new Halo(new Color(200, 0xFF, 0xF4, 0xD6), 40, HaloShape.Radial),
+        };
+
+        // all of it on the dark, where light shows
+        var stage = new Border
+        {
+            Background = new Color(255, 0x06, 0x08, 0x10),
+            CornerRadius = new(12),
+            Padding = new(12),
+            Child = Demo.Row(
+                Tile("Neon", t => t.Glow = new Glow(cyan, 14, 2)),
+                Tile("Comet", t => t.Glow = new Glow(pink, 10, 2.5f, GlowMotion.Comet) { Period = TimeSpan.FromSeconds(2.5) }),
+                Tile("Slow and long", t => t.Glow = new Glow(cyan, 8, 2, GlowMotion.Comet) { Period = TimeSpan.FromSeconds(6), CometLength = 0.6f }),
+                star,
+                lamp),
+        };
+
+        return stage;
+    }
+
+    /// <summary>Gradients round a center, drawn as a control draws: in DrawContent.</summary>
+    private sealed class GradientSwatch(Action<Graphics, Rectangle> draw) : DecoratedControl
+    {
+        protected override void DrawContent(Graphics g) => draw(g, ContentBounds);
+    }
+
+    private static UIElement Gradients()
+    {
+        GradientStop[] sunset =
+        [
+            new(new Color(255, 0xFF, 0xD1, 0x66), 0f),
+            new(new Color(255, 0xFF, 0x6B, 0x6B), 0.5f),
+            new(new Color(255, 0x4D, 0x2C, 0x91), 1f),
+        ];
+
+        GradientStop[] wheel =
+        [
+            new(new Color(255, 255, 0, 0), 0f),
+            new(new Color(255, 255, 255, 0), 1f / 6),
+            new(new Color(255, 0, 255, 0), 2f / 6),
+            new(new Color(255, 0, 255, 255), 3f / 6),
+            new(new Color(255, 0, 0, 255), 4f / 6),
+            new(new Color(255, 255, 0, 255), 5f / 6),
+            new(new Color(255, 255, 0, 0), 1f),
+        ];
+
+        GradientSwatch Swatch(Action<Graphics, Rectangle> draw) => new(draw) { Size = new(120, 120), Margin = new(8) };
+
+        return Demo.Row(
+            Swatch((g, r) => g.FillRadialGradient(r, new CornerRadius(12), sunset,
+                new Point(r.X + r.Width / 2f, r.Y + r.Height / 2f), r.Width / 2f)),
+            Swatch((g, r) => g.FillRadialGradient(r, new CornerRadius(12), sunset,
+                new Point(r.X + r.Width * 0.3f, r.Y + r.Height * 0.3f), r.Width)),
+            Swatch((g, r) => g.FillSweepGradient(r, new CornerRadius(r.Width / 2f), wheel,
+                new Point(r.X + r.Width / 2f, r.Y + r.Height / 2f), -90f)));
     }
 
     private static UIElement Opacity()

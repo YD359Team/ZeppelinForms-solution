@@ -20,7 +20,7 @@ namespace ZeppelinForms.Forms.Controls.Tree;
 /// are public, while for the tree they are internal — any write from outside
 /// would drift apart from the projection.
 /// </remarks>
-public class TreeView : DecoratedPanel, IInputElement
+public partial class TreeView : DecoratedPanel, IInputElement, ITreeHost
 {
     private readonly VirtualizingStackPanel _panel = new();
     private readonly List<object> _flat = [];
@@ -114,7 +114,8 @@ public class TreeView : DecoratedPanel, IInputElement
 
     /// <summary>A check box before every node: <see cref="TreeNode.IsChecked"/>.
     /// A click on it, or Space, checks and unchecks; Space does it for all the
-    /// selected nodes at once.</summary>
+    /// selected nodes at once. What a change does to the other nodes is
+    /// <see cref="CheckPropagation"/>.</summary>
     public bool CheckBoxes
     {
         get;
@@ -147,9 +148,6 @@ public class TreeView : DecoratedPanel, IInputElement
     /// is the lead — <see cref="SelectedNode"/>.</summary>
     public event EventHandler<TreeNode?>? SelectionChanged;
 
-    /// <summary>A node was checked or unchecked — from its check box, Space or code.</summary>
-    public event EventHandler<TreeNode>? NodeCheckedChanged;
-
     /// <summary>A node was double-clicked, or Enter was pressed on it.</summary>
     public event EventHandler<TreeNodeInvokedEventArgs>? NodeInvoked;
 
@@ -170,7 +168,12 @@ public class TreeView : DecoratedPanel, IInputElement
     {
         if (_updateDepth == 0) return;
 
-        if (--_updateDepth > 0 || !_rebuildPending) return;
+        if (--_updateDepth > 0) return;
+
+        // the check boxes first: the rows rebuilt next draw the states they come to
+        FlushPendingChecks();
+
+        if (!_rebuildPending) return;
 
         _rebuildPending = false;
         Rebuild();
@@ -178,16 +181,28 @@ public class TreeView : DecoratedPanel, IInputElement
 
     private void OnNodeExpanding(TreeNode node)
     {
-        if (NodeExpanding is null) return;
+        if (NodeExpanding is null && _itemsSource is null) return;
+
+        // what the node was before it had children to show: a checked folder read now
+        // checks the files it got, see CascadeIntoNewChildren
+        CheckedState before = node.CheckedState;
+        bool hadChildren = node.Children.Count > 0;
 
         BeginUpdate();
 
         try
         {
-            NodeExpanding.Invoke(this, node);
+            // the source's children first: a handler of the event sees them made
+            _itemsSource?.Realize(node);
+
+            NodeExpanding?.Invoke(this, node);
         }
         finally
         {
+            // children whose items have check states of their own keep them
+            if (!hadChildren && node.Children.Count > 0 && _itemsSource is not { ReadsChecked: true })
+                CascadeIntoNewChildren(node, before);
+
             EndUpdate();
         }
     }
@@ -234,7 +249,8 @@ public class TreeView : DecoratedPanel, IInputElement
         Children.Add(_panel);
 
         _root.Changed += OnTreeChanged;
-        _root.CheckedChanged += node => NodeCheckedChanged?.Invoke(this, node);
+        _root.CheckedChanged += OnNodeCheckedChanged;
+        _root.ChildrenChanged += OnNodeChildrenChanged;
         _root.Expanding += OnNodeExpanding;
 
         // the tree is a container, not an in-place control: there is no point
@@ -293,6 +309,10 @@ public class TreeView : DecoratedPanel, IInputElement
 
     private void OnTreeChanged(TreeNode node, TreeChangeKind kind)
     {
+        // a check action changes nothing but states: the rows are redrawn once at its
+        // end, rather than the tree being asked for its icons per node it takes along
+        if (kind == TreeChangeKind.Content && _checkChanges is not null) return;
+
         if (_updateDepth > 0)
         {
             _nodesHaveIcons = null;
@@ -307,6 +327,9 @@ public class TreeView : DecoratedPanel, IInputElement
         // rows are measured again — a redraw would keep their old widths
         if (kind == TreeChangeKind.Content && ShowsIcons == icons)
         {
+            // a check state or a caption: what the row's pseudo-classes say may be stale
+            RealizedRow(node)?.SyncState();
+
             InvalidateVisual();
             return;
         }
@@ -333,6 +356,10 @@ public class TreeView : DecoratedPanel, IInputElement
         // there is nothing left to rename
         if (_editing is not null && !_flat.Contains(_editing))
             EndEdit(cancel: true);
+
+        // the rows that stay are the same objects: an expanded node's row turns its
+        // expander and takes :expanded here
+        SyncRows();
     }
 
     /// <summary>The selected nodes may have gone away together with a collapsed
@@ -361,7 +388,32 @@ public class TreeView : DecoratedPanel, IInputElement
             RaiseSelectionChanged();
     }
 
-    private TreeViewItem CreateRow(object item) => new(this, (TreeNode)item);
+    private TreeViewItem CreateRow(object item) => CreateItem((TreeNode)item);
+
+    /// <summary>Make the row of a node. A tree of its own kind overrides it for rows of
+    /// its own — one that draws its expander or check box itself, see
+    /// <see cref="TreeViewItem.DrawExpander"/>.</summary>
+    /// <remarks>A row belongs to its node for as long as it is in sight: rows are not
+    /// reused for other nodes.</remarks>
+    protected virtual TreeViewItem CreateItem(TreeNode node) => new(this, node);
+
+    /// <summary>The row of a node, while it is in sight; null — it isn't.</summary>
+    private TreeViewItem? RealizedRow(TreeNode node)
+    {
+        foreach (UIElement child in _panel.Children)
+            if (child is TreeViewItem row && ReferenceEquals(row.Node, node))
+                return row;
+
+        return null;
+    }
+
+    /// <summary>Every row in sight shows its node's state: the pseudo-classes, the expander.</summary>
+    private void SyncRows()
+    {
+        foreach (UIElement child in _panel.Children)
+            if (child is TreeViewItem row)
+                row.SyncState();
+    }
 
     // ===== selection =====
 
@@ -494,6 +546,9 @@ public class TreeView : DecoratedPanel, IInputElement
 
     private void RaiseSelectionChanged()
     {
+        // :selected on the rows before the handlers, which may read a row's style
+        SyncRows();
+
         SelectionChanged?.Invoke(this, SelectedNode);
 
         // a redraw rather than a rebuild: the set of visible rows is the same,
@@ -537,21 +592,6 @@ public class TreeView : DecoratedPanel, IInputElement
 
         if (!args.Handled && node.HasChildren)
             node.IsExpanded = !node.IsExpanded;
-    }
-
-    /// <summary>Check or uncheck the selected nodes together, by the lead's state:
-    /// what the lead becomes, all of them become.</summary>
-    private void ToggleCheckedSelection()
-    {
-        if (SelectedNode is not { } lead) return;
-
-        bool check = !lead.IsChecked;
-
-        foreach (TreeNode node in SelectedNodes)
-            node.IsChecked = check;
-
-        // the lead even if it isn't in the set — a node can lead an emptied selection
-        lead.IsChecked = check;
     }
 
     // ===== renaming =====

@@ -61,6 +61,12 @@ internal sealed class ZfRussianStrings : StringTable
         Add(ZfText.CloseTab, "Закрыть вкладку");
         Add(ZfText.NewTab, "Новая вкладка");
 
+        Add(ZfText.DockFloat, "Открепить");
+        Add(ZfText.DockBack, "Закрепить");
+        Add(ZfText.DockAutoHide, "Скрывать автоматически");
+        Add(ZfText.DockClose, "Закрыть");
+        Add(ZfText.DockCloseOthers, "Закрыть остальные");
+
         Add(ZfText.Pane, "Панель");
         Add(ZfText.OpenNavigation, "Открыть навигацию");
         Add(ZfText.CloseNavigation, "Закрыть навигацию");

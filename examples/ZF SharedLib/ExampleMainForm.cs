@@ -76,6 +76,7 @@ public partial class ExampleMainForm : Form
         view.Items.Add(SplitViewItem.Header("Layout"));
         view.Items.Add(new SplitViewItem("Panels", Icons.Panels, PanelsPage.Create));
         view.Items.Add(new SplitViewItem("Splitters and adaptive", Icons.Split, SplittersPage.Create));
+        view.Items.Add(new SplitViewItem("Docking", Icons.Dock, DockingPage.Create));
         view.Items.Add(new SplitViewItem("Containers", Icons.Box, ContainersPage.Create));
         view.Items.Add(new SplitViewItem("Navigation", Icons.Tabs, NavigationPage.Create));
         view.Items.Add(new SplitViewItem("Mobile", Icons.Phone, MobilePage.Create));
@@ -121,6 +122,18 @@ public partial class ExampleMainForm : Form
 
         Content = _showcase;
         FitToWidth();
+    }
+
+    /// <summary>Open the page of the menu with this name — "Docking", "Settings" —, as a
+    /// task of the Windows jump list asks. False — there is none.</summary>
+    public bool ShowPage(string name)
+    {
+        if (_showcase.Items.Concat(_showcase.FooterItems)
+                .FirstOrDefault(i => string.Equals(i.Text, name, StringComparison.OrdinalIgnoreCase)) is not { } item)
+            return false;
+
+        _showcase.SelectedItem = item;
+        return true;
     }
 
     /// <summary>A phone gets a menu over the pages, closed until it is wanted; a desktop

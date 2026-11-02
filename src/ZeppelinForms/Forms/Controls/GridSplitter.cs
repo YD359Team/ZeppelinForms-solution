@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using ZeppelinForms.Core.Collections;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -84,7 +85,7 @@ public partial class GridSplitter : DecoratedControl
     private (int Before, int After) Neighbours =>
         IsVertical ? (Column - 1, Column + 1) : (Row - 1, Row + 1);
 
-    private List<GridLength> Definitions(Grid grid) =>
+    private ZfCollection<GridLength> Definitions(Grid grid) =>
         IsVertical ? grid.ColumnDefinitions : grid.RowDefinitions;
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
@@ -97,7 +98,7 @@ public partial class GridSplitter : DecoratedControl
 
         var (before, after) = Neighbours;
 
-        List<GridLength> definitions = Definitions(grid);
+        ZfCollection<GridLength> definitions = Definitions(grid);
 
         if (before < 0 || after >= definitions.Count) return;
 
@@ -133,7 +134,7 @@ public partial class GridSplitter : DecoratedControl
 
         if (newBefore < MinTrackSize || newAfter < MinTrackSize) return;
 
-        List<GridLength> definitions = Definitions(grid);
+        ZfCollection<GridLength> definitions = Definitions(grid);
 
         // fixed sizes instead of stars: after dragging the user
         // has set a specific proportion, and it must not drift
@@ -167,7 +168,7 @@ public partial class GridSplitter : DecoratedControl
         if (ParentGrid is { } grid)
         {
             var (before, after) = Neighbours;
-            List<GridLength> definitions = Definitions(grid);
+            ZfCollection<GridLength> definitions = Definitions(grid);
 
             if (before >= 0 && after < definitions.Count)
             {
@@ -194,7 +195,7 @@ public partial class GridSplitter : DecoratedControl
             return IsVertical ? child.ActualSize.Width : child.ActualSize.Height;
         }
 
-        List<GridLength> definitions = Definitions(grid);
+        ZfCollection<GridLength> definitions = Definitions(grid);
 
         return index >= 0 && index < definitions.Count && !definitions[index].IsStar
             ? definitions[index].Value
