@@ -430,8 +430,11 @@ internal sealed class MarkdownLayouter
 
         if (item.IsChecked is { } done)
         {
+            // in the middle of the marker's column, as the bullets are: flush with the
+            // list's edge, the box's stroke went half past it — past the viewer's
+            // content edge too, which cut the box's left side
             float size = _font.Size * 0.95f;
-            float left = rtl ? column.X + column.Width - size : column.X;
+            float left = column.X + (column.Width - size) / 2f;
 
             _layout.Boxes.Add(new MarkdownBox(MarkdownBoxKind.Check,
                 new Rectangle(new Point(left, centerY - size / 2f), new Size(size, size)),

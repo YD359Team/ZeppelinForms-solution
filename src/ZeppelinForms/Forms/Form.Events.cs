@@ -84,7 +84,18 @@ public partial class Form
             var args = new FormClosingEventArgs(reason);
             OnClosing(args);
 
-            return !args.Cancel;
+            if (args.Cancel) return false;
+
+            // a dialog lets its owner go before its window goes. As a window is
+            // destroyed, Windows hands the activation to the next window that can take
+            // it, and with the owner still disabled that was another application's: its
+            // window came up over the owner for a moment — a dark editor, a black flash —
+            // before EndDialog enabled and activated the owner again. Win32's own
+            // EndDialog enables the owner first for the same reason
+            if (IsDialog && Owner?.PlatformWindow is { } ownerWindow)
+                ownerWindow.SetEnabled(true);
+
+            return true;
         }
         finally
         {

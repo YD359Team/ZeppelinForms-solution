@@ -378,7 +378,14 @@ public partial class MarkdownViewer : DecoratedPanel, IInputElement
                 }
                 else
                 {
-                    g.DrawRoundRectangle(r, new CornerRadius(box.Radius), color, 1.5f);
+                    // the stroke inside the box, as the filled one is: on its edge, half
+                    // of it stood outside the box
+                    const float stroke = 1.5f;
+                    var inside = new Rectangle(
+                        new Point(r.X + stroke / 2f, r.Y + stroke / 2f),
+                        new Size(r.Width - stroke, r.Height - stroke));
+
+                    g.DrawRoundRectangle(inside, new CornerRadius(box.Radius), color, stroke);
                 }
 
                 break;

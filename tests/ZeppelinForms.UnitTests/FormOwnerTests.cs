@@ -88,4 +88,40 @@ public class FormOwnerTests
 
         Assert.Null(dialog.Owner);
     }
+
+    [Fact]
+    public async Task ADialogEnablesItsOwnerBeforeItsWindowGoes()
+    {
+        Form main = CreateMain();
+        var ownerWindow = (HeadlessWindow)main.PlatformWindow!;
+        var dialog = new Form { Size = new Size(200, 120) };
+
+        bool? enabledAtClose = null;
+        dialog.Closed += (_, _) => enabledAtClose = ownerWindow.IsEnabled;
+
+        Task<DialogResult<object>> shown = dialog.ShowDialogAsync<object>(main);
+        Assert.False(ownerWindow.IsEnabled);
+
+        // Windows gives the activation to the next window that can take it as a window
+        // is destroyed: a disabled owner can't, and another application's window came up
+        dialog.Accept();
+        await shown;
+
+        Assert.True(enabledAtClose);
+    }
+
+    [Fact]
+    public async Task ADialogKeptOpenKeepsItsOwnerDisabled()
+    {
+        Form main = CreateMain();
+        var ownerWindow = (HeadlessWindow)main.PlatformWindow!;
+        var dialog = new Form { Size = new Size(200, 120) };
+
+        dialog.Closing += (_, e) => e.Cancel = true;
+
+        _ = dialog.ShowDialogAsync<object>(main);
+        dialog.Accept();
+
+        Assert.False(ownerWindow.IsEnabled);
+    }
 }

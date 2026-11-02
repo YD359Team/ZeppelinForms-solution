@@ -141,6 +141,23 @@ public class MarkdownViewerTests
     }
 
     [Fact]
+    public void ATaskBoxStandsInsideItsMarkerColumn()
+    {
+        (_, MarkdownViewer viewer) = Create("- [x] done\n- [ ] todo");
+
+        MarkdownLayout layout = viewer.Layout!;
+        MarkdownLine done = layout.Lines.Single(l => l.Runs[0].Text == "done");
+
+        // off the list's edge, with room for its stroke: flush with it, the stroke was
+        // cut by the viewer's clip
+        foreach (MarkdownBox box in layout.Boxes.Where(b => b.Kind == MarkdownBoxKind.Check))
+        {
+            Assert.True(box.Bounds.X >= 1f);
+            Assert.True(box.Bounds.X + box.Bounds.Width < done.Bounds.X);
+        }
+    }
+
+    [Fact]
     public void AListMarkerStandsAtItsItemsFirstLine()
     {
         (_, MarkdownViewer viewer) = Create("- one\n- two");

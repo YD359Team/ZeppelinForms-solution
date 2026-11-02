@@ -1,6 +1,6 @@
 ﻿using System.Collections.Specialized;
-using System.Diagnostics;
 using System.Globalization;
+using ZeppelinForms.Core.Caching;
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Core.System;
 using ZeppelinForms.Drawing;
@@ -30,7 +30,16 @@ public partial class MapControl : InteractiveControl
     });
 
     private readonly TileCache _cache = new();
-    private readonly string _diskCacheDirectory;
+
+    /// <summary>The tiles kept on disk between runs, shared by every map: by default up
+    /// to 100 MB in ZeppelinForms/MapTiles of the temporary folder, the tiles used longest
+    /// ago going first when it is full. Set another — a folder of the application's own,
+    /// another size — before the maps load; null keeps no tiles on disk.</summary>
+    /// <remarks>Until 0.21 each map counted the folder as it was made and emptied it whole
+    /// once it was past its size: every tile went, the ones the user looks at every day
+    /// with the rest.</remarks>
+    public static DiskCache? DiskCache { get; set; } =
+        new(Path.Combine(Path.GetTempPath(), "ZeppelinForms", "MapTiles"), CacheSizeLimit);
 
     private double _centerLatitude = 55.751244;
     private double _centerLongitude = 37.618423;
@@ -108,30 +117,6 @@ public partial class MapControl : InteractiveControl
         // standing centered at 400×300 in the middle of it
         SetControlDefault(HorizontalAlignmentProperty, Enums.HorizontalAlignment.Stretch);
         SetControlDefault(VerticalAlignmentProperty, Enums.VerticalAlignment.Stretch);
-
-        _diskCacheDirectory = Path.Combine(Path.GetTempPath(), "ZeppelinForms", "MapTiles");
-        if (!Directory.Exists(_diskCacheDirectory)) 
-        {
-            Directory.CreateDirectory(_diskCacheDirectory);
-        }
-        else
-        {
-            try
-            {
-                DirectoryInfo cacheDir = new DirectoryInfo(_diskCacheDirectory);
-                if (cacheDir.GetFiles().Sum(x => x.Length) >= CacheSizeLimit)
-                {
-                    foreach (var file in cacheDir.EnumerateFiles())
-                    {
-                        file.Delete();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.Fail($"Error when map cache cleaning. Message: {ex.Message}");
-            }
-        }
     }
 
     public void GoTo(double latitude, double longitude, int? zoom = null)
@@ -397,15 +382,14 @@ public partial class MapControl : InteractiveControl
     {
         try
         {
-            string path = Path.Combine(_diskCacheDirectory, $"{StableKey(source)}_{zoom}_{x}_{y}.png");
+            string key = $"{StableKey(source)}_{zoom}_{x}_{y}.png";
 
-            byte[] data;
+            // the cache as it is now: a new one set meanwhile serves the next tile
+            DiskCache? disk = DiskCache;
 
-            if (File.Exists(path))
-            {
-                data = await File.ReadAllBytesAsync(path);
-            }
-            else
+            byte[]? data = disk is null ? null : await disk.ReadAsync(key);
+
+            if (data is null)
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, source.BuildUrl(x, y, zoom));
                 request.Headers.Add("User-Agent", UserAgent);
@@ -415,7 +399,10 @@ public partial class MapControl : InteractiveControl
 
                 data = await response.Content.ReadAsByteArrayAsync();
 
-                await File.WriteAllBytesAsync(path, data);
+                // a tile the disk refused is still shown: it is only downloaded again
+                // the next time
+                if (disk is not null)
+                    await disk.WriteAsync(key, data);
             }
 
             using var stream = new MemoryStream(data);

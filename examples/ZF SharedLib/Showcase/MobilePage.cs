@@ -1,5 +1,6 @@
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Controls.Navigation;
@@ -50,6 +51,10 @@ internal static class MobilePage
         write.Classes.Add("accent");
         write.Click += (_, _) => _ = inbox.PushAsync(new Page(Compose(), "New message"));
 
+        // the button writes from the list: over a message or a message being written it
+        // stood on the page's own buttons — Send among them
+        inbox.Navigated += (_, _) => write.IsVisible = !inbox.CanGoBack;
+
         var scaffold = new Scaffold
         {
             AppBar = appBar,
@@ -92,9 +97,17 @@ internal static class MobilePage
 
     private static SwipeView Row(NavigationHost host, StackPanel list, string sender)
     {
+        // the sender and the line under it start at the row's edge, as a mail list reads:
+        // a label stands centered in its slot by itself
         var text = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, Padding = new Thickness(16, 10) };
-        text.Children.Add(new Label { Text = sender, TextStyle = TextStyle.BodyStrong });
-        text.Children.Add(new Label { Text = $"A message from {sender} about the release", TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 1 });
+        text.Children.Add(new Label { Text = sender, TextStyle = TextStyle.BodyStrong, HorizontalAlignment = HorizontalAlignment.Left });
+        text.Children.Add(new Label
+        {
+            Text = $"A message from {sender} about the release",
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxLines = 1,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        });
 
         var row = new SwipeView(text) { RightMode = SwipeMode.Execute };
 
@@ -139,25 +152,81 @@ internal static class MobilePage
         return page;
     }
 
+    /// <summary>A message being written: the fields across the screen, the text taking
+    /// the height that is left, Send under it. The fields used to stand at their own
+    /// width in the middle of the page — a text box doesn't stretch by itself.</summary>
     private static UIElement Compose()
     {
-        var form = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12, Padding = new Thickness(16), CrossAxisAlignment = CrossAxisAlignment.Stretch };
+        var form = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12, Padding = new Thickness(16) };
 
-        form.Children.Add(new TextBox { Watermark = "To" });
-        form.Children.Add(new TextBox { Watermark = "Message", IsMultiline = true, Size = new Size(float.NaN, 160) });
+        form.Children.Add(new TextBox { Watermark = "To", HorizontalAlignment = HorizontalAlignment.Stretch });
+        form.Children.Add(new TextBox { Watermark = "Subject", HorizontalAlignment = HorizontalAlignment.Stretch });
+        form.Children.Add(new TextBox
+        {
+            Watermark = "Message",
+            IsMultiline = true,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            FlexGrow = 1,
+        });
+
+        var send = new Button { Icon = Icons.Send, Text = "Send", HorizontalAlignment = HorizontalAlignment.Right };
+        send.Classes.Add("accent");
+
+        send.Click += async (_, _) =>
+        {
+            Page? page = null;
+
+            for (UIElement? element = send; element is not null && page is null; element = element.Parent)
+                page = element as Page;
+
+            Form? owner = send.FindForm();
+
+            if (page?.NavigationHost is { } host) await host.PopAsync();
+            if (owner is not null) await owner.ShowSnackbarAsync("Message sent");
+        };
+
+        form.Children.Add(send);
 
         return form;
     }
 
+    /// <summary>The settings as a phone lists them: a row each, the caption at the start,
+    /// the switch at the end, the switches one under another. A switch with its own text
+    /// stood centered at its own width, every row at a different place.</summary>
     private static UIElement Settings()
     {
-        var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12, Padding = new Thickness(16) };
+        var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 4, Padding = new Thickness(16, 8) };
 
-        column.Children.Add(new ToggleSwitch { Text = "Notifications", IsOn = true });
-        column.Children.Add(new ToggleSwitch { Text = "Load pictures" });
-        column.Children.Add(new ToggleSwitch { Text = "Dark theme" });
+        column.Children.Add(Setting("Notifications", isOn: true));
+        column.Children.Add(Setting("Load pictures", isOn: false));
+        column.Children.Add(Setting("Dark theme", isOn: false));
 
         return column;
+    }
+
+    private static UIElement Setting(string caption, bool isOn)
+    {
+        var label = new Label
+        {
+            Text = caption,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
+            FlexGrow = 1,
+        };
+
+        // the caption names the switch for a screen reader, as its own text did
+        var toggle = new ToggleSwitch { IsOn = isOn, LabeledBy = label, VerticalAlignment = VerticalAlignment.Center };
+        label.Click += (_, _) => toggle.IsOn = !toggle.IsOn;
+
+        return new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 12,
+            Padding = new Thickness(0, 8),
+            CrossAxisAlignment = CrossAxisAlignment.Center,
+            Children = { label, toggle },
+        };
     }
 
     private static Label Centered(string text) => new()

@@ -2,6 +2,7 @@
 using ZeppelinForms.Core.Collections;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
+using ZeppelinForms.Forms.Controls.Text;
 using ZeppelinForms.Forms.Enums;
 using ZeppelinForms.Forms.Styling;
 using ZeppelinForms.Input.Mouse;
@@ -72,6 +73,26 @@ public partial class RadarChart : ChartBase
     public int RingCount { get; set; } = 4;
 
     public bool ShowLegend { get; set; } = true;
+
+    /// <summary>Keep the axis labels off the chart: each one stands wholly outside the
+    /// chart's disc, on the side its ray points to, and the disc shrinks until every
+    /// label fits in the control. On by default. Off — the labels are centered at a fixed
+    /// distance past the ray's end, as before 0.21: the disc is larger, and a long label
+    /// on a side ray runs over the grid and the series.</summary>
+    public bool KeepLabelsClear
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+
+            field = value;
+            InvalidateVisual();
+        }
+    } = true;
+
+    /// <summary>The space between the chart's disc and its labels, kept clear.</summary>
+    private const float LabelGap = 6f;
 
     /// <summary>The opacity of a series fill. The outline is always solid.</summary>
     public float FillOpacity { get; set; } = 0.22f;
@@ -145,13 +166,96 @@ public partial class RadarChart : ChartBase
             float width = content.Width - LegendWidth;
             float height = content.Height - TitleHeight;
 
-            float margin = LabelMargin;
-            float radius = Math.Max(0, Math.Min(width, height) / 2f - margin);
+            float radius = KeepLabelsClear && Categories.Count >= 3
+                ? ClearLayout(width / 2f, height / 2f).Radius
+                : Math.Max(0, Math.Min(width, height) / 2f - LabelMargin);
 
             return (
                 new Point(content.X + width / 2f, content.Y + TitleHeight + height / 2f),
                 radius);
         }
+    }
+
+    /// <summary>The size of a label's box: its text, and a pixel on each side so the
+    /// text isn't cut at the measured width.</summary>
+    private Size LabelSize(string category) =>
+        new(TextMeasurer.Current.MeasureText(category, EffectiveFont).Width + 2f, TextMeasurer.LineHeight(EffectiveFont));
+
+    /// <summary>A unit vector along a category's ray.</summary>
+    private static (float X, float Y) Direction(int index, int count)
+    {
+        float angle = (-90f + 360f * index / count) * MathF.PI / 180f;
+
+        return (MathF.Cos(angle), MathF.Sin(angle));
+    }
+
+    /// <summary>How far past the disc a label's center stands so that its box lies wholly
+    /// outside the disc: the box's half-extent along the ray, plus the gap. The box's side
+    /// nearest the center then lies past the line tangent to the disc at the ray's end.</summary>
+    private static float LabelReach(Size label, (float X, float Y) direction) =>
+        LabelGap + MathF.Abs(direction.X) * label.Width / 2f + MathF.Abs(direction.Y) * label.Height / 2f;
+
+    /// <summary>The smallest share of the area the disc keeps when the labels are too long
+    /// to fit beside a larger one: the labels are shortened instead, so a chart with long
+    /// captions in a small control still shows its data.</summary>
+    private const float MinDiscShare = 0.3f;
+
+    /// <summary>The disc and the labels' boxes with every label wholly outside the disc and
+    /// within the area: the largest disc the labels allow, but no smaller than
+    /// <see cref="MinDiscShare"/> of the area — then the labels that can't fit beside it
+    /// are narrowed, to be drawn shortened with an ellipsis.</summary>
+    private (float Radius, Size[] Labels) ClearLayout(float halfWidth, float halfHeight)
+    {
+        const float Epsilon = 1e-3f;
+
+        int count = Categories.Count;
+        var labels = new Size[count];
+
+        for (int i = 0; i < count; i++)
+            labels[i] = LabelSize(Categories[i]);
+
+        float radius = Math.Min(halfWidth, halfHeight);
+
+        for (int i = 0; i < count; i++)
+        {
+            Size label = labels[i];
+            (float x, float y) = Direction(i, count);
+            float reach = LabelReach(label, (x, y));
+
+            // the label's center is at (radius + reach) along the ray; its far edge must
+            // stay within the area on both axes
+            if (MathF.Abs(x) > Epsilon)
+                radius = Math.Min(radius, (halfWidth - label.Width / 2f) / MathF.Abs(x) - reach);
+
+            if (MathF.Abs(y) > Epsilon)
+                radius = Math.Min(radius, (halfHeight - label.Height / 2f) / MathF.Abs(y) - reach);
+        }
+
+        float floor = Math.Min(halfWidth, halfHeight) * MinDiscShare;
+
+        if (radius >= floor) return (radius, labels);
+
+        // the disc keeps its floor, and each label gets the width that still fits beside
+        // it: the same two conditions, solved for the width instead of the radius
+        for (int i = 0; i < count; i++)
+        {
+            (float x, float y) = Direction(i, count);
+            float ax = MathF.Abs(x);
+            float ay = MathF.Abs(y);
+            float height = labels[i].Height;
+            float width = labels[i].Width;
+
+            // across: ax·(R + gap + ax·w/2 + ay·h/2) + w/2 ≤ halfWidth
+            width = Math.Min(width, 2f * (halfWidth - ax * (floor + LabelGap + ay * height / 2f)) / (ax * ax + 1f));
+
+            // up and down: ay·(R + gap + ax·w/2 + ay·h/2) + h/2 ≤ halfHeight
+            if (ax * ay > Epsilon)
+                width = Math.Min(width, 2f * (halfHeight - height / 2f - ay * (floor + LabelGap + ay * height / 2f)) / (ax * ay));
+
+            labels[i] = new Size(Math.Max(0f, width), height);
+        }
+
+        return (floor, labels);
     }
 
     /// <summary>A point on a category's ray. Ray 0 points up, then clockwise —
@@ -322,12 +426,45 @@ public partial class RadarChart : ChartBase
     {
         float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
 
+        if (KeepLabelsClear)
+        {
+            // each box wholly outside the disc, on the side its ray points to: the series
+            // and the grid never run under a label
+            Rectangle content = ContentBounds;
+            Size[] labels = ClearLayout((content.Width - LegendWidth) / 2f, (content.Height - TitleHeight) / 2f).Labels;
+
+            for (int i = 0; i < axes; i++)
+            {
+                Size label = labels[i];
+
+                if (label.Width <= 0f) continue;
+
+                Point middle = At(center, radius + LabelReach(label, Direction(i, axes)), i, axes);
+
+                var box = new Rectangle(
+                    new Point(middle.X - label.Width / 2f, middle.Y - label.Height / 2f),
+                    label);
+
+                // a label narrowed to fit beside the disc is shortened, not drawn past its box
+                string text = Categories[i];
+
+                if (label.Width < LabelSize(text).Width)
+                    text = TextWrapper.Ellipsize(text, Math.Max(0f, label.Width - 2f), EffectiveFont, atWord: false);
+
+                g.DrawText(text, box, LabelColor, EffectiveFont,
+                    HorizontalContentAlignment.Center, VerticalContentAlignment.Center);
+            }
+
+            return;
+        }
+
         for (int i = 0; i < axes; i++)
         {
             Point anchor = At(center, radius + 10f, i, axes);
 
-            // the label is hung on the end of the ray and aligned by the side
-            // the ray came from: otherwise the text would run over the chart
+            // the label is centered a little past the end of the ray, in a box as wide
+            // as the widest label: a long one on a side ray runs over the chart, which is
+            // what KeepLabelsClear is for
             float width = LabelMargin * 2f;
 
             var rect = new Rectangle(

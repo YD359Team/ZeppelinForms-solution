@@ -61,6 +61,38 @@
 - A command's `CanExecuteChanged` raised on a worker thread — an `AsyncRelayCommand`
   ending its work — enables or disables the button on the form's thread
 
+### Charts
+
+- `RadarChart.KeepLabelsClear`, on by default: every axis label stands wholly outside the
+  disc and inside the control — the disc is made as large as the labels allow. Long
+  labels on the side rays used to run over the grid and the series. When the labels are
+  too long for a disc of at least three tenths of the area, the disc keeps that share and
+  the labels are shortened with an ellipsis. Off, the labels are placed as before
+
+### Caching
+
+- `DiskCache` (`ZeppelinForms.Core.Caching`): files kept on disk between runs by key,
+  within a size. Past the limit the entries used longest ago go first, down to nine
+  tenths of it; a read or a write is a use. Writes are atomic, errors of the file system
+  are a miss. For anything downloaded or worked out once and asked for again
+- The map's tile cache is a `DiskCache`: `MapControl.DiskCache`, shared by every map,
+  100 MB in ZeppelinForms/MapTiles of the temporary folder. Set another folder or size,
+  or null to keep no tiles on disk. Until 0.21 a map emptied the whole folder as it was
+  made once the folder was past its size — the tiles of the places looked at every day
+  went with the rest
+
+### Fixes
+
+- Windows: the owner of a dialog — a message box — flashed black, or another
+  application's window came up over it, as the dialog closed. The dialog destroyed its
+  window while the owner was still disabled, and Windows gave the activation elsewhere.
+  The owner is enabled first now, as `EndDialog` does
+- Markdown: the box of a task list item was cut on its left. It is centered in the
+  marker column, and its border is drawn inside the box
+- Example: the mobile page's message form fills the screen — the fields stretched, the
+  message taking the rest of the height, a Send button — and the settings' switches
+  stand in one column at the right edge, their captions clickable
+
 
 ## [0.20.0]	Lighthouse of Alexandria
 

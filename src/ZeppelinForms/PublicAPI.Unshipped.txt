@@ -1,9 +1,24 @@
 #nullable enable
 ZeppelinForms.Accessibility.AccessibilityProperty.Caret = 6 -> ZeppelinForms.Accessibility.AccessibilityProperty
+ZeppelinForms.Core.Caching.DiskCache
+ZeppelinForms.Core.Caching.DiskCache.Clear() -> void
+ZeppelinForms.Core.Caching.DiskCache.Contains(string! key) -> bool
+ZeppelinForms.Core.Caching.DiskCache.Directory.get -> string!
+ZeppelinForms.Core.Caching.DiskCache.DiskCache(string! directory, long maxBytes) -> void
+ZeppelinForms.Core.Caching.DiskCache.MaxBytes.get -> long
+ZeppelinForms.Core.Caching.DiskCache.ReadAsync(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]?>!
+ZeppelinForms.Core.Caching.DiskCache.Remove(string! key) -> bool
+ZeppelinForms.Core.Caching.DiskCache.Size.get -> long
+ZeppelinForms.Core.Caching.DiskCache.Trim() -> void
+ZeppelinForms.Core.Caching.DiskCache.WriteAsync(string! key, System.ReadOnlyMemory<byte> data, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+ZeppelinForms.Forms.Controls.Charts.RadarChart.KeepLabelsClear.get -> bool
+ZeppelinForms.Forms.Controls.Charts.RadarChart.KeepLabelsClear.set -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.SelectionChanged -> System.EventHandler?
 override ZeppelinForms.Accessibility.Peers.TextBoxPeer.CaretIndex.get -> int
 override ZeppelinForms.Accessibility.Peers.TextBoxPeer.SelectionLength.get -> int
 override ZeppelinForms.Accessibility.Peers.TextBoxPeer.SelectionStart.get -> int
+static ZeppelinForms.Forms.Controls.Map.MapControl.DiskCache.get -> ZeppelinForms.Core.Caching.DiskCache?
+static ZeppelinForms.Forms.Controls.Map.MapControl.DiskCache.set -> void
 virtual ZeppelinForms.Accessibility.AccessibilityPeer.CaretIndex.get -> int
 virtual ZeppelinForms.Accessibility.AccessibilityPeer.SelectionLength.get -> int
 virtual ZeppelinForms.Accessibility.AccessibilityPeer.SelectionStart.get -> int
