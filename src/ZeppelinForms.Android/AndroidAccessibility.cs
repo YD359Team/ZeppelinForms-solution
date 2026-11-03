@@ -409,7 +409,7 @@ internal sealed class AndroidAccessibility : AccessibilityNodeProvider
 
         _reviewPending = true;
 
-        long wait = ReviewIntervalMs - (Environment.TickCount64 - _lastReview);
+        long wait = ReviewIntervalMs - (System.Environment.TickCount64 - _lastReview);
 
         if (wait <= 0)
             _platform.Post(Review);
@@ -423,7 +423,7 @@ internal sealed class AndroidAccessibility : AccessibilityNodeProvider
 
         if (!_listening) return;
 
-        _lastReview = Environment.TickCount64;
+        _lastReview = System.Environment.TickCount64;
         _tree.Review();
 
         Flush();
