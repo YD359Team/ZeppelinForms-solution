@@ -36,6 +36,16 @@ namespace ZeppelinForms.Analyzers.Markup;
 /// isn't styled, a Command, is kept set one way.
 /// </para>
 /// <para>
+/// A binding takes options after its path, as WPF and Avalonia write them:
+/// <c>Converter=BoolConverters.Not</c> — a converter named as a command is, a member of
+/// the class or <c>Type.Member</c>, the framework's converters by their type's name —
+/// <c>ConverterParameter</c>, <c>FallbackValue</c> and <c>TargetNullValue</c> — values of
+/// the property's type, written as its attribute would be — and <c>StringFormat</c>. A
+/// value with a comma goes in single quotes: <c>StringFormat='{0:N2} kg'</c>. A <c>^</c>
+/// after a property of a task or an observable reads what it gives:
+/// <c>{Bind Profile^.Name}</c>.
+/// </para>
+/// <para>
 /// A property marked [SetAfterContent] — a selected index — is set after the children,
 /// wherever its attribute is written.
 /// </para>
@@ -64,6 +74,8 @@ internal sealed class MarkupCompiler
     private const string ContentAttributeMetadataName = "ZeppelinForms.Forms.Markup.ContentAttribute";
     private const string AfterContentAttributeMetadataName = "ZeppelinForms.Forms.Markup.SetAfterContentAttribute";
     private const string CommandMetadataName = "System.Windows.Input.ICommand";
+    private const string ConverterMetadataName = "ZeppelinForms.Data.IValueConverter";
+    private const string DataNamespace = "ZeppelinForms.Data";
     private const string StylesMetadataName = "ZeppelinForms.Forms.Styling.Styles";
     private const string StyleSheetType = "global::ZeppelinForms.Forms.Styling.StyleSheet";
     private const string StyleSheetLinkType = "global::ZeppelinForms.Forms.Styling.StyleSheetLink";
@@ -108,10 +120,28 @@ internal sealed class MarkupCompiler
     /// <c>x:DataType</c> says their data context is. Null — none said.</summary>
     private readonly Stack<INamedTypeSymbol?> _dataTypes = new();
 
+    /// <summary>The options of a binding as written, unchecked: a value is null where it
+    /// isn't given.</summary>
+    private sealed class BindingOptionsText
+    {
+        public string? Converter { get; set; }
+        public string? ConverterParameter { get; set; }
+        public string? FallbackValue { get; set; }
+        public string? TargetNullValue { get; set; }
+        public string? StringFormat { get; set; }
+
+        public bool IsEmpty =>
+            Converter is null && ConverterParameter is null && FallbackValue is null &&
+            TargetNullValue is null && StringFormat is null;
+    }
+
     private sealed class PendingBinding(
         string target, IPropertySymbol property, INamedTypeSymbol targetType,
-        string path, INamedTypeSymbol? dataType, bool twoWay, IXmlLineInfo line)
+        string path, INamedTypeSymbol? dataType, bool twoWay, IXmlLineInfo line,
+        BindingOptionsText options)
     {
+        public BindingOptionsText Options { get; } = options;
+
         public string Target { get; } = target;
         public IPropertySymbol Property { get; } = property;
         public INamedTypeSymbol TargetType { get; } = targetType;
@@ -506,7 +536,15 @@ internal sealed class MarkupCompiler
         Assign(target, property, expression);
     }
 
-    private string? CommandExpression(string written, ITypeSymbol commandType, out string reason)
+    private string? CommandExpression(string written, ITypeSymbol commandType, out string reason) =>
+        MemberExpression(written, commandType, "command", null, out reason);
+
+    /// <summary>Member of the class, or Type.Member — a static one of another type — whose
+    /// value is of <paramref name="valueType"/>: a command, a converter.</summary>
+    /// <param name="what">What the member is, for the messages.</param>
+    /// <param name="frameworkNamespace">A namespace of the framework's to look for the type
+    /// in too: the converters of ZeppelinForms.Data by their type's name.</param>
+    private string? MemberExpression(string written, ITypeSymbol valueType, string what, string? frameworkNamespace, out string reason)
     {
         reason = string.Empty;
 
@@ -514,7 +552,7 @@ internal sealed class MarkupCompiler
 
         if (parts.Any(p => !SyntaxFacts.IsValidIdentifier(p)))
         {
-            reason = "a command is named as Member of the class or Type.Member";
+            reason = "a " + what + " is named as Member of the class or Type.Member";
             return null;
         }
 
@@ -526,7 +564,7 @@ internal sealed class MarkupCompiler
                 return null;
             }
 
-            ISymbol? member = CommandMember(_class, written, commandType, staticOnly: false, out reason);
+            ISymbol? member = CommandMember(_class, written, valueType, staticOnly: false, out reason);
 
             if (member is null) return null;
 
@@ -538,7 +576,8 @@ internal sealed class MarkupCompiler
         string typeName = string.Join(".", parts, 0, parts.Length - 1);
         string memberName = parts[parts.Length - 1];
 
-        INamedTypeSymbol? owner = FindNamedType(typeName);
+        INamedTypeSymbol? owner = FindNamedType(typeName)
+            ?? (frameworkNamespace is null ? null : _compilation.GetTypeByMetadataName(frameworkNamespace + "." + typeName));
 
         if (owner is null)
         {
@@ -546,7 +585,7 @@ internal sealed class MarkupCompiler
             return null;
         }
 
-        ISymbol? found = CommandMember(owner, memberName, commandType, staticOnly: true, out reason);
+        ISymbol? found = CommandMember(owner, memberName, valueType, staticOnly: true, out reason);
 
         return found is null ? null : owner.ToDisplayString(TypeFormat) + "." + found.Name;
     }
@@ -797,23 +836,65 @@ internal sealed class MarkupCompiler
             return;
         }
 
-        string[] parts = body.Substring(5).Split(',');
+        List<string>? parts = SplitOptions(body.Substring(5));
+
+        if (parts is null)
+        {
+            Report(MarkupDiagnostics.BadBinding, attribute, "A quote is opened and never closed in '{" + body + "}'");
+            return;
+        }
+
         string path = parts[0].Trim();
         bool twoWay = false;
+        var options = new BindingOptionsText();
 
-        for (int i = 1; i < parts.Length; i++)
+        for (int i = 1; i < parts.Count; i++)
         {
-            string option = parts[i].Replace(" ", string.Empty);
+            string option = parts[i].Trim();
+            int equals = option.IndexOf('=');
+            string name = equals < 0 ? option : option.Substring(0, equals).Trim();
+            string value = equals < 0 ? string.Empty : Unquote(option.Substring(equals + 1).Trim());
 
-            if (option.Equals("Mode=TwoWay", StringComparison.OrdinalIgnoreCase)) twoWay = true;
-            else if (!option.Equals("Mode=OneWay", StringComparison.OrdinalIgnoreCase))
+            switch (name)
             {
-                Report(MarkupDiagnostics.BadBinding, attribute, "'" + parts[i].Trim() + "' is not Mode=OneWay or Mode=TwoWay");
-                return;
+                case "Mode" when value.Equals("TwoWay", StringComparison.OrdinalIgnoreCase):
+                    twoWay = true;
+                    break;
+
+                case "Mode" when value.Equals("OneWay", StringComparison.OrdinalIgnoreCase):
+                    twoWay = false;
+                    break;
+
+                case "Converter" when value.Length > 0:
+                    options.Converter = value;
+                    break;
+
+                case "ConverterParameter":
+                    options.ConverterParameter = value;
+                    break;
+
+                case "FallbackValue":
+                    options.FallbackValue = value;
+                    break;
+
+                case "TargetNullValue":
+                    options.TargetNullValue = value;
+                    break;
+
+                case "StringFormat" when value.Length > 0:
+                    // {}{0:N2}: XAML's escape of a value starting with a brace
+                    options.StringFormat = value.StartsWith("{}", StringComparison.Ordinal) ? value.Substring(2) : value;
+                    break;
+
+                default:
+                    Report(MarkupDiagnostics.BadBinding, attribute,
+                        "'" + option + "' is not an option of a binding: Mode=OneWay|TwoWay, Converter, ConverterParameter, " +
+                        "FallbackValue, TargetNullValue or StringFormat");
+                    return;
             }
         }
 
-        if (path.Length == 0 || path.Split('.').Any(segment => !SyntaxFacts.IsValidIdentifier(segment)))
+        if (path.Length == 0 || path.Split('.').Any(segment => !SyntaxFacts.IsValidIdentifier(StreamlessName(segment))))
         {
             Report(MarkupDiagnostics.BadBinding, attribute,
                 "A binding names a path of properties: {Bind Customer.Name}, or {Bind NameBox.Text} of a named element — not '" + path + "'");
@@ -821,8 +902,46 @@ internal sealed class MarkupCompiler
         }
 
         // checked once every element has been created: a named source may come later
-        _bindings.Add(new PendingBinding(target, property, type, path, _dataTypes.Peek(), twoWay, attribute));
+        _bindings.Add(new PendingBinding(target, property, type, path, _dataTypes.Peek(), twoWay, attribute, options));
     }
+
+    /// <summary>The parts of a binding between its commas, a comma in single quotes kept:
+    /// <c>StringFormat='{0:N2}, net'</c>. Null — a quote never closed.</summary>
+    private static List<string>? SplitOptions(string text)
+    {
+        var parts = new List<string>();
+        var current = new StringBuilder();
+        bool quoted = false;
+
+        foreach (char c in text)
+        {
+            if (c == '\'') quoted = !quoted;
+
+            if (c == ',' && !quoted)
+            {
+                parts.Add(current.ToString());
+                current.Clear();
+                continue;
+            }
+
+            current.Append(c);
+        }
+
+        if (quoted) return null;
+
+        parts.Add(current.ToString());
+        return parts;
+    }
+
+    /// <summary>A value without the single quotes around it.</summary>
+    private static string Unquote(string value) =>
+        value.Length >= 2 && value[0] == '\'' && value[value.Length - 1] == '\''
+            ? value.Substring(1, value.Length - 2)
+            : value;
+
+    /// <summary>A step's property name without the <c>^</c> that reads its stream.</summary>
+    private static string StreamlessName(string segment) =>
+        segment.EndsWith("^", StringComparison.Ordinal) ? segment.Substring(0, segment.Length - 1) : segment;
 
     /// <summary>The bindings, once every element is made. A path whose first name is a
     /// named element starts from it — {Bind NameBox.Text}; any other from the data
@@ -839,7 +958,8 @@ internal sealed class MarkupCompiler
             INamedTypeSymbol sourceType;
             string[] steps;
 
-            if (segments.Length > 1 && _names.TryGetValue(segments[0], out INamedTypeSymbol? named))
+            if (segments.Length > 1 && !segments[0].EndsWith("^", StringComparison.Ordinal) &&
+                _names.TryGetValue(segments[0], out INamedTypeSymbol? named))
             {
                 source = "this." + segments[0];
                 sourceType = named;
@@ -876,8 +996,19 @@ internal sealed class MarkupCompiler
                 continue;
             }
 
+            if (descriptor is null && !binding.Options.IsEmpty)
+            {
+                Report(MarkupDiagnostics.BadBinding, line,
+                    "'" + binding.Property.Name + "' of " + binding.TargetType.Name + " is not a styled property: its binding takes no " +
+                    "converter, format or values of its own — give the view model a property of its type");
+                continue;
+            }
+
             string? path = PathExpression(binding, sourceType, steps, out IPropertySymbol? last);
             if (path is null || last is null) continue;
+
+            string? options = OptionsExpression(binding);
+            if (options is null) continue;
 
             Line(line);
 
@@ -889,7 +1020,11 @@ internal sealed class MarkupCompiler
                 if (source is not null) _body.Append(source).Append(", ");
 
                 _body.Append(path).Append(", global::ZeppelinForms.Data.BindingMode.")
-                    .Append(binding.TwoWay ? "TwoWay" : "OneWay").AppendLine(");");
+                    .Append(binding.TwoWay ? "TwoWay" : "OneWay");
+
+                if (options.Length > 0) _body.Append(", ").Append(options);
+
+                _body.AppendLine(");");
 
                 continue;
             }
@@ -951,8 +1086,13 @@ internal sealed class MarkupCompiler
 
         var reads = new StringBuilder();
 
-        foreach (string step in steps)
+        bool lastIsStream = false;
+
+        foreach (string written in steps)
         {
+            string step = StreamlessName(written);
+            bool stream = step.Length != written.Length;
+
             if (current is not INamedTypeSymbol owner || PathProperty(owner, step) is not { } property)
             {
                 Report(MarkupDiagnostics.BadBinding, binding.Line,
@@ -966,18 +1106,46 @@ internal sealed class MarkupCompiler
 
             last = property;
             current = property.Type;
+            lastIsStream = stream;
+
+            if (stream)
+            {
+                // Profile^: the step's value is what the task or the observable gives
+                if (StreamElement(property.Type, out bool isTask) is not { } element)
+                {
+                    Report(MarkupDiagnostics.BadBinding, binding.Line,
+                        "'" + step + "' is " + Describe(property.Type) + ": ^ reads a Task<T> or an IObservable<T>");
+                    return null;
+                }
+
+                reads.Append(" { Stream = global::ZeppelinForms.Data.StreamOperator.")
+                    .Append(isTask ? "FromTask<" : "FromObservable<")
+                    .Append(element.ToDisplayString(AnnotatedTypeFormat)).Append(">() }");
+
+                current = element;
+            }
         }
 
-        code.Append(TypeName(last!.Type)).Append(')').Append(reads).Append(')');
+        if (lastIsStream && binding.TwoWay)
+        {
+            Report(MarkupDiagnostics.BadBinding, binding.Line,
+                "'" + binding.Path + "' ends in a stream, which can't be written: bind it one way");
+            return null;
+        }
 
-        if (binding.TwoWay && !IsWritable(last))
+        code.Append(TypeName(current)).Append(')').Append(reads).Append(')');
+
+        // the stream's value isn't a property the typed end could read
+        if (lastIsStream) return code.ToString();
+
+        if (binding.TwoWay && !IsWritable(last!))
         {
             Report(MarkupDiagnostics.BadBinding, binding.Line,
                 "'" + binding.Path + "' can't be written, and Mode=TwoWay writes it: its last property needs a setter the markup can call");
             return null;
         }
 
-        string lastOwner = TypeName(last.ContainingType);
+        string lastOwner = TypeName(last!.ContainingType);
 
         // the last property as its type: a value type bound to a property of that type
         // moves without a box. The type as declared, nullability included — the read
@@ -1000,6 +1168,117 @@ internal sealed class MarkupCompiler
         code.Append(" }");
 
         return code.ToString();
+    }
+
+    /// <summary>The element type of a task or an observable: Task&lt;T&gt; and what derives
+    /// from it, IObservable&lt;T&gt; and what implements it. Null — neither.</summary>
+    private ITypeSymbol? StreamElement(ITypeSymbol type, out bool isTask)
+    {
+        isTask = false;
+
+        INamedTypeSymbol? task = _compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
+        INamedTypeSymbol? observable = _compilation.GetTypeByMetadataName("System.IObservable`1");
+
+        for (ITypeSymbol? current = type; current is not null; current = current.BaseType)
+        {
+            if (current is INamedTypeSymbol { IsGenericType: true } named &&
+                SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, task))
+            {
+                isTask = true;
+                return named.TypeArguments[0];
+            }
+        }
+
+        IEnumerable<INamedTypeSymbol> interfaces = type is INamedTypeSymbol { TypeKind: TypeKind.Interface } self
+            ? new[] { self }.Concat(type.AllInterfaces)
+            : type.AllInterfaces;
+
+        foreach (INamedTypeSymbol candidate in interfaces)
+        {
+            if (candidate.IsGenericType && SymbolEqualityComparer.Default.Equals(candidate.OriginalDefinition, observable))
+                return candidate.TypeArguments[0];
+        }
+
+        return null;
+    }
+
+    /// <summary>new BindingOptions { … } of the options written; empty — none written;
+    /// null — one that can't be, reported.</summary>
+    private string? OptionsExpression(PendingBinding binding)
+    {
+        BindingOptionsText options = binding.Options;
+
+        if (options.IsEmpty) return string.Empty;
+
+        var parts = new List<string>();
+
+        if (options.Converter is { } converter)
+        {
+            INamedTypeSymbol? converterType = _compilation.GetTypeByMetadataName(ConverterMetadataName);
+
+            if (converterType is null)
+            {
+                Report(MarkupDiagnostics.BadBinding, binding.Line, "IValueConverter is not referenced");
+                return null;
+            }
+
+            string? expression = MemberExpression(converter, converterType, "converter", DataNamespace, out string reason);
+
+            if (expression is null)
+            {
+                Report(MarkupDiagnostics.BadBinding, binding.Line, "Converter=" + converter + ": " + reason);
+                return null;
+            }
+
+            parts.Add("Converter = " + expression);
+        }
+
+        if (options.ConverterParameter is { } parameter)
+            parts.Add("ConverterParameter = " + SymbolDisplay.FormatLiteral(parameter, quote: true));
+
+        // the values where there is none are of the property's type, written as its
+        // attribute would be; a converter or a format may make any value of them, so
+        // with one they stay text
+        if (options.FallbackValue is { } fallback)
+        {
+            if (OptionValue(binding, "FallbackValue", fallback) is not { } value) return null;
+
+            parts.Add("FallbackValue = " + value);
+        }
+
+        if (options.TargetNullValue is { } nullValue)
+        {
+            if (OptionValue(binding, "TargetNullValue", nullValue) is not { } value) return null;
+
+            parts.Add("TargetNullValue = " + value);
+        }
+
+        if (options.StringFormat is { } format)
+            parts.Add("StringFormat = " + SymbolDisplay.FormatLiteral(format, quote: true));
+
+        return "new global::ZeppelinForms.Data.BindingOptions { " + string.Join(", ", parts) + " }";
+    }
+
+    /// <summary>A FallbackValue or a TargetNullValue as the property's type: (object)expr.</summary>
+    private string? OptionValue(PendingBinding binding, string option, string text)
+    {
+        if (text == "{x:Null}") return "null";
+
+        ITypeSymbol type = binding.Property.Type;
+
+        if (type.SpecialType == SpecialType.System_String || type.SpecialType == SpecialType.System_Object)
+            return SymbolDisplay.FormatLiteral(text, quote: true);
+
+        string? expression = MarkupValues.Write(text, type, _compilation, out string? error);
+
+        if (expression is null)
+        {
+            Report(MarkupDiagnostics.BadBinding, binding.Line,
+                option + "='" + text + "' is no " + Describe(type) + (error is { Length: > 0 } ? ": " + error : string.Empty));
+            return null;
+        }
+
+        return "(object)(" + expression + ")";
     }
 
     /// <summary>A property a path can read: an instance one with a getter the class can

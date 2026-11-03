@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Animation;
+﻿using ZeppelinForms.Accessibility;
+using ZeppelinForms.Animation;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -57,6 +58,9 @@ public partial class ToggleSwitch : InteractiveControl, ITextElement
 
             // the switch's size is computed from its text, as with a button
             Invalidate();
+
+            // the caption is the name a screen reader says: it is told the new one
+            RaiseAccessibilityChange(AccessibilityProperty.Name);
         }
     }
 

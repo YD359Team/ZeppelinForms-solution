@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Globalization;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -808,6 +809,167 @@ public class MarkupGeneratorTests
         Result result = Build(
             "<StackPanel Class=\"App.Wrong\" xmlns:vm=\"using:App.ViewModels\" xmlns:x=\"https://zeppelinforms.dev/markup/x\">\n  " +
             element + "\n</StackPanel>", ViewModels);
+
+        Diagnostic error = Assert.Single(result.Errors, d => d.Id.StartsWith("ZF", StringComparison.Ordinal));
+
+        Assert.Equal("ZF2008", error.Id);
+        Assert.Contains(message, error.GetMessage(), StringComparison.Ordinal);
+        Assert.Equal(2, error.Location.GetLineSpan().StartLinePosition.Line + 1);
+    }
+
+    // ===== 0.21: binding options and streams =====
+
+    private const string OptionViewModels = """
+        // the rest of App.ViewModels: what follows ViewModels in one file
+        public sealed class Shop : Observable
+        {
+            private bool _isBusy;
+            private string? _note;
+            private double _total;
+            private System.Threading.Tasks.Task<string>? _title;
+            private System.Threading.Tasks.Task<Customer>? _owner;
+            private System.IObservable<int>? _ticks;
+
+            public bool IsBusy { get => _isBusy; set => Set(ref _isBusy, value); }
+            public string? Note { get => _note; set => Set(ref _note, value); }
+            public double Total { get => _total; set => Set(ref _total, value); }
+            public System.Threading.Tasks.Task<string>? Title { get => _title; set => Set(ref _title, value); }
+            public System.Threading.Tasks.Task<Customer>? Owner { get => _owner; set => Set(ref _owner, value); }
+            public System.IObservable<int>? Ticks { get => _ticks; set => Set(ref _ticks, value); }
+            public ZeppelinForms.Input.Commands.Command Save { get; } = new(() => { });
+        }
+
+        public sealed class Shout : ZeppelinForms.Data.IValueConverter
+        {
+            public static readonly Shout Instance = new();
+            public static string Hint => "loud";
+
+            public object? Convert(object? value, System.Type targetType, object? parameter, System.Globalization.CultureInfo culture) =>
+                value?.ToString()?.ToUpperInvariant() + parameter;
+
+            public object? ConvertBack(object? value, System.Type targetType, object? parameter, System.Globalization.CultureInfo culture) =>
+                ZeppelinForms.Data.Binding.DoNothing;
+        }
+
+        public sealed class Ticks : System.IObservable<int>
+        {
+            private System.IObserver<int>? _observer;
+
+            public System.IDisposable Subscribe(System.IObserver<int> observer)
+            {
+                _observer = observer;
+                return new Done();
+            }
+
+            public void Push(int value) => _observer?.OnNext(value);
+
+            private sealed class Done : System.IDisposable
+            {
+                public void Dispose() { }
+            }
+        }
+        """;
+
+    [Fact]
+    public void ABindingTakesAConverterAFormatAndTheValuesWhereThereIsNone()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.Options" xmlns:vm="using:App.ViewModels" x:DataType="vm:Shop"
+                        xmlns:x="https://zeppelinforms.dev/markup/x">
+              <Label Name="Busy" IsVisible="{Bind IsBusy, Converter=BoolConverters.Not}"/>
+              <Label Name="Loud" Text="{Bind Note, Converter=Shout.Instance, ConverterParameter='!, !'}"/>
+              <Label Name="Note" Text="{Bind Note, TargetNullValue=(none)}"/>
+              <Label Name="Total" Text="{Bind Total, StringFormat='{}{0:N1}, net'}"/>
+              <Label Name="Owner" Text="{Bind Owner^.Name, FallbackValue=Loading…}"/>
+              <Label Name="Column" Column="{Bind Note, FallbackValue=3}"/>
+            </StackPanel>
+            """, ViewModels + OptionViewModels);
+
+        Assert.True(result.Errors.IsEmpty, string.Join("\n", result.Errors));
+
+        var panel = (StackPanel)result.Create("App.Options");
+        object vm = Activator.CreateInstance(result.Assembly!.GetType("App.ViewModels.Shop", throwOnError: true)!)!;
+
+        CultureInfo culture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+        try
+        {
+            Write(vm, "IsBusy", true);
+            Write(vm, "Total", 1234.56);
+            panel.DataContext = vm;
+
+            Assert.False(Field<Label>(panel, "Busy").IsVisible);
+            Assert.Equal("(none)", Field<Label>(panel, "Note").Text);
+            Assert.Equal("1,234.6, net", Field<Label>(panel, "Total").Text);
+            Assert.Equal("Loading…", Field<Label>(panel, "Owner").Text);
+
+            // a text that is no number: the fallback, as a number
+            Write(vm, "Note", "quiet");
+            Assert.Equal("QUIET!, !", Field<Label>(panel, "Loud").Text);
+            Assert.Equal(3, Field<Label>(panel, "Column").Column);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
+    }
+
+    [Fact]
+    public void ACaretReadsWhatATaskOrAnObservableGives()
+    {
+        Result result = Build("""
+            <StackPanel Class="App.Streams" xmlns:vm="using:App.ViewModels" x:DataType="vm:Shop"
+                        xmlns:x="https://zeppelinforms.dev/markup/x">
+              <Label Name="Title" Text="{Bind Title^}"/>
+              <Label Name="Owner" Text="{Bind Owner^.Name}"/>
+              <Label Name="Ticks" Text="{Bind Ticks^}"/>
+            </StackPanel>
+            """, ViewModels + OptionViewModels);
+
+        Assert.True(result.Errors.IsEmpty, string.Join("\n", result.Errors));
+        Assert.Contains("StreamOperator.FromTask<string>()", result.Source);
+
+        var panel = (StackPanel)result.Create("App.Streams");
+        Assembly assembly = result.Assembly!;
+        object vm = Activator.CreateInstance(assembly.GetType("App.ViewModels.Shop", throwOnError: true)!)!;
+        object customer = Activator.CreateInstance(assembly.GetType("App.ViewModels.Customer", throwOnError: true)!)!;
+        object ticks = Activator.CreateInstance(assembly.GetType("App.ViewModels.Ticks", throwOnError: true)!)!;
+        Write(customer, "Name", "Ann");
+
+        var title = new TaskCompletionSource<string>();
+        Write(vm, "Title", title.Task);
+        Write(vm, "Ticks", ticks);
+        panel.DataContext = vm;
+
+        Assert.Null(Field<Label>(panel, "Title").Text);
+
+        title.SetResult("Orders");
+        Assert.Equal("Orders", Field<Label>(panel, "Title").Text);
+
+        // a Task<Customer> made by reflection: the type of the property
+        MethodInfo fromResult = typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(customer.GetType());
+        Write(vm, "Owner", fromResult.Invoke(null, [customer]));
+        Assert.Equal("Ann", Field<Label>(panel, "Owner").Text);
+
+        ticks.GetType().GetMethod("Push")!.Invoke(ticks, [7]);
+        Assert.Equal("7", Field<Label>(panel, "Ticks").Text);
+    }
+
+    [Theory]
+    [InlineData("<Label Text=\"{Bind Note, Sort=Up}\"/>", "not an option of a binding")]
+    [InlineData("<Label Text=\"{Bind Note, Converter=Nowhere.Instance}\"/>", "Converter=Nowhere.Instance")]
+    [InlineData("<Label Text=\"{Bind Note, Converter=Shout.Hint}\"/>", "'Hint' is string")]
+    [InlineData("<Label Text=\"{Bind Note^}\"/>", "^ reads a Task<T> or an IObservable<T>")]
+    [InlineData("<TextBox Text=\"{Bind Title^, Mode=TwoWay}\"/>", "can't be written")]
+    [InlineData("<Button Command=\"{Bind Save, FallbackValue=x}\"/>", "is not a styled property")]
+    [InlineData("<Label Column=\"{Bind Note, FallbackValue=many}\"/>", "FallbackValue='many' is no")]
+    [InlineData("<Label Text=\"{Bind Note, StringFormat='{0}}\"/>", "never closed")]
+    public void AWrongOptionIsReportedAtItsLine(string element, string message)
+    {
+        Result result = Build(
+            "<StackPanel Class=\"App.Wrong\" xmlns:vm=\"using:App.ViewModels\" xmlns:x=\"https://zeppelinforms.dev/markup/x\" x:DataType=\"vm:Shop\">\n  " +
+            element + "\n</StackPanel>", ViewModels + OptionViewModels);
 
         Diagnostic error = Assert.Single(result.Errors, d => d.Id.StartsWith("ZF", StringComparison.Ordinal));
 

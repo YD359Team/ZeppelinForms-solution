@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using ZeppelinForms.Accessibility;
 using ZeppelinForms.Core.Globalization;
 using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Helpers;
@@ -23,6 +24,9 @@ public partial class Button : ButtonBase, ITextElement
 
             // a button's auto-size is computed from its text
             Invalidate();
+
+            // the caption is the name a screen reader says: it is told the new one
+            RaiseAccessibilityChange(AccessibilityProperty.Name);
         }
     }
 

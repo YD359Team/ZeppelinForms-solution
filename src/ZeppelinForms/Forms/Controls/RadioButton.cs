@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using ZeppelinForms.Accessibility;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
 using ZeppelinForms.Forms.Enums;
@@ -54,6 +55,9 @@ public partial class RadioButton : InteractiveControl, ITextElement
 
             // the radio button's size is computed from its text
             Invalidate();
+
+            // the caption is the name a screen reader says: it is told the new one
+            RaiseAccessibilityChange(AccessibilityProperty.Name);
         }
     }
 

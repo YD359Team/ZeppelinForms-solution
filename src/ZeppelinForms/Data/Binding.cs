@@ -45,9 +45,42 @@ public enum BindingMode
 /// was written on the thread that raised <c>PropertyChanged</c>, in the middle of
 /// whatever layout and drawing were doing on the UI thread.
 /// </para>
+/// <para>
+/// <see cref="BindingOptions"/> add a converter, a format and the values written where
+/// there is none on the way to the element; a step of the path may be a stream — a task's
+/// result, an observable's latest value (<see cref="StreamOperator"/>).
+/// </para>
 /// </remarks>
 public sealed class Binding
 {
+    /// <summary>"No value": returned by a converter, it makes the binding write its
+    /// <see cref="BindingOptions.FallbackValue"/>, or the property's default. The value of
+    /// an option not set.</summary>
+    public static object UnsetValue { get; } = new Marker("{Binding.UnsetValue}");
+
+    /// <summary>Returned by a converter: the other end keeps the value it has.</summary>
+    public static object DoNothing { get; } = new Marker("{Binding.DoNothing}");
+
+    private sealed class Marker(string text)
+    {
+        public override string ToString() => text;
+    }
+
+    /// <summary>A binding's subscription to the stream a step of its path read.</summary>
+    private sealed class StreamSlot(object source, StreamListener listener, IDisposable? subscription)
+    {
+        /// <summary>The task or the observable listened to.</summary>
+        public object Source { get; } = source;
+
+        public StreamListener Listener { get; } = listener;
+
+        public void Drop()
+        {
+            Listener.Drop();
+            subscription?.Dispose();
+        }
+    }
+
     private readonly WeakReference<UIElement> _target;
 
     /// <summary>A styled property of the target, or — for a property that isn't styled —
@@ -96,6 +129,9 @@ public sealed class Binding
     /// through object, converted.</summary>
     private readonly BindingEnd? _end;
 
+    /// <summary>The streams the steps listen to, by step; null — the path has none.</summary>
+    private readonly StreamSlot?[]? _streams;
+
     /// <summary>A value that couldn't be converted, with the message written to the
     /// debug output: for tests, and for whatever wants to show broken bindings.</summary>
     internal static event EventHandler<string>? ConversionFailed;
@@ -107,15 +143,26 @@ public sealed class Binding
         object? source,
         bool usesDataContext,
         BindingPath path,
-        BindingMode mode)
+        BindingMode mode,
+        BindingOptions? options = null)
     {
         _target = new WeakReference<UIElement>(target);
         _targetProperty = targetProperty;
         _apply = apply;
         Path = path;
         Mode = mode;
+        Options = options;
         UsesDataContext = usesDataContext;
-        _end = targetProperty is not null ? path.Value?.EndFor(targetProperty) : null;
+
+        // the typed end moves the last property's value as it is: none where options
+        // change it on the way, or where the last step is a stream and its property is
+        // the task, not the value
+        _end = targetProperty is not null && options is null && path[path.Length - 1].Stream is null
+            ? path.Value?.EndFor(targetProperty)
+            : null;
+
+        if (path.Steps.Any(step => step.Stream is not null))
+            _streams = new StreamSlot?[path.Length];
 
         _owners = new object?[path.Length];
         _followed = new INotifyPropertyChanged?[path.Length];
@@ -138,6 +185,10 @@ public sealed class Binding
     public BindingMode Mode { get; }
 
     public BindingPath Path { get; }
+
+    /// <summary>The converter, the format and the values where there is none; null — the
+    /// value goes as it is.</summary>
+    public BindingOptions? Options { get; }
 
     /// <summary>The source is the element's <see cref="UIElement.DataContext"/>, followed
     /// as it changes — set on the element, on an ancestor or on the form, or the element
@@ -175,7 +226,12 @@ public sealed class Binding
         {
             _owners[i] = current;
 
-            if (current is null) continue;
+            if (current is null)
+            {
+                // no object to read the step from: its stream is off the path
+                DropStream(i);
+                continue;
+            }
 
             if (current is INotifyPropertyChanged notify)
             {
@@ -185,8 +241,87 @@ public sealed class Binding
 
             // the last owner's property is the value: read when it is written
             if (i < _owners.Length - 1)
-                current = Path[i].Get(current);
+            {
+                object? next = ReadStep(i, current, out bool has);
+                current = has ? next : null;
+            }
         }
+    }
+
+    /// <summary>A step's value: its property, or what the stream the property is gives.
+    /// False — a stream with no value yet.</summary>
+    private object? ReadStep(int step, object owner, out bool has)
+    {
+        object? read = Path[step].Get(owner);
+
+        if (Path[step].Stream is not { } stream)
+        {
+            has = true;
+            return read;
+        }
+
+        StreamSlot? slot = _streams![step];
+
+        // the same stream as before: its latest value
+        if (slot is not null && ReferenceEquals(slot.Source, read))
+        {
+            has = slot.Listener.TryGetValue(out object? latest);
+            return latest;
+        }
+
+        DropStream(step);
+
+        if (read is null)
+        {
+            has = false;
+            return null;
+        }
+
+        var listener = new StreamListener(_ => OnStreamValue(step)) { IsSubscribing = true };
+
+        // not a stream of the kind: the value itself
+        if (!stream.TrySubscribe(read, listener, out IDisposable? subscription))
+        {
+            has = true;
+            return read;
+        }
+
+        listener.IsSubscribing = false;
+        _streams[step] = new StreamSlot(read, listener, subscription);
+
+        has = listener.TryGetValue(out object? value);
+        return value;
+    }
+
+    private void DropStream(int step)
+    {
+        if (_streams?[step] is not { } slot) return;
+
+        _streams[step] = null;
+        slot.Drop();
+    }
+
+    /// <summary>A stream on the path gave a value: on any thread, carried to the form's.</summary>
+    private void OnStreamValue(int step)
+    {
+        if (QueueIfOffThread()) return;
+
+        if (_detached) return;
+
+        if (step < _owners.Length - 1)
+        {
+            object? next = null;
+            bool has = false;
+
+            if (_owners[step] is { } owner)
+                next = ReadStep(step, owner, out has);
+
+            _owners[step + 1] = has ? next : null;
+
+            Follow(step + 1);
+        }
+
+        PushToTarget();
     }
 
     /// <summary>The value at the end of the path; false — a null on the way.</summary>
@@ -196,8 +331,8 @@ public sealed class Binding
 
         if (_owners[^1] is not { } owner) return false;
 
-        value = Path[Path.Length - 1].Get(owner);
-        return true;
+        value = ReadStep(Path.Length - 1, owner, out bool has);
+        return has;
     }
 
     /// <summary>Take the value from the source and write it into the element.</summary>
@@ -234,35 +369,17 @@ public sealed class Binding
 
         if (!TryRead(out object? raw))
         {
-            // nothing at the end of the path: the property's own default
-            value = _targetProperty?.DefaultBoxed;
+            // nothing at the end of the path: the fallback, or the property's own default
+            value = Fallback();
         }
         else if (_targetProperty is null)
         {
             // a property that isn't styled: the generated code casts it, as it was typed
             value = raw;
         }
-        else
+        else if (!TryMakeTargetValue(raw, out value))
         {
-            try
-            {
-                value = ToTarget(raw);
-            }
-            // ArgumentException comes from Enum.Parse on an unknown name
-            catch (Exception e) when (e is InvalidCastException or FormatException or OverflowException or ArgumentException)
-            {
-                // the source's type doesn't fit the property's type — there is nothing
-                // to write, but crashing in the middle of drawing is wrong.
-                //
-                // Not ZfContract.Fail either, as it used to be: a contract is the
-                // framework's own rule, and here the view model's type is wrong, not
-                // the framework. ZfContract throws in debug builds, and in the
-                // previewer that exception came out of layout on every frame — the
-                // preview showed nothing but it
-                ReportConversionFailure(raw, _targetProperty.PropertyType, "the element keeps its value");
-
-                return;
-            }
+            return;
         }
 
         if (_hasWritten && Equals(_written, value)) return;
@@ -283,6 +400,88 @@ public sealed class Binding
             _updating = false;
         }
     }
+
+    /// <summary>The value for the element from the source's: through the options, then as
+    /// the property's type. False — the element keeps the value it has.</summary>
+    private bool TryMakeTargetValue(object? raw, out object? value)
+    {
+        value = null;
+        object? converted = raw;
+
+        try
+        {
+            if (Options is { } options)
+            {
+                if (raw is null && options.HasTargetNullValue)
+                {
+                    converted = options.TargetNullValue;
+                }
+                else
+                {
+                    if (options.Converter is { } converter)
+                    {
+                        converted = converter.Convert(raw, _targetProperty!.PropertyType, options.ConverterParameter, options.CurrentCulture);
+
+                        if (ReferenceEquals(converted, DoNothing)) return false;
+
+                        if (ReferenceEquals(converted, UnsetValue))
+                        {
+                            value = Fallback();
+                            return true;
+                        }
+                    }
+
+                    converted = options.Format(converted);
+                }
+            }
+
+            value = ToTarget(converted);
+            return true;
+        }
+        // ArgumentException comes from Enum.Parse on an unknown name
+        catch (Exception e) when (IsConversionError(e))
+        {
+            // the source's type doesn't fit the property's type — there is nothing
+            // to write, but crashing in the middle of drawing is wrong.
+            //
+            // Not ZfContract.Fail either, as it used to be: a contract is the
+            // framework's own rule, and here the view model's type is wrong, not
+            // the framework. ZfContract throws in debug builds, and in the
+            // previewer that exception came out of layout on every frame — the
+            // preview showed nothing but it
+            if (Options is { HasFallbackValue: true })
+            {
+                value = Fallback();
+                return true;
+            }
+
+            ReportConversionFailure(raw, _targetProperty!.PropertyType, "the element keeps its value");
+
+            return false;
+        }
+    }
+
+    /// <summary>What the element gets where the path gives no value: the fallback as the
+    /// property's type, or the property's default.</summary>
+    private object? Fallback()
+    {
+        if (Options is not { HasFallbackValue: true } options || _targetProperty is null)
+            return _targetProperty?.DefaultBoxed;
+
+        try
+        {
+            return ToTarget(options.FallbackValue);
+        }
+        catch (Exception e) when (IsConversionError(e))
+        {
+            ReportConversionFailure(options.FallbackValue, _targetProperty.PropertyType, "the property's default is written");
+
+            return _targetProperty.DefaultBoxed;
+        }
+    }
+
+    private static bool IsConversionError(Exception e) =>
+        e is InvalidCastException or FormatException or OverflowException or ArgumentException;
 
     /// <summary>Write the element's value to the source, as its type: without a box
     /// where the path's end is of it. TwoWay only.</summary>
@@ -321,7 +520,24 @@ public sealed class Binding
 
         try
         {
-            set(owner, ToSource(value));
+            object? back = value;
+
+            if (Options is { } options)
+            {
+                if (options.HasTargetNullValue && Equals(value, options.TargetNullValue))
+                {
+                    // what stands for null on the element is null at the source
+                    back = null;
+                }
+                else if (options.Converter is { } converter)
+                {
+                    back = converter.ConvertBack(value, Path.ValueType, options.ConverterParameter, options.CurrentCulture);
+
+                    if (ReferenceEquals(back, DoNothing) || ReferenceEquals(back, UnsetValue)) return;
+                }
+            }
+
+            set(owner, ToSource(back));
 
             // what the element shows is what the source has now: the source changed
             // back to the old value later is a change to write again
@@ -329,7 +545,7 @@ public sealed class Binding
             _hasWritten = true;
             _end?.RememberBoxed(value);
         }
-        catch (Exception e) when (e is InvalidCastException or FormatException or OverflowException or ArgumentException)
+        catch (Exception e) when (IsConversionError(e))
         {
             // The value doesn't fit the source's type — in TwoWay that's the ordinary
             // case: the user types into a field, and intermediate states ("-", "1,")
@@ -364,7 +580,14 @@ public sealed class Binding
         // an object on the way gave another one: read it, and follow from there
         if (step < _owners.Length - 1)
         {
-            _owners[step + 1] = _owners[step] is { } owner ? Path[step].Get(owner) : null;
+            object? next = null;
+            bool has = false;
+
+            if (_owners[step] is { } owner)
+                next = ReadStep(step, owner, out has);
+
+            _owners[step + 1] = has ? next : null;
+
             Follow(step + 1);
         }
 
@@ -417,6 +640,8 @@ public sealed class Binding
                 followed.PropertyChanged -= _handlers[i];
 
             _followed[i] = null;
+
+            DropStream(i);
         }
     }
 

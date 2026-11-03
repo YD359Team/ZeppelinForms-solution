@@ -11,14 +11,78 @@ ZeppelinForms.Core.Caching.DiskCache.Remove(string! key) -> bool
 ZeppelinForms.Core.Caching.DiskCache.Size.get -> long
 ZeppelinForms.Core.Caching.DiskCache.Trim() -> void
 ZeppelinForms.Core.Caching.DiskCache.WriteAsync(string! key, System.ReadOnlyMemory<byte> data, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+ZeppelinForms.Data.Binding.Options.get -> ZeppelinForms.Data.BindingOptions?
+ZeppelinForms.Data.BindingOptions
+ZeppelinForms.Data.BindingOptions.BindingOptions() -> void
+ZeppelinForms.Data.BindingOptions.Converter.get -> ZeppelinForms.Data.IValueConverter?
+ZeppelinForms.Data.BindingOptions.Converter.init -> void
+ZeppelinForms.Data.BindingOptions.ConverterParameter.get -> object?
+ZeppelinForms.Data.BindingOptions.ConverterParameter.init -> void
+ZeppelinForms.Data.BindingOptions.Culture.get -> System.Globalization.CultureInfo?
+ZeppelinForms.Data.BindingOptions.Culture.init -> void
+ZeppelinForms.Data.BindingOptions.FallbackValue.get -> object?
+ZeppelinForms.Data.BindingOptions.FallbackValue.init -> void
+ZeppelinForms.Data.BindingOptions.StringFormat.get -> string?
+ZeppelinForms.Data.BindingOptions.StringFormat.init -> void
+ZeppelinForms.Data.BindingOptions.TargetNullValue.get -> object?
+ZeppelinForms.Data.BindingOptions.TargetNullValue.init -> void
+ZeppelinForms.Data.BindingStep.Stream.get -> ZeppelinForms.Data.StreamOperator?
+ZeppelinForms.Data.BindingStep.Stream.init -> void
+ZeppelinForms.Data.BoolConverters
+ZeppelinForms.Data.FuncValueConverter<TIn, TOut>
+ZeppelinForms.Data.FuncValueConverter<TIn, TOut>.Convert(object? value, System.Type! targetType, object? parameter, System.Globalization.CultureInfo! culture) -> object?
+ZeppelinForms.Data.FuncValueConverter<TIn, TOut>.ConvertBack(object? value, System.Type! targetType, object? parameter, System.Globalization.CultureInfo! culture) -> object?
+ZeppelinForms.Data.FuncValueConverter<TIn, TOut>.FuncValueConverter(System.Func<TIn?, TOut>! convert) -> void
+ZeppelinForms.Data.FuncValueConverter<TIn, TOut>.FuncValueConverter(System.Func<TIn?, TOut>! convert, System.Func<TOut?, TIn>? convertBack) -> void
+ZeppelinForms.Data.IValueConverter
+ZeppelinForms.Data.IValueConverter.Convert(object? value, System.Type! targetType, object? parameter, System.Globalization.CultureInfo! culture) -> object?
+ZeppelinForms.Data.IValueConverter.ConvertBack(object? value, System.Type! targetType, object? parameter, System.Globalization.CultureInfo! culture) -> object?
+ZeppelinForms.Data.ObjectConverters
+ZeppelinForms.Data.StreamOperator
+ZeppelinForms.Data.StringConverters
+ZeppelinForms.Forms.Controls.Base.UIElement.Bind(ZeppelinForms.Forms.Styling.StyledProperty! property, ZeppelinForms.Data.BindingPath! path, ZeppelinForms.Data.BindingMode mode, ZeppelinForms.Data.BindingOptions! options) -> ZeppelinForms.Data.Binding!
+ZeppelinForms.Forms.Controls.Base.UIElement.Bind(ZeppelinForms.Forms.Styling.StyledProperty! property, object! source, ZeppelinForms.Data.BindingPath! path, ZeppelinForms.Data.BindingMode mode, ZeppelinForms.Data.BindingOptions! options) -> ZeppelinForms.Data.Binding!
 ZeppelinForms.Forms.Controls.Charts.RadarChart.KeepLabelsClear.get -> bool
 ZeppelinForms.Forms.Controls.Charts.RadarChart.KeepLabelsClear.set -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.SelectionChanged -> System.EventHandler?
+ZeppelinForms.Input.Commands.AsyncCommand
+ZeppelinForms.Input.Commands.AsyncCommand.AllowConcurrentExecutions.get -> bool
+ZeppelinForms.Input.Commands.AsyncCommand.AllowConcurrentExecutions.init -> void
+ZeppelinForms.Input.Commands.AsyncCommand.AsyncCommand(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task!>! execute) -> void
+ZeppelinForms.Input.Commands.AsyncCommand.AsyncCommand(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task!>! execute, System.Func<bool>? canExecute) -> void
+ZeppelinForms.Input.Commands.AsyncCommand.AsyncCommand(System.Func<System.Threading.Tasks.Task!>! execute) -> void
+ZeppelinForms.Input.Commands.AsyncCommand.AsyncCommand(System.Func<System.Threading.Tasks.Task!>! execute, System.Func<bool>? canExecute) -> void
+ZeppelinForms.Input.Commands.AsyncCommand.AsyncCommand(System.Func<object?, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! execute) -> void
+ZeppelinForms.Input.Commands.AsyncCommand.AsyncCommand(System.Func<object?, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! execute, System.Func<object?, bool>? canExecute) -> void
+ZeppelinForms.Input.Commands.AsyncCommand.CanExecuteChanged -> System.EventHandler?
+ZeppelinForms.Input.Commands.AsyncCommand.Cancel() -> void
+ZeppelinForms.Input.Commands.AsyncCommand.CancelCommand.get -> System.Windows.Input.ICommand!
+ZeppelinForms.Input.Commands.AsyncCommand.Execute(object? parameter) -> void
+ZeppelinForms.Input.Commands.AsyncCommand.ExecuteAsync(object? parameter) -> System.Threading.Tasks.Task!
+ZeppelinForms.Input.Commands.AsyncCommand.ExecutionTask.get -> System.Threading.Tasks.Task?
+ZeppelinForms.Input.Commands.AsyncCommand.Gesture.get -> ZeppelinForms.Input.Keyboard.KeyGesture?
+ZeppelinForms.Input.Commands.AsyncCommand.Gesture.init -> void
+ZeppelinForms.Input.Commands.AsyncCommand.IsCancellationRequested.get -> bool
+ZeppelinForms.Input.Commands.AsyncCommand.IsRunning.get -> bool
+ZeppelinForms.Input.Commands.AsyncCommand.NotifyCanExecuteChanged() -> void
+ZeppelinForms.Input.Commands.AsyncCommand.PropertyChanged -> System.ComponentModel.PropertyChangedEventHandler?
+ZeppelinForms.Input.Commands.KeyBinding.KeyBinding(ZeppelinForms.Input.Commands.AsyncCommand! command) -> void
 override ZeppelinForms.Accessibility.Peers.TextBoxPeer.CaretIndex.get -> int
 override ZeppelinForms.Accessibility.Peers.TextBoxPeer.SelectionLength.get -> int
 override ZeppelinForms.Accessibility.Peers.TextBoxPeer.SelectionStart.get -> int
+static ZeppelinForms.Data.Binding.DoNothing.get -> object!
+static ZeppelinForms.Data.Binding.UnsetValue.get -> object!
+static ZeppelinForms.Data.BoolConverters.Not.get -> ZeppelinForms.Data.IValueConverter!
+static ZeppelinForms.Data.ObjectConverters.IsNotNull.get -> ZeppelinForms.Data.IValueConverter!
+static ZeppelinForms.Data.ObjectConverters.IsNull.get -> ZeppelinForms.Data.IValueConverter!
+static ZeppelinForms.Data.StreamOperator.FromObservable<T>() -> ZeppelinForms.Data.StreamOperator!
+static ZeppelinForms.Data.StreamOperator.FromTask<T>() -> ZeppelinForms.Data.StreamOperator!
+static ZeppelinForms.Data.StringConverters.IsNotNullOrEmpty.get -> ZeppelinForms.Data.IValueConverter!
+static ZeppelinForms.Data.StringConverters.IsNullOrEmpty.get -> ZeppelinForms.Data.IValueConverter!
 static ZeppelinForms.Forms.Controls.Map.MapControl.DiskCache.get -> ZeppelinForms.Core.Caching.DiskCache?
 static ZeppelinForms.Forms.Controls.Map.MapControl.DiskCache.set -> void
 virtual ZeppelinForms.Accessibility.AccessibilityPeer.CaretIndex.get -> int
 virtual ZeppelinForms.Accessibility.AccessibilityPeer.SelectionLength.get -> int
 virtual ZeppelinForms.Accessibility.AccessibilityPeer.SelectionStart.get -> int
+virtual ZeppelinForms.Input.Commands.AsyncCommand.CanExecute(object? parameter) -> bool
+virtual ZeppelinForms.Input.Commands.AsyncCommand.OnPropertyChanged(string! propertyName) -> void

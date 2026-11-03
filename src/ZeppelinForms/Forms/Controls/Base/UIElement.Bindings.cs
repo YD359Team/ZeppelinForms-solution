@@ -154,6 +154,31 @@ public abstract partial class UIElement
         return BindTo(property, source, usesDataContext: false, path, mode);
     }
 
+    /// <summary>Bind a property to a value of the data context, with a converter, a format
+    /// or the values written where there is none. What markup's
+    /// <c>{Bind Total, StringFormat='{0:C}', FallbackValue=—}</c> compiles to.</summary>
+    /// <example><c>hint.Bind(UIElement.IsVisibleProperty, path, BindingMode.OneWay, new BindingOptions { Converter = BoolConverters.Not });</c></example>
+    public Binding Bind(StyledProperty property, BindingPath path, BindingMode mode, BindingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(property);
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(options);
+
+        return BindTo(property, source: null, usesDataContext: true, path, mode, options);
+    }
+
+    /// <summary>Bind a property to the end of a path from a source, with a converter, a
+    /// format or the values written where there is none.</summary>
+    public Binding Bind(StyledProperty property, object source, BindingPath path, BindingMode mode, BindingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(property);
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(options);
+
+        return BindTo(property, source, usesDataContext: false, path, mode, options);
+    }
+
     /// <summary>Keep a property that isn't styled — a button's <c>Command</c> — set to the
     /// end of a path from the element's <see cref="DataContext"/>. One way.</summary>
     /// <param name="name">The binding's name — the property's, by convention: a binding of
@@ -190,7 +215,9 @@ public abstract partial class UIElement
             binding.Detach();
     }
 
-    private Binding BindTo(StyledProperty property, object? source, bool usesDataContext, BindingPath path, BindingMode mode)
+    private Binding BindTo(
+        StyledProperty property, object? source, bool usesDataContext, BindingPath path, BindingMode mode,
+        BindingOptions? options = null)
     {
         // a path that can't be written binds both ways all the same, as a read-only
         // property always did: the element's changes simply stay in the element.
@@ -199,7 +226,7 @@ public abstract partial class UIElement
         // binding the same property again replaces the previous binding
         Unbind(property);
 
-        var binding = new Binding(this, property, apply: null, source, usesDataContext, path, mode);
+        var binding = new Binding(this, property, apply: null, source, usesDataContext, path, mode, options);
 
         _bindings ??= [];
         _bindings[property.Index] = binding;

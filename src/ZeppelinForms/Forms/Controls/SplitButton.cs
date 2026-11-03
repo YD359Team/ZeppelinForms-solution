@@ -1,4 +1,5 @@
-﻿using ZeppelinForms.Drawing;
+﻿using ZeppelinForms.Accessibility;
+using ZeppelinForms.Drawing;
 using ZeppelinForms.Drawing.Helpers;
 using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms.Controls.Base;
@@ -30,6 +31,9 @@ public partial class SplitButton : ButtonBase
 
             // the button's width is computed from its caption
             Invalidate();
+
+            // the caption is the name a screen reader says: it is told the new one
+            RaiseAccessibilityChange(AccessibilityProperty.Name);
         }
     }
 
@@ -84,8 +88,8 @@ public partial class SplitButton : ButtonBase
 
     public event EventHandler? SelectionChanged;
 
-    /// <summary>What is actually written on the button.</summary>
-    private string? DisplayText =>
+    /// <summary>What is actually written on the button: its name to a screen reader too.</summary>
+    internal string? DisplayText =>
         ShowSelectedItem && _lastInvoked?.Text is { Length: > 0 } header ? header : ShownText;
 
     public bool IsMenuOpen => _flyout.IsOpen;

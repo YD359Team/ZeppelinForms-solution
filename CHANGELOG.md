@@ -37,6 +37,9 @@
   `AccessibilityProperty.Caret`: where the caret and the selection are in a field, for the
   bridges that read text by pieces. `TextBoxPeer` gives them, except for a password
 - `TextBox.SelectionChanged`: the caret moved or the selection changed
+- A new caption of a button, a check box, a radio button, a split button or a switch is
+  told to the screen readers as a new name; a split button has its caption as its name —
+  it had none
 - An access key in another script answers its letter in the user's layout everywhere:
   `&Файл` is Alt+Ф on Linux (X11 and Wayland), in the browser and on Android, as it was
   on Windows only
@@ -70,6 +73,21 @@
   is written where it is told, as before
 - A command's `CanExecuteChanged` raised on a worker thread — an `AsyncRelayCommand`
   ending its work — enables or disables the button on the form's thread
+- Options of a binding, as WPF and Avalonia have them: a converter (`IValueConverter`,
+  with `ConverterParameter`), `StringFormat`, `FallbackValue` — written where the path gives
+  no value or the value doesn't fit — and `TargetNullValue`. In markup after the path:
+  `{Bind Total, StringFormat='{0:N2} kg', FallbackValue=—}`, single quotes keeping a comma;
+  from C# a `BindingOptions` with the new `Bind` overloads. `Binding.UnsetValue` and
+  `Binding.DoNothing` from a converter; `FuncValueConverter<TIn, TOut>`, `BoolConverters.Not`,
+  `ObjectConverters.IsNull`/`IsNotNull`, `StringConverters.IsNullOrEmpty`/`IsNotNullOrEmpty`
+- Tasks and observables in a path: `{Bind Profile^.Name}` reads a task's result, an
+  observable's latest value, and goes on from there — written on the UI thread, the stream
+  let go when it leaves the path. `BindingStep.Stream`, `StreamOperator.FromTask<T>()` and
+  `FromObservable<T>()` from C#
+- `AsyncCommand`: an asynchronous action that can't run again while it runs — its buttons
+  disabled — unless `AllowConcurrentExecutions`; `IsRunning`, `ExecutionTask`, `Cancel()`
+  and `CancelCommand` with the action's token; its exception to the UI thread as an async
+  handler's. `KeyBinding(AsyncCommand)` and a menu item show its `Gesture`
 
 ### Charts
 

@@ -19,7 +19,7 @@ namespace ZeppelinForms.Input.Commands;
 /// when what <c>canExecute</c> reads changes, on the UI thread.
 /// </para>
 /// </remarks>
-public class Command : ICommand
+public class Command : ICommand, IGestureCommand
 {
     private readonly Action<object?> _execute;
     private readonly Func<object?, bool>? _canExecute;
@@ -82,4 +82,11 @@ public class Command : ICommand
     /// <summary>Tell the buttons with this command to ask <see cref="CanExecute"/>
     /// again. Call it on the UI thread.</summary>
     public void NotifyCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+}
+
+/// <summary>A command of the framework's with a shortcut of its own: <see cref="Command"/>,
+/// <see cref="AsyncCommand"/>. A menu item shows it, a form runs it.</summary>
+internal interface IGestureCommand
+{
+    KeyGesture? Gesture { get; }
 }

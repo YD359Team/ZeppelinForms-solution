@@ -56,7 +56,7 @@ public sealed class MenuItem
     internal bool IsEffectivelyChecked => Command is ToggleCommand toggle ? toggle.IsChecked : IsChecked;
 
     /// <summary>The shortcut the form runs.</summary>
-    internal KeyGesture? EffectiveGesture => KeyGesture ?? (Command as Command)?.Gesture;
+    internal KeyGesture? EffectiveGesture => KeyGesture ?? (Command as IGestureCommand)?.Gesture;
 
     /// <summary>What is shown right of the caption; null — nothing.</summary>
     internal string? GestureText => InputGestureText ?? EffectiveGesture?.ToString();

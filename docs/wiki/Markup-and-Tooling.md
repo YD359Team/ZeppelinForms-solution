@@ -96,6 +96,11 @@ public partial class SignUpCard
 - `x:DataType="vm:OrderViewModel"` says what the data context is, and `{Bind Path}` then
   reads from it — `{Bind Customer.Name, Mode=TwoWay}`, `Command="{Bind Save}"` — checked
   and compiled at build time. See [MVVM](Data-Binding#the-data-context-and-mvvm).
+- A binding takes options after its path: `Converter=BoolConverters.Not`,
+  `ConverterParameter`, `FallbackValue`, `TargetNullValue`, `StringFormat='{0:N2} kg'` —
+  single quotes keep a comma — and `^` after a property of a task or an observable reads
+  what it gives: `{Bind Profile^.Name}`. See [converters](Data-Binding#converters-formats-and-values-where-there-is-none)
+  and [streams](Data-Binding#tasks-and-observables).
 - A selected index or item is set after the items, wherever its attribute is written:
   `<ComboBox SelectedIndex="1">` with the items inside it selects the second.
   `[SetAfterContent]` marks such a property of a control of one's own.

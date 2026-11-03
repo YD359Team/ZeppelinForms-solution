@@ -364,6 +364,11 @@ internal static class MarkupCompletion
             return ([
                 new CompletionEntry("Mode=TwoWay", CompletionKind.Keyword, "The element's changes go to the source"),
                 new CompletionEntry("Mode=OneWay", CompletionKind.Keyword, "The source's changes go to the element"),
+                new CompletionEntry("Converter=", CompletionKind.Keyword, "An IValueConverter: a member of the class, Type.Member, BoolConverters.Not…", Insert: "Converter=$1"),
+                new CompletionEntry("ConverterParameter=", CompletionKind.Keyword, "Given to the converter", Insert: "ConverterParameter=$1"),
+                new CompletionEntry("FallbackValue=", CompletionKind.Keyword, "Written where the path gives no value", Insert: "FallbackValue=$1"),
+                new CompletionEntry("TargetNullValue=", CompletionKind.Keyword, "Written where the value is null", Insert: "TargetNullValue=$1"),
+                new CompletionEntry("StringFormat=", CompletionKind.Keyword, "A format: '{0:N2} kg', or N2", Insert: "StringFormat='$1'"),
             ], from);
         }
 

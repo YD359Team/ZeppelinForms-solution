@@ -24,6 +24,13 @@ public sealed class KeyBinding
     {
     }
 
+    /// <summary>The command's own shortcut, <see cref="AsyncCommand.Gesture"/>.</summary>
+    /// <exception cref="ArgumentException">The command has no gesture.</exception>
+    public KeyBinding(AsyncCommand command)
+        : this(GestureOf(command), command)
+    {
+    }
+
     public KeyGesture Gesture { get; }
 
     public ICommand Command { get; }
@@ -33,7 +40,7 @@ public sealed class KeyBinding
     /// and two overloads with optional parameters can't grow without breaking callers.</summary>
     public object? CommandParameter { get; init; }
 
-    private static KeyGesture GestureOf(Command command)
+    private static KeyGesture GestureOf(IGestureCommand command)
     {
         ArgumentNullException.ThrowIfNull(command);
 

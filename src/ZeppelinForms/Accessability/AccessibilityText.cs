@@ -18,6 +18,9 @@ internal static class AccessibilityText
         {
             // the caption as shown: a control with no text of its own shows its name
             ITextElement textElement => textElement.Text ?? element.ShownText,
+
+            // a split button is no ITextElement: until 0.21 it had no name at all
+            SplitButton split => split.DisplayText,
             RichLabel rich => string.Concat(rich.Inlines.Select(run => run.Text)),
             HintLabel hint => hint.Text,
             _ => null,

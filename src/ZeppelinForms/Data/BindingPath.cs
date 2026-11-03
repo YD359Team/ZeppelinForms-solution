@@ -14,6 +14,10 @@ public readonly struct BindingStep(string? name, Func<object, object?> get)
     public string? Name { get; } = name;
 
     public Func<object, object?> Get { get; } = get;
+
+    /// <summary>The property is a stream — a task, an observable — and the step's value is
+    /// what it gives: markup's <c>^</c>. Null — the property's value itself.</summary>
+    public StreamOperator? Stream { get; init; }
 }
 
 /// <summary>
@@ -27,6 +31,10 @@ public readonly struct BindingStep(string? name, Func<object, object?> get)
 /// The binding follows every object on the way: a PropertyChanged of the view model for
 /// <c>Customer</c> reads the new customer's name and starts following the new customer.
 /// A null on the way is no value: the element gets the property's default.
+/// </para>
+/// <para>
+/// A step whose property is a task or an observable can read what it gives instead —
+/// <see cref="BindingStep.Stream"/>, markup's <c>{Bind Profile^.Name}</c>.
 /// </para>
 /// <para>
 /// From C# the typed overloads of <c>UIElement.Bind</c> make a path of one step from a
@@ -76,7 +84,8 @@ public sealed class BindingPath
     /// both ways along it is refused.</summary>
     public Action<object, object?>? Set { get; init; }
 
-    /// <summary>The last property read and written as its own type, without a box when.</summary>
+    /// <summary>The last property read and written as its own type, without a box when
+    /// the bound property is of that type.</summary>
     public BindingValue? Value { get; init; }
 
     public override string ToString() => Text;

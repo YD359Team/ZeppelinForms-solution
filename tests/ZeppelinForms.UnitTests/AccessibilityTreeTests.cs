@@ -511,6 +511,39 @@ public class AccessibilityTreeTests
         Assert.Equal(["Saved"], heard);
     }
 
+    /// <summary>0.21: a new caption is a new name — a button, a check box, a radio button, a
+    /// split button, a switch. Only AccessibleName and LabeledBy used to report one.</summary>
+    [Theory]
+    [InlineData(typeof(Button))]
+    [InlineData(typeof(CheckBox))]
+    [InlineData(typeof(RadioButton))]
+    [InlineData(typeof(SplitButton))]
+    [InlineData(typeof(ToggleSwitch))]
+    public void ANewCaptionIsANewName(Type control)
+    {
+        var element = (UIElement)Activator.CreateInstance(control)!;
+        System.Reflection.PropertyInfo text = control.GetProperty("Text")!;
+        text.SetValue(element, "Old");
+        CreateForm(element);
+
+        AccessibilityPeer peer = PeerOf(element);
+        var changes = new List<(AccessibilityPeer, AccessibilityProperty)>();
+        Action<AccessibilityPeer, AccessibilityProperty> listen = (changed, property) => changes.Add((changed, property));
+        AccessibilityEvents.PropertyChanged += listen;
+
+        try
+        {
+            text.SetValue(element, "New");
+        }
+        finally
+        {
+            AccessibilityEvents.PropertyChanged -= listen;
+        }
+
+        Assert.Contains((peer, AccessibilityProperty.Name), changes);
+        Assert.Equal("New", peer.Name);
+    }
+
     [Fact]
     public void ChangeIsReportedOnlyWherePeerExists()
     {

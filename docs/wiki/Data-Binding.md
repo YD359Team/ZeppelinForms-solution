@@ -96,6 +96,74 @@ A path that starts with the name of an element binds to it, as before:
 `{Bind NameBox.Text}`. The data context can be made in the markup too:
 `<StackPanel.DataContext><vm:ProfileViewModel/></StackPanel.DataContext>`.
 
+### Converters, formats and values where there is none
+
+A binding may do something with the value on its way: convert it, make it text, or write a
+value of its own where there is none. In markup they are options after the path, as WPF
+and Avalonia write them:
+
+```xml
+<Loader IsVisible="{Bind IsIdle, Converter=BoolConverters.Not}"/>
+<Label Text="{Bind Total, StringFormat='{0:N2} kg'}"/>
+<Label Text="{Bind Customer.Name, FallbackValue=—}"/>
+<Label Text="{Bind Note, TargetNullValue=(no note)}"/>
+<Label Text="{Bind Count, Converter=Plural, ConverterParameter=item}"/>
+```
+
+| Option | |
+| ------ | - |
+| `Converter` | An `IValueConverter`: a property or a field of the class, `Type.Member` of another type, or one of the framework's — `BoolConverters.Not`, `ObjectConverters.IsNull`/`IsNotNull`, `StringConverters.IsNullOrEmpty`/`IsNotNullOrEmpty` |
+| `ConverterParameter` | Given to the converter, as text |
+| `FallbackValue` | Written when the path gives no value — a null on the way, a stream with nothing yet — or the value can't be made the property's type |
+| `TargetNullValue` | Written when the value is null; both ways, the element's value equal to it is null at the source |
+| `StringFormat` | A composite format, `'{0:N2} kg'`, or the value's own, `N2` |
+
+A value with a comma goes in single quotes. The values are of the property's type, written
+as its attribute would be. From C# they are a `BindingOptions`:
+
+```csharp
+hint.Bind(UIElement.IsVisibleProperty, path, BindingMode.OneWay,
+    new BindingOptions { Converter = BoolConverters.Not });
+
+var dozens = new FuncValueConverter<int, string>(n => $"{n * 12}", text => int.Parse(text!) / 12);
+```
+
+A converter returns `Binding.UnsetValue` for "no value" — the fallback is written — and
+`Binding.DoNothing` to leave the other end as it is. Whatever it returns is made the
+property's type as any bound value: a number for a text property becomes its text.
+
+### Tasks and observables
+
+`^` after a property of a `Task<T>` or an `IObservable<T>` reads what it gives — the task's
+result, the observable's latest value — and the path goes on from there:
+
+```xml
+<Label Text="{Bind Profile^.Name, FallbackValue=Loading…}"/>
+<Label Text="{Bind Price^, StringFormat=C}"/>
+```
+
+Until there is a value the path has none: the fallback, or the property's default. The value
+is written on the element's UI thread wherever it came from. A failed or cancelled task gives
+none. The binding subscribes while the stream is on the path, and lets it go when the property
+gives another one, the path breaks before it or the binding goes. A stream can't be written:
+such a binding is one way. From C# the step says it: `new BindingStep("Profile", …) { Stream
+= StreamOperator.FromTask<Customer>() }`.
+
+### Asynchronous commands
+
+`AsyncCommand` is a command whose action is asynchronous — a download, a save:
+
+```csharp
+Load = new AsyncCommand(async token => Orders = await _repository.LoadAsync(token));
+```
+
+While a run goes on, the command can't run again — its buttons are disabled — unless
+`AllowConcurrentExecutions`; `IsRunning` says it, for a spinner bound to it. `Cancel()` or
+`CancelCommand` on a button cancels the run's token, and a run ended by it is no error. An
+exception of the action goes where an `async void` handler's goes: to the UI thread and
+`App.UnhandledException`; awaiting `ExecuteAsync` or `ExecutionTask` observes it instead.
+`Gesture` is its shortcut, as a `Command`'s.
+
 ### View models
 
 The bindings need `INotifyPropertyChanged` for changes and `ICommand` for commands —
