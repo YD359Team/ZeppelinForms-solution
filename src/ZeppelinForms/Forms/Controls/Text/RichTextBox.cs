@@ -23,6 +23,50 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
     private readonly RichTextDocument _document = new();
     private float _scrollY;
     private bool _dragging;
+
+    // ===== IME composition (ITextCompositionTarget) =====
+    private string _composition = string.Empty;
+    private int _compositionCursor;
+    private bool IsComposing => _composition.Length > 0;
+
+    bool ITextCompositionTarget.AcceptsComposition => !IsReadOnly && IsEnabled;
+
+    void ITextCompositionTarget.SetComposition(string text, int cursor)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        // composition replaces the selection, as typing does
+        if (text.Length > 0 && !IsComposing && SelectionLength > 0)
+            DeleteSelectionForComposition();
+
+        _composition = text;
+        _compositionCursor = Math.Clamp(cursor, 0, text.Length);
+        InvalidateVisual();
+    }
+
+    /// <summary>Drop the in-place composition: focus lost, a click, text set from code.</summary>
+    private void ClearComposition()
+    {
+        if (!IsComposing) return;
+        _composition = string.Empty;
+        _compositionCursor = 0;
+        InvalidateVisual();
+    }
+
+    private void DeleteSelectionForComposition()
+    {
+        int pos = SelectionStart;
+        int len = SelectionLength;
+        if (len <= 0) return;
+        _document.Text.DeleteSelection();
+        _document.NotifyEdit(pos, len, 0);
+    }
+
+    protected override void OnLostFocus()
+    {
+        base.OnLostFocus();
+        ClearComposition();
+    }
     public RichTextBox()
     {
         TabStop = true;
@@ -54,7 +98,11 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
     }
     private static string? TextDefault => string.Empty;
 
-    private void WriteText(string? value) => _document.Content = value ?? string.Empty;
+    private void WriteText(string? value)
+    {
+        ClearComposition();
+        _document.Content = value ?? string.Empty;
+    }
 
     public int CaretIndex => _document.Text.CaretIndex;
     public int SelectionStart => _document.Text.SelectionStart;
@@ -277,6 +325,7 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
     {
         if (e.Button != MouseButton.Left) return;
         Focus();
+        ClearComposition();
         int index = HitTest(e.Location);
         _document.Text.SetCaret(index, extendSelection: e.Modifiers.HasFlag(KeyModifiers.Shift));
         _dragging = true;
@@ -402,7 +451,21 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
         float y = content.Y - _scrollY + line * lineHeight;
         int lineStart = _document.Text.FromPosition(line, 0);
         float x = content.X + MeasureRange(lineStart, col, font);
+
+        if (IsComposing)
+        {
+            // show the uncommitted text at the caret, underlined
+            float compW = TextMeasurer.Current.MeasureText(_composition, font).Width;
+            g.DrawText(_composition, new Point(x, y), TextColor, font);
+            g.DrawRectangle(new Rectangle(x, y + lineHeight - 2, Math.Max(2, compW), 1), TextColor, 1);
+            x += TextMeasurer.Current.MeasureText(
+                _composition[..Math.Min(_compositionCursor, _composition.Length)], font).Width;
+        }
+
         g.FillRectangle(new Rectangle(x, y, 1, lineHeight), CaretBrush.A > 0 ? CaretBrush : TextColor);
+
+        if (IsFocused)
+            ReportTextInputArea(new Rectangle(x, y, 1, lineHeight));
     }
 
     private void EnsureCaretVisible()
@@ -425,8 +488,6 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
             Math.Max(0, LocalBounds.Width - Padding.Horizontal),
             Math.Max(0, LocalBounds.Height - Padding.Vertical));
 
-    public bool AcceptsComposition => throw new NotImplementedException();
-
     protected override Size MeasureOverride(Size availableSize)
     {
         float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
@@ -435,6 +496,4 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
             Math.Min(availableSize.Width, 200),
             Math.Min(availableSize.Height, lines * lineHeight + Padding.Vertical));
     }
-
-    public void SetComposition(string text, int cursor) => throw new NotImplementedException();
 }

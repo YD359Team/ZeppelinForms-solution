@@ -56,6 +56,51 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
 
     private bool _writingText;
 
+    // ===== IME composition (ITextCompositionTarget) =====
+    private string _composition = string.Empty;
+    private int _compositionCursor;
+    private bool IsComposing => _composition.Length > 0;
+
+    bool ITextCompositionTarget.AcceptsComposition => !IsReadOnly && IsEnabled;
+
+    void ITextCompositionTarget.SetComposition(string text, int cursor)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        // composition replaces the selection, as typing does
+        if (text.Length > 0 && !IsComposing && SelectionLength > 0)
+            DeleteSelectionForComposition();
+
+        _composition = text;
+        _compositionCursor = Math.Clamp(cursor, 0, text.Length);
+        InvalidateVisual();
+    }
+
+    /// <summary>Drop the in-place composition: focus lost, a click, text set from code.</summary>
+    private void ClearComposition()
+    {
+        if (!IsComposing) return;
+        _composition = string.Empty;
+        _compositionCursor = 0;
+        InvalidateVisual();
+    }
+
+    private void DeleteSelectionForComposition()
+    {
+        int pos = SelectionStart;
+        int len = SelectionLength;
+        if (len <= 0) return;
+        _document.Text.DeleteSelection();
+        _document.NotifyEdit(pos, len, 0);
+        _layoutDirty = true;
+    }
+
+    protected override void OnLostFocus()
+    {
+        base.OnLostFocus();
+        ClearComposition();
+    }
+
     public RichTextDocument Document => _document;
 
     public DocumentPageSettings PageSettings { get; set; } = new();
@@ -79,6 +124,7 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
 
     private void WriteText(string? value)
     {
+        ClearComposition();
         _writingText = true;
         try { _document.Content = value ?? string.Empty; }
         finally { _writingText = false; }
@@ -111,8 +157,6 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
     public int CaretIndex => _document.Text.CaretIndex;
     public int SelectionStart => _document.Text.SelectionStart;
     public int SelectionLength => _document.Text.SelectionLength;
-
-    public bool AcceptsComposition => throw new NotImplementedException();
 
     // ===== page settings helpers =====
 
@@ -318,6 +362,7 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
     {
         if (e.Button != MouseButton.Left) return;
         Focus();
+        ClearComposition();
         int index = HitTest(e.Location);
         _document.Text.SetCaret(index, extendSelection: e.Modifiers.HasFlag(KeyModifiers.Shift));
         _dragging = true;
@@ -495,19 +540,32 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
         string text = _document.Content;
         int pos = page.TextStart;
         float y = contentY;
+        float x = contentX;
         while (pos < caret && pos < page.TextEnd)
         {
             int nl = text.IndexOf('\n', pos, page.TextEnd - pos);
             if (nl < 0 || nl >= caret)
             {
-                float x = contentX + Measure(text, pos, caret - pos, font);
-                g.FillRectangle(new Rectangle(x, y, 1, lineHeight), TextColor);
-                return;
+                x = contentX + Measure(text, pos, caret - pos, font);
+                break;
             }
             pos = nl + 1;
             y += lineHeight;
         }
-        g.FillRectangle(new Rectangle(contentX, y, 1, lineHeight), TextColor);
+
+        if (IsComposing)
+        {
+            float compW = TextMeasurer.Current.MeasureText(_composition, font).Width;
+            g.DrawText(_composition, new Point(x, y), TextColor, font);
+            g.DrawRectangle(new Rectangle(x, y + lineHeight - 2, Math.Max(2, compW), 1), TextColor, 1);
+            x += TextMeasurer.Current.MeasureText(
+                _composition[..Math.Min(_compositionCursor, _composition.Length)], font).Width;
+        }
+
+        g.FillRectangle(new Rectangle(x, y, 1, lineHeight), TextColor);
+
+        if (IsFocused)
+            ReportTextInputArea(new Rectangle(x, y, 1, lineHeight));
     }
 
     private static float Measure(string text, int start, int length, Font font)
@@ -547,6 +605,4 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
             Math.Min(availableSize.Width, page.Width + Padding.Horizontal + 32),
             Math.Min(availableSize.Height, height));
     }
-
-    public void SetComposition(string text, int cursor) => throw new NotImplementedException();
 }

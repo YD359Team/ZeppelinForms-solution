@@ -25,7 +25,6 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
     private readonly TextDocument _document = new() { IsMultiline = true };
     private SyntaxTokenizer? _tokenizer;
     private float _scrollY;
-    private float _scrollX;
     private bool _dragging;
     private readonly HashSet<int> _foldedLines = []; // start line of a fold
     private readonly List<FoldRegion> _folds = [];
@@ -69,6 +68,47 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
 
     private bool _writingText;
 
+    // ===== IME composition (ITextCompositionTarget) =====
+    private string _composition = string.Empty;
+    private int _compositionCursor;
+    private bool IsComposing => _composition.Length > 0;
+
+    bool ITextCompositionTarget.AcceptsComposition => !IsReadOnly && IsEnabled;
+
+    void ITextCompositionTarget.SetComposition(string text, int cursor)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        // composition replaces the selection, as typing does
+        if (text.Length > 0 && !IsComposing && SelectionLength > 0)
+            DeleteSelectionForComposition();
+
+        _composition = text;
+        _compositionCursor = Math.Clamp(cursor, 0, text.Length);
+        InvalidateVisual();
+    }
+
+    /// <summary>Drop the in-place composition: focus lost, a click, text set from code.</summary>
+    private void ClearComposition()
+    {
+        if (!IsComposing) return;
+        _composition = string.Empty;
+        _compositionCursor = 0;
+        InvalidateVisual();
+    }
+
+    private void DeleteSelectionForComposition()
+    {
+        if (SelectionLength <= 0) return;
+        _document.DeleteSelection();
+    }
+
+    protected override void OnLostFocus()
+    {
+        base.OnLostFocus();
+        ClearComposition();
+    }
+
     // ===== document / text =====
 
     [Styled(Category = "Text", AffectsLayout = true, External = true)]
@@ -81,6 +121,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
 
     private void WriteText(string? value)
     {
+        ClearComposition();
         _writingText = true;
         try { _document.Text = value ?? string.Empty; }
         finally { _writingText = false; }
@@ -292,8 +333,6 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
     public partial bool IsCompletionEnabled { get; set; }
     private static bool IsCompletionEnabledDefault => true;
 
-    public bool AcceptsComposition => throw new NotImplementedException();
-
     public void CloseCompletion()
     {
         _completionOpen = false;
@@ -468,6 +507,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
     {
         if (e.Button != MouseButton.Left) return;
         Focus();
+        ClearComposition();
 
         float gutter = ShowLineNumbers ? GutterWidth : 0;
         if (ShowLineNumbers && e.Location.X < gutter)
@@ -544,7 +584,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
         int line = LineAtY(location.Y);
         int lineStart = _document.FromPosition(line, 0);
         string lineText = line < _document.Lines.Length ? _document.Lines[line] : string.Empty;
-        float x = location.X - Padding.Left - gutter + _scrollX;
+        float x = location.X - Padding.Left - gutter;
         float width = 0;
         int col = 0;
         for (; col < lineText.Length; col++)
@@ -590,7 +630,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
                 DrawLineHighlights(g, lineStart, lineLen, gutter, y, lineHeight, font);
 
                 // syntax-coloured runs
-                DrawSyntaxLine(g, lineStart, lineLen, lines[line], gutter - _scrollX + Padding.Left, y, lineHeight, font, textColor);
+                DrawSyntaxLine(g, lineStart, lineLen, lines[line], gutter + Padding.Left, y, lineHeight, font, textColor);
 
                 if (ShowLineNumbers)
                 {
@@ -728,8 +768,21 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
 
         float y = Padding.Top - _scrollY + visualLine * lineHeight;
         int lineStart = _document.FromPosition(line, 0);
-        float x = gutter + Padding.Left - _scrollX + Measure(_document.Text, lineStart, col, font);
+        float x = gutter + Padding.Left + Measure(_document.Text, lineStart, col, font);
+
+        if (IsComposing)
+        {
+            float compW = TextMeasurer.Current.MeasureText(_composition, font).Width;
+            g.DrawText(_composition, new Point(x, y), TextColor, font);
+            g.DrawRectangle(new Rectangle(x, y + lineHeight - 2, Math.Max(2, compW), 1), TextColor, 1);
+            x += TextMeasurer.Current.MeasureText(
+                _composition[..Math.Min(_compositionCursor, _composition.Length)], font).Width;
+        }
+
         g.FillRectangle(new Rectangle(x, y, 1, lineHeight), TextColor);
+
+        if (IsFocused)
+            ReportTextInputArea(new Rectangle(x, y, 1, lineHeight));
     }
 
     private void DrawCompletion(Graphics g, float gutter, Font font, float lineHeight)
@@ -741,7 +794,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
 
         float y = Padding.Top - _scrollY + (visualLine + 1) * lineHeight;
         int lineStart = _document.FromPosition(line, 0);
-        float x = gutter + Padding.Left - _scrollX + Measure(_document.Text, lineStart, col, font);
+        float x = gutter + Padding.Left + Measure(_document.Text, lineStart, col, font);
 
         float width = 220;
         float height = Math.Min(8, _completionItems.Count) * lineHeight + 4;
@@ -782,7 +835,6 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
 
     protected override Size MeasureOverride(Size availableSize) =>
         new(Math.Min(availableSize.Width, 400), Math.Min(availableSize.Height, 240));
-    public void SetComposition(string text, int cursor) => throw new NotImplementedException();
 
     private readonly record struct FoldRegion(int StartLine, int EndLine);
 }
