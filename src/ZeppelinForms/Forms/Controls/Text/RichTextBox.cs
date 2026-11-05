@@ -320,13 +320,20 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
     }
 
     // ===== pointer =====
+    // Mouse Location is in form coordinates (see TextBox.IndexFromPoint).
+
+    private Point ToLocal(Point absolute)
+    {
+        Point origin = GetAbsolutePosition();
+        return new Point(absolute.X - origin.X, absolute.Y - origin.Y);
+    }
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
     {
         if (e.Button != MouseButton.Left) return;
         Focus();
         ClearComposition();
-        int index = HitTest(e.Location);
+        int index = IndexFromPoint(e.Location);
         _document.Text.SetCaret(index, extendSelection: e.Modifiers.HasFlag(KeyModifiers.Shift));
         _dragging = true;
         e.Handled = true;
@@ -335,7 +342,7 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
     protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         if (!_dragging) return;
-        _document.Text.SetCaret(HitTest(e.Location), extendSelection: true);
+        _document.Text.SetCaret(IndexFromPoint(e.Location), extendSelection: true);
         e.Handled = true;
     }
 
@@ -345,11 +352,14 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
             _dragging = false;
     }
 
-    private int HitTest(Point location)
+    private int IndexFromPoint(Point absolute)
     {
+        Point local = ToLocal(absolute);
         Font font = EffectiveFont;
         float lineHeight = TextMeasurer.LineHeight(font);
-        float y = location.Y + _scrollY - Padding.Top;
+        Rectangle content = ContentBounds;
+
+        float y = local.Y + _scrollY - content.Y;
         int line = Math.Max(0, (int)(y / lineHeight));
         string[] lines = _document.Text.Lines;
         if (lines.Length == 0) return 0;
@@ -357,22 +367,14 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
 
         int lineStart = _document.Text.FromPosition(line, 0);
         string lineText = lines[line];
-        float x = location.X - Padding.Left;
-        float width = 0;
-        int col = 0;
+        float x = local.X - content.X;
+        if (x <= 0 || lineText.Length == 0)
+            return lineStart;
 
-        for (; col < lineText.Length; col++)
-        {
-            float w = MeasureChar(lineText[col], font);
-            if (width + w / 2f >= x) break;
-            width += w;
-        }
-
-        return Math.Min(lineStart + col, _document.Text.Text.Length);
+        TextLineLayout layout = TextMeasurer.LayOutLine(lineText, font, Core.Text.FlowDirection.LeftToRight);
+        int column = layout.IndexAt(x);
+        return Math.Min(lineStart + column, _document.Text.Text.Length);
     }
-
-    private static float MeasureChar(char c, Font font) =>
-        TextMeasurer.Current.MeasureText(c.ToString(), font).Width;
 
     // ===== drawing =====
 

@@ -547,6 +547,13 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
     }
 
     // ===== pointer =====
+    // Mouse Location is in form coordinates (see TextBox.IndexFromPoint).
+
+    private Point ToLocal(Point absolute)
+    {
+        Point origin = GetAbsolutePosition();
+        return new Point(absolute.X - origin.X, absolute.Y - origin.Y);
+    }
 
     protected override void OnMouseDown(MouseButtonEventArgs e)
     {
@@ -554,11 +561,12 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
         Focus();
         ClearComposition();
 
+        Point local = ToLocal(e.Location);
         float gutter = ShowLineNumbers ? GutterWidth : 0;
-        if (ShowLineNumbers && e.Location.X < gutter)
+
+        if (ShowLineNumbers && local.X < gutter)
         {
-            // click on line number → select whole line
-            int line = LineAtY(e.Location.Y);
+            int line = LineAtLocalY(local.Y);
             int start = _document.FromPosition(line, 0);
             int end = line + 1 < _document.Lines.Length
                 ? _document.FromPosition(line + 1, 0)
@@ -566,8 +574,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
             _document.SetCaret(start);
             _document.SetCaret(end, extendSelection: true);
 
-            // fold marker: leftmost 12px of the gutter
-            if (IsFoldingEnabled && e.Location.X < Math.Max(14, GutterWidth * 0.35f))
+            if (IsFoldingEnabled && local.X < Math.Max(14, GutterWidth * 0.35f))
             {
                 foreach (FoldRegion fold in _folds)
                 {
@@ -583,7 +590,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
             return;
         }
 
-        _document.SetCaret(HitTest(e.Location), extendSelection: e.Modifiers.HasFlag(KeyModifiers.Shift));
+        _document.SetCaret(IndexFromPoint(e.Location), extendSelection: e.Modifiers.HasFlag(KeyModifiers.Shift));
         _dragging = true;
         CloseCompletion();
         e.Handled = true;
@@ -592,7 +599,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
     protected override void OnMouseMove(MouseMoveEventArgs e)
     {
         if (!_dragging) return;
-        _document.SetCaret(HitTest(e.Location), extendSelection: true);
+        _document.SetCaret(IndexFromPoint(e.Location), extendSelection: true);
         e.Handled = true;
     }
 
@@ -601,10 +608,10 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
         if (e.Button == MouseButton.Left) _dragging = false;
     }
 
-    private int LineAtY(float y)
+    private int LineAtLocalY(float localY)
     {
         float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
-        float rel = y + _scrollY - Padding.Top;
+        float rel = localY + _scrollY - Padding.Top;
         int visual = Math.Max(0, (int)(rel / lineHeight));
         return VisualToDocumentLine(visual);
     }
@@ -621,24 +628,24 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
         return Math.Max(0, _document.Lines.Length - 1);
     }
 
-    private int HitTest(Point location)
+    /// <summary>Document index under a form-space point — same contract as TextBox.IndexFromPoint.</summary>
+    private int IndexFromPoint(Point absolute)
     {
+        Point local = ToLocal(absolute);
         Font font = EffectiveFont;
-        float lineHeight = TextMeasurer.LineHeight(font);
         float gutter = ShowLineNumbers ? GutterWidth : 0;
-        int line = LineAtY(location.Y);
+
+        int line = LineAtLocalY(local.Y);
         int lineStart = _document.FromPosition(line, 0);
         string lineText = line < _document.Lines.Length ? _document.Lines[line] : string.Empty;
-        float x = location.X - Padding.Left - gutter;
-        float width = 0;
-        int col = 0;
-        for (; col < lineText.Length; col++)
-        {
-            float w = TextMeasurer.Current.MeasureText(lineText[col].ToString(), font).Width;
-            if (width + w / 2f >= x) break;
-            width += w;
-        }
-        return Math.Min(lineStart + col, _document.Text.Length);
+
+        float x = local.X - gutter - Padding.Left;
+        if (x <= 0 || lineText.Length == 0)
+            return lineStart;
+
+        TextLineLayout layout = TextMeasurer.LayOutLine(lineText, font, Core.Text.FlowDirection.LeftToRight);
+        int column = layout.IndexAt(x);
+        return Math.Min(lineStart + column, _document.Text.Length);
     }
 
     // ===== drawing =====
@@ -672,7 +679,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
                 int lineStart = _document.FromPosition(line, 0);
                 int lineLen = lines[line].Length;
 
-                DrawLineHighlights(g, lineStart, lineLen, gutter, y, lineHeight, font);
+                DrawLineHighlights(g, lineStart, lineLen, gutter + Padding.Left, y, lineHeight, font);
 
                 // syntax-coloured runs
                 DrawSyntaxLine(g, lineStart, lineLen, lines[line], gutter + Padding.Left, y, lineHeight, font, textColor);
@@ -720,34 +727,35 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
 
     private void DrawLineHighlights(Graphics g, int lineStart, int lineLen, float x0, float y, float lineHeight, Font font)
     {
+        if (lineLen < 0) return;
+        int take = Math.Min(lineLen, Math.Max(0, _document.Text.Length - lineStart));
+        string lineText = take == 0 ? string.Empty : _document.Text.Substring(lineStart, take);
+        TextLineLayout layout = TextMeasurer.LayOutLine(lineText, font, Core.Text.FlowDirection.LeftToRight);
+
         int selA = SelectionStart;
         int selB = selA + SelectionLength;
 
         if (SelectionLength > 0)
         {
-            int from = Math.Max(selA, lineStart);
-            int to = Math.Min(selB, lineStart + lineLen);
+            int from = Math.Max(selA, lineStart) - lineStart;
+            int to = Math.Min(selB, lineStart + lineText.Length) - lineStart;
             if (from < to)
             {
-                float xa = x0 + Measure(_document.Text, lineStart, from - lineStart, font);
-                float xb = x0 + Measure(_document.Text, lineStart, to - lineStart, font);
-                g.FillRectangle(new Rectangle(xa, y, Math.Max(2, xb - xa), lineHeight), SelectionBrush);
+                foreach ((float left, float right) in layout.SelectionBounds(from, to))
+                    g.FillRectangle(new Rectangle(x0 + left, y, Math.Max(1, right - left), lineHeight), SelectionBrush);
             }
         }
 
         if (_occurrenceTerm is { Length: > 0 } term)
         {
-            string lineText = _document.Text.Substring(lineStart, lineLen);
             int idx = 0;
             while ((idx = lineText.IndexOf(term, idx, StringComparison.Ordinal)) >= 0)
             {
-                // skip the active selection range
                 int abs = lineStart + idx;
                 if (!(abs >= selA && abs < selB))
                 {
-                    float xa = x0 + Measure(_document.Text, lineStart, idx, font);
-                    float xb = x0 + Measure(_document.Text, lineStart, idx + term.Length, font);
-                    g.FillRectangle(new Rectangle(xa, y, Math.Max(2, xb - xa), lineHeight), OccurrenceBrush);
+                    foreach ((float left, float right) in layout.SelectionBounds(idx, idx + term.Length))
+                        g.FillRectangle(new Rectangle(x0 + left, y, Math.Max(1, right - left), lineHeight), OccurrenceBrush);
                 }
                 idx += term.Length;
             }
@@ -760,6 +768,8 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
     {
         if (lineLen == 0) return;
 
+        // Keep a single font for the line so measure, hit-test and draw share the same advances.
+        // Syntax only changes colour (TextBox lays out one font per row for the same reason).
         if (_tokenizer is null)
         {
             g.DrawText(lineText, new Point(x, y), defaultColor, font);
@@ -773,33 +783,27 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
             int abs = lineStart + cursor;
             SyntaxStyle? style = _tokenizer.StyleAt(abs);
             int runEnd = cursor + 1;
-            while (runEnd < lineLen && EqualsStyle(_tokenizer.StyleAt(lineStart + runEnd), style))
+            while (runEnd < lineLen && SameForeground(_tokenizer.StyleAt(lineStart + runEnd), style))
                 runEnd++;
 
-            string piece = lineText[cursor..runEnd];
-            Font runFont = font;
-            if (style is { Bold: true }) runFont = runFont.Bold();
-            if (style is { Italic: true }) runFont = runFont.Italic();
-
-            runs.Add(new TextRun(piece)
+            runs.Add(new TextRun(lineText[cursor..runEnd])
             {
-                Font = runFont,
+                Font = font,
                 Color = style?.Foreground ?? defaultColor,
-                Background = style?.Background,
             });
             cursor = runEnd;
         }
 
-        g.DrawRuns(runs, new Rectangle(x, y, 10000, lineHeight), font, defaultColor,
-            HorizontalContentAlignment.Left, VerticalContentAlignment.Top);
+        if (runs.Count > 0)
+            g.DrawRuns(runs, new Rectangle(x, y, Math.Max(1, LocalBounds.Width), lineHeight),
+                font, defaultColor, HorizontalContentAlignment.Left, VerticalContentAlignment.Top);
     }
 
-    private static bool EqualsStyle(SyntaxStyle? a, SyntaxStyle? b)
+    private static bool SameForeground(SyntaxStyle? a, SyntaxStyle? b)
     {
         if (ReferenceEquals(a, b)) return true;
-        if (a is null || b is null) return false;
-        return a.Foreground == b.Foreground && a.Background == b.Background &&
-               a.Bold == b.Bold && a.Italic == b.Italic;
+        if (a is null || b is null) return a is null && b is null;
+        return a.Foreground == b.Foreground;
     }
 
     private void DrawCaret(Graphics g, float gutter, Font font, float lineHeight)
@@ -812,16 +816,17 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
             if (!IsLineHidden(i)) visualLine++;
 
         float y = Padding.Top - _scrollY + visualLine * lineHeight;
-        int lineStart = _document.FromPosition(line, 0);
-        float x = gutter + Padding.Left + Measure(_document.Text, lineStart, col, font);
+        string lineText = line < _document.Lines.Length ? _document.Lines[line] : string.Empty;
+        TextLineLayout layout = TextMeasurer.LayOutLine(lineText, font, Core.Text.FlowDirection.LeftToRight);
+        float x = gutter + Padding.Left + layout.CaretX(Math.Clamp(col, 0, lineText.Length));
 
         if (IsComposing)
         {
-            float compW = TextMeasurer.Current.MeasureText(_composition, font).Width;
+            float compW = TextMeasurer.Current.MeasureTextWidth(_composition, _composition.Length, font);
             g.DrawText(_composition, new Point(x, y), TextColor, font);
             g.DrawRectangle(new Rectangle(x, y + lineHeight - 2, Math.Max(2, compW), 1), TextColor, 1);
-            x += TextMeasurer.Current.MeasureText(
-                _composition[..Math.Min(_compositionCursor, _composition.Length)], font).Width;
+            int cc = Math.Min(_compositionCursor, _composition.Length);
+            x += TextMeasurer.Current.MeasureTextWidth(_composition, cc, font);
         }
 
         g.FillRectangle(new Rectangle(x, y, 1, lineHeight), TextColor);
@@ -860,7 +865,9 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
     {
         if (length <= 0 || start >= text.Length) return 0;
         length = Math.Min(length, text.Length - start);
-        return TextMeasurer.Current.MeasureText(text.Substring(start, length), font).Width;
+        // Prefix width of the line segment — same basis TextBox uses via LayOutLine
+        string piece = text.Substring(start, length);
+        return TextMeasurer.Current.MeasureTextWidth(piece, piece.Length, font);
     }
 
     private void EnsureCaretVisible()
