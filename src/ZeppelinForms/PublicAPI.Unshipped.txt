@@ -405,3 +405,23 @@ virtual ZeppelinForms.Accessibility.AccessibilityPeer.SelectionLength.get -> int
 virtual ZeppelinForms.Accessibility.AccessibilityPeer.SelectionStart.get -> int
 virtual ZeppelinForms.Input.Commands.AsyncCommand.CanExecute(object? parameter) -> bool
 virtual ZeppelinForms.Input.Commands.AsyncCommand.OnPropertyChanged(string! propertyName) -> void
+static readonly ZeppelinForms.Forms.Controls.Text.CodeEdit.DuplicateLineEnabledProperty -> ZeppelinForms.Forms.Styling.StyledProperty<bool>!
+static readonly ZeppelinForms.Forms.Controls.Text.CodeEdit.GutterBackgroundProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Text.CodeEdit.GutterWidthProperty -> ZeppelinForms.Forms.Styling.StyledProperty<float>!
+static readonly ZeppelinForms.Forms.Controls.Text.CodeEdit.IsCompletionEnabledProperty -> ZeppelinForms.Forms.Styling.StyledProperty<bool>!
+static readonly ZeppelinForms.Forms.Controls.Text.CodeEdit.IsFoldingEnabledProperty -> ZeppelinForms.Forms.Styling.StyledProperty<bool>!
+static readonly ZeppelinForms.Forms.Controls.Text.CodeEdit.IsReadOnlyProperty -> ZeppelinForms.Forms.Styling.StyledProperty<bool>!
+static readonly ZeppelinForms.Forms.Controls.Text.CodeEdit.LineNumberColorProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Text.CodeEdit.OccurrenceBrushProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Text.CodeEdit.SelectionBrushProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Text.CodeEdit.ShowLineNumbersProperty -> ZeppelinForms.Forms.Styling.StyledProperty<bool>!
+static readonly ZeppelinForms.Forms.Controls.Text.CodeEdit.TextProperty -> ZeppelinForms.Forms.Styling.StyledProperty<string?>!
+static readonly ZeppelinForms.Forms.Controls.Text.DocumentEdit.IsReadOnlyProperty -> ZeppelinForms.Forms.Styling.StyledProperty<bool>!
+static readonly ZeppelinForms.Forms.Controls.Text.DocumentEdit.PageBackgroundProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Text.DocumentEdit.PageSpacingProperty -> ZeppelinForms.Forms.Styling.StyledProperty<float>!
+static readonly ZeppelinForms.Forms.Controls.Text.DocumentEdit.SelectionBrushProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Text.DocumentEdit.TextProperty -> ZeppelinForms.Forms.Styling.StyledProperty<string?>!
+static readonly ZeppelinForms.Forms.Controls.Text.RichTextBox.CaretBrushProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Text.RichTextBox.IsReadOnlyProperty -> ZeppelinForms.Forms.Styling.StyledProperty<bool>!
+static readonly ZeppelinForms.Forms.Controls.Text.RichTextBox.SelectionBrushProperty -> ZeppelinForms.Forms.Styling.StyledProperty<ZeppelinForms.Drawing.Primitives.Color>!
+static readonly ZeppelinForms.Forms.Controls.Text.RichTextBox.TextProperty -> ZeppelinForms.Forms.Styling.StyledProperty<string?>!
