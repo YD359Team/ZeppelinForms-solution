@@ -12,6 +12,28 @@
   browser and on Android: it is an access key in the user's layout, as on Windows. Ctrl
   with a printable key types nothing on X11 and Wayland, as it typed nothing elsewhere
 
+### New controls
+
+- `RichTextBox`: a multiline field that keeps character formatting — bold, italic,
+  underline, colours and font size — as spans beside the plain text. The `Text`
+  property stays the bindable string; `Document` holds the spans. Ctrl+B / I / U
+  toggle the common styles on the selection; `ApplyStyle`, `SetForeground` and
+  `ToggleBold` / `ToggleItalic` / `ToggleUnderline` cover the rest. Composition
+  from an input method is shown in place, as on `TextBox`
+- `CodeEdit`: a monospace editor with a line-number gutter, fold markers for
+  `{` / `}` blocks, occurrence highlights for the selection or
+  `HighlightOccurrences`, and a completion list of keyword lexemes (or a host
+  `CompletionProvider`). Highlighting is a trie of keywords plus literal block
+  rules (`SyntaxRuleSet` / `SyntaxTokenizer`), not a cascade of regular
+  expressions — `SyntaxRuleSet.CSharp()` ships as a starter set. Ctrl+D
+  duplicates the line or selection when `DuplicateLineEnabled` (on by default);
+  a click on a line number selects that line; Ctrl+Space opens completion
+- `DocumentEdit`: paginated rich text in the style of a word processor.
+  `DocumentPageSettings` sets paper size, orientation, margins, header and
+  footer; the text is laid out into `DocumentPage`s. `Print` raises
+  `PrintRequested` with a snapshot the host can send to a system printer — ZF
+  does not open the spooler itself. Ctrl+P prints from the keyboard
+
 ### Accessibility
 
 - Linux has a screen reader bridge: AT-SPI 2, which Orca reads, on X11 and on Wayland. The

@@ -1,4 +1,4 @@
-using ZeppelinForms.Drawing.Primitives;
+﻿using ZeppelinForms.Drawing.Primitives;
 using ZeppelinForms.Forms;
 using ZeppelinForms.Forms.Controls;
 using ZeppelinForms.Forms.Enums;
@@ -63,6 +63,7 @@ public partial class ExampleMainForm : Form
         view.Items.Add(new SplitViewItem("Buttons", Icons.Button, ButtonsPage.Create));
         view.Items.Add(new SplitViewItem("Choices", Icons.Check, ChoicesPage.Create));
         view.Items.Add(new SplitViewItem("Text input", Icons.Text, TextInputPage.Create));
+        view.Items.Add(new SplitViewItem("Editors", Icons.Font, EditorsPage.Create));
         view.Items.Add(new SplitViewItem("Date and color", Icons.Calendar, PickersPage.Create));
         view.Items.Add(new SplitViewItem("Ranges and progress", Icons.Slider, RangesPage.Create));
 
