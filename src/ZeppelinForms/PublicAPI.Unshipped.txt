@@ -1,5 +1,71 @@
 #nullable enable
+override ZeppelinForms.Accessibility.Peers.CodeEditPeer.CaretIndex.get -> int
+override ZeppelinForms.Accessibility.Peers.CodeEditPeer.ControlStates.get -> ZeppelinForms.Accessibility.AccessibilityStates
+override ZeppelinForms.Accessibility.Peers.CodeEditPeer.DefaultRole.get -> ZeppelinForms.Accessibility.AccessibilityRole
+override ZeppelinForms.Accessibility.Peers.CodeEditPeer.SelectionLength.get -> int
+override ZeppelinForms.Accessibility.Peers.CodeEditPeer.SelectionStart.get -> int
+override ZeppelinForms.Accessibility.Peers.CodeEditPeer.SetValue(string! value) -> bool
+override ZeppelinForms.Accessibility.Peers.CodeEditPeer.Value.get -> string?
+override ZeppelinForms.Accessibility.Peers.DocumentEditPeer.CaretIndex.get -> int
+override ZeppelinForms.Accessibility.Peers.DocumentEditPeer.ControlStates.get -> ZeppelinForms.Accessibility.AccessibilityStates
+override ZeppelinForms.Accessibility.Peers.DocumentEditPeer.DefaultRole.get -> ZeppelinForms.Accessibility.AccessibilityRole
+override ZeppelinForms.Accessibility.Peers.DocumentEditPeer.SelectionLength.get -> int
+override ZeppelinForms.Accessibility.Peers.DocumentEditPeer.SelectionStart.get -> int
+override ZeppelinForms.Accessibility.Peers.DocumentEditPeer.SetValue(string! value) -> bool
+override ZeppelinForms.Accessibility.Peers.DocumentEditPeer.Value.get -> string?
+override ZeppelinForms.Accessibility.Peers.RichTextBoxPeer.CaretIndex.get -> int
+override ZeppelinForms.Accessibility.Peers.RichTextBoxPeer.ControlStates.get -> ZeppelinForms.Accessibility.AccessibilityStates
+override ZeppelinForms.Accessibility.Peers.RichTextBoxPeer.DefaultRole.get -> ZeppelinForms.Accessibility.AccessibilityRole
+override ZeppelinForms.Accessibility.Peers.RichTextBoxPeer.SelectionLength.get -> int
+override ZeppelinForms.Accessibility.Peers.RichTextBoxPeer.SelectionStart.get -> int
+override ZeppelinForms.Accessibility.Peers.RichTextBoxPeer.SetValue(string! value) -> bool
+override ZeppelinForms.Accessibility.Peers.RichTextBoxPeer.Value.get -> string?
+override ZeppelinForms.Core.Text.PageSize.Equals(object? obj) -> bool
+override ZeppelinForms.Core.Text.PageSize.GetHashCode() -> int
+override ZeppelinForms.Core.Text.RichTextStyle.Equals(object? obj) -> bool
+override ZeppelinForms.Core.Text.RichTextStyle.GetHashCode() -> int
+override ZeppelinForms.Forms.Controls.Text.CodeEdit.AcceptsTextInput.get -> bool
+override ZeppelinForms.Forms.Controls.Text.CodeEdit.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
+override ZeppelinForms.Forms.Controls.Text.CodeEdit.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
+override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnKeyDown(ZeppelinForms.Input.Keyboard.KeyEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnMouseDown(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnMouseUp(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnTextInput(char c) -> void
+override ZeppelinForms.Forms.Controls.Text.DocumentEdit.AcceptsTextInput.get -> bool
+override ZeppelinForms.Forms.Controls.Text.DocumentEdit.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
+override ZeppelinForms.Forms.Controls.Text.DocumentEdit.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
+override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnKeyDown(ZeppelinForms.Input.Keyboard.KeyEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnMouseDown(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnMouseUp(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnTextInput(char c) -> void
+override ZeppelinForms.Forms.Controls.Text.RichTextBox.AcceptsTextInput.get -> bool
+override ZeppelinForms.Forms.Controls.Text.RichTextBox.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
+override ZeppelinForms.Forms.Controls.Text.RichTextBox.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
+override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnKeyDown(ZeppelinForms.Input.Keyboard.KeyEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnMouseDown(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnMouseUp(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnTextInput(char c) -> void
+static ZeppelinForms.Core.Text.PageSize.A4.get -> ZeppelinForms.Core.Text.PageSize
+static ZeppelinForms.Core.Text.PageSize.A5.get -> ZeppelinForms.Core.Text.PageSize
+static ZeppelinForms.Core.Text.PageSize.Legal.get -> ZeppelinForms.Core.Text.PageSize
+static ZeppelinForms.Core.Text.PageSize.Letter.get -> ZeppelinForms.Core.Text.PageSize
+static ZeppelinForms.Core.Text.PageSize.operator !=(ZeppelinForms.Core.Text.PageSize left, ZeppelinForms.Core.Text.PageSize right) -> bool
+static ZeppelinForms.Core.Text.PageSize.operator ==(ZeppelinForms.Core.Text.PageSize left, ZeppelinForms.Core.Text.PageSize right) -> bool
+static ZeppelinForms.Core.Text.RichTextStyle.Empty.get -> ZeppelinForms.Core.Text.RichTextStyle
+static ZeppelinForms.Core.Text.RichTextStyle.operator !=(ZeppelinForms.Core.Text.RichTextStyle left, ZeppelinForms.Core.Text.RichTextStyle right) -> bool
+static ZeppelinForms.Core.Text.RichTextStyle.operator ==(ZeppelinForms.Core.Text.RichTextStyle left, ZeppelinForms.Core.Text.RichTextStyle right) -> bool
+static ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.CSharp() -> ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet!
+static ZeppelinForms.Core.Text.Syntax.SyntaxStyle.Of(ZeppelinForms.Drawing.Primitives.Color foreground, bool bold = false, bool italic = false) -> ZeppelinForms.Core.Text.Syntax.SyntaxStyle!
 ZeppelinForms.Accessibility.AccessibilityProperty.Caret = 6 -> ZeppelinForms.Accessibility.AccessibilityProperty
+ZeppelinForms.Accessibility.Peers.CodeEditPeer
+ZeppelinForms.Accessibility.Peers.CodeEditPeer.CodeEditPeer(ZeppelinForms.Forms.Controls.Text.CodeEdit! owner) -> void
+ZeppelinForms.Accessibility.Peers.DocumentEditPeer
+ZeppelinForms.Accessibility.Peers.DocumentEditPeer.DocumentEditPeer(ZeppelinForms.Forms.Controls.Text.DocumentEdit! owner) -> void
+ZeppelinForms.Accessibility.Peers.RichTextBoxPeer
+ZeppelinForms.Accessibility.Peers.RichTextBoxPeer.RichTextBoxPeer(ZeppelinForms.Forms.Controls.Text.RichTextBox! owner) -> void
 ZeppelinForms.Core.Caching.DiskCache
 ZeppelinForms.Core.Caching.DiskCache.Clear() -> void
 ZeppelinForms.Core.Caching.DiskCache.Contains(string! key) -> bool
@@ -11,6 +77,156 @@ ZeppelinForms.Core.Caching.DiskCache.Remove(string! key) -> bool
 ZeppelinForms.Core.Caching.DiskCache.Size.get -> long
 ZeppelinForms.Core.Caching.DiskCache.Trim() -> void
 ZeppelinForms.Core.Caching.DiskCache.WriteAsync(string! key, System.ReadOnlyMemory<byte> data, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+ZeppelinForms.Core.Text.DocumentPage
+ZeppelinForms.Core.Text.DocumentPage.DocumentPage(int index, int textStart, int textLength) -> void
+ZeppelinForms.Core.Text.DocumentPage.Index.get -> int
+ZeppelinForms.Core.Text.DocumentPage.TextEnd.get -> int
+ZeppelinForms.Core.Text.DocumentPage.TextLength.get -> int
+ZeppelinForms.Core.Text.DocumentPage.TextStart.get -> int
+ZeppelinForms.Core.Text.DocumentPageSettings
+ZeppelinForms.Core.Text.DocumentPageSettings.ContentHeight.get -> float
+ZeppelinForms.Core.Text.DocumentPageSettings.ContentWidth.get -> float
+ZeppelinForms.Core.Text.DocumentPageSettings.DocumentPageSettings() -> void
+ZeppelinForms.Core.Text.DocumentPageSettings.EffectiveSize.get -> ZeppelinForms.Core.Text.PageSize
+ZeppelinForms.Core.Text.DocumentPageSettings.FooterText.get -> string?
+ZeppelinForms.Core.Text.DocumentPageSettings.FooterText.set -> void
+ZeppelinForms.Core.Text.DocumentPageSettings.HeaderText.get -> string?
+ZeppelinForms.Core.Text.DocumentPageSettings.HeaderText.set -> void
+ZeppelinForms.Core.Text.DocumentPageSettings.Margins.get -> ZeppelinForms.Drawing.Primitives.Thickness
+ZeppelinForms.Core.Text.DocumentPageSettings.Margins.set -> void
+ZeppelinForms.Core.Text.DocumentPageSettings.Orientation.get -> ZeppelinForms.Core.Text.PageOrientation
+ZeppelinForms.Core.Text.DocumentPageSettings.Orientation.set -> void
+ZeppelinForms.Core.Text.DocumentPageSettings.Paper.get -> ZeppelinForms.Core.Text.PageSize
+ZeppelinForms.Core.Text.DocumentPageSettings.Paper.set -> void
+ZeppelinForms.Core.Text.DocumentPageSettings.ShowPageNumbers.get -> bool
+ZeppelinForms.Core.Text.DocumentPageSettings.ShowPageNumbers.set -> void
+ZeppelinForms.Core.Text.DocumentPrintRequest
+ZeppelinForms.Core.Text.DocumentPrintRequest.Document.get -> ZeppelinForms.Core.Text.RichTextDocument!
+ZeppelinForms.Core.Text.DocumentPrintRequest.Document.init -> void
+ZeppelinForms.Core.Text.DocumentPrintRequest.DocumentPrintRequest() -> void
+ZeppelinForms.Core.Text.DocumentPrintRequest.Pages.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Core.Text.DocumentPage!>!
+ZeppelinForms.Core.Text.DocumentPrintRequest.Pages.init -> void
+ZeppelinForms.Core.Text.DocumentPrintRequest.PlainText.get -> string!
+ZeppelinForms.Core.Text.DocumentPrintRequest.PlainText.init -> void
+ZeppelinForms.Core.Text.DocumentPrintRequest.Settings.get -> ZeppelinForms.Core.Text.DocumentPageSettings!
+ZeppelinForms.Core.Text.DocumentPrintRequest.Settings.init -> void
+ZeppelinForms.Core.Text.PageOrientation
+ZeppelinForms.Core.Text.PageOrientation.Landscape = 1 -> ZeppelinForms.Core.Text.PageOrientation
+ZeppelinForms.Core.Text.PageOrientation.Portrait = 0 -> ZeppelinForms.Core.Text.PageOrientation
+ZeppelinForms.Core.Text.PageSize
+ZeppelinForms.Core.Text.PageSize.Equals(ZeppelinForms.Core.Text.PageSize other) -> bool
+ZeppelinForms.Core.Text.PageSize.For(ZeppelinForms.Core.Text.PageOrientation orientation) -> ZeppelinForms.Core.Text.PageSize
+ZeppelinForms.Core.Text.PageSize.Height.get -> float
+ZeppelinForms.Core.Text.PageSize.PageSize() -> void
+ZeppelinForms.Core.Text.PageSize.PageSize(float width, float height) -> void
+ZeppelinForms.Core.Text.PageSize.Width.get -> float
+ZeppelinForms.Core.Text.RichTextDocument
+ZeppelinForms.Core.Text.RichTextDocument.ApplyStyle(int start, int length, ZeppelinForms.Core.Text.RichTextStyle style) -> void
+ZeppelinForms.Core.Text.RichTextDocument.ApplyStyleToSelection(ZeppelinForms.Core.Text.RichTextStyle style) -> void
+ZeppelinForms.Core.Text.RichTextDocument.BuildRuns(int start, int length, ZeppelinForms.Drawing.Font! baseFont, ZeppelinForms.Drawing.Primitives.Color baseColor) -> System.Collections.Generic.List<ZeppelinForms.Drawing.TextRun!>!
+ZeppelinForms.Core.Text.RichTextDocument.Changed -> System.EventHandler?
+ZeppelinForms.Core.Text.RichTextDocument.Content.get -> string!
+ZeppelinForms.Core.Text.RichTextDocument.Content.set -> void
+ZeppelinForms.Core.Text.RichTextDocument.GetStyleAt(int index) -> ZeppelinForms.Core.Text.RichTextStyle
+ZeppelinForms.Core.Text.RichTextDocument.NotifyEdit(int position, int removedLength, int insertedLength) -> void
+ZeppelinForms.Core.Text.RichTextDocument.RichTextDocument() -> void
+ZeppelinForms.Core.Text.RichTextDocument.Spans.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Core.Text.RichTextSpan!>!
+ZeppelinForms.Core.Text.RichTextDocument.Text.get -> ZeppelinForms.Core.Text.TextDocument!
+ZeppelinForms.Core.Text.RichTextDocument.ToPlainText() -> string!
+ZeppelinForms.Core.Text.RichTextDocument.ToSimpleMarkup() -> string!
+ZeppelinForms.Core.Text.RichTextSpan
+ZeppelinForms.Core.Text.RichTextSpan.Clone() -> ZeppelinForms.Core.Text.RichTextSpan!
+ZeppelinForms.Core.Text.RichTextSpan.End.get -> int
+ZeppelinForms.Core.Text.RichTextSpan.Length.get -> int
+ZeppelinForms.Core.Text.RichTextSpan.RichTextSpan(int start, int length, ZeppelinForms.Core.Text.RichTextStyle style) -> void
+ZeppelinForms.Core.Text.RichTextSpan.Start.get -> int
+ZeppelinForms.Core.Text.RichTextSpan.Style.get -> ZeppelinForms.Core.Text.RichTextStyle
+ZeppelinForms.Core.Text.RichTextStyle
+ZeppelinForms.Core.Text.RichTextStyle.Background.get -> ZeppelinForms.Drawing.Primitives.Color?
+ZeppelinForms.Core.Text.RichTextStyle.Background.init -> void
+ZeppelinForms.Core.Text.RichTextStyle.Bold.get -> bool
+ZeppelinForms.Core.Text.RichTextStyle.Bold.init -> void
+ZeppelinForms.Core.Text.RichTextStyle.Equals(ZeppelinForms.Core.Text.RichTextStyle other) -> bool
+ZeppelinForms.Core.Text.RichTextStyle.FontFamily.get -> string?
+ZeppelinForms.Core.Text.RichTextStyle.FontFamily.init -> void
+ZeppelinForms.Core.Text.RichTextStyle.FontSize.get -> float
+ZeppelinForms.Core.Text.RichTextStyle.FontSize.init -> void
+ZeppelinForms.Core.Text.RichTextStyle.Foreground.get -> ZeppelinForms.Drawing.Primitives.Color?
+ZeppelinForms.Core.Text.RichTextStyle.Foreground.init -> void
+ZeppelinForms.Core.Text.RichTextStyle.IsEmpty.get -> bool
+ZeppelinForms.Core.Text.RichTextStyle.Italic.get -> bool
+ZeppelinForms.Core.Text.RichTextStyle.Italic.init -> void
+ZeppelinForms.Core.Text.RichTextStyle.Overlay(ZeppelinForms.Core.Text.RichTextStyle other) -> ZeppelinForms.Core.Text.RichTextStyle
+ZeppelinForms.Core.Text.RichTextStyle.ResolveFont(ZeppelinForms.Drawing.Font! baseFont) -> ZeppelinForms.Drawing.Font!
+ZeppelinForms.Core.Text.RichTextStyle.RichTextStyle() -> void
+ZeppelinForms.Core.Text.RichTextStyle.Strikethrough.get -> bool
+ZeppelinForms.Core.Text.RichTextStyle.Strikethrough.init -> void
+ZeppelinForms.Core.Text.RichTextStyle.ToRun(string! text, ZeppelinForms.Drawing.Font! baseFont, ZeppelinForms.Drawing.Primitives.Color baseColor) -> ZeppelinForms.Drawing.TextRun!
+ZeppelinForms.Core.Text.RichTextStyle.Underline.get -> bool
+ZeppelinForms.Core.Text.RichTextStyle.Underline.init -> void
+ZeppelinForms.Core.Text.RichTextStyle.WithBackground(ZeppelinForms.Drawing.Primitives.Color color) -> ZeppelinForms.Core.Text.RichTextStyle
+ZeppelinForms.Core.Text.RichTextStyle.WithBold(bool bold = true) -> ZeppelinForms.Core.Text.RichTextStyle
+ZeppelinForms.Core.Text.RichTextStyle.WithForeground(ZeppelinForms.Drawing.Primitives.Color color) -> ZeppelinForms.Core.Text.RichTextStyle
+ZeppelinForms.Core.Text.RichTextStyle.WithItalic(bool italic = true) -> ZeppelinForms.Core.Text.RichTextStyle
+ZeppelinForms.Core.Text.RichTextStyle.WithUnderline(bool underline = true) -> ZeppelinForms.Core.Text.RichTextStyle
+ZeppelinForms.Core.Text.Syntax.BlockRule
+ZeppelinForms.Core.Text.Syntax.BlockRule.AllowNesting.get -> bool
+ZeppelinForms.Core.Text.Syntax.BlockRule.AllowNesting.init -> void
+ZeppelinForms.Core.Text.Syntax.BlockRule.BlockRule() -> void
+ZeppelinForms.Core.Text.Syntax.BlockRule.Close.get -> string!
+ZeppelinForms.Core.Text.Syntax.BlockRule.Close.init -> void
+ZeppelinForms.Core.Text.Syntax.BlockRule.EndsAtLineBreak.get -> bool
+ZeppelinForms.Core.Text.Syntax.BlockRule.EndsAtLineBreak.init -> void
+ZeppelinForms.Core.Text.Syntax.BlockRule.Escape.get -> char?
+ZeppelinForms.Core.Text.Syntax.BlockRule.Escape.init -> void
+ZeppelinForms.Core.Text.Syntax.BlockRule.Open.get -> string!
+ZeppelinForms.Core.Text.Syntax.BlockRule.Open.init -> void
+ZeppelinForms.Core.Text.Syntax.BlockRule.Style.get -> ZeppelinForms.Core.Text.Syntax.SyntaxStyle!
+ZeppelinForms.Core.Text.Syntax.BlockRule.Style.init -> void
+ZeppelinForms.Core.Text.Syntax.KeywordRule
+ZeppelinForms.Core.Text.Syntax.KeywordRule.IgnoreCase.get -> bool
+ZeppelinForms.Core.Text.Syntax.KeywordRule.IgnoreCase.init -> void
+ZeppelinForms.Core.Text.Syntax.KeywordRule.KeywordRule() -> void
+ZeppelinForms.Core.Text.Syntax.KeywordRule.Lexeme.get -> string!
+ZeppelinForms.Core.Text.Syntax.KeywordRule.Lexeme.init -> void
+ZeppelinForms.Core.Text.Syntax.KeywordRule.Style.get -> ZeppelinForms.Core.Text.Syntax.SyntaxStyle!
+ZeppelinForms.Core.Text.Syntax.KeywordRule.Style.init -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.Blocks.get -> System.Collections.Generic.IList<ZeppelinForms.Core.Text.Syntax.BlockRule!>!
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.DefaultStyle.get -> ZeppelinForms.Core.Text.Syntax.SyntaxStyle?
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.DefaultStyle.init -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.IsIdentifierPart.get -> System.Func<char, bool>?
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.IsIdentifierPart.init -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.IsIdentifierStart.get -> System.Func<char, bool>?
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.IsIdentifierStart.init -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.KeywordLexemes.get -> System.Collections.Generic.IEnumerable<string!>!
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.Keywords.get -> System.Collections.Generic.IList<ZeppelinForms.Core.Text.Syntax.KeywordRule!>!
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.NumberStyle.get -> ZeppelinForms.Core.Text.Syntax.SyntaxStyle?
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.NumberStyle.init -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet.SyntaxRuleSet() -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxStyle
+ZeppelinForms.Core.Text.Syntax.SyntaxStyle.Background.get -> ZeppelinForms.Drawing.Primitives.Color?
+ZeppelinForms.Core.Text.Syntax.SyntaxStyle.Background.init -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxStyle.Bold.get -> bool
+ZeppelinForms.Core.Text.Syntax.SyntaxStyle.Bold.init -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxStyle.Foreground.get -> ZeppelinForms.Drawing.Primitives.Color?
+ZeppelinForms.Core.Text.Syntax.SyntaxStyle.Foreground.init -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxStyle.Italic.get -> bool
+ZeppelinForms.Core.Text.Syntax.SyntaxStyle.Italic.init -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxStyle.SyntaxStyle() -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxToken
+ZeppelinForms.Core.Text.Syntax.SyntaxToken.End.get -> int
+ZeppelinForms.Core.Text.Syntax.SyntaxToken.Length.get -> int
+ZeppelinForms.Core.Text.Syntax.SyntaxToken.Start.get -> int
+ZeppelinForms.Core.Text.Syntax.SyntaxToken.Style.get -> ZeppelinForms.Core.Text.Syntax.SyntaxStyle!
+ZeppelinForms.Core.Text.Syntax.SyntaxToken.SyntaxToken() -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxToken.SyntaxToken(int start, int length, ZeppelinForms.Core.Text.Syntax.SyntaxStyle! style) -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxTokenizer
+ZeppelinForms.Core.Text.Syntax.SyntaxTokenizer.Retokenize(string! text) -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxTokenizer.Rules.get -> ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet!
+ZeppelinForms.Core.Text.Syntax.SyntaxTokenizer.StyleAt(int index) -> ZeppelinForms.Core.Text.Syntax.SyntaxStyle?
+ZeppelinForms.Core.Text.Syntax.SyntaxTokenizer.SyntaxTokenizer(ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet! rules) -> void
+ZeppelinForms.Core.Text.Syntax.SyntaxTokenizer.Tokens.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Core.Text.Syntax.SyntaxToken>!
 ZeppelinForms.Data.Binding.Options.get -> ZeppelinForms.Data.BindingOptions?
 ZeppelinForms.Data.BindingOptions
 ZeppelinForms.Data.BindingOptions.BindingOptions() -> void
@@ -44,6 +260,109 @@ ZeppelinForms.Forms.Controls.Base.UIElement.Bind(ZeppelinForms.Forms.Styling.Sty
 ZeppelinForms.Forms.Controls.Base.UIElement.Bind(ZeppelinForms.Forms.Styling.StyledProperty! property, object! source, ZeppelinForms.Data.BindingPath! path, ZeppelinForms.Data.BindingMode mode, ZeppelinForms.Data.BindingOptions! options) -> ZeppelinForms.Data.Binding!
 ZeppelinForms.Forms.Controls.Charts.RadarChart.KeepLabelsClear.get -> bool
 ZeppelinForms.Forms.Controls.Charts.RadarChart.KeepLabelsClear.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit
+ZeppelinForms.Forms.Controls.Text.CodeEdit.AcceptsComposition.get -> bool
+ZeppelinForms.Forms.Controls.Text.CodeEdit.CaretIndex.get -> int
+ZeppelinForms.Forms.Controls.Text.CodeEdit.CloseCompletion() -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.CodeEdit() -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.CompletionProvider.get -> System.Func<string!, System.Collections.Generic.IEnumerable<string!>!>?
+ZeppelinForms.Forms.Controls.Text.CodeEdit.CompletionProvider.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.Document.get -> ZeppelinForms.Core.Text.TextDocument!
+ZeppelinForms.Forms.Controls.Text.CodeEdit.DuplicateLineEnabled.get -> bool
+ZeppelinForms.Forms.Controls.Text.CodeEdit.DuplicateLineEnabled.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.DuplicateLineOrSelection() -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.ExpandAllFolds() -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.FoldedLineStarts.get -> System.Collections.Generic.IReadOnlyCollection<int>!
+ZeppelinForms.Forms.Controls.Text.CodeEdit.GutterBackground.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Text.CodeEdit.GutterBackground.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.GutterWidth.get -> float
+ZeppelinForms.Forms.Controls.Text.CodeEdit.GutterWidth.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.HighlightOccurrences(string? term) -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.IsCompletionEnabled.get -> bool
+ZeppelinForms.Forms.Controls.Text.CodeEdit.IsCompletionEnabled.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.IsFoldingEnabled.get -> bool
+ZeppelinForms.Forms.Controls.Text.CodeEdit.IsFoldingEnabled.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.IsReadOnly.get -> bool
+ZeppelinForms.Forms.Controls.Text.CodeEdit.IsReadOnly.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.LineNumberColor.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Text.CodeEdit.LineNumberColor.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.OccurrenceBrush.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Text.CodeEdit.OccurrenceBrush.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.SelectedText.get -> string!
+ZeppelinForms.Forms.Controls.Text.CodeEdit.SelectionBrush.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Text.CodeEdit.SelectionBrush.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.SelectionChanged -> System.EventHandler?
+ZeppelinForms.Forms.Controls.Text.CodeEdit.SelectionLength.get -> int
+ZeppelinForms.Forms.Controls.Text.CodeEdit.SelectionStart.get -> int
+ZeppelinForms.Forms.Controls.Text.CodeEdit.SetComposition(string! text, int cursor) -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.ShowLineNumbers.get -> bool
+ZeppelinForms.Forms.Controls.Text.CodeEdit.ShowLineNumbers.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.SyntaxRules.get -> ZeppelinForms.Core.Text.Syntax.SyntaxRuleSet?
+ZeppelinForms.Forms.Controls.Text.CodeEdit.SyntaxRules.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.Text.get -> string?
+ZeppelinForms.Forms.Controls.Text.CodeEdit.Text.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.TextChanged -> System.EventHandler?
+ZeppelinForms.Forms.Controls.Text.CodeEdit.ToggleFold(int lineStart) -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.AcceptsComposition.get -> bool
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.ApplyStyle(ZeppelinForms.Core.Text.RichTextStyle style) -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.CaretIndex.get -> int
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.Document.get -> ZeppelinForms.Core.Text.RichTextDocument!
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.DocumentEdit() -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.IsReadOnly.get -> bool
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.IsReadOnly.set -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.PageBackground.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.PageBackground.set -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.Pages.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Core.Text.DocumentPage!>!
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.PageSettings.get -> ZeppelinForms.Core.Text.DocumentPageSettings!
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.PageSettings.set -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.PageSpacing.get -> float
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.PageSpacing.set -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.Print() -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.PrintRequested -> System.EventHandler<ZeppelinForms.Core.Text.DocumentPrintRequest!>?
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.SelectionBrush.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.SelectionBrush.set -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.SelectionChanged -> System.EventHandler?
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.SelectionLength.get -> int
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.SelectionStart.get -> int
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.SetComposition(string! text, int cursor) -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.SetFooter(string? text) -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.SetHeader(string? text) -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.SetMargins(ZeppelinForms.Drawing.Primitives.Thickness margins) -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.SetOrientation(ZeppelinForms.Core.Text.PageOrientation orientation) -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.SetPaper(ZeppelinForms.Core.Text.PageSize paper) -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.Text.get -> string?
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.Text.set -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.TextChanged -> System.EventHandler?
+ZeppelinForms.Forms.Controls.Text.RichTextBox
+ZeppelinForms.Forms.Controls.Text.RichTextBox.AcceptsComposition.get -> bool
+ZeppelinForms.Forms.Controls.Text.RichTextBox.ApplyStyle(ZeppelinForms.Core.Text.RichTextStyle style) -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.CaretBrush.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Text.RichTextBox.CaretBrush.set -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.CaretIndex.get -> int
+ZeppelinForms.Forms.Controls.Text.RichTextBox.Copy() -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.Cut() -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.Document.get -> ZeppelinForms.Core.Text.RichTextDocument!
+ZeppelinForms.Forms.Controls.Text.RichTextBox.IsReadOnly.get -> bool
+ZeppelinForms.Forms.Controls.Text.RichTextBox.IsReadOnly.set -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.Paste() -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.RichTextBox() -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.Select(int start, int length) -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.SelectAll() -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.SelectedText.get -> string!
+ZeppelinForms.Forms.Controls.Text.RichTextBox.SelectionBrush.get -> ZeppelinForms.Drawing.Primitives.Color
+ZeppelinForms.Forms.Controls.Text.RichTextBox.SelectionBrush.set -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.SelectionChanged -> System.EventHandler?
+ZeppelinForms.Forms.Controls.Text.RichTextBox.SelectionLength.get -> int
+ZeppelinForms.Forms.Controls.Text.RichTextBox.SelectionStart.get -> int
+ZeppelinForms.Forms.Controls.Text.RichTextBox.SetComposition(string! text, int cursor) -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.SetForeground(ZeppelinForms.Drawing.Primitives.Color color) -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.Text.get -> string?
+ZeppelinForms.Forms.Controls.Text.RichTextBox.Text.set -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.TextChanged -> System.EventHandler?
+ZeppelinForms.Forms.Controls.Text.RichTextBox.ToggleBold() -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.ToggleItalic() -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.ToggleUnderline() -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.SelectionChanged -> System.EventHandler?
 ZeppelinForms.Input.Commands.AsyncCommand
 ZeppelinForms.Input.Commands.AsyncCommand.AllowConcurrentExecutions.get -> bool
