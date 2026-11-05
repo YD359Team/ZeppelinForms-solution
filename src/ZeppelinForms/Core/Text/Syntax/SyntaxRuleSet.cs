@@ -70,38 +70,51 @@ public sealed class SyntaxRuleSet
         var set = new SyntaxRuleSet
         {
             NumberStyle = SyntaxStyle.Of(new Color(255, 181, 206, 168)),
+            DefaultStyle = null,
         };
 
-        Color kw = new(255, 86, 156, 214);
-        Color type = new(255, 78, 201, 176);
-        Color str = new(255, 206, 145, 120);
-        Color comment = new(255, 106, 153, 85);
+        // VS-like palette on a dark editor
+        Color kw = new(255, 86, 156, 214);       // keywords
+        Color type = new(255, 78, 201, 176);     // type names
+        Color str = new(255, 206, 145, 120);     // strings
+        Color comment = new(255, 106, 153, 85);  // comments
+        Color preproc = new(255, 155, 155, 155); // #directives
+        Color method = new(255, 220, 220, 170);  // reserved for hosts
 
         string[] keywords =
         [
-            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char",
-            "checked", "class", "const", "continue", "decimal", "default", "delegate",
-            "do", "double", "else", "enum", "event", "explicit", "extern", "false",
-            "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit",
-            "in", "int", "interface", "internal", "is", "lock", "long", "namespace",
-            "new", "null", "object", "operator", "out", "override", "params", "private",
-            "protected", "public", "readonly", "ref", "return", "sbyte", "sealed",
-            "short", "sizeof", "stackalloc", "static", "string", "struct", "switch",
-            "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked",
-            "unsafe", "ushort", "using", "virtual", "void", "volatile", "while",
-            "record", "var", "async", "await", "nameof", "when", "with", "init",
-            "required", "file", "scoped",
+            "abstract", "as", "base", "break", "case", "catch", "checked", "class",
+            "const", "continue", "default", "delegate", "do", "else", "enum", "event",
+            "explicit", "extern", "false", "finally", "fixed", "for", "foreach", "goto",
+            "if", "implicit", "in", "interface", "internal", "is", "lock", "namespace",
+            "new", "null", "operator", "out", "override", "params", "private",
+            "protected", "public", "readonly", "ref", "return", "sealed", "sizeof",
+            "stackalloc", "static", "struct", "switch", "this", "throw", "true", "try",
+            "typeof", "unchecked", "unsafe", "using", "virtual", "volatile", "while",
+            "record", "async", "await", "nameof", "when", "with", "init", "required",
+            "file", "scoped", "partial", "where", "get", "set", "add", "remove", "value",
+            "yield", "notnull", "unmanaged", "not", "and", "or",
         ];
-
         foreach (string k in keywords)
-            set.Keywords.Add(new KeywordRule { Lexeme = k, Style = SyntaxStyle.Of(kw, bold: true) });
+            set.Keywords.Add(new KeywordRule { Lexeme = k, Style = SyntaxStyle.Of(kw) });
 
-        foreach (string t in new[] { "string", "int", "bool", "object", "void", "var" })
+        string[] types =
+        [
+            "bool", "byte", "sbyte", "char", "decimal", "double", "float", "int", "uint",
+            "long", "ulong", "short", "ushort", "object", "string", "void", "var",
+            "dynamic", "nint", "nuint",
+        ];
+        foreach (string k in types)
+            set.Keywords.Add(new KeywordRule { Lexeme = k, Style = SyntaxStyle.Of(type) });
+
+        // Longer openers first is enforced by the tokenizer.
+        set.Blocks.Add(new BlockRule
         {
-            // already added as keywords; leave as is
-            _ = t;
-        }
-
+            Open = "///",
+            Close = "\n",
+            Style = SyntaxStyle.Of(comment, italic: true),
+            EndsAtLineBreak = true,
+        });
         set.Blocks.Add(new BlockRule
         {
             Open = "//",
@@ -115,12 +128,18 @@ public sealed class SyntaxRuleSet
             Close = "*/",
             Style = SyntaxStyle.Of(comment, italic: true),
         });
+        // interpolated / raw-ish openers before plain quotes
         set.Blocks.Add(new BlockRule
         {
-            Open = "\"",
+            Open = "$@\"",
             Close = "\"",
             Style = SyntaxStyle.Of(str),
-            Escape = '\\',
+        });
+        set.Blocks.Add(new BlockRule
+        {
+            Open = "@$\"",
+            Close = "\"",
+            Style = SyntaxStyle.Of(str),
         });
         set.Blocks.Add(new BlockRule
         {
@@ -130,17 +149,37 @@ public sealed class SyntaxRuleSet
         });
         set.Blocks.Add(new BlockRule
         {
+            Open = "$\"",
+            Close = "\"",
+            Style = SyntaxStyle.Of(str),
+            Escape = '\\',
+        });
+        set.Blocks.Add(new BlockRule
+        {
+            Open = "\"",
+            Close = "\"",
+            Style = SyntaxStyle.Of(str),
+            Escape = '\\',
+        });
+        set.Blocks.Add(new BlockRule
+        {
             Open = "'",
             Close = "'",
             Style = SyntaxStyle.Of(str),
             Escape = '\\',
         });
+        set.Blocks.Add(new BlockRule
+        {
+            Open = "#",
+            Close = "\n",
+            Style = SyntaxStyle.Of(preproc),
+            EndsAtLineBreak = true,
+        });
 
-        // foldable structural blocks — open/close for the editor, not coloured as comments
-        set.Blocks.Add(new BlockRule { Open = "{", Close = "}", Style = SyntaxStyle.Of(type) });
-
+        _ = method; // reserved palette slot for a host that adds method-name rules
         return set;
     }
+
 }
 
 /// <summary>One coloured range produced by the tokenizer.</summary>

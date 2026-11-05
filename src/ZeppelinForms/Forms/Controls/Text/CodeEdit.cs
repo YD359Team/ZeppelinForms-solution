@@ -204,32 +204,76 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
     private void RebuildFolds()
     {
         _folds.Clear();
-        if (_syntaxRules is null || !IsFoldingEnabled) return;
 
-        // structural blocks whose open/close are single-line markers like { }
-        foreach (BlockRule block in _syntaxRules.Blocks)
+        // Structural folds come from braces in the text, not from highlight BlockRules
+        // (strings/comments also contain braces that must be ignored).
+        string text = _document.Text;
+        var stack = new Stack<int>();
+        bool inLineComment = false;
+        bool inBlockComment = false;
+        bool inString = false;
+        bool inChar = false;
+        bool verbatim = false;
+
+        for (int i = 0; i < text.Length; i++)
         {
-            if (block.Open is not "{" || block.Close is not "}") continue;
+            char c = text[i];
+            char next = i + 1 < text.Length ? text[i + 1] : '\0';
 
-            string text = _document.Text;
-            var stack = new Stack<int>();
-            for (int i = 0; i < text.Length; i++)
+            if (inLineComment)
             {
-                if (text[i] == '{')
-                    stack.Push(_document.ToPosition(i).Line);
-                else if (text[i] == '}' && stack.Count > 0)
+                if (c == '\n') inLineComment = false;
+                continue;
+            }
+            if (inBlockComment)
+            {
+                if (c == '*' && next == '/') { inBlockComment = false; i++; }
+                continue;
+            }
+            if (inString)
+            {
+                if (verbatim)
                 {
-                    int openLine = stack.Pop();
-                    int closeLine = _document.ToPosition(i).Line;
-                    if (closeLine > openLine)
-                        _folds.Add(new FoldRegion(openLine, closeLine));
+                    if (c == '"' && next == '"') { i++; continue; }
+                    if (c == '"') inString = false;
                 }
+                else
+                {
+                    if (c == '\\') { i++; continue; }
+                    if (c == '"') inString = false;
+                }
+                continue;
+            }
+            if (inChar)
+            {
+                if (c == '\\') { i++; continue; }
+                if (c == '\'') inChar = false;
+                continue;
+            }
+
+            if (c == '/' && next == '/') { inLineComment = true; i++; continue; }
+            if (c == '/' && next == '*') { inBlockComment = true; i++; continue; }
+            if (c == '@' && next == '"') { inString = true; verbatim = true; i++; continue; }
+            if (c == '$' && next == '"') { inString = true; verbatim = false; i++; continue; }
+            if (c == '"') { inString = true; verbatim = false; continue; }
+            if (c == '\'') { inChar = true; continue; }
+
+            if (c == '{')
+                stack.Push(_document.ToPosition(i).Line);
+            else if (c == '}' && stack.Count > 0)
+            {
+                int openLine = stack.Pop();
+                int closeLine = _document.ToPosition(i).Line;
+                if (closeLine > openLine)
+                    _folds.Add(new FoldRegion(openLine, closeLine));
             }
         }
     }
 
     private bool IsLineHidden(int line)
     {
+        if (!IsFoldingEnabled || _foldedLines.Count == 0) return false;
+
         foreach (FoldRegion fold in _folds)
         {
             if (_foldedLines.Contains(fold.StartLine) &&
@@ -286,6 +330,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
     {
         if (string.IsNullOrEmpty(term))
         {
+            _occurrenceTerm = null;
             _occurrenceStart = -1;
             _occurrenceLength = 0;
         }
@@ -522,7 +567,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
             _document.SetCaret(end, extendSelection: true);
 
             // fold marker: leftmost 12px of the gutter
-            if (IsFoldingEnabled && e.Location.X < 14)
+            if (IsFoldingEnabled && e.Location.X < Math.Max(14, GutterWidth * 0.35f))
             {
                 foreach (FoldRegion fold in _folds)
                 {

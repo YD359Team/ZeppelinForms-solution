@@ -22,6 +22,12 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
 {
     private readonly RichTextDocument _document = new();
     private readonly List<DocumentPage> _pages = [];
+    /// <summary>Wrapped lines: start index and length in the document text.</summary>
+    private readonly List<(int Start, int Length)> _visualLines = [];
+    private float _headerBand;
+    private float _footerBand;
+    /// <summary>Index into <see cref="_visualLines"/> for the first line of each page.</summary>
+    private readonly List<int> _pageVisualStart = [];
     private float _scrollY;
     private bool _dragging;
     private bool _layoutDirty = true;
@@ -217,54 +223,116 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
         if (!_layoutDirty) return;
         _layoutDirty = false;
         _pages.Clear();
+        _visualLines.Clear();
 
         Font font = EffectiveFont;
         float lineHeight = TextMeasurer.LineHeight(font);
+        float contentWidth = Math.Max(1, PageSettings.ContentWidth);
         float contentHeight = PageSettings.ContentHeight;
-        // reserve header/footer bands
-        float headerBand = string.IsNullOrEmpty(PageSettings.HeaderText) ? 0 : lineHeight * 1.5f;
-        float footerBand = PageSettings.ShowPageNumbers || !string.IsNullOrEmpty(PageSettings.FooterText)
+
+        _headerBand = string.IsNullOrEmpty(PageSettings.HeaderText) ? 0 : lineHeight * 1.5f;
+        _footerBand = PageSettings.ShowPageNumbers || !string.IsNullOrEmpty(PageSettings.FooterText)
             ? lineHeight * 1.5f : 0;
-        float usable = Math.Max(lineHeight, contentHeight - headerBand - footerBand);
+        float usable = Math.Max(lineHeight, contentHeight - _headerBand - _footerBand);
+        int maxLinesPerPage = Math.Max(1, (int)(usable / lineHeight));
 
         string text = _document.Content;
-        string[] lines = text.Length == 0 ? [""] : text.Split('\n');
-        int index = 0;
-        int pageIndex = 0;
-        int lineCursor = 0;
-
-        while (lineCursor < lines.Length)
+        // Build wrapped visual lines across the whole document
+        int i = 0;
+        while (i <= text.Length)
         {
-            int pageStart = index;
-            float used = 0;
-            int linesOnPage = 0;
-
-            while (lineCursor < lines.Length && used + lineHeight <= usable)
+            if (i == text.Length)
             {
-                used += lineHeight;
-                // +1 for the '\n' except after the last line of the whole text
-                int lineLen = lines[lineCursor].Length;
-                bool hasBreak = lineCursor < lines.Length - 1 || text.EndsWith('\n');
-                index += lineLen + (lineCursor < lines.Length - 1 ? 1 : 0);
-                lineCursor++;
-                linesOnPage++;
-                _ = hasBreak;
+                if (text.Length == 0 || text.EndsWith('\n'))
+                    _visualLines.Add((i, 0));
+                break;
             }
 
-            if (linesOnPage == 0)
+            int hardEnd = text.IndexOf('\n', i);
+            if (hardEnd < 0) hardEnd = text.Length;
+            int hardLen = hardEnd - i;
+
+            if (hardLen == 0)
             {
-                // single line taller than the page — still take one line
-                int lineLen = lines[lineCursor].Length;
-                index += lineLen + (lineCursor < lines.Length - 1 ? 1 : 0);
-                lineCursor++;
+                _visualLines.Add((i, 0));
+            }
+            else
+            {
+                int lineStart = i;
+                while (lineStart < hardEnd)
+                {
+                    int take = FitWidth(text, lineStart, hardEnd - lineStart, contentWidth, font);
+                    if (take <= 0) take = 1; // always advance
+                    _visualLines.Add((lineStart, take));
+                    lineStart += take;
+                }
             }
 
-            int length = Math.Max(0, index - pageStart);
-            _pages.Add(new DocumentPage(pageIndex++, pageStart, length));
+            i = hardEnd < text.Length ? hardEnd + 1 : text.Length;
+            if (i >= text.Length)
+            {
+                if (text.EndsWith('\n'))
+                    _visualLines.Add((text.Length, 0));
+                break;
+            }
+        }
+
+        if (_visualLines.Count == 0)
+            _visualLines.Add((0, 0));
+
+        // Pack visual lines into pages
+        _pageVisualStart.Clear();
+        int v = 0;
+        int pageIndex = 0;
+        while (v < _visualLines.Count)
+        {
+            int pageLineStart = v;
+            int linesOnPage = Math.Min(maxLinesPerPage, _visualLines.Count - v);
+            v += linesOnPage;
+            _pageVisualStart.Add(pageLineStart);
+
+            var first = _visualLines[pageLineStart];
+            var last = _visualLines[v - 1];
+            int textStart = first.Start;
+            int textEnd = last.Start + last.Length;
+            if (textEnd < text.Length && text[textEnd] == '\n')
+                textEnd++;
+            _pages.Add(new DocumentPage(pageIndex++, textStart, Math.Max(0, textEnd - textStart)));
         }
 
         if (_pages.Count == 0)
+        {
             _pages.Add(new DocumentPage(0, 0, 0));
+            _pageVisualStart.Add(0);
+        }
+    }
+
+    /// <summary>How many characters from <paramref name="start"/> fit in <paramref name="maxWidth"/>.</summary>
+    private static int FitWidth(string text, int start, int available, float maxWidth, Font font)
+    {
+        if (available <= 0) return 0;
+        available = Math.Min(available, text.Length - start);
+        float full = TextMeasurer.Current.MeasureTextWidth(text.Substring(start, available), available, font);
+        if (full <= maxWidth) return available;
+
+        // binary search the longest prefix that fits
+        int lo = 1, hi = available, best = 1;
+        while (lo <= hi)
+        {
+            int mid = (lo + hi) / 2;
+            float w = TextMeasurer.Current.MeasureTextWidth(text.Substring(start, mid), mid, font);
+            if (w <= maxWidth) { best = mid; lo = mid + 1; }
+            else hi = mid - 1;
+        }
+
+        // prefer breaking at a space when the line was wrapped
+        if (best < available)
+        {
+            int space = text.LastIndexOf(' ', start + best - 1, best);
+            if (space >= start + 1)
+                best = space - start + 1; // include the space at end of this visual line
+        }
+        return Math.Max(1, best);
     }
 
     // ===== input =====
@@ -386,43 +454,50 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
         EnsureLayout();
         Font font = EffectiveFont;
         float lineHeight = TextMeasurer.LineHeight(font);
-        PageSize page = PageSettings.EffectiveSize;
-        float totalPage = page.Height + PageSpacing;
+        PageSize pageSize = PageSettings.EffectiveSize;
+        float totalPage = pageSize.Height + PageSpacing;
+        float viewWidth = LocalBounds.Width;
+
+        float pageLeft = Padding.Left + Math.Max(0, (viewWidth - Padding.Horizontal - pageSize.Width) / 2f);
 
         float y = location.Y + _scrollY - Padding.Top;
         int pageIndex = Math.Max(0, (int)(y / totalPage));
         pageIndex = Math.Min(pageIndex, Math.Max(0, _pages.Count - 1));
 
-        DocumentPage docPage = _pages[pageIndex];
-        float localY = y - pageIndex * totalPage - PageSettings.Margins.Top;
+        float localY = y - pageIndex * totalPage - PageSettings.Margins.Top - _headerBand;
         int lineOnPage = Math.Max(0, (int)(localY / lineHeight));
 
-        // map to document line among this page's lines
-        string text = _document.Content;
-        int pos = docPage.TextStart;
-        int line = 0;
-        while (pos < docPage.TextEnd && line < lineOnPage)
-        {
-            int nl = text.IndexOf('\n', pos, docPage.TextEnd - pos);
-            if (nl < 0) { pos = docPage.TextEnd; break; }
-            pos = nl + 1;
-            line++;
-        }
+        int pageVisStart = pageIndex < _pageVisualStart.Count ? _pageVisualStart[pageIndex] : 0;
+        int pageVisEnd = pageIndex + 1 < _pageVisualStart.Count
+            ? _pageVisualStart[pageIndex + 1]
+            : _visualLines.Count;
+        int visualIndex = Math.Clamp(pageVisStart + lineOnPage, pageVisStart, Math.Max(pageVisStart, pageVisEnd - 1));
 
-        float x = location.X - Padding.Left - PageSettings.Margins.Left;
-        // approximate column by measuring
-        int lineEnd = text.IndexOf('\n', pos);
-        if (lineEnd < 0 || lineEnd > docPage.TextEnd) lineEnd = docPage.TextEnd;
-        string lineText = text[pos..lineEnd];
-        float width = 0;
-        int col = 0;
-        for (; col < lineText.Length; col++)
+        var (lineStart, lineLen) = _visualLines[visualIndex];
+        string text = _document.Content;
+        float x = location.X - pageLeft - PageSettings.Margins.Left;
+
+        if (lineLen <= 0 || x <= 0)
+            return lineStart;
+
+        // prefix widths with MeasureTextWidth for kerning
+        int lo = 0, hi = lineLen, col = 0;
+        while (lo <= hi)
         {
-            float w = TextMeasurer.Current.MeasureText(lineText[col].ToString(), font).Width;
-            if (width + w / 2f >= x) break;
-            width += w;
+            int mid = (lo + hi) / 2;
+            float w = TextMeasurer.Current.MeasureTextWidth(text.Substring(lineStart, mid), mid, font);
+            if (w <= x) { col = mid; lo = mid + 1; }
+            else hi = mid - 1;
         }
-        return Math.Min(pos + col, text.Length);
+        // snap to nearest edge of the next character
+        if (col < lineLen)
+        {
+            float before = TextMeasurer.Current.MeasureTextWidth(text.Substring(lineStart, col), col, font);
+            float after = TextMeasurer.Current.MeasureTextWidth(text.Substring(lineStart, col + 1), col + 1, font);
+            if (x - before > (after - before) / 2f)
+                col++;
+        }
+        return Math.Min(lineStart + col, text.Length);
     }
 
     // ===== drawing =====
@@ -456,34 +531,38 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
             DrawHeaderFooter(g, pageRect, p, font);
 
             float contentX = pageRect.X + PageSettings.Margins.Left;
-            float contentY = pageRect.Y + PageSettings.Margins.Top;
-            if (!string.IsNullOrEmpty(PageSettings.HeaderText))
-                contentY += lineHeight * 1.5f;
+            float contentY = pageRect.Y + PageSettings.Margins.Top + _headerBand;
 
             string text = _document.Content;
-            int pos = page.TextStart;
             float y = contentY;
+            float contentBottom = pageRect.Bottom - PageSettings.Margins.Bottom - _footerBand;
 
-            while (pos < page.TextEnd && y < pageRect.Bottom - PageSettings.Margins.Bottom)
+            int visualStart = p < _pageVisualStart.Count ? _pageVisualStart[p] : 0;
+            int visualEnd = p + 1 < _pageVisualStart.Count ? _pageVisualStart[p + 1] : _visualLines.Count;
+
+            g.Save();
+            g.ClipRect(new Rectangle(contentX, contentY, PageSettings.ContentWidth, Math.Max(0, contentBottom - contentY)));
+
+            for (int vi = visualStart; vi < visualEnd && y < contentBottom; vi++)
             {
-                int nl = text.IndexOf('\n', pos, page.TextEnd - pos);
-                int lineEnd = nl < 0 ? page.TextEnd : nl;
-                int lineLen = lineEnd - pos;
-
-                DrawSelectionOnLine(g, pos, lineLen, contentX, y, lineHeight, font);
-                List<TextRun> runs = _document.BuildRuns(pos, lineLen, font, TextColor);
-                if (runs.Count > 0)
-                    g.DrawRuns(runs, new Rectangle(contentX, y, PageSettings.ContentWidth, lineHeight),
-                        font, TextColor, HorizontalContentAlignment.Left, VerticalContentAlignment.Top);
-                else if (lineLen > 0)
-                    g.DrawText(text.Substring(pos, lineLen), new Point(contentX, y), TextColor, font);
-
-                pos = lineEnd < page.TextEnd ? lineEnd + 1 : page.TextEnd;
+                var (lineStart, lineLen) = _visualLines[vi];
+                DrawSelectionOnLine(g, lineStart, lineLen, contentX, y, lineHeight, font);
+                if (lineLen > 0)
+                {
+                    List<TextRun> runs = _document.BuildRuns(lineStart, lineLen, font, TextColor);
+                    if (runs.Count > 0)
+                        g.DrawRuns(runs, new Rectangle(contentX, y, PageSettings.ContentWidth, lineHeight),
+                            font, TextColor, HorizontalContentAlignment.Left, VerticalContentAlignment.Top);
+                    else
+                        g.DrawText(text.Substring(lineStart, lineLen), new Point(contentX, y), TextColor, font);
+                }
                 y += lineHeight;
             }
 
+            g.Restore();
+
             if (IsFocused && CaretVisible && SelectionLength == 0)
-                DrawCaretOnPage(g, page, pageRect, contentX, contentY, font, lineHeight);
+                DrawCaretOnPage(g, page, pageRect, contentX, contentY, font, lineHeight, visualStart, visualEnd);
         }
 
         g.Restore();
@@ -532,26 +611,32 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
 
     private void DrawCaretOnPage(
         Graphics g, DocumentPage page, Rectangle pageRect,
-        float contentX, float contentY, Font font, float lineHeight)
+        float contentX, float contentY, Font font, float lineHeight,
+        int visualStart, int visualEnd)
     {
         int caret = CaretIndex;
         if (caret < page.TextStart || caret > page.TextEnd) return;
 
         string text = _document.Content;
-        int pos = page.TextStart;
         float y = contentY;
         float x = contentX;
-        while (pos < caret && pos < page.TextEnd)
+        bool found = false;
+
+        for (int vi = visualStart; vi < visualEnd; vi++)
         {
-            int nl = text.IndexOf('\n', pos, page.TextEnd - pos);
-            if (nl < 0 || nl >= caret)
+            var (lineStart, lineLen) = _visualLines[vi];
+            int lineEnd = lineStart + lineLen;
+            // caret on this visual line (or at its end before a wrap)
+            if (caret >= lineStart && caret <= lineEnd)
             {
-                x = contentX + Measure(text, pos, caret - pos, font);
+                int col = caret - lineStart;
+                x = contentX + (col <= 0 ? 0 : TextMeasurer.Current.MeasureTextWidth(text.Substring(lineStart, col), col, font));
+                found = true;
                 break;
             }
-            pos = nl + 1;
             y += lineHeight;
         }
+        if (!found) return;
 
         if (IsComposing)
         {
