@@ -336,6 +336,7 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
         int index = IndexFromPoint(e.Location);
         _document.Text.SetCaret(index, extendSelection: e.Modifiers.HasFlag(KeyModifiers.Shift));
         _dragging = true;
+        CaptureMouse();
         e.Handled = true;
     }
 
@@ -349,7 +350,10 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
     protected override void OnMouseUp(MouseButtonEventArgs e)
     {
         if (e.Button == MouseButton.Left)
+        {
             _dragging = false;
+            ReleaseMouseCapture();
+        }
     }
 
     private int IndexFromPoint(Point absolute)
@@ -427,17 +431,20 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
 
     private void DrawSelection(Graphics g, int lineStart, int lineLen, float x, float y, float lineHeight, Font font)
     {
-        int selStart = SelectionStart;
-        int selEnd = selStart + SelectionLength;
-        if (SelectionLength == 0) return;
+        if (SelectionLength <= 0 || lineLen <= 0) return;
 
-        int from = Math.Max(selStart, lineStart);
-        int to = Math.Min(selEnd, lineStart + lineLen);
+        int take = Math.Min(lineLen, Math.Max(0, _document.Text.Text.Length - lineStart));
+        string lineText = take == 0 ? string.Empty : _document.Text.Text.Substring(lineStart, take);
+        TextLineLayout layout = TextMeasurer.LayOutLine(lineText, font, Core.Text.FlowDirection.LeftToRight);
+
+        int selA = SelectionStart;
+        int selB = selA + SelectionLength;
+        int from = Math.Max(selA, lineStart) - lineStart;
+        int to = Math.Min(selB, lineStart + lineText.Length) - lineStart;
         if (from >= to) return;
 
-        float x0 = x + MeasureRange(lineStart, from - lineStart, font);
-        float x1 = x + MeasureRange(lineStart, to - lineStart, font);
-        g.FillRectangle(new Rectangle(x0, y, Math.Max(2, x1 - x0), lineHeight), SelectionBrush);
+        foreach ((float left, float right) in layout.SelectionBounds(from, to))
+            g.FillRectangle(new Rectangle(x + left, y, Math.Max(1, right - left), lineHeight), SelectionBrush);
     }
 
     private float MeasureRange(int start, int length, Font font)

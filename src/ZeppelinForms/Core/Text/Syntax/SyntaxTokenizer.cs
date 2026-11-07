@@ -107,6 +107,10 @@ public sealed class SyntaxTokenizer
             if (!StartsWith(text, index, block.Open))
                 continue;
 
+            // a preprocessor marker is only a directive at the start of a line
+            if (block.Open == "#" && block.EndsAtLineBreak && !IsLineStart(text, index))
+                continue;
+
             int pos = index + block.Open.Length;
 
             if (block.EndsAtLineBreak)
@@ -156,6 +160,13 @@ public sealed class SyntaxTokenizer
         }
 
         return false;
+    }
+
+    private static bool IsLineStart(string text, int index)
+    {
+        int i = index - 1;
+        while (i >= 0 && text[i] is ' ' or '\t') i--;
+        return i < 0 || text[i] == '\n';
     }
 
     private static bool StartsWith(string text, int index, string value)

@@ -261,6 +261,19 @@ public static partial class Themes
                 box.SelectionColor = c.Selection;
             })
 
+            // CodeEdit keeps a dark canvas (the control default). The UIElement rule
+            // would set TextColor to c.Text — near black in the light theme — and
+            // identifiers and punctuation would vanish on that canvas.
+            .For<CodeEdit>((edit, c) =>
+            {
+                edit.Background = new Color(255, 30, 30, 30);
+                edit.TextColor = new Color(255, 212, 212, 212);
+                edit.LineNumberColor = new Color(255, 128, 128, 128);
+                edit.GutterBackground = new Color(255, 37, 37, 38);
+                edit.SelectionBrush = c.Selection.WithA(140);
+                edit.OccurrenceBrush = new Color(80, 255, 200, 40);
+            })
+
             .For<ComboBox>((combo, c) =>
             {
                 combo.Background = c.Surface;

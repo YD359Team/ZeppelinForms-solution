@@ -592,6 +592,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
 
         _document.SetCaret(IndexFromPoint(e.Location), extendSelection: e.Modifiers.HasFlag(KeyModifiers.Shift));
         _dragging = true;
+        CaptureMouse();
         CloseCompletion();
         e.Handled = true;
     }
@@ -605,7 +606,11 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
 
     protected override void OnMouseUp(MouseButtonEventArgs e)
     {
-        if (e.Button == MouseButton.Left) _dragging = false;
+        if (e.Button == MouseButton.Left)
+        {
+            _dragging = false;
+            ReleaseMouseCapture();
+        }
     }
 
     private int LineAtLocalY(float localY)
@@ -650,6 +655,17 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
 
     // ===== drawing =====
 
+    /// <summary>Text colour for the dark editor surface. A theme may have forced
+    /// <see cref="UIElement.TextColor"/> to a near-black <c>c.Text</c>; on this
+    /// control that is unreadable, so fall back to the editor default.</summary>
+    private Color ResolveEditorTextColor()
+    {
+        Color c = TextColor;
+        int y = (c.R * 299 + c.G * 587 + c.B * 114) / 1000;
+        return y < 80 ? new Color(255, 212, 212, 212) : c;
+    }
+
+
     protected override void DrawContent(Graphics g)
     {
         Rectangle bounds = LocalBounds;
@@ -657,7 +673,7 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
         Font font = EffectiveFont;
         float lineHeight = TextMeasurer.LineHeight(font);
         string[] lines = _document.Lines;
-        Color textColor = TextColor;
+        Color textColor = ResolveEditorTextColor();
 
         if (ShowLineNumbers)
         {

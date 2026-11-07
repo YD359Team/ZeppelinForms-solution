@@ -70,7 +70,8 @@ public sealed class SyntaxRuleSet
         var set = new SyntaxRuleSet
         {
             NumberStyle = SyntaxStyle.Of(new Color(255, 181, 206, 168)),
-            DefaultStyle = null,
+            // unstyled lexemes (identifiers, punctuation) on the dark editor surface
+            DefaultStyle = SyntaxStyle.Of(new Color(255, 212, 212, 212)),
         };
 
         // VS-like palette on a dark editor

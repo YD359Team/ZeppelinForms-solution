@@ -192,12 +192,16 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
     public void SetHeader(string? text)
     {
         PageSettings.HeaderText = text;
+        _layoutDirty = true;
+        InvalidateMeasure();
         InvalidateVisual();
     }
 
     public void SetFooter(string? text)
     {
         PageSettings.FooterText = text;
+        _layoutDirty = true;
+        InvalidateMeasure();
         InvalidateVisual();
     }
 
@@ -258,14 +262,9 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
             }
             else
             {
-                int lineStart = i;
-                while (lineStart < hardEnd)
-                {
-                    int take = FitWidth(text, lineStart, hardEnd - lineStart, contentWidth, font);
-                    if (take <= 0) take = 1; // always advance
-                    _visualLines.Add((lineStart, take));
-                    lineStart += take;
-                }
+                string hard = text.Substring(i, hardLen);
+                foreach ((int start, int length) in TextWrapper.Wrap(hard, contentWidth, font))
+                    _visualLines.Add((i + start, length));
             }
 
             i = hardEnd < text.Length ? hardEnd + 1 : text.Length;
@@ -305,34 +304,6 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
             _pages.Add(new DocumentPage(0, 0, 0));
             _pageVisualStart.Add(0);
         }
-    }
-
-    /// <summary>How many characters from <paramref name="start"/> fit in <paramref name="maxWidth"/>.</summary>
-    private static int FitWidth(string text, int start, int available, float maxWidth, Font font)
-    {
-        if (available <= 0) return 0;
-        available = Math.Min(available, text.Length - start);
-        float full = TextMeasurer.Current.MeasureTextWidth(text.Substring(start, available), available, font);
-        if (full <= maxWidth) return available;
-
-        // binary search the longest prefix that fits
-        int lo = 1, hi = available, best = 1;
-        while (lo <= hi)
-        {
-            int mid = (lo + hi) / 2;
-            float w = TextMeasurer.Current.MeasureTextWidth(text.Substring(start, mid), mid, font);
-            if (w <= maxWidth) { best = mid; lo = mid + 1; }
-            else hi = mid - 1;
-        }
-
-        // prefer breaking at a space when the line was wrapped
-        if (best < available)
-        {
-            int space = text.LastIndexOf(' ', start + best - 1, best);
-            if (space >= start + 1)
-                best = space - start + 1; // include the space at end of this visual line
-        }
-        return Math.Max(1, best);
     }
 
     // ===== input =====
@@ -427,6 +398,17 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
     }
 
     // Mouse Location is in form coordinates (see TextBox.IndexFromPoint).
+    /// <summary>Scale so the sheet fits the control width. Text is wrapped to the
+    /// logical content width and drawn scaled — orientation changes the sheet and
+    /// the reflow, and a narrow control no longer clips the right margin away.</summary>
+    private float PageScaleFor(float availableWidth)
+    {
+        float pageW = PageSettings.EffectiveSize.Width;
+        float available = Math.Max(1, availableWidth - Padding.Horizontal);
+        if (pageW <= 0) return 1f;
+        return Math.Min(1f, available / pageW);
+    }
+
     private Point ToLocal(Point absolute)
     {
         Point origin = GetAbsolutePosition();
@@ -441,6 +423,7 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
         int index = IndexFromPoint(e.Location);
         _document.Text.SetCaret(index, extendSelection: e.Modifiers.HasFlag(KeyModifiers.Shift));
         _dragging = true;
+        CaptureMouse();
         e.Handled = true;
     }
 
@@ -453,7 +436,11 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
 
     protected override void OnMouseUp(MouseButtonEventArgs e)
     {
-        if (e.Button == MouseButton.Left) _dragging = false;
+        if (e.Button == MouseButton.Left)
+        {
+            _dragging = false;
+            ReleaseMouseCapture();
+        }
     }
 
     /// <summary>Document index under a form-space point — same contract as TextBox.IndexFromPoint.</summary>
@@ -464,18 +451,23 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
         Font font = EffectiveFont;
         float lineHeight = TextMeasurer.LineHeight(font);
         PageSize pageSize = PageSettings.EffectiveSize;
-        float totalPage = pageSize.Height + PageSpacing;
+        float scale = PageScaleFor(LocalBounds.Width);
+        float displayH = pageSize.Height * scale;
+        float displayW = pageSize.Width * scale;
+        float totalPage = displayH + PageSpacing;
         float viewWidth = LocalBounds.Width;
+        float pageLeft = Padding.Left + Math.Max(0, (viewWidth - Padding.Horizontal - displayW) / 2f);
 
-        float pageLeft = Padding.Left + Math.Max(0, (viewWidth - Padding.Horizontal - pageSize.Width) / 2f);
-
-        // y relative to the first page's top, including scroll
-        float y = local.Y + _scrollY - Padding.Top;
-        int pageIndex = Math.Max(0, (int)(y / totalPage));
+        float yFromContent = local.Y + _scrollY - Padding.Top;
+        int pageIndex = Math.Max(0, (int)(yFromContent / totalPage));
         pageIndex = Math.Min(pageIndex, Math.Max(0, _pages.Count - 1));
 
-        float localY = y - pageIndex * totalPage - PageSettings.Margins.Top - _headerBand;
-        int lineOnPage = Math.Max(0, (int)(localY / lineHeight));
+        // inverse of the draw transform: page origin, then scale
+        float pageTop = Padding.Top - _scrollY + pageIndex * totalPage;
+        float logicalX = (local.X - pageLeft) / scale;
+        float logicalY = (local.Y - pageTop) / scale;
+        float lineY = logicalY - PageSettings.Margins.Top - _headerBand;
+        int lineOnPage = Math.Max(0, (int)(lineY / lineHeight));
 
         int pageVisStart = pageIndex < _pageVisualStart.Count ? _pageVisualStart[pageIndex] : 0;
         int pageVisEnd = pageIndex + 1 < _pageVisualStart.Count
@@ -488,7 +480,7 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
 
         var (lineStart, lineLen) = _visualLines[visualIndex];
         string text = _document.Content;
-        float x = local.X - pageLeft - PageSettings.Margins.Left;
+        float x = logicalX - PageSettings.Margins.Left;
 
         if (lineLen <= 0 || x <= 0)
             return lineStart;
@@ -508,7 +500,10 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
         Font font = EffectiveFont;
         float lineHeight = TextMeasurer.LineHeight(font);
         PageSize pageSize = PageSettings.EffectiveSize;
-        float totalPage = pageSize.Height + PageSpacing;
+        float scale = PageScaleFor(LocalBounds.Width);
+        float displayH = pageSize.Height * scale;
+        float displayW = pageSize.Width * scale;
+        float totalPage = displayH + PageSpacing;
         Rectangle view = new(0, 0, LocalBounds.Width, LocalBounds.Height);
 
         g.Save();
@@ -517,25 +512,30 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
         for (int p = 0; p < _pages.Count; p++)
         {
             float pageTop = Padding.Top - _scrollY + p * totalPage;
-            if (pageTop + pageSize.Height < 0 || pageTop > view.Height) continue;
+            if (pageTop + displayH < 0 || pageTop > view.Height) continue;
 
-            float pageLeft = Padding.Left + Math.Max(0, (view.Width - Padding.Horizontal - pageSize.Width) / 2f);
-            var pageRect = new Rectangle(pageLeft, pageTop, pageSize.Width, pageSize.Height);
+            float pageLeft = Padding.Left + Math.Max(0, (view.Width - Padding.Horizontal - displayW) / 2f);
 
-            // page shadow
-            g.FillRectangle(new Rectangle(pageRect.X + 3, pageRect.Y + 3, pageRect.Width, pageRect.Height),
+            g.Save();
+            g.Translate(pageLeft, pageTop);
+            g.Scale(scale, scale);
+
+            // logical page coordinates from here
+            var pageRect = new Rectangle(0, 0, pageSize.Width, pageSize.Height);
+            float shadow = 3f / scale;
+            g.FillRectangle(new Rectangle(shadow, shadow, pageRect.Width, pageRect.Height),
                 new Color(60, 0, 0, 0));
             g.FillRectangle(pageRect, PageBackground);
 
             DocumentPage page = _pages[p];
             DrawHeaderFooter(g, pageRect, p, font);
 
-            float contentX = pageRect.X + PageSettings.Margins.Left;
-            float contentY = pageRect.Y + PageSettings.Margins.Top + _headerBand;
+            float contentX = PageSettings.Margins.Left;
+            float contentY = PageSettings.Margins.Top + _headerBand;
+            float contentBottom = pageRect.Bottom - PageSettings.Margins.Bottom - _footerBand;
 
             string text = _document.Content;
             float y = contentY;
-            float contentBottom = pageRect.Bottom - PageSettings.Margins.Bottom - _footerBand;
 
             int visualStart = p < _pageVisualStart.Count ? _pageVisualStart[p] : 0;
             int visualEnd = p + 1 < _pageVisualStart.Count ? _pageVisualStart[p + 1] : _visualLines.Count;
@@ -563,6 +563,8 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
 
             if (IsFocused && CaretVisible && SelectionLength == 0)
                 DrawCaretOnPage(g, page, pageRect, contentX, contentY, font, lineHeight, visualStart, visualEnd);
+
+            g.Restore();
         }
 
         g.Restore();
@@ -667,7 +669,8 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
     private void EnsureCaretVisible()
     {
         EnsureLayout();
-        float totalPage = PageSettings.EffectiveSize.Height + PageSpacing;
+        float scale = PageScaleFor(LocalBounds.Width);
+        float totalPage = PageSettings.EffectiveSize.Height * scale + PageSpacing;
         int pageIndex = 0;
         for (int i = 0; i < _pages.Count; i++)
         {
@@ -689,9 +692,10 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
     {
         EnsureLayout();
         PageSize page = PageSettings.EffectiveSize;
-        float height = _pages.Count * (page.Height + PageSpacing) + Padding.Vertical;
+        float scale = PageScaleFor(availableSize.Width);
+        float height = _pages.Count * (page.Height * scale + PageSpacing) + Padding.Vertical;
         return new Size(
-            Math.Min(availableSize.Width, page.Width + Padding.Horizontal + 32),
+            Math.Min(availableSize.Width, page.Width * scale + Padding.Horizontal + 32),
             Math.Min(availableSize.Height, height));
     }
 }
