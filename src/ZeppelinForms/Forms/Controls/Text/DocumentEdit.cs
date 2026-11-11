@@ -517,6 +517,36 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
         return Math.Min(lineStart + column, text.Length);
     }
 
+
+    /// <summary>The wheel scrolls the pages. At either end it goes on to the panel
+    /// around the field, as it does from <see cref="TextBox"/>.</summary>
+    protected override void OnMouseWheel(MouseWheelEventArgs e)
+    {
+        base.OnMouseWheel(e);
+        if (e.Handled) return;
+
+        EnsureLayout();
+        float before = _scrollY;
+        float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
+        float step = 3 * lineHeight * PageScaleFor(LocalBounds.Width);
+        float next = _scrollY - e.Delta / 120f * step;
+        _scrollY = Math.Clamp(next, 0, MaxScrollY());
+
+        if (Math.Abs(before - _scrollY) > 0.01f)
+        {
+            e.Handled = true;
+            InvalidateVisual();
+        }
+    }
+
+    private float MaxScrollY()
+    {
+        PageSize page = PageSettings.EffectiveSize;
+        float scale = PageScaleFor(LocalBounds.Width);
+        float height = _pages.Count * (page.Height * scale + PageSpacing) + Padding.Vertical;
+        return Math.Max(0, height - LocalBounds.Height);
+    }
+
     // ===== drawing =====
 
     protected override void DrawContent(Graphics g)

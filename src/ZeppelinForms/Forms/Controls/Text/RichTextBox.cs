@@ -402,6 +402,35 @@ public partial class RichTextBox : TextInputControl, ITextCompositionTarget
         return Math.Min(lineStart + column, _document.Text.Text.Length);
     }
 
+    private float MaxScrollY()
+    {
+        float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
+        float content = Math.Max(1, _document.Text.Lines.Length) * lineHeight + Padding.Vertical;
+        return Math.Max(0, content - LocalBounds.Height);
+    }
+
+
+    /// <summary>The wheel scrolls by lines. At either end it goes on to the panel
+    /// around the field, as it does from a list and from <see cref="TextBox"/>.</summary>
+    protected override void OnMouseWheel(MouseWheelEventArgs e)
+    {
+        base.OnMouseWheel(e);
+        if (e.Handled) return;
+
+        float before = _scrollY;
+        float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
+        float step = 3 * lineHeight;
+        float next = _scrollY - e.Delta / 120f * step;
+        float max = MaxScrollY();
+        _scrollY = Math.Clamp(next, 0, max);
+
+        if (Math.Abs(before - _scrollY) > 0.01f)
+        {
+            e.Handled = true;
+            InvalidateVisual();
+        }
+    }
+
     // ===== drawing =====
 
     protected override void DrawContent(Graphics g)

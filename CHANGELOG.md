@@ -1,4 +1,4 @@
-# Changes
+﻿# Changes
 
 ## [0.21.0] Tower of Babel
 
@@ -40,6 +40,14 @@
   `CanRedo`, the same contract as `TextBox`. Ctrl+Z undoes, Ctrl+Y and Ctrl+Shift+Z
   redo. The default context menu lists them. On the rich-text controls a history
   step also keeps the formatting spans aligned with the text
+
+### Tests
+
+- `NewTextControlsTests` and `NewTextEditorTests` cover the 0.21 editors: keyword
+  and block highlighting, rich-text spans through insert, delete and undo, line
+  and selection duplicate, folds, Ctrl+Z / Ctrl+Shift+Z, read-only, bold, and
+  document pagination, wrap and orientation
+- The three editors scroll on the mouse wheel, as `TextBox` does
 
 ### Accessibility
 

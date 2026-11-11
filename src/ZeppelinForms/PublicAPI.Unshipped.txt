@@ -369,6 +369,7 @@ override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnLostFocus() -> void
 override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnMouseDown(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnMouseUp(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnMouseWheel(ZeppelinForms.Input.Mouse.MouseWheelEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnTextInput(char c) -> void
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.AcceptsTextInput.get -> bool
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
@@ -379,6 +380,7 @@ override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnLostFocus() -> void
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnMouseDown(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnMouseUp(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnMouseWheel(ZeppelinForms.Input.Mouse.MouseWheelEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnTextInput(char c) -> void
 override ZeppelinForms.Forms.Controls.Text.RichTextBox.AcceptsTextInput.get -> bool
 override ZeppelinForms.Forms.Controls.Text.RichTextBox.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
@@ -389,6 +391,7 @@ override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnLostFocus() -> void
 override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnMouseDown(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnMouseMove(ZeppelinForms.Input.Mouse.MouseMoveEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnMouseUp(ZeppelinForms.Input.Mouse.MouseButtonEventArgs! e) -> void
+override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnMouseWheel(ZeppelinForms.Input.Mouse.MouseWheelEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnTextInput(char c) -> void
 static ZeppelinForms.Core.Text.PageSize.A4.get -> ZeppelinForms.Core.Text.PageSize
 static ZeppelinForms.Core.Text.PageSize.A5.get -> ZeppelinForms.Core.Text.PageSize

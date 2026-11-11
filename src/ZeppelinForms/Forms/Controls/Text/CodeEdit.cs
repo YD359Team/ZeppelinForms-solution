@@ -678,6 +678,39 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
         return Math.Min(lineStart + column, _document.Text.Length);
     }
 
+    private float MaxScrollY()
+    {
+        float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
+        int visible = 0;
+        string[] lines = _document.Lines;
+        for (int i = 0; i < lines.Length; i++)
+            if (!IsLineHidden(i)) visible++;
+        float content = visible * lineHeight + Padding.Vertical;
+        return Math.Max(0, content - LocalBounds.Height);
+    }
+
+
+    /// <summary>The wheel scrolls by lines. At either end it goes on to the panel
+    /// around the field, as it does from a list and from <see cref="TextBox"/>.</summary>
+    protected override void OnMouseWheel(MouseWheelEventArgs e)
+    {
+        base.OnMouseWheel(e);
+        if (e.Handled) return;
+
+        float before = _scrollY;
+        float lineHeight = TextMeasurer.LineHeight(EffectiveFont);
+        float step = 3 * lineHeight;
+        float next = _scrollY - e.Delta / 120f * step;
+        float max = MaxScrollY();
+        _scrollY = Math.Clamp(next, 0, max);
+
+        if (Math.Abs(before - _scrollY) > 0.01f)
+        {
+            e.Handled = true;
+            InvalidateVisual();
+        }
+    }
+
     // ===== drawing =====
 
     /// <summary>Text colour for the dark editor surface. A theme may have forced
