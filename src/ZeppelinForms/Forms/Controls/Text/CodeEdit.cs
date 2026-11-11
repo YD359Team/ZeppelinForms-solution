@@ -11,6 +11,10 @@ using ZeppelinForms.Input;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
+using ZeppelinForms.Core.Globalization;
+
+using ZeppelinForms.Forms.Controls;
+
 namespace ZeppelinForms.Forms.Controls.Text;
 
 /// <summary>A code editor: monospace text, line numbers, folding, search/selection
@@ -449,6 +453,25 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
             CloseCompletion();
     }
 
+
+    /// <summary>Whether <see cref="Undo"/> has an edit to take back.</summary>
+    public bool CanUndo => _document.CanUndo && !IsReadOnly;
+
+    /// <summary>Whether <see cref="Redo"/> has an edit to bring back.</summary>
+    public bool CanRedo => _document.CanRedo && !IsReadOnly;
+
+    /// <summary>Take back the last edit. Ctrl+Z.</summary>
+    public void Undo()
+    {
+        if (!IsReadOnly) _document.Undo();
+    }
+
+    /// <summary>Bring back the last undone edit. Ctrl+Y or Ctrl+Shift+Z.</summary>
+    public void Redo()
+    {
+        if (!IsReadOnly) _document.Redo();
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         bool ctrl = e.Modifiers.HasFlag(KeyModifiers.Control);
@@ -535,10 +558,12 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
                 if (Clipboard.Current.GetText() is { Length: > 0 } paste)
                     _document.Insert(paste);
                 e.Handled = true; break;
+            case Key.Z when ctrl && shift && !IsReadOnly:
+                Redo(); e.Handled = true; break;
             case Key.Z when ctrl && !IsReadOnly:
-                _document.Undo(); e.Handled = true; break;
+                Undo(); e.Handled = true; break;
             case Key.Y when ctrl && !IsReadOnly:
-                _document.Redo(); e.Handled = true; break;
+                Redo(); e.Handled = true; break;
             case Key.Enter when !IsReadOnly:
                 OnTextInput('\n'); e.Handled = true; break;
             case Key.Tab when !IsReadOnly && !_completionOpen:
@@ -905,4 +930,57 @@ public partial class CodeEdit : TextInputControl, ITextCompositionTarget
         new(Math.Min(availableSize.Width, 400), Math.Min(availableSize.Height, 240));
 
     private readonly record struct FoldRegion(int StartLine, int EndLine);
+    /// <inheritdoc />
+    protected override List<MenuItem>? GetDefaultContextMenu()
+    {
+        if (!IsEnabled) return null;
+
+        bool selection = SelectionLength > 0;
+        bool editable = !IsReadOnly;
+
+        return
+        [
+            Command(ZfText.Undo, CanUndo, Undo, Key.Z),
+            Command(ZfText.Redo, CanRedo, Redo, Key.Y),
+            MenuItem.Separator,
+            Command(ZfText.Cut, editable && selection, CutSelection, Key.X),
+            Command(ZfText.Copy, selection, CopySelection, Key.C),
+            Command(ZfText.Paste, editable, Paste, Key.V),
+            MenuItem.Separator,
+            Command(ZfText.SelectAll, _document.Text.Length > 0, () => _document.SelectAll(), Key.A),
+        ];
+
+        static MenuItem Command(TextKey caption, bool enabled, Action run, Key key, KeyModifiers modifiers = KeyModifiers.Control)
+        {
+            var item = new MenuItem
+            {
+                Text = Localization.Get(caption),
+                IsEnabled = enabled,
+                InputGestureText = new KeyGesture(key, modifiers).ToString(),
+            };
+            item.Click += (_, _) => run();
+            return item;
+        }
+    }
+
+    private void CopySelection()
+    {
+        if (SelectionLength > 0)
+            Clipboard.Current.SetText(SelectedText);
+    }
+
+    private void CutSelection()
+    {
+        if (IsReadOnly || SelectionLength == 0) return;
+        Clipboard.Current.SetText(SelectedText);
+        _document.DeleteSelection();
+    }
+
+    private void Paste()
+    {
+        if (IsReadOnly) return;
+        if (Clipboard.Current.GetText() is { Length: > 0 } text)
+            _document.Insert(text);
+    }
+
 }

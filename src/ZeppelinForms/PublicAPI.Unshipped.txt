@@ -1,6 +1,4 @@
 ﻿#nullable enable
-static ZeppelinForms.Core.Text.PageSize.operator !=(ZeppelinForms.Core.Text.PageSize left, ZeppelinForms.Core.Text.PageSize right) -> bool
-static ZeppelinForms.Core.Text.PageSize.operator ==(ZeppelinForms.Core.Text.PageSize left, ZeppelinForms.Core.Text.PageSize right) -> bool
 ZeppelinForms.Accessibility.AccessibilityProperty.Caret = 6 -> ZeppelinForms.Accessibility.AccessibilityProperty
 ZeppelinForms.Accessibility.Peers.CodeEditPeer
 ZeppelinForms.Accessibility.Peers.CodeEditPeer.CodeEditPeer(ZeppelinForms.Forms.Controls.Text.CodeEdit! owner) -> void
@@ -203,6 +201,8 @@ ZeppelinForms.Forms.Controls.Base.UIElement.Bind(ZeppelinForms.Forms.Styling.Sty
 ZeppelinForms.Forms.Controls.Charts.RadarChart.KeepLabelsClear.get -> bool
 ZeppelinForms.Forms.Controls.Charts.RadarChart.KeepLabelsClear.set -> void
 ZeppelinForms.Forms.Controls.Text.CodeEdit
+ZeppelinForms.Forms.Controls.Text.CodeEdit.CanRedo.get -> bool
+ZeppelinForms.Forms.Controls.Text.CodeEdit.CanUndo.get -> bool
 ZeppelinForms.Forms.Controls.Text.CodeEdit.CaretIndex.get -> int
 ZeppelinForms.Forms.Controls.Text.CodeEdit.CloseCompletion() -> void
 ZeppelinForms.Forms.Controls.Text.CodeEdit.CodeEdit() -> void
@@ -229,6 +229,7 @@ ZeppelinForms.Forms.Controls.Text.CodeEdit.LineNumberColor.get -> ZeppelinForms.
 ZeppelinForms.Forms.Controls.Text.CodeEdit.LineNumberColor.set -> void
 ZeppelinForms.Forms.Controls.Text.CodeEdit.OccurrenceBrush.get -> ZeppelinForms.Drawing.Primitives.Color
 ZeppelinForms.Forms.Controls.Text.CodeEdit.OccurrenceBrush.set -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.Redo() -> void
 ZeppelinForms.Forms.Controls.Text.CodeEdit.SelectedText.get -> string!
 ZeppelinForms.Forms.Controls.Text.CodeEdit.SelectionBrush.get -> ZeppelinForms.Drawing.Primitives.Color
 ZeppelinForms.Forms.Controls.Text.CodeEdit.SelectionBrush.set -> void
@@ -243,8 +244,11 @@ ZeppelinForms.Forms.Controls.Text.CodeEdit.Text.get -> string?
 ZeppelinForms.Forms.Controls.Text.CodeEdit.Text.set -> void
 ZeppelinForms.Forms.Controls.Text.CodeEdit.TextChanged -> System.EventHandler?
 ZeppelinForms.Forms.Controls.Text.CodeEdit.ToggleFold(int lineStart) -> void
+ZeppelinForms.Forms.Controls.Text.CodeEdit.Undo() -> void
 ZeppelinForms.Forms.Controls.Text.DocumentEdit
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.ApplyStyle(ZeppelinForms.Core.Text.RichTextStyle style) -> void
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.CanRedo.get -> bool
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.CanUndo.get -> bool
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.CaretIndex.get -> int
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.Document.get -> ZeppelinForms.Core.Text.RichTextDocument!
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.DocumentEdit() -> void
@@ -259,6 +263,7 @@ ZeppelinForms.Forms.Controls.Text.DocumentEdit.PageSpacing.set -> void
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.Pages.get -> System.Collections.Generic.IReadOnlyList<ZeppelinForms.Core.Text.DocumentPage!>!
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.Print() -> void
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.PrintRequested -> System.EventHandler<ZeppelinForms.Core.Text.DocumentPrintRequest!>?
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.Redo() -> void
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.SelectionBrush.get -> ZeppelinForms.Drawing.Primitives.Color
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.SelectionBrush.set -> void
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.SelectionChanged -> System.EventHandler?
@@ -272,8 +277,11 @@ ZeppelinForms.Forms.Controls.Text.DocumentEdit.SetPaper(ZeppelinForms.Core.Text.
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.Text.get -> string?
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.Text.set -> void
 ZeppelinForms.Forms.Controls.Text.DocumentEdit.TextChanged -> System.EventHandler?
+ZeppelinForms.Forms.Controls.Text.DocumentEdit.Undo() -> void
 ZeppelinForms.Forms.Controls.Text.RichTextBox
 ZeppelinForms.Forms.Controls.Text.RichTextBox.ApplyStyle(ZeppelinForms.Core.Text.RichTextStyle style) -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.CanRedo.get -> bool
+ZeppelinForms.Forms.Controls.Text.RichTextBox.CanUndo.get -> bool
 ZeppelinForms.Forms.Controls.Text.RichTextBox.CaretBrush.get -> ZeppelinForms.Drawing.Primitives.Color
 ZeppelinForms.Forms.Controls.Text.RichTextBox.CaretBrush.set -> void
 ZeppelinForms.Forms.Controls.Text.RichTextBox.CaretIndex.get -> int
@@ -283,6 +291,7 @@ ZeppelinForms.Forms.Controls.Text.RichTextBox.Document.get -> ZeppelinForms.Core
 ZeppelinForms.Forms.Controls.Text.RichTextBox.IsReadOnly.get -> bool
 ZeppelinForms.Forms.Controls.Text.RichTextBox.IsReadOnly.set -> void
 ZeppelinForms.Forms.Controls.Text.RichTextBox.Paste() -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.Redo() -> void
 ZeppelinForms.Forms.Controls.Text.RichTextBox.RichTextBox() -> void
 ZeppelinForms.Forms.Controls.Text.RichTextBox.Select(int start, int length) -> void
 ZeppelinForms.Forms.Controls.Text.RichTextBox.SelectAll() -> void
@@ -299,6 +308,7 @@ ZeppelinForms.Forms.Controls.Text.RichTextBox.TextChanged -> System.EventHandler
 ZeppelinForms.Forms.Controls.Text.RichTextBox.ToggleBold() -> void
 ZeppelinForms.Forms.Controls.Text.RichTextBox.ToggleItalic() -> void
 ZeppelinForms.Forms.Controls.Text.RichTextBox.ToggleUnderline() -> void
+ZeppelinForms.Forms.Controls.Text.RichTextBox.Undo() -> void
 ZeppelinForms.Forms.Controls.Text.TextBox.SelectionChanged -> System.EventHandler?
 ZeppelinForms.Input.Commands.AsyncCommand
 ZeppelinForms.Input.Commands.AsyncCommand.AllowConcurrentExecutions.get -> bool
@@ -352,6 +362,7 @@ override ZeppelinForms.Core.Text.RichTextStyle.Equals(object? obj) -> bool
 override ZeppelinForms.Core.Text.RichTextStyle.GetHashCode() -> int
 override ZeppelinForms.Forms.Controls.Text.CodeEdit.AcceptsTextInput.get -> bool
 override ZeppelinForms.Forms.Controls.Text.CodeEdit.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
+override ZeppelinForms.Forms.Controls.Text.CodeEdit.GetDefaultContextMenu() -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>?
 override ZeppelinForms.Forms.Controls.Text.CodeEdit.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
 override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnKeyDown(ZeppelinForms.Input.Keyboard.KeyEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnLostFocus() -> void
@@ -361,6 +372,7 @@ override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnMouseUp(ZeppelinForms.Inpu
 override ZeppelinForms.Forms.Controls.Text.CodeEdit.OnTextInput(char c) -> void
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.AcceptsTextInput.get -> bool
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
+override ZeppelinForms.Forms.Controls.Text.DocumentEdit.GetDefaultContextMenu() -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>?
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnKeyDown(ZeppelinForms.Input.Keyboard.KeyEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnLostFocus() -> void
@@ -370,6 +382,7 @@ override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnMouseUp(ZeppelinForms.
 override ZeppelinForms.Forms.Controls.Text.DocumentEdit.OnTextInput(char c) -> void
 override ZeppelinForms.Forms.Controls.Text.RichTextBox.AcceptsTextInput.get -> bool
 override ZeppelinForms.Forms.Controls.Text.RichTextBox.DrawContent(ZeppelinForms.Drawing.Graphics! g) -> void
+override ZeppelinForms.Forms.Controls.Text.RichTextBox.GetDefaultContextMenu() -> System.Collections.Generic.List<ZeppelinForms.Forms.Controls.MenuItem!>?
 override ZeppelinForms.Forms.Controls.Text.RichTextBox.MeasureOverride(ZeppelinForms.Drawing.Primitives.Size availableSize) -> ZeppelinForms.Drawing.Primitives.Size
 override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnKeyDown(ZeppelinForms.Input.Keyboard.KeyEventArgs! e) -> void
 override ZeppelinForms.Forms.Controls.Text.RichTextBox.OnLostFocus() -> void
@@ -381,6 +394,8 @@ static ZeppelinForms.Core.Text.PageSize.A4.get -> ZeppelinForms.Core.Text.PageSi
 static ZeppelinForms.Core.Text.PageSize.A5.get -> ZeppelinForms.Core.Text.PageSize
 static ZeppelinForms.Core.Text.PageSize.Legal.get -> ZeppelinForms.Core.Text.PageSize
 static ZeppelinForms.Core.Text.PageSize.Letter.get -> ZeppelinForms.Core.Text.PageSize
+static ZeppelinForms.Core.Text.PageSize.operator !=(ZeppelinForms.Core.Text.PageSize left, ZeppelinForms.Core.Text.PageSize right) -> bool
+static ZeppelinForms.Core.Text.PageSize.operator ==(ZeppelinForms.Core.Text.PageSize left, ZeppelinForms.Core.Text.PageSize right) -> bool
 static ZeppelinForms.Core.Text.RichTextStyle.Empty.get -> ZeppelinForms.Core.Text.RichTextStyle
 static ZeppelinForms.Core.Text.RichTextStyle.operator !=(ZeppelinForms.Core.Text.RichTextStyle left, ZeppelinForms.Core.Text.RichTextStyle right) -> bool
 static ZeppelinForms.Core.Text.RichTextStyle.operator ==(ZeppelinForms.Core.Text.RichTextStyle left, ZeppelinForms.Core.Text.RichTextStyle right) -> bool

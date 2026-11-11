@@ -34,6 +34,13 @@
   `PrintRequested` with a snapshot the host can send to a system printer — ZF
   does not open the spooler itself. Ctrl+P prints from the keyboard
 
+### Editing
+
+- `CodeEdit`, `RichTextBox` and `DocumentEdit` expose `Undo` / `Redo` / `CanUndo` /
+  `CanRedo`, the same contract as `TextBox`. Ctrl+Z undoes, Ctrl+Y and Ctrl+Shift+Z
+  redo. The default context menu lists them. On the rich-text controls a history
+  step also keeps the formatting spans aligned with the text
+
 ### Accessibility
 
 - Linux has a screen reader bridge: AT-SPI 2, which Orca reads, on X11 and on Wayland. The

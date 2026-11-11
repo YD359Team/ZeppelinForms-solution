@@ -9,6 +9,7 @@ namespace ZeppelinForms.Core.Text;
 public sealed class RichTextDocument
 {
     private readonly List<RichTextSpan> _spans = [];
+    private string _knownText = string.Empty;
 
     public TextDocument Text { get; } = new() { IsMultiline = true };
 
@@ -21,6 +22,7 @@ public sealed class RichTextDocument
         {
             Text.Text = value ?? string.Empty;
             _spans.Clear();
+            _knownText = Text.Text;
             Changed?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -32,7 +34,36 @@ public sealed class RichTextDocument
         Text.Changed += OnTextChanged;
     }
 
-    private void OnTextChanged(object? sender, EventArgs e) => Changed?.Invoke(this, EventArgs.Empty);
+    private void OnTextChanged(object? sender, EventArgs e)
+    {
+        // typing, paste, delete, undo and redo all land here. Diff against the
+        // last known text so spans stay aligned even when the host did not call
+        // NotifyEdit (history applies the splice itself).
+        AdjustSpans(_knownText, Text.Text);
+        _knownText = Text.Text;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void AdjustSpans(string oldText, string newText)
+    {
+        if (oldText == newText) return;
+
+        int prefix = 0;
+        int limit = Math.Min(oldText.Length, newText.Length);
+        while (prefix < limit && oldText[prefix] == newText[prefix]) prefix++;
+
+        int suffix = 0;
+        int oldLeft = oldText.Length - prefix;
+        int newLeft = newText.Length - prefix;
+        while (suffix < oldLeft && suffix < newLeft &&
+               oldText[oldText.Length - 1 - suffix] == newText[newText.Length - 1 - suffix])
+            suffix++;
+
+        int removed = oldText.Length - prefix - suffix;
+        int inserted = newText.Length - prefix - suffix;
+        if (removed != 0 || inserted != 0)
+            NotifyEdit(prefix, removed, inserted);
+    }
 
     /// <summary>Apply <paramref name="style"/> to <c>[start, start+length)</c>,
     /// splitting and merging spans so neighbours with the same look stay one.</summary>

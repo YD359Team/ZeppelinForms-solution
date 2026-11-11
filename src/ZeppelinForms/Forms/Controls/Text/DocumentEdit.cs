@@ -9,6 +9,10 @@ using ZeppelinForms.Input;
 using ZeppelinForms.Input.Keyboard;
 using ZeppelinForms.Input.Mouse;
 
+using ZeppelinForms.Core.Globalization;
+
+using ZeppelinForms.Forms.Controls;
+
 namespace ZeppelinForms.Forms.Controls.Text;
 
 /// <summary>A paginated rich-text document editor (word-processor layout).</summary>
@@ -97,7 +101,6 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
         int len = SelectionLength;
         if (len <= 0) return;
         _document.Text.DeleteSelection();
-        _document.NotifyEdit(pos, len, 0);
         _layoutDirty = true;
     }
 
@@ -315,9 +318,31 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
         int pos = _document.Text.SelectionStart;
         int removed = _document.Text.SelectionLength;
         _document.Text.Insert(c.ToString());
-        _document.NotifyEdit(pos, removed, 1);
         _layoutDirty = true;
         ResetCaretBlink();
+    }
+
+
+    /// <summary>Whether <see cref="Undo"/> has an edit to take back.</summary>
+    public bool CanUndo => _document.Text.CanUndo && !IsReadOnly;
+
+    /// <summary>Whether <see cref="Redo"/> has an edit to bring back.</summary>
+    public bool CanRedo => _document.Text.CanRedo && !IsReadOnly;
+
+    /// <summary>Take back the last edit. Ctrl+Z.</summary>
+    public void Undo()
+    {
+        if (IsReadOnly) return;
+        _document.Text.Undo();
+        _layoutDirty = true;
+    }
+
+    /// <summary>Bring back the last undone edit. Ctrl+Y or Ctrl+Shift+Z.</summary>
+    public void Redo()
+    {
+        if (IsReadOnly) return;
+        _document.Text.Redo();
+        _layoutDirty = true;
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -366,7 +391,6 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
                     int pos = SelectionStart;
                     int removed = SelectionLength;
                     _document.Text.Insert(paste);
-                    _document.NotifyEdit(pos, removed, paste.Length);
                     _layoutDirty = true;
                 }
                 e.Handled = true; break;
@@ -378,10 +402,12 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
                 e.Handled = true; break;
             case Key.Enter when !IsReadOnly:
                 OnTextInput('\n'); e.Handled = true; break;
+            case Key.Z when ctrl && shift && !IsReadOnly:
+                Redo(); e.Handled = true; break;
             case Key.Z when ctrl && !IsReadOnly:
-                _document.Text.Undo(); _layoutDirty = true; e.Handled = true; break;
+                Undo(); e.Handled = true; break;
             case Key.Y when ctrl && !IsReadOnly:
-                _document.Text.Redo(); _layoutDirty = true; e.Handled = true; break;
+                Redo(); e.Handled = true; break;
         }
     }
 
@@ -392,7 +418,6 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
         action();
         int after = _document.Text.Text.Length;
         if (before > after)
-            _document.NotifyEdit(Math.Min(caret, _document.Text.CaretIndex), before - after, 0);
         _layoutDirty = true;
         ResetCaretBlink();
     }
@@ -698,4 +723,57 @@ public partial class DocumentEdit : TextInputControl, ITextCompositionTarget
             Math.Min(availableSize.Width, page.Width * scale + Padding.Horizontal + 32),
             Math.Min(availableSize.Height, height));
     }
+    /// <inheritdoc />
+    protected override List<MenuItem>? GetDefaultContextMenu()
+    {
+        if (!IsEnabled) return null;
+
+        bool selection = SelectionLength > 0;
+        bool editable = !IsReadOnly;
+
+        return
+        [
+            Command(ZfText.Undo, CanUndo, Undo, Key.Z),
+            Command(ZfText.Redo, CanRedo, Redo, Key.Y),
+            MenuItem.Separator,
+            Command(ZfText.Cut, editable && selection, CutSelection, Key.X),
+            Command(ZfText.Copy, selection, CopySelection, Key.C),
+            Command(ZfText.Paste, editable, PasteText, Key.V),
+            MenuItem.Separator,
+            Command(ZfText.SelectAll, _document.Content.Length > 0, () => _document.Text.SelectAll(), Key.A),
+        ];
+
+        static MenuItem Command(TextKey caption, bool enabled, Action run, Key key, KeyModifiers modifiers = KeyModifiers.Control)
+        {
+            var item = new MenuItem
+            {
+                Text = Localization.Get(caption),
+                IsEnabled = enabled,
+                InputGestureText = new KeyGesture(key, modifiers).ToString(),
+            };
+            item.Click += (_, _) => run();
+            return item;
+        }
+    }
+
+    private void CopySelection()
+    {
+        if (SelectionLength > 0)
+            Clipboard.Current.SetText(_document.Text.SelectedText);
+    }
+
+    private void CutSelection()
+    {
+        if (IsReadOnly || SelectionLength == 0) return;
+        Clipboard.Current.SetText(_document.Text.SelectedText);
+        _document.Text.DeleteSelection();
+    }
+
+    private void PasteText()
+    {
+        if (IsReadOnly) return;
+        if (Clipboard.Current.GetText() is { Length: > 0 } text)
+            _document.Text.Insert(text);
+    }
+
 }
